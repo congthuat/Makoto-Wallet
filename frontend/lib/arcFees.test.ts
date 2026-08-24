@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { arcFeeMateriallyChanged, arcFeeToUsdcAtomic, arcMaximumCost, calculateArcFee, formatArcFee, formatArcFeeEstimate, maxSendAmountAfterArcFee, sendCostWithArcFee } from "./arcFees.ts";
+import { arcFeeMateriallyChanged, arcFeeToUsdcAtomic, arcMaximumCost, calculateArcFee, formatArcFee, formatArcFeeEstimate, maxSendAmountAfterArcFee, maxUsdcSwapAfterArcFee, sendCostWithArcFee, swapCostWithArcFee } from "./arcFees.ts";
 
 test("calculates Arc native fee units without mixing USDC token decimals", () => {
   assert.equal(calculateArcFee(21_000n, 1_000_000_000n).rawFee, 21_000_000_000_000n);
@@ -24,4 +24,10 @@ test("formats user-facing Arc fees in USDC", () => {
   assert.equal(formatArcFee(20_000_000_000_000_000n, { maximum: true }), "≤$0.02 USDC");
   assert.throws(() => formatArcFee(-1n), RangeError);
   assert.equal(formatArcFeeEstimate(2_584_000_000_000_000n), "~0.002584 USDC");
+});
+
+test("USDC swap reserves network gas while EURC still requires a USDC gas balance", () => {
+  assert.equal(maxUsdcSwapAfterArcFee(10_000_000n, 1_000_000_000_000_000_000n), 9_000_000n);
+  assert.deepEqual(swapCostWithArcFee(9_000_000n, "usdc", 10_000_000n, 1_000_000_000_000_000_000n), { feeUsdc6: 1_000_000n, requiredUsdc6: 10_000_000n, sufficientGasBalance: true });
+  assert.equal(swapCostWithArcFee(5_000_000n, "eurc", 500_000n, 1_000_000_000_000_000_000n).sufficientGasBalance, false);
 });

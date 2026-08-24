@@ -56,3 +56,24 @@ Begin with the wallet on the destination network. Review must request the source
 ## F. Destination completion
 
 After burn confirmation, leave the browser open. Completed must appear only after the App Kit bridge call returns success. A destination explorer link must appear only for a real returned mint hash.
+
+# Phase 10.4 — Smart Swap Router owner QA
+
+## A. Smart and XyloNet modes
+
+1. Open Swap & Bridge → Swap on Arc Testnet with USDC and EURC balances.
+2. In Smart mode, quote both directions. Expect **Selected route: XyloNet StableSwap** and never a “Best route” claim.
+3. Select XyloNet mode and repeat. The same live router contract quote must execute.
+4. Open Advanced providers. Circle App Kit Swap must be visibly unavailable because its secret Kit Key cannot be used in the browser.
+
+## B. Quote, approval, and slippage safety
+
+Review a small quote at every slippage option. Confirm current output, minimum received, selected route, and quote freshness. When allowance is low, expect an exact-amount approval followed by swap. Reject either request and confirm the UI reports wallet rejection and permits retry. Let a quote age beyond 45 seconds, including during approval, and confirm no stale swap is submitted.
+
+## C. Arc fee and MAX
+
+For USDC input, select MAX. Expect the amount to reserve the live approval-plus-swap Arc gas estimate. Review must itemize estimated Arc gas in USDC and block if the combined amount is insufficient. For EURC input, MAX may use the EURC balance, but review must still verify that the USDC balance covers Arc gas. If RPC gas estimation is unavailable, safe MAX and execution must fail closed.
+
+## D. Live completion and evidence
+
+Execute a small testnet swap in each direction. Confirm pending stages remain legible, final success appears only after a successful receipt, both balances refresh, the activity record includes sold and received assets, and the ArcScan link matches the real transaction hash.

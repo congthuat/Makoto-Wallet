@@ -21,11 +21,15 @@ Transactions use Preparing, Awaiting signature, Submitted, Pending, Final succes
 
 ## Circle App Kit, Gateway, and bridge
 
-The live Unified Balance route adapts only the active Reown connector's EIP-1193 provider through Circle App Kit. It recognizes Circle Gateway's Arc Testnet domain 26, Gateway Wallet `0x0077777d7EBA4688BDeF3E311b846F25870A19B9`, and Gateway Minter `0x0022222ABE238Cc2C7Bb1f21003F0a260052475B`. Gateway is permissionless: no Circle API key, entity secret, or application private key is used. Balance, pending state, source-chain breakdown, fee estimates, and transaction results come from the SDK. Deposits support Arc Testnet and Base Sepolia; automatic-allocation spends target Arc Testnet. App Kit swap/bridge actions remain configuration-required. Existing CCTP V2 remains the working bridge fallback.
+The live Unified Balance route adapts only the active Reown connector's EIP-1193 provider through Circle App Kit. It recognizes Circle Gateway's Arc Testnet domain 26, Gateway Wallet `0x0077777d7EBA4688BDeF3E311b846F25870A19B9`, and Gateway Minter `0x0022222ABE238Cc2C7Bb1f21003F0a260052475B`. Gateway is permissionless: no Circle API key, entity secret, or application private key is used. Balance, pending state, source-chain breakdown, fee estimates, and transaction results come from the SDK. Deposits support Arc Testnet and Base Sepolia; automatic-allocation spends target Arc Testnet. Existing CCTP V2 remains the working bridge fallback.
+
+Circle App Kit 1.12.1 exposes Arc Testnet swap types and `estimateSwap`/`swap`, but its Stablecoin Service route requires a secret Kit Key. Circle explicitly forbids placing Kit Keys in client-side code. Makoto therefore does not construct or expose a Circle browser execution path, a `NEXT_PUBLIC_CIRCLE_KIT_KEY`, or a custodial server wallet. `KIT_KEY` is documented as a server-only placeholder for a future non-custodial architecture review.
 
 ## Swap and activity
 
-The router compares only current, available, positive real quotes, selects the greatest output, then lowest fee, with a deterministic provider tie-break. Activity is normalized by chain, wallet, transaction hash, and log index; verified on-chain records replace optimistic records.
+The provider-neutral router compares only current, available, positive real quotes, selects the greatest output, then lowest fee, with a deterministic provider tie-break. Smart mode currently selects the only browser-executable route, XyloNet; it says **Selected route**, never **Best route**, until at least two comparable live routes exist. XyloNet mode pins that provider. Advanced comparison shows Circle as unavailable with the Kit Key reason.
+
+Swap review estimates approval plus swap gas when the active allowance requires approval. Arc native gas remains 18-decimal accounting and is explicitly converted to six-decimal USDC display units. USDC MAX reserves the estimate; EURC input still requires enough USDC for Arc gas. If gas cannot be estimated safely, MAX and execution fail closed. XyloNet retains live re-quoting, exact approvals, quote expiry, slippage minimum output, wallet-rejection handling, verified receipt activity, and ArcScan evidence.
 
 ## Batch Pay and smart wallets
 

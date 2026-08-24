@@ -51,6 +51,17 @@ export function maxSendAmountAfterArcFee(balanceUsdc6: bigint, rawFee18: bigint)
   return feeUsdc6 < balanceUsdc6 ? balanceUsdc6 - feeUsdc6 : undefined;
 }
 
+export function swapCostWithArcFee(inputAmount: bigint, inputAsset: "usdc" | "eurc", usdcBalance: bigint, rawFee18: bigint) {
+  if (inputAmount < 0n || usdcBalance < 0n) throw new RangeError("Amounts cannot be negative");
+  const feeUsdc6 = arcFeeToUsdcAtomic(rawFee18);
+  const requiredUsdc6 = feeUsdc6 + (inputAsset === "usdc" ? inputAmount : 0n);
+  return { feeUsdc6, requiredUsdc6, sufficientGasBalance: requiredUsdc6 <= usdcBalance };
+}
+
+export function maxUsdcSwapAfterArcFee(balanceUsdc6: bigint, rawFee18: bigint): bigint | undefined {
+  return maxSendAmountAfterArcFee(balanceUsdc6, rawFee18);
+}
+
 export function arcFeeMateriallyChanged(reviewed: bigint, current: bigint, toleranceBps = 1_000n): boolean {
   if (reviewed < 0n || current < 0n || toleranceBps < 0n) throw new RangeError("Fee values cannot be negative");
   if (reviewed === current) return false;
