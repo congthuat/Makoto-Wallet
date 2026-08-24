@@ -1,0 +1,23 @@
+:global(.universal-bridge){display:grid;gap:16px}
+:global(.universal-bridge) header p{margin:0;color:var(--purple);font-size:10px;font-weight:900;letter-spacing:.12em}
+:global(.universal-bridge) header h2{margin:5px 0 0}
+:global(.universal-bridge) form{display:grid;gap:14px}
+:global(.universal-bridge) label{display:grid;gap:7px}
+:global(.universal-bridge) input,:global(.universal-bridge) select{box-sizing:border-box;width:100%;min-width:0;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface);color:var(--ink);font:inherit}
+:global(.bridge-networks){display:grid;grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);align-items:end;gap:8px}
+:global(.bridge-reverse){width:44px;height:44px;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--ink);font-size:20px}
+:global(.universal-bridge) fieldset{display:grid;gap:8px;margin:0;padding:12px;border:1px solid var(--line);border-radius:14px}
+:global(.universal-bridge) fieldset label{display:flex;align-items:center}
+:global(.universal-bridge) fieldset input[type=radio]{width:auto}
+:global(.bridge-review) dl{display:grid;gap:0}
+:global(.bridge-review) dl div,:global(.bridge-fees) p{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--line)}
+:global(.bridge-review) dd{margin:0;text-align:right;max-width:60%;overflow-wrap:anywhere}
+:global(.bridge-actions){display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+:global(.bridge-timeline){display:grid;gap:7px;margin:18px 0 0;padding:0;list-style:none}
+:global(.bridge-timeline) li{padding-left:22px;color:var(--muted);overflow-wrap:anywhere}
+:global(.bridge-timeline) li:before{content:"○";margin-left:-22px;margin-right:8px}
+:global(.bridge-timeline) li[data-active=true]{color:var(--ink);font-weight:800}
+:global(.bridge-timeline) li[data-active=true]:before{content:"●";color:var(--purple)}
+:global(.bridge-complete){display:grid;gap:12px}
+:global(.bridge-complete) a{overflow-wrap:anywhere}
+@media(max-width:430px){:global(.bridge-networks){grid-template-columns:1fr 38px 1fr}:global(.bridge-reverse){width:38px;height:38px}:global(.bridge-review) dl div,:global(.bridge-fees) p{display:grid;gap:3px}:global(.bridge-review) dd{max-width:100%;text-align:left}:global(.bridge-actions)>*{flex:1}}

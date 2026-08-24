@@ -1,6 +1,24 @@
-export type BridgeStage = "preparing" | "approval-required" | "awaiting-signature" | "source-submitted" | "source-final" | "message-pending" | "destination-pending" | "completed" | "failed";
-const order: BridgeStage[] = ["preparing", "approval-required", "awaiting-signature", "source-submitted", "source-final", "message-pending", "destination-pending", "completed"];
-export function canAdvanceBridge(from: BridgeStage, to: BridgeStage): boolean {
-  if (to === "failed") return from !== "completed" && from !== "failed";
-  return order.indexOf(to) === order.indexOf(from) + 1;
-}
+import { formatUnits, getAddress, isAddress, parseUnits, zeroAddress, type Address } from "viem";
+import type { BridgeParams, BridgeResult, EstimateResult } from "@circle-fin/app-kit";
+import { UNIFIED_EVM_CHAINS, unifiedChainById, unifiedChainBySdk, type UnifiedEvmChain } from "./chains.ts";
+
+export type BridgeStage = "preparing" | "approval" | "burn" | "attestation" | "mint" | "completed" | "failed";
+export type MakotoTransferSpeed = "STANDARD" | "FAST";
+export type MakotoBridgeFee = { type: "protocol" | "forwarding" | "gas"; label: string; amount?: string; token: string; chain?: string };
+export type MakotoBridgeEstimate = { quotedAt: number; amount: string; source: UnifiedEvmChain; destination: UnifiedEvmChain; recipient: Address; speed: MakotoTransferSpeed; fees: MakotoBridgeFee[]; expectedReceive?: string; raw: EstimateResult };
+export type MakotoBridgeResult = { sourceChain: UnifiedEvmChain; destinationChain: UnifiedEvmChain; recipient: Address; amount: string; transferSpeed: MakotoTransferSpeed; sourceTxHash?: string; sourceExplorerUrl?: string; destinationTxHash?: string; destinationExplorerUrl?: string; completionEvidence: "destination-transaction" | "circle-forwarder"; steps: BridgeResult["steps"] };
+export const BRIDGE_ESTIMATE_MAX_AGE_MS = 45_000;
+export const QA_BRIDGE_CHAINS = UNIFIED_EVM_CHAINS;
+export const bridgeDestination = (sourceId: number) => QA_BRIDGE_CHAINS.find((chain) => chain.id !== sourceId);
+export const isBridgeRoute = (sourceId: number, destinationId: number) => sourceId !== destinationId && Boolean(unifiedChainById(sourceId) && unifiedChainById(destinationId));
+export function normalizeRecipient(value: string): Address | undefined { if (!isAddress(value) || getAddress(value) === zeroAddress) return undefined; return getAddress(value); }
+export function parseBridgeAmount(value: string): bigint | undefined { try { const amount = parseUnits(value.trim(), 6); return amount > 0n ? amount : undefined; } catch { return undefined; } }
+export const sdkTransferSpeed = (speed: MakotoTransferSpeed) => speed === "STANDARD" ? "SLOW" as const : "FAST" as const;
+export const supportsFastSource = (source: UnifiedEvmChain) => source.sdk !== "Arc_Testnet";
+export function makeBridgeParams(adapter: BridgeParams["from"]["adapter"], source: UnifiedEvmChain, destination: UnifiedEvmChain, amount: string, recipient: Address, speed: MakotoTransferSpeed): BridgeParams { return { from: { adapter, chain: source.sdk }, to: { chain: destination.sdk, recipientAddress: recipient, useForwarder: true }, amount, token: "USDC", config: { transferSpeed: sdkTransferSpeed(speed) } }; }
+export function normalizeBridgeEstimate(raw: EstimateResult, input: Omit<MakotoBridgeEstimate, "fees" | "expectedReceive" | "raw">): MakotoBridgeEstimate { const fees: MakotoBridgeFee[] = raw.fees.map((fee) => ({ type: fee.type === "forwarder" ? "forwarding" : "protocol", label: fee.type === "forwarder" ? "Forwarding fee" : "CCTP protocol fee", amount: fee.amount ?? undefined, token: fee.token })); for (const gas of raw.gasFees) fees.push({ type: "gas", label: gas.name || "Source gas", amount: gas.fees?.fee, token: gas.token, chain: String(gas.blockchain) }); let expectedReceive: string | undefined; try { const deducted = raw.fees.reduce((sum, fee) => fee.amount == null ? sum : sum + parseUnits(fee.amount, 6), 0n); const value = parseUnits(input.amount, 6); if (deducted <= value) expectedReceive = formatUnits(value - deducted, 6); } catch {} return { ...input, fees, expectedReceive, raw }; }
+export function normalizeBridgeResult(raw: BridgeResult, estimate: MakotoBridgeEstimate): MakotoBridgeResult { const burn = raw.steps.find((step) => step.name.toLowerCase().includes("burn")); const mint = raw.steps.find((step) => step.name.toLowerCase().includes("mint")); return { sourceChain: estimate.source, destinationChain: estimate.destination, recipient: estimate.recipient, amount: estimate.amount, transferSpeed: estimate.speed, sourceTxHash: burn?.txHash, sourceExplorerUrl: burn?.explorerUrl ?? (burn?.txHash ? `${estimate.source.explorer}/tx/${burn.txHash}` : undefined), destinationTxHash: mint?.txHash, destinationExplorerUrl: mint?.explorerUrl ?? (mint?.txHash ? `${estimate.destination.explorer}/tx/${mint.txHash}` : undefined), completionEvidence: mint?.txHash ? "destination-transaction" : "circle-forwarder", steps: raw.steps }; }
+export function routeSupportedByAppKit(chains: ReadonlyArray<{ name?: string }>, source: UnifiedEvmChain, destination: UnifiedEvmChain) { const values = new Set(chains.map((chain) => chain.name?.replaceAll(" ", "_").toLowerCase())); return [source.sdk, destination.sdk].every((sdk) => values.has(sdk.toLowerCase())); }
+export function bridgeEventStage(action: string): BridgeStage | undefined { const name = action.toLowerCase(); if (name.includes("approve")) return "approval"; if (name.includes("burn")) return "burn"; if (name.includes("attestation")) return "attestation"; if (name.includes("mint")) return "mint"; return undefined; }
+export function sanitizeBridgeError(error: unknown) { const message = error instanceof Error ? error.message : "Circle bridge request failed"; return /reject|denied|cancel|4001/i.test(message) ? "Transaction cancelled in wallet." : message.slice(0, 240); }
+export function chainForSdk(sdk: string) { return unifiedChainBySdk(sdk); }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePreferences } from "@/hooks/usePreferences";
 import { WalletPanel } from "./WalletPanel";
 import { RealSwapFlow } from "./RealSwapFlow";
-import { CctpBridgeFlow } from "./CctpBridgeFlow";
+import { UniversalBridgeFlow } from "./UniversalBridgeFlow";
 
 type Mode = "swap" | "bridge";
 
@@ -24,7 +24,7 @@ export function SwapPanel({ onClose, onConfirmed }: { onClose(): void; onConfirm
           Bridge USDC
         </button>
       </div>
-      {mode === "swap" ? <RealSwapFlow locale={locale} onBusyChange={setBusy} onConfirmed={onConfirmed} /> : <CctpBridgeFlow locale={locale} onBusyChange={setBusy} />}
+      {mode === "swap" ? <RealSwapFlow locale={locale} onBusyChange={setBusy} onConfirmed={onConfirmed} /> : <UniversalBridgeFlow locale={locale} onBusyChange={setBusy} />}
     </WalletPanel>
   );
 }

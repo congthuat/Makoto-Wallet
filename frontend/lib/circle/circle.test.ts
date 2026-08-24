@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { circleCapabilities, ARC_DOMAIN, GATEWAY_WALLET } from "./appKit.ts";
-import { canAdvanceBridge } from "./bridge.ts";
+import { bridgeDestination, bridgeEventStage, isBridgeRoute, normalizeRecipient, parseBridgeAmount, sdkTransferSpeed, supportsFastSource } from "./bridge.ts";
 import { normalizeCircleBalances, normalizeUnifiedBalance, parsePositiveUsdc, sanitizeCircleError } from "./unifiedBalance.ts";
 import { UNIFIED_EVM_CHAINS } from "./chains.ts";
 
@@ -15,10 +15,22 @@ test("unified balance uses provider values and exposes unavailable separately", 
   assert.deepEqual(normalizeUnifiedBalance({ available: 2n, pending: 1n, sources: [{ domain: 26, chain: "Arc Testnet", amount: 2n }] }), { available: 2n, pending: 1n, total: 3n, sources: [{ domain: 26, chain: "Arc Testnet", amount: 2n }] });
   assert.throws(() => normalizeUnifiedBalance({ available: -1n, pending: 0n, sources: [] }), RangeError);
 });
-test("bridge completion requires destination progression", () => {
-  assert.equal(canAdvanceBridge("source-submitted", "source-final"), true);
-  assert.equal(canAdvanceBridge("source-final", "completed"), false);
-  assert.equal(canAdvanceBridge("destination-pending", "completed"), true);
+test("universal bridge routing reverses and rejects same-chain or unsupported routes", () => {
+  assert.equal(isBridgeRoute(5_042_002, 84_532), true);
+  assert.equal(isBridgeRoute(84_532, 5_042_002), true);
+  assert.equal(isBridgeRoute(84_532, 84_532), false);
+  assert.equal(isBridgeRoute(1, 84_532), false);
+  assert.equal(bridgeDestination(84_532)?.id, 5_042_002);
+});
+test("bridge inputs, speed, and SDK events normalize truthfully", () => {
+  assert.equal(parseBridgeAmount("1.25"), 1_250_000n);
+  assert.equal(parseBridgeAmount("0"), undefined);
+  assert.equal(normalizeRecipient("0x0000000000000000000000000000000000000000"), undefined);
+  assert.equal(sdkTransferSpeed("STANDARD"), "SLOW");
+  assert.equal(supportsFastSource(UNIFIED_EVM_CHAINS[0]), false);
+  assert.equal(supportsFastSource(UNIFIED_EVM_CHAINS[1]), true);
+  assert.equal(bridgeEventStage("bridge.attestation"), "attestation");
+  assert.equal(bridgeEventStage("bridge.mint"), "mint");
 });
 
 test("live Gateway chain configuration includes Arc and official Base Sepolia USDC", () => {
