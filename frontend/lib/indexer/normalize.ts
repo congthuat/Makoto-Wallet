@@ -1,0 +1,3 @@
+import type { IndexedActivity } from "./types.ts";
+export const activityIdentity = (item: IndexedActivity) => `${item.chainId}:${item.account.toLowerCase()}:${item.hash.toLowerCase()}:${item.logIndex ?? "tx"}`;
+export function mergeActivity(groups: readonly (readonly IndexedActivity[])[]): IndexedActivity[] { const map = new Map<string, IndexedActivity>(); for (const item of groups.flat()) { const key = activityIdentity(item); const previous = map.get(key); if (!previous || item.status === "verified") map.set(key, item); } return [...map.values()].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)); }

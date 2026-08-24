@@ -1,0 +1,3 @@
+import assert from "node:assert/strict"; import test from "node:test"; import { mergeActivity } from "./normalize.ts"; import type { IndexedActivity } from "./types.ts";
+const item = (status: IndexedActivity["status"], logIndex?: number): IndexedActivity => ({ chainId: 5042002, account: "0x1111111111111111111111111111111111111111", hash: `0x${"1".repeat(64)}`, kind: "send", status, logIndex });
+test("activity merges and verified on-chain data replaces optimistic metadata", () => { assert.deepEqual(mergeActivity([[item("pending")], [item("verified")]]).map(x => x.status), ["verified"]); assert.equal(mergeActivity([[item("verified", 1), item("verified", 2)]]).length, 2); });

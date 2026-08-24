@@ -1,0 +1,9 @@
+import { encodeFunctionData, getAddress, isAddress, zeroAddress, type Address, type Hex } from "viem";
+export const BATCH_PAY_LIMIT = 20;
+export type BatchRecipient = { recipient: string; amount: bigint; label?: string };
+export function validateBatch(recipients: readonly BatchRecipient[], balance: bigint): string[] { const errors: string[] = []; if (!recipients.length || recipients.length > BATCH_PAY_LIMIT) errors.push("batch-size"); const seen = new Set<string>(); let total = 0n; for (const row of recipients) { if (!isAddress(row.recipient) || getAddress(row.recipient) === zeroAddress) errors.push("invalid-recipient"); else { const key = getAddress(row.recipient).toLowerCase(); if (seen.has(key)) errors.push("duplicate-recipient"); seen.add(key); } if (row.amount <= 0n) errors.push("invalid-amount"); else total += row.amount; } if (total > balance) errors.push("insufficient-balance"); return [...new Set(errors)]; }
+export function batchTotal(rows: readonly BatchRecipient[]): bigint { return rows.reduce((sum, row) => sum + (row.amount > 0n ? row.amount : 0n), 0n); }
+const erc20 = [{ type: "function", name: "transfer", stateMutability: "nonpayable", inputs: [{ name: "to", type: "address" }, { name: "value", type: "uint256" }], outputs: [{ name: "", type: "bool" }] }] as const;
+export function buildBatchTransferCalls(token: Address, rows: readonly BatchRecipient[]): ReadonlyArray<{ target: Address; callData: Hex }> { return rows.map(row => ({ target: token, callData: encodeFunctionData({ abi: erc20, functionName: "transfer", args: [getAddress(row.recipient), row.amount] }) })); }
+export type BatchPayCapability = { state: "supported" | "configuration-required"; multicall3From?: Address };
+export function batchPayCapability(address?: string): BatchPayCapability { return address && isAddress(address) ? { state: "supported", multicall3From: getAddress(address) } : { state: "configuration-required" }; }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { arcTestnet } from "viem/chains";
-import { globalReviewChecks, hasBlockingChecks, quoteFreshnessCheck, reviewStillCurrent, sendRecipientChecks, type ReviewSnapshot } from "./transactionReview.ts";
+import { duplicateRecipientCheck, globalReviewChecks, hasBlockingChecks, quoteFreshnessCheck, reviewStillCurrent, sendRecipientChecks, type ReviewSnapshot } from "./transactionReview.ts";
 import { en } from "../i18n/en.ts";
 import { vi } from "../i18n/vi.ts";
 
@@ -45,6 +45,15 @@ test("bridge and savings snapshots include route, destination and selected jar",
   assert.equal(reviewStillCurrent(bridge, { ...bridge }), true);
   assert.equal(reviewStillCurrent(savings, { ...savings }), true);
   assert.equal(reviewStillCurrent(savings, { ...savings, fields: { ...savings.fields, jarId: 4n } }), false);
+});
+
+test("batch and unified balance reviews invalidate changed totals and reject duplicates", () => {
+  const batch: ReviewSnapshot = { kind: "batchPayment", account, chainId: arcTestnet.id, fields: { total: 5n, recipients: `${recipient},${account}` } };
+  const unified: ReviewSnapshot = { kind: "unifiedBalanceSpend", account, chainId: arcTestnet.id, fields: { amount: 5n, source: "gateway", destination: recipient } };
+  assert.equal(duplicateRecipientCheck([recipient, account]).status, "verified");
+  assert.equal(duplicateRecipientCheck([recipient, recipient]).status, "blocking");
+  assert.equal(reviewStillCurrent(batch, { ...batch, fields: { ...batch.fields, total: 6n } }), false);
+  assert.equal(reviewStillCurrent(unified, { ...unified, fields: { ...unified.fields, destination: account } }), false);
 });
 
 test("English and Vietnamese catalogs cover semantic review UI", () => {

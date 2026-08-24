@@ -1,5 +1,9 @@
 # Makoto Wallet
 
+> Arc-native Phase 10–11 engine status: Arc lifecycle/fee/review utilities, provider-neutral Circle Gateway/App Kit capability detection, bridge state validation, smart swap routing, activity merging, Batch Pay validation/call planning, and an optional smart-wallet interface are implemented and tested. Existing Send, Receive, XyloNet swap, CCTP V2, Arc Memo, and Makoto Vault remain the live transaction paths. Circle App Kit/Gateway actions require real provider configuration; Batch Pay execution requires a verified official Arc `Multicall3From` address; ERC-4337 remains experimental/configuration-required. No simulated balances, quotes, bridge completion, sponsorship, or smart accounts are shown.
+
+Architecture and operational boundaries are documented in [docs/ARC-NATIVE-ARCHITECTURE.md](docs/ARC-NATIVE-ARCHITECTURE.md). Manual validation steps are in [docs/PHASE-10-11-QA.md](docs/PHASE-10-11-QA.md).
+
 <p align="center">
   <img src="frontend/public/makoto/logo-pro-v2.png" alt="Makoto Wallet" width="96" />
 </p>

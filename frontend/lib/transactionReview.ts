@@ -1,7 +1,7 @@
 import { getAddress, isAddress, zeroAddress, type Address } from "viem";
 import { arcTestnet } from "viem/chains";
 
-export type TransactionReviewKind = "send" | "swap" | "bridge" | "savingsDeposit" | "createJar" | "withdrawal";
+export type TransactionReviewKind = "send" | "swap" | "bridge" | "savingsDeposit" | "createJar" | "withdrawal" | "batchPayment" | "unifiedBalanceSpend";
 export type SafetyCheckStatus = "verified" | "info" | "attention" | "blocking";
 export type SafetyCheck = { code: string; status: SafetyCheckStatus; label: string; detail?: string };
 export type ReviewSnapshot = {
@@ -58,6 +58,13 @@ export function quoteFreshnessCheck(quotedAt: number, now: number, maxAgeMs: num
   return now - quotedAt <= maxAgeMs
     ? { code: "quote", status: "verified", label: "Quote is current" }
     : { code: "quote", status: "blocking", label: "Quote expired" };
+}
+
+export function duplicateRecipientCheck(recipients: readonly string[]): SafetyCheck {
+  const normalized = recipients.filter((recipient) => isAddress(recipient)).map((recipient) => getAddress(recipient).toLowerCase());
+  return new Set(normalized).size === normalized.length
+    ? { code: "duplicates", status: "verified", label: "Recipients are unique" }
+    : { code: "duplicates", status: "blocking", label: "Remove duplicate recipients" };
 }
 
 export function hasBlockingChecks(checks: readonly SafetyCheck[]): boolean {
