@@ -4,7 +4,7 @@ import type { SupportedAssetId } from "./assets.ts";
 import { findKnownContract, type KnownContractCategory } from "./knownContracts.ts";
 
 export type SafeJson = null | boolean | number | string | SafeJson[] | { [key: string]: SafeJson };
-export type TransactionIntentKind = "send" | "memo-send" | "swap" | "bridge" | "vault-deposit" | "vault-withdraw" | "approval";
+export type TransactionIntentKind = "send" | "memo-send" | "swap" | "bridge" | "vault-create" | "vault-deposit" | "vault-withdraw" | "approval";
 export type TransactionIntent = {
   id: string; kind: TransactionIntentKind; chainId: number; account: Address; target: Address; targetLabel?: string;
   calldata: Hex; value: bigint; selector?: Hex; recipient?: Address;

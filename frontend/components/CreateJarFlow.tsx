@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { decodeEventLog, formatUnits, getAddress, isAddress, zeroAddress } from "viem";
+import { decodeEventLog, encodeFunctionData, formatUnits, getAddress, isAddress, zeroAddress, type Hex } from "viem";
 import { useConnection, useSignMessage, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
@@ -18,7 +18,10 @@ import {
   savePendingEncryptedMetadata,
   type PendingEncryptedMetadata,
 } from "@/lib/privateMetadata";
-import { TransactionSafetyChecks } from "./TransactionSafetyReview";
+import { TransactionSafetyChecks, TransactionSafetyReview } from "./TransactionSafetyReview";
+import { prepareFlowReview } from "@/lib/transactionFlowReview";
+import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import type { TransactionIntent } from "@/lib/transactionSafety";
 
 type Step = "form" | "review" | "wallet" | "submitted" | "success" | "error";
 
@@ -43,6 +46,8 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
   const [transactionError, setTransactionError] = useState<string>();
   const [confirmedHash, setConfirmedHash] = useState<`0x${string}`>();
   const [reviewedAccount, setReviewedAccount] = useState<`0x${string}`>();
+  const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
+  const submissionGuard = useRef(new ReviewSubmissionGuard());
   const finalizedHash = useRef<`0x${string}` | undefined>(undefined);
   const pendingEncrypted = useRef<PendingEncryptedMetadata | undefined>(undefined);
   const receipt = useWaitForTransactionReceipt({ hash: write.data, chainId: arcTestnet.id, query: { enabled: Boolean(write.data) } });
@@ -50,10 +55,22 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
   const unlockParts = splitLocalDateTime(values.unlockLocal);
   const onArc = connection.status === "connected" && verifiedChain.isArc;
 
+  function goalIntent(safe: ReturnType<typeof parseCreateJar>, commitment?: Hex): TransactionIntent | undefined {
+    if (!connection.address || !contractAddress) return undefined;
+    const withdrawalDelay = BigInt(withdrawalDelayHours) * 60n * 60n;
+    const protection = guardianProtection ? validateProtectionWallets(guardianWallet, recoveryWallet, connection.address, t("create.walletsError"), t("create.distinctWalletsError")) : undefined;
+    let calldata: Hex;
+    if (privacy === "private") {
+      if (!commitment) return undefined;
+      calldata = jarMode === "shielded" ? protection ? encodeFunctionData({ abi: penguJarV3Abi, functionName: "createPrivateGuardianShieldedJar", args: [commitment, safe.unlockTime, 0n, withdrawalDelay, protection.guardian, protection.recovery] }) : encodeFunctionData({ abi: penguJarV3Abi, functionName: "createPrivateShieldedJar", args: [commitment, safe.unlockTime, 0n, withdrawalDelay] }) : encodeFunctionData({ abi: penguJarV3Abi, functionName: "createPrivateJar", args: [commitment, safe.unlockTime, 0n] });
+    } else calldata = jarMode === "shielded" ? protection ? encodeFunctionData({ abi: penguJarV3Abi, functionName: "createGuardianShieldedJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n, withdrawalDelay, protection.guardian, protection.recovery] }) : encodeFunctionData({ abi: penguJarV3Abi, functionName: "createShieldedJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n, withdrawalDelay] }) : encodeFunctionData({ abi: penguJarV3Abi, functionName: "createJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n] });
+    return { id: "vault-goal-create", kind: "vault-create", chainId: arcTestnet.id, account: connection.address, target: contractAddress, calldata, value: 0n, preparedAt: reviewNow(), metadata: { targetAmount: safe.targetAmount.toString(), unlockTime: safe.unlockTime.toString(), privacy, jarMode, guardianProtection } };
+  }
+
   function review(event: FormEvent) {
     event.preventDefault();
     try {
-      parseCreateJar(values);
+      const parsedReview = parseCreateJar(values);
       if (jarMode === "shielded") {
         const hours = Number(withdrawalDelayHours);
         if (!Number.isInteger(hours) || hours < 1 || hours > 720) {
@@ -63,6 +80,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
       }
       setFormError(undefined);
       setReviewedAccount(connection.address);
+      if (privacy === "public") { const intent = goalIntent(parsedReview); if (intent) setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: onArc ? arcTestnet.id : undefined, simulation: "passed", expectedTarget: contractAddress! })); }
       setStep("review");
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
@@ -81,37 +99,25 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
       const protection = guardianProtection
         ? validateProtectionWallets(guardianWallet, recoveryWallet, connection.address, t("create.walletsError"), t("create.distinctWalletsError"))
         : undefined;
+      if (reviewSnapshot) { const reviewedIntent = goalIntent(safe, pendingEncrypted.current?.metadataCommitment); if (!reviewedIntent) throw new Error("Review again."); const checked = revalidateTransactionReview(reviewSnapshot, { intent: { ...reviewedIntent, preparedAt: reviewSnapshot.preparedAt }, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, simulation: "passed", expectedTarget: contractAddress }, now: reviewNow() }); if (!checked.valid) throw new Error("Review again."); }
+      const guardedWrite = (request: Parameters<typeof write.mutateAsync>[0]) => { if (!reviewSnapshot) throw new Error("Review again."); return submissionGuard.current.run(reviewSnapshot.fingerprint, () => write.mutateAsync(request)); };
       let hash: `0x${string}`;
       if (privacy === "private") {
-        const signature = await signMessage.mutateAsync({
-          message: privateMetadataSigningMessage(connection.address, arcTestnet.id, contractAddress),
-          account: connection.address,
-        });
-        const encrypted = await encryptPrivateMetadata({
-          metadata: {
-            version: 1,
-            name: safe.name,
-            targetAmount: formatUnits(safe.targetAmount, 6),
-            note: note.trim(),
-          },
-          signature,
-          owner: connection.address,
-          chainId: arcTestnet.id,
-          contractAddress,
-        });
+        const encrypted = pendingEncrypted.current ?? await (async () => { const signature = await signMessage.mutateAsync({ message: privateMetadataSigningMessage(connection.address, arcTestnet.id, contractAddress), account: connection.address }); return encryptPrivateMetadata({ metadata: { version: 1, name: safe.name, targetAmount: formatUnits(safe.targetAmount, 6), note: note.trim() }, signature, owner: connection.address, chainId: arcTestnet.id, contractAddress }); })();
         pendingEncrypted.current = encrypted;
+        if (!reviewSnapshot) { const intent = goalIntent(safe, encrypted.metadataCommitment); if (!intent) throw new Error("Could not prepare goal review."); setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, simulation: "passed", expectedTarget: contractAddress })); setStep("review"); return; }
         hash = jarMode === "shielded"
           ? protection
-            ? await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateGuardianShieldedJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n, withdrawalDelay, protection.guardian, protection.recovery], chainId: arcTestnet.id, account: connection.address })
-            : await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateShieldedJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n, withdrawalDelay], chainId: arcTestnet.id, account: connection.address })
-          : await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n], chainId: arcTestnet.id, account: connection.address });
+            ? await guardedWrite({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateGuardianShieldedJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n, withdrawalDelay, protection.guardian, protection.recovery], chainId: arcTestnet.id, account: connection.address })
+            : await guardedWrite({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateShieldedJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n, withdrawalDelay], chainId: arcTestnet.id, account: connection.address })
+          : await guardedWrite({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n], chainId: arcTestnet.id, account: connection.address });
       } else {
         pendingEncrypted.current = undefined;
         hash = jarMode === "shielded"
           ? protection
-            ? await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createGuardianShieldedJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n, withdrawalDelay, protection.guardian, protection.recovery], chainId: arcTestnet.id, account: connection.address })
-            : await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createShieldedJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n, withdrawalDelay], chainId: arcTestnet.id, account: connection.address })
-          : await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n], chainId: arcTestnet.id, account: connection.address });
+            ? await guardedWrite({ address: contractAddress, abi: penguJarV3Abi, functionName: "createGuardianShieldedJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n, withdrawalDelay, protection.guardian, protection.recovery], chainId: arcTestnet.id, account: connection.address })
+            : await guardedWrite({ address: contractAddress, abi: penguJarV3Abi, functionName: "createShieldedJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n, withdrawalDelay], chainId: arcTestnet.id, account: connection.address })
+          : await guardedWrite({ address: contractAddress, abi: penguJarV3Abi, functionName: "createJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n], chainId: arcTestnet.id, account: connection.address });
       }
       if (pendingEncrypted.current) {
         savePendingEncryptedMetadata({ ...pendingEncrypted.current, transactionHash: hash });
@@ -168,6 +174,8 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
       } catch { /* unrelated log */ }
     }
   }
+
+  if (step === "review" && parsed && reviewSnapshot) return <div className="modal-backdrop" role="presentation"><section className="create-modal" role="dialog" aria-modal="true" aria-label={t("create.review")}><TransactionSafetyReview title={t("create.title")} summary={t("create.noDeposit")} details={[{ label: t("create.name"), value: parsed.name }, { label: t("jar.target"), value: `${formatUsdc(parsed.targetAmount)} USDC` }, { label: t("jar.unlocks"), value: formatLocalDateTime(parsed.unlockDate) }, { label: t("create.withdrawalProtection"), value: jarMode === "shielded" ? `SHIELDED · ${withdrawalDelayHours} ${t("create.hours")}` : "SAFE" }, { label: t("create.metadataVisibility"), value: privacy === "private" ? "PRIVATE" : "PUBLIC" }, { label: t("wallet.wallet"), value: <span className="full-address">{connection.address}</span> }, { label: t("wallet.network"), value: "Arc Testnet · 5042002" }, { label: t("create.starting"), value: "0 USDC" }]} checks={[{ code: "wallet", status: connection.isConnected && connection.address === reviewedAccount ? "verified" : "blocking", label: connection.isConnected && connection.address === reviewedAccount ? "Connected account matches review" : t("review.changed") }, { code: "network", status: onArc ? "verified" : "blocking", label: onArc ? "Arc Testnet · 5042002" : t("wallet.switch") }, { code: "config", status: "info", label: t("create.noDeposit") }]} review={reviewSnapshot} walletNotice={privacy === "private" ? (vi ? "Chữ ký mã hóa metadata đã hoàn tất. Ví sẽ yêu cầu xác nhận riêng cho giao dịch tạo mục tiêu." : "Metadata encryption signing is complete. Your wallet will separately confirm the goal-creation transaction.") : (vi ? "Ví sẽ yêu cầu xác nhận giao dịch tạo mục tiêu Makoto Vault." : "Your wallet will request confirmation for the Makoto Vault goal-creation transaction.")} onBack={() => { setReviewSnapshot(undefined); pendingEncrypted.current = undefined; setStep("form"); }} onContinue={() => void submit()} continueDisabled={!onArc || !contractAddress} /></section></div>;
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && step !== "wallet" && step !== "submitted") onClose(); }}>
@@ -238,6 +246,8 @@ function joinLocalDateTime(date: string, hour: string, minute: string) {
 function timeOptions(count: number) {
   return Array.from({ length: count }, (_, value) => value.toString().padStart(2, "0"));
 }
+
+function reviewNow() { return Date.now(); }
 
 function TransactionState({ icon, title, copy, hash, action }: { icon: string; title: string; copy: string; hash?: `0x${string}`; action?: React.ReactNode }) {
   const { t } = usePreferences();
