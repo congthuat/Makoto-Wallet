@@ -4,15 +4,17 @@ import { hasBlockingChecks, type SafetyCheck } from "@/lib/transactionReview";
 import type { TransactionSafetyAssessment } from "@/lib/transactionSafety";
 import { expectedTransactionChanges, type TransactionIntent } from "@/lib/transactionSafety";
 import { formatAssetAmount, getAssetById } from "@/lib/assets";
+import type { TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 
 export type ReviewDetail = { label: string; value: ReactNode };
 
-export function TransactionSafetyReview({ title, summary, details, checks, assessment, walletNotice, onBack, onContinue, continueDisabled = false, continueLabel, children }: {
+export function TransactionSafetyReview({ title, summary, details, checks, assessment, review, walletNotice, onBack, onContinue, continueDisabled = false, continueLabel, children }: {
   title: string;
   summary: string;
   details: readonly ReviewDetail[];
   checks: readonly SafetyCheck[];
   assessment?: TransactionSafetyAssessment;
+  review?: TransactionReviewSnapshot;
   walletNotice: string;
   onBack(): void;
   onContinue(): void;
@@ -26,7 +28,8 @@ export function TransactionSafetyReview({ title, summary, details, checks, asses
     <header><p className="eyebrow">{t("review.aboutTo")}</p><h3>{title}</h3><p>{summary}</p></header>
     <section aria-labelledby="review-details"><h4 id="review-details">{t("review.details")}</h4><dl className="wallet-review">{details.map((detail) => <div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl></section>
     <TransactionSafetyChecks checks={checks} />
-    {assessment && <TransactionSafetyAssessmentView assessment={assessment} />}
+    {review && <p className="review-validity">{t("review.details")} · {new Date(review.expiresAt).toLocaleTimeString()}</p>}
+    {(assessment || review) && <TransactionSafetyAssessmentView assessment={assessment ?? review!.assessment} />}
     {children}
     <div className="wallet-confirmation"><strong>{t("review.walletConfirmation")}</strong><span>{walletNotice}</span><small>{t("review.networkFee")}</small></div>
     <div className="modal-actions"><button type="button" className="secondary-action" onClick={onBack}>{t("review.back")}</button><button type="button" className="primary-action" onClick={onContinue} disabled={blocked || continueDisabled}>{continueLabel ?? t("review.continueWallet")}</button></div>

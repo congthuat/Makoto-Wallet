@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useConnection, usePublicClient, useWriteContract } from "wagmi";
-import { encodeFunctionData, type Hex } from "viem";
+import { encodeFunctionData } from "viem";
 import { arcTestnet } from "viem/chains";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
 import { formatAssetAmount, getAssetById, SUPPORTED_ASSETS, type SupportedAssetId } from "@/lib/assets";
@@ -18,7 +18,8 @@ import { WalletPanel } from "./WalletPanel";
 import { globalReviewChecks, hasBlockingChecks, sendRecipientChecks } from "@/lib/transactionReview";
 import { TransactionExpectedChanges, TransactionSafetyAssessmentView, TransactionSafetyChecks } from "./TransactionSafetyReview";
 import { arcFeeMateriallyChanged, calculateArcFee, formatArcFeeEstimate, maxSendAmountAfterArcFee, sendCostWithArcFee } from "@/lib/arcFees";
-import { assessTransaction, assertReviewedRequest, type TransactionIntent } from "@/lib/transactionSafety";
+import { assessTransaction, type TransactionIntent } from "@/lib/transactionSafety";
+import { prepareTransactionReview, revalidateTransactionReview, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 
 type TransactionStage = "idle" | "awaiting" | "confirming" | "confirmed" | "failed" | "unknown";
 type RecipientKind = "checking" | "wallet" | "contract" | "unknown";
@@ -49,7 +50,7 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
   const [reviewedAccount, setReviewedAccount] = useState<`0x${string}`>();
   const [reviewNetworkVerified, setReviewNetworkVerified] = useState(false);
   const [feeEstimate, setFeeEstimate] = useState<FeeEstimate>({ status: "idle" });
-  const reviewedFingerprintRef = useRef<Hex | undefined>(undefined);
+  const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
   const [reviewPreparedAt, setReviewPreparedAt] = useState(0);
   const submittingRef = useRef(false);
   const connection = useConnection();
@@ -113,13 +114,13 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
     const message = validationMessage();
     if (message) return setError(message);
     if (memoNote.error) return setError(copy.memoInvalid);
-    const preparedAt = 0;
+    const preparedAt = nowMs();
     setError(undefined); setReviewedAccount(connection.address); setReviewPreparedAt(preparedAt); setStage("idle"); setFeeEstimate({ status: "loading" });
     const networkVerified = await chain.verifyNow();
     setReviewNetworkVerified(networkVerified); setReviewing(true);
     if ("error" in validated || !client) return;
     if (networkVerified) {
-      try { const rawFee = await estimateSendFee(validated.amount); setFeeEstimate(rawFee === undefined ? { status: "unavailable" } : { status: "ready", rawFee }); const intent = currentSafetyIntent(preparedAt); if (rawFee !== undefined && intent) reviewedFingerprintRef.current = assessTransaction(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances, simulation: "passed", expectedTarget: intent.target, now: preparedAt }).reviewedFingerprint; }
+      try { const rawFee = await estimateSendFee(validated.amount); setFeeEstimate(rawFee === undefined ? { status: "unavailable" } : { status: "ready", rawFee }); const intent = currentSafetyIntent(preparedAt); if (rawFee !== undefined && intent) setReviewSnapshot(prepareTransactionReview({ intent, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances, simulation: "passed", expectedTarget: intent.target, now: preparedAt }, preparedAt })); }
       catch { setFeeEstimate({ status: "unavailable" }); }
     } else setFeeEstimate({ status: "unavailable" });
     setRecipientKind("checking");
@@ -136,7 +137,7 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
     } catch { setRecipientKind("unknown"); if (memoNote.note) setMemoCompatibility("unavailable"); }
   }
 
-  function resetSafety() { setLargeAcknowledged(false); setRecipientKind("unknown"); setMemoCompatibility("none"); setMemoVerification("none"); setReviewNetworkVerified(false); setFeeEstimate({ status: "idle" }); reviewedFingerprintRef.current = undefined; setError(undefined); }
+  function resetSafety() { setLargeAcknowledged(false); setRecipientKind("unknown"); setMemoCompatibility("none"); setMemoVerification("none"); setReviewNetworkVerified(false); setFeeEstimate({ status: "idle" }); setReviewSnapshot(undefined); setError(undefined); }
 
   function selectRecipient(address: `0x${string}`) { setRecipient(address); setReviewing(false); setContactFormOpen(false); setContactFeedback(undefined); resetSafety(); }
 
@@ -180,8 +181,9 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
   async function submit() {
     if (submittingRef.current || pending || "error" in validated || !connection.address || !client || memoNote.error || (memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)) return;
     if (!reviewedAccount || reviewedAccount.toLowerCase() !== connection.address.toLowerCase()) { setReviewing(false); setError(copy.detailsChanged); return; }
-    if (!safetyIntent || !reviewedFingerprintRef.current || safetyAssessment?.status !== "ready") { setReviewing(false); setError(copy.detailsChanged); return; }
-    try { assertReviewedRequest(safetyIntent, reviewedFingerprintRef.current); } catch { setReviewing(false); setError(copy.detailsChanged); return; }
+    if (!safetyIntent || !reviewSnapshot || safetyAssessment?.status !== "ready") { setReviewing(false); setError(copy.detailsChanged); return; }
+    const revalidation = revalidateTransactionReview(reviewSnapshot, { intent: safetyIntent, context: { connectedAccount: connection.address, connectedChainId: reviewNetworkVerified && chain.isArc ? arcTestnet.id : undefined, balances, simulation: "passed", expectedTarget: safetyIntent.target }, now: nowMs() });
+    if (!revalidation.valid) { setReviewing(false); setError(copy.detailsChanged); return; }
     submittingRef.current = true; setError(undefined); setStage("awaiting");
     let submittedHash: `0x${string}` | undefined;
     try {
@@ -246,6 +248,7 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
     <div className="recipient-actions"><button type="button" onClick={() => void navigator.clipboard.writeText(validated.address)}>{copy.copyAddress}</button><a href={arcScanAddressUrl(validated.address)} target="_blank" rel="noreferrer">ArcScan ↗</a></div>
     {recipientKind === "checking" && <p className="wallet-hint">{copy.checkingRecipient}</p>}
     <TransactionSafetyChecks checks={safetyChecks} />
+    {reviewSnapshot && <p className="review-validity">{locale === "vi" ? "Kiểm tra có hiệu lực đến" : "Review valid until"} · {new Date(reviewSnapshot.expiresAt).toLocaleTimeString(locale)}</p>}
     {safetyAssessment && <TransactionSafetyAssessmentView assessment={safetyAssessment} />}
     {safetyIntent && <TransactionExpectedChanges intent={safetyIntent} />}
     {recipientKind === "contract" && <p className="wallet-warning" role="alert">{copy.contractWarning}</p>}
@@ -314,3 +317,5 @@ function sendCopy(locale: "en" | "vi", t: ReturnType<typeof usePreferences>["t"]
 function memoNoteResult(value: string): { note?: string; error?: true } {
   try { return { note: normalizeMemoNote(value) }; } catch { return { error: true }; }
 }
+
+function nowMs() { return Date.now(); }

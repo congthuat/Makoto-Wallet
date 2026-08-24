@@ -64,3 +64,11 @@ The known-contract registry is built exclusively from repository constants for A
 Read-only simulation remains flow-owned so it can simulate the exact ABI call with current state. Simulation success is only a pre-sign check: it cannot create completion, Activity, or balances. Only a successful receipt can do so. Arc raw gas remains 18-decimal data; only the existing converted USDC6 maximum enters token-balance checks. Expected-change records explicitly distinguish exact, estimated, minimum, and maximum amounts.
 
 The structured engine is the future Agent integration boundary. Phase 10.6 includes no AI agent, chat UI, LLM API, automatic execution, signer, session key, or custody. Any future Agent must submit the same intent through this engine and the normal wallet/receipt pipeline.
+
+# Phase 10.7 unified transaction review
+
+`frontend/lib/transactionOrchestrator.ts` is the single boundary between transaction preparation and a wallet request. It freezes a data-only review snapshot containing the structured intent, safety assessment, reviewed fingerprint, preparation and expiry timestamps, and a normalized JSON-safe transaction request. Providers, connectors, signers, callbacks, and secrets are deliberately excluded.
+
+The material-change policy is centralized in `revalidateTransactionReview`. Account, chain, target, calldata, value, recipient, asset amounts, approvals, route metadata, slippage, minimum receive, quote expiry, and gas envelope changes invalidate the review. Cosmetic identifiers and target labels do not. Immediately before a wallet request, callers must re-read live safety context, re-simulate where the flow supports simulation, revalidate the snapshot, then submit the exact normalized request. Expired, changed, blocked, or unknown reviews return to review without opening the wallet.
+
+`ReviewSubmissionGuard` permits one in-flight request per reviewed fingerprint and always releases after success, wallet cancellation, or error. Receipt confirmation remains a separate post-wallet lifecycle stage. A future Agent may prepare the same data-only intent, but it cannot sign or bypass review, revalidation, the wallet, or receipt verification.

@@ -43,3 +43,8 @@ Reads use the fixed Arc Testnet chain, verified PenguJarV3 address, and public R
 - `withdrawJar(jarId)` for the owner after unlock
 
 The contract remains the final authority for ownership and lifecycle rules.
+# Unified transaction review (Phase 10.7)
+
+Makoto transaction integrations prepare an immutable review snapshot through `lib/transactionOrchestrator.ts`. The snapshot binds the human review to a normalized request and expires after a bounded interval. Before opening the wallet, integrations must refresh their live checks, re-simulate the exact request where supported, call `revalidateTransactionReview`, and submit only the reviewed request under `ReviewSubmissionGuard`.
+
+The orchestrator is intentionally data-only. It contains no provider, signer, secret, custody, automatic execution, or Agent capability. Wallet confirmation and successful receipt verification remain mandatory.

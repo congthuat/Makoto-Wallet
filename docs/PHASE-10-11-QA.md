@@ -108,4 +108,18 @@ Automated coverage includes provider metadata, bounded RPC normalization, ArcSca
 - Receipt rule: only a successful receipt may create Confirmed UI, Activity refresh, or final balance refresh.
 - Scope: Phase 10.6 does not include an AI agent.
 
+# Phase 10.7 — Unified transaction review orchestration
+
+- Prepare: verify the review snapshot is immutable, JSON serializable, provider-free, and shows the current assessment/fingerprint.
+- Expiry: leave a review open for more than 60 seconds; continuing must require a fresh review and must not open the wallet.
+- Material changes: change account, chain, amount, recipient, target, calldata, quote, route, slippage, minimum receive, approval, or gas envelope; each must invalidate the prior review.
+- Non-material changes: changing a UI-only label must not alter the fingerprint.
+- Final pipeline: immediately before the wallet request, verify live account/network/balance/allowance/quote and exact-request simulation are refreshed, then submit only the reviewed request.
+- Double submit: click Continue repeatedly; only one wallet request may be active for the fingerprint.
+- Wallet cancellation: reject the request; show the existing friendly error, create no Activity, and allow a deliberate retry.
+- Receipt: success is shown only after a successful receipt. Submitted-but-unknown remains distinct and warns before retry.
+- Flows: manually exercise Send, Arc Memo, Smart Swap approval and swap, Universal Bridge, CCTP Direct approval and bridge, and Makoto Vault deposit/withdrawal on Arc Testnet.
+- Languages/layout: verify English and Vietnamese copy and mobile/desktop review layouts.
+- Scope: no Agent, chat UI, LLM API, automatic execution, session key, custody, or wallet bypass is included.
+
 Manual QA may stop at wallet confirmation and cancel. No additional testnet funds need to be spent. Verify long-address/fee layouts at 375, 390, 430, 768, and desktop widths in EN/VI and light/dark themes.
