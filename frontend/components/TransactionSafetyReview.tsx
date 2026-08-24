@@ -4,7 +4,7 @@ import { hasBlockingChecks, type SafetyCheck } from "@/lib/transactionReview";
 
 export type ReviewDetail = { label: string; value: ReactNode };
 
-export function TransactionSafetyReview({ title, summary, details, checks, walletNotice, onBack, onContinue, continueDisabled = false, children }: {
+export function TransactionSafetyReview({ title, summary, details, checks, walletNotice, onBack, onContinue, continueDisabled = false, continueLabel, children }: {
   title: string;
   summary: string;
   details: readonly ReviewDetail[];
@@ -13,6 +13,7 @@ export function TransactionSafetyReview({ title, summary, details, checks, walle
   onBack(): void;
   onContinue(): void;
   continueDisabled?: boolean;
+  continueLabel?: string;
   children?: ReactNode;
 }) {
   const { t } = usePreferences();
@@ -23,7 +24,7 @@ export function TransactionSafetyReview({ title, summary, details, checks, walle
     <TransactionSafetyChecks checks={checks} />
     {children}
     <div className="wallet-confirmation"><strong>{t("review.walletConfirmation")}</strong><span>{walletNotice}</span><small>{t("review.networkFee")}</small></div>
-    <div className="modal-actions"><button type="button" className="secondary-action" onClick={onBack}>{t("review.back")}</button><button type="button" className="primary-action" onClick={onContinue} disabled={blocked || continueDisabled}>{t("review.continueWallet")}</button></div>
+    <div className="modal-actions"><button type="button" className="secondary-action" onClick={onBack}>{t("review.back")}</button><button type="button" className="primary-action" onClick={onContinue} disabled={blocked || continueDisabled}>{continueLabel ?? t("review.continueWallet")}</button></div>
   </div>;
 }
 

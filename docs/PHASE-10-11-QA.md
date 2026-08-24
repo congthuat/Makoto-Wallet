@@ -72,7 +72,9 @@ Review a small quote at every slippage option. Confirm current output, minimum r
 
 ## C. Arc fee and MAX
 
-For USDC input, select MAX. Expect the amount to reserve the live approval-plus-swap Arc gas estimate. Review must itemize estimated Arc gas in USDC and block if the combined amount is insufficient. For EURC input, MAX may use the EURC balance, but review must still verify that the USDC balance covers Arc gas. If RPC gas estimation is unavailable, safe MAX and execution must fail closed.
+For USDC input with sufficient allowance, select MAX. Expect the amount to reserve the live swap Arc gas estimate. If approval is required, MAX must ask for approval first rather than estimating swap gas against unapproved state. For EURC input, MAX may use the EURC balance only after allowance permits a real swap estimate, and review must still verify that the USDC balance covers Arc gas. If RPC gas estimation is unavailable, safe MAX and execution must fail closed.
+
+When approval is required, the initial review must show a real Approval network fee and “Swap network fee: Estimated after approval.” Selecting Approve token must send only the exact approval. After its successful receipt, expect a fresh quote and a separate final review with real swap gas; no swap wallet request may appear until Continue to wallet is selected from that second review.
 
 ## D. Live completion and evidence
 
