@@ -76,6 +76,8 @@ For USDC input with sufficient allowance, select MAX. Expect the amount to reser
 
 When approval is required, the initial review must show a real Approval network fee and “Swap network fee: Estimated after approval.” Selecting Approve token must send only the exact approval. After its successful receipt, expect a fresh quote and a separate final review with real swap gas; no swap wallet request may appear until Continue to wallet is selected from that second review.
 
+After allowance is sufficient, press MAX again. Expect “Calculating safe MAX…”, then a non-zero amount below the displayed USDC balance and a real “Reserved for Arc gas” value. No wallet prompt should appear. Change balance, account, or network and confirm the MAX result is invalidated. Get a fresh review and confirm a fee increase recalculates MAX rather than allowing an unsafe submission.
+
 ## D. Live completion and evidence
 
 Execute a small testnet swap in each direction. Confirm pending stages remain legible, final success appears only after a successful receipt, both balances refresh, the activity record includes sold and received assets, and the ArcScan link matches the real transaction hash.
