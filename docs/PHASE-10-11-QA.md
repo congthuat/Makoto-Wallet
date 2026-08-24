@@ -78,6 +78,8 @@ When approval is required, the initial review must show a real Approval network 
 
 After allowance is sufficient, press MAX again. Expect “Calculating safe MAX…”, then a non-zero amount below the displayed USDC balance and a real “Reserved for Arc gas” value. No wallet prompt should appear. Change balance, account, or network and confirm the MAX result is invalidated. Get a fresh review and confirm a fee increase recalculates MAX rather than allowing an unsafe submission.
 
+If allowance is insufficient, MAX must open **Approve for MAX** instead of leaving an error-only state. Confirm the review shows USDC, the XyloNet router, a finite approval equal to the current balance snapshot, and a real approval fee. Approval confirmation must send no swap. After its receipt, Amount should auto-fill from the existing SAFE MAX solver; the user must still select Get quote manually.
+
 ## D. Live completion and evidence
 
 Execute a small testnet swap in each direction. Confirm pending stages remain legible, final success appears only after a successful receipt, both balances refresh, the activity record includes sold and received assets, and the ArcScan link matches the real transaction hash.

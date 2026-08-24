@@ -33,6 +33,8 @@ Swap review estimates real swap gas immediately when allowance is sufficient. Wh
 
 USDC MAX uses a bounded solver outside React. Arc Testnet supports `eth_estimateGas` state overrides, so estimation may temporarily override only the connected account's native gas balance; token balances and allowance are never overridden, and the override is never used for execution. The solver obtains a real quote and gas estimate, derives `balance - real fee`, iterates to base-unit convergence, and performs a final safety estimate. If a provider rejects state overrides, it uses bounded downward backoff only to obtain the first real estimate, then converges from real fees. Balance, account, or chain changes invalidate the result, and normal review estimates again before submission.
 
+If exact allowance is too small for MAX, Makoto offers a separate **Approve for MAX** review. It estimates the real approval fee and caps allowance at the current USDC balance snapshot—never `MaxUint256`. Execution re-verifies account, Arc, balance, and allowance, submits only the finite approval when still needed, refreshes balance and allowance after confirmation, then invokes the existing SAFE MAX solver and fills Amount. It never submits a swap; the user must still request a normal quote and confirm the normal swap review.
+
 ## Batch Pay and smart wallets
 
 Batch Pay validates USDC recipients, duplicates, totals, balance, and a 20-recipient limit and produces exact ERC-20 transfer calldata. Execution remains unavailable until Arc publishes/verifies the `Multicall3From` address and ABI; standard Multicall3 is not substituted because it changes caller semantics. ERC-4337 is a provider interface only and cannot claim sponsorship unless the connected provider reports it.

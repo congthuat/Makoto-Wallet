@@ -21,7 +21,7 @@ test("11 account changes invalidate MAX", () => assert.match(flow, /safeMax\.acc
 test("12 chain changes invalidate MAX", () => assert.match(flow, /safeMax\.chainId === arcTestnet\.id && chain\.isArc/));
 test("13 tiny balance returns truthful unable state", async () => await assert.rejects(calculateSafeUsdcSwapMax(1n, async () => ({ fee: 1n })), (error: unknown) => error instanceof SafeSwapMaxError && error.code === "too-small"));
 test("14 zero balance is rejected", async () => await assert.rejects(calculateSafeUsdcSwapMax(0n, async () => ({ fee: 1n })), (error: unknown) => error instanceof SafeSwapMaxError && error.code === "zero-balance"));
-test("15 MAX calculation performs no wallet write", () => { const maxBody = flow.slice(flow.indexOf("async function chooseQuickAmount"), flow.indexOf("async function review")); assert.doesNotMatch(maxBody, /writeContract|simulateContract/); });
+test("15 MAX calculation performs no wallet write", () => { const maxBody = flow.slice(flow.indexOf("async function chooseQuickAmount"), flow.indexOf("async function approveForMax")); assert.doesNotMatch(maxBody, /writeContract|simulateContract/); });
 test("16 normal quick percentages remain unchanged", () => assert.match(flow, /\[25, 50, 75, 100\]/));
 test("17 approval-first flow remains separate", () => { assert.match(flow, /approveThenReview/); assert.match(flow, /setReviewStage\("swap"\)/); });
 test("18 USDC to EURC remains supported", () => assert.match(flow, /oppositeAssetId\(fromId\)/));
