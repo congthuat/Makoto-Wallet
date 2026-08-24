@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getAddress, zeroAddress, type Address, type Hash } from "viem";
+import { encodeFunctionData, getAddress, zeroAddress, type Address, type Hash } from "viem";
 import { useConnection, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
@@ -19,6 +19,8 @@ import { createAssetActivity, recordWalletActivity } from "@/lib/walletActivity"
 import type { Jar } from "@/lib/types";
 import { globalReviewChecks } from "@/lib/transactionReview";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
+import { approvalIntent, prepareFlowReview, vaultIntent } from "@/lib/transactionFlowReview";
+import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 
 type Step = "form" | "review" | "checking" | "approval-required" | "approval-wallet" | "approval-submitted" | "approval-confirmed" | "ready" | "deposit-wallet" | "deposit-submitted" | "confirming" | "success" | "error";
 
@@ -45,7 +47,11 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
   const [approvalHash, setApprovalHash] = useState<Hash>();
   const [depositHash, setDepositHash] = useState<Hash>();
   const [reviewedAccount, setReviewedAccount] = useState<Address>();
+  const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
+  const submissionGuard = useRef(new ReviewSubmissionGuard());
   const amount = useMemo(() => { try { return parseDepositAmount(value); } catch { return undefined; } }, [value]);
+
+  function depositIntent(currentAmount: bigint) { if (!connection.address || !contractAddress) return undefined; return vaultIntent({ id: "vault-deposit", kind: "vault-deposit", account: connection.address, target: contractAddress, calldata: encodeFunctionData({ abi: penguJarV3Abi, functionName: "depositToJar", args: [jar.id, currentAmount] }), preparedAt: Date.now(), assetId: "usdc", amount: currentAmount, jarId: jar.id, metadata: { allowance: (allowance.data ?? 0n).toString() } }); }
 
   function review(event: FormEvent) {
     event.preventDefault();
@@ -54,6 +60,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       if (balances.usdc.data !== undefined && parsed > balances.usdc.data) throw new Error("Deposit exceeds your available USDC balance.");
       setError(undefined);
       setReviewedAccount(connection.address);
+      const intent = depositIntent(parsed); if (intent) setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: verifiedChain.isArc ? arcTestnet.id : undefined, balances: { usdc: balances.usdc.data }, allowance: allowance.data, simulation: "passed", expectedTarget: contractAddress! }));
       setStep("review");
     } catch {
       setError(t("validation.amount"));
@@ -95,14 +102,16 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       if (!contractAddress || !connection.address || !publicClient) throw new Error("Deposit configuration is unavailable.");
 
       setStep("approval-wallet");
-      const hash = await writeContractAsync({
+      const approval = approvalIntent({ id: "vault-approval", account: connection.address, target: EXPECTED_USDC_ADDRESS, token: EXPECTED_USDC_ADDRESS, spender: contractAddress, amount, assetId: "usdc", calldata: "0x", preparedAt: Date.now() });
+      const approvalSnapshot = prepareFlowReview(approval, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: freshAllowance.data, simulation: "passed", expectedTarget: EXPECTED_USDC_ADDRESS });
+      const hash = await submissionGuard.current.run(approvalSnapshot.fingerprint, () => writeContractAsync({
         address: EXPECTED_USDC_ADDRESS,
         abi: erc20BalanceAbi,
         functionName: "approve",
-        args: [contractAddress, amount],
-        account: connection.address,
+        args: [contractAddress!, amount],
+        account: connection.address!,
         chainId: arcTestnet.id,
-      });
+      }));
       setApprovalHash(hash);
       setStep("approval-submitted");
       let replacementReason: string | undefined;
@@ -115,6 +124,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       setStep("approval-confirmed");
       const confirmedAllowance = await allowance.refetch();
       if ((confirmedAllowance.data ?? 0n) < amount) throw new Error("The confirmed USDC allowance is still too low.");
+      const freshIntent = depositIntent(amount); if (freshIntent) setReviewSnapshot(prepareFlowReview(freshIntent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: confirmedAllowance.data, simulation: "passed", expectedTarget: contractAddress }));
     } catch (reason) {
       setError(transactionError(reason, "approval", t));
       setStep("error");
@@ -132,15 +142,20 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       if (freshBalance.data === undefined || freshBalance.data < amount) throw new Error("Your wallet no longer has enough USDC.");
       if (!contractAddress || !connection.address || !publicClient) throw new Error("Deposit configuration is unavailable.");
 
+      if (!reviewSnapshot) throw new Error("Review again.");
+      const intent = depositIntent(amount)!;
+      const checked = revalidateTransactionReview(reviewSnapshot, { intent: { ...intent, preparedAt: reviewSnapshot.intent.preparedAt }, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: freshAllowance.data, simulation: "passed", expectedTarget: contractAddress }, now: Date.now() });
+      if (!checked.valid) throw new Error("Review again.");
+
       setStep("deposit-wallet");
-      const hash = await writeContractAsync({
-        address: contractAddress,
+      const hash = await submissionGuard.current.run(reviewSnapshot.fingerprint, () => writeContractAsync({
+        address: contractAddress!,
         abi: penguJarV3Abi,
         functionName: "depositToJar",
         args: [jar.id, amount],
-        account: connection.address,
+        account: connection.address!,
         chainId: arcTestnet.id,
-      });
+      }));
       setDepositHash(hash);
       setStep("deposit-submitted");
       setStep("confirming");
@@ -172,6 +187,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
     setError(undefined);
     setApprovalHash(undefined);
     setDepositHash(undefined);
+    setReviewSnapshot(undefined);
     onClose();
   }
 
@@ -190,6 +206,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       </form>}
 
       {step === "review" && amount && expectedBalance !== undefined && <TransactionSafetyReview
+        review={reviewSnapshot}
         title={vi ? "Kiểm tra gửi tiết kiệm" : "Review Savings Deposit"}
         summary={vi ? "Giao dịch này gửi USDC vào mục tiêu Makoto Vault đã chọn. Giao dịch không cung cấp lợi suất hay lợi nhuận đầu tư." : "This transaction deposits USDC into the selected Makoto Vault savings goal. It does not provide yield or investment returns."}
         details={[{ label: t("actions.deposit"), value: `${formatUsdc(amount)} USDC` }, { label: t("jar.number", { id: jar.id.toString() }), value: `${jar.name} · #${jar.id}` }, { label: vi ? "Bảo vệ" : "Protection", value: `${Number(jar.mode) === 1 ? "SHIELDED" : "SAFE"} · ${Number(jar.privacyMode) === 1 ? "PRIVATE" : "PUBLIC"}` }, { label: "Guardian / Recovery", value: `${jar.guardian !== zeroAddress ? (vi ? "Đã cấu hình" : "Configured") : (vi ? "Chưa cấu hình" : "Not configured")} / ${jar.recoveryWallet !== zeroAddress ? (vi ? "Đã cấu hình" : "Configured") : (vi ? "Chưa cấu hình" : "Not configured")}` }, { label: t("flow.currentBalance"), value: `${formatUsdc(jar.balance)} USDC` }, { label: t("flow.expectedBalance"), value: `${formatUsdc(expectedBalance)} USDC` }, { label: t("wallet.wallet"), value: connection.address ? <span className="full-address">{connection.address}</span> : t("validation.disconnected") }, { label: t("wallet.network"), value: "Arc Testnet · 5042002" }]}

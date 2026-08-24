@@ -17,7 +17,7 @@ export type TransactionIntent = {
 export type SafetyFinding = { code: string; message: string };
 export type SafetyCheck = SafetyFinding & { status: "pass" | "warning" | "blocked" | "unknown" };
 export type TransactionSafetyAssessment = { status: "ready" | "review" | "blocked" | "unknown"; checks: SafetyCheck[]; blockers: SafetyFinding[]; warnings: SafetyFinding[]; info: SafetyFinding[]; reviewedFingerprint: Hex; simulatedAt: number; target?: { label: string; category: KnownContractCategory } };
-export type SafetyContext = { connectedAccount?: Address; connectedChainId?: number; balances?: Partial<Record<SupportedAssetId, bigint>>; allowance?: bigint; simulation: "passed" | "reverted" | "unavailable"; now?: number; expectedTarget?: Address; expectedCategory?: KnownContractCategory };
+export type SafetyContext = { connectedAccount?: Address; connectedChainId?: number; balances?: Partial<Record<SupportedAssetId, bigint>>; allowance?: bigint; simulation: "passed" | "reverted" | "unavailable"; now?: number; expectedTarget?: Address; expectedCategory?: KnownContractCategory; managedTarget?: { label: string; category: KnownContractCategory } };
 export type ExpectedChange = { assetId: SupportedAssetId; direction: "decrease" | "increase"; amount: bigint; qualifier: "exact" | "estimated" | "minimum" | "maximum" };
 
 export function expectedTransactionChanges(intent: TransactionIntent): ExpectedChange[] {
@@ -35,9 +35,9 @@ export function transactionFingerprint(intent: TransactionIntent): Hex {
 
 export function assessTransaction(intent: TransactionIntent, context: SafetyContext): TransactionSafetyAssessment {
   const now = context.now ?? Date.now(), checks: SafetyCheck[] = [];
-  add(checks, context.connectedChainId === intent.chainId && intent.chainId === arcTestnet.id, "network-match", `Arc Testnet · ${arcTestnet.id}`, "Wrong network");
+  add(checks, context.connectedChainId === intent.chainId, "network-match", intent.chainId === arcTestnet.id ? `Arc Testnet · ${arcTestnet.id}` : `Chain · ${intent.chainId}`, "Wrong network");
   add(checks, Boolean(context.connectedAccount && getAddress(context.connectedAccount) === getAddress(intent.account)), "account-match", "Wallet verified", "Connected account changed");
-  const known = findKnownContract(intent.target, intent.chainId);
+  const known = findKnownContract(intent.target, intent.chainId) ?? context.managedTarget;
   const expectedTargetMatches = !context.expectedTarget || getAddress(context.expectedTarget) === getAddress(intent.target);
   const expectedCategoryMatches = !context.expectedCategory || known?.category === context.expectedCategory;
   checks.push(known && expectedTargetMatches && expectedCategoryMatches ? { code: "known-target", status: "pass", message: `Known contract · ${known.label}` } : { code: "known-target", status: context.expectedTarget || context.expectedCategory ? "blocked" : "unknown", message: "Contract not recognized by Makoto" });

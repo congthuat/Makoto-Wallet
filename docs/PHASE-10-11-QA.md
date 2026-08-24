@@ -122,4 +122,6 @@ Automated coverage includes provider metadata, bounded RPC normalization, ArcSca
 - Languages/layout: verify English and Vietnamese copy and mobile/desktop review layouts.
 - Scope: no Agent, chat UI, LLM API, automatic execution, session key, custody, or wallet bypass is included.
 
+Final migration automation covers swap account/route/expiry/minimum mutations, exact finite approval behavior, Circle-managed estimate truthfulness, CCTP fee/total-burn changes, Vault target changes, duplicate submission, cancellation release, and receipt-only success. SAFE MAX regression coverage remains part of the complete frontend suite.
+
 Manual QA may stop at wallet confirmation and cancel. No additional testnet funds need to be spent. Verify long-address/fee layouts at 375, 390, 430, 768, and desktop widths in EN/VI and light/dark themes.

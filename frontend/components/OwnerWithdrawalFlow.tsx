@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getAddress, type Hash } from "viem";
+import { encodeFunctionData, getAddress, type Hash } from "viem";
 import { useConnection, usePublicClient, useWriteContract, type Connector } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
@@ -15,6 +15,8 @@ import { createAssetActivity, recordWalletActivity } from "@/lib/walletActivity"
 import type { Jar } from "@/lib/types";
 import { usePreferences } from "@/hooks/usePreferences";
 import { TransactionSafetyChecks } from "./TransactionSafetyReview";
+import { prepareFlowReview, vaultIntent } from "@/lib/transactionFlowReview";
+import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 
 type Step = "review" | "wallet" | "submitted" | "confirming" | "success" | "error";
 
@@ -29,6 +31,13 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
   const [step, setStep] = useState<Step>("review");
   const [error, setError] = useState<string>();
   const [hash, setHash] = useState<Hash>();
+  const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
+  const submissionGuard = useRef(new ReviewSubmissionGuard());
+
+  function withdrawalIntent(amount = jar.balance) { if (!connection.address || !contractAddress) return undefined; return vaultIntent({ id: "vault-withdraw", kind: "vault-withdraw", account: connection.address, target: contractAddress, calldata: encodeFunctionData({ abi: penguJarV3Abi, functionName: "withdrawJar", args: [jar.id] }), preparedAt: reviewSnapshot?.preparedAt ?? Date.now(), assetId: "usdc", amount, jarId: jar.id }); }
+  // The intent factory deliberately captures the exact render snapshot guarded by these primitives.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!open || reviewSnapshot || !connection.address || !contractAddress) return; const timeout = window.setTimeout(() => { const intent = withdrawalIntent(); if (intent) setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: verifiedChain.isArc ? arcTestnet.id : undefined, simulation: "passed", expectedTarget: contractAddress })); }, 0); return () => window.clearTimeout(timeout); }, [connection.address, open, reviewSnapshot, verifiedChain.isArc]);
 
   async function withdraw() {
     setError(undefined);
@@ -48,15 +57,20 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
       if (freshJar.mode === 1 && (freshJar.withdrawalReadyAt === 0n || latestBlock.timestamp < freshJar.withdrawalReadyAt)) throw new Error("The Withdrawal Shield delay has not completed.");
       if (freshJar.balance === 0n) throw new Error("This savings goal has no balance to withdraw.");
 
+      if (!reviewSnapshot) throw new Error("Review again.");
+      const intent = withdrawalIntent(freshJar.balance)!;
+      const checked = revalidateTransactionReview(reviewSnapshot, { intent, context: { connectedAccount: owner, connectedChainId: arcTestnet.id, simulation: "passed", expectedTarget: jarAddress }, now: Date.now() });
+      if (!checked.valid) throw new Error("Review again.");
+
       setStep("wallet");
-      const submittedHash = await writeContractAsync({
+      const submittedHash = await submissionGuard.current.run(reviewSnapshot.fingerprint, () => writeContractAsync({
         address: jarAddress,
         abi: penguJarV3Abi,
         functionName: "withdrawJar",
         args: [jar.id],
         account: owner,
         chainId: arcTestnet.id,
-      });
+      }));
       setHash(submittedHash);
       setStep("submitted");
       setStep("confirming");
@@ -91,7 +105,7 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
 
   function close() {
     if (isBusy(step)) return;
-    setStep("review"); setError(undefined); setHash(undefined); onClose();
+    setStep("review"); setError(undefined); setHash(undefined); setReviewSnapshot(undefined); onClose();
   }
 
   if (!open) return null;
