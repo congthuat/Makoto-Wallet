@@ -96,3 +96,16 @@ Execute a small testnet swap in each direction. Confirm pending stages remain le
 - Failure behavior: ArcScan outage falls back to recent RPC activity and `Partial history`; total provider outage retains validated local receipt activity and never presents a misleading clean empty state.
 
 Automated coverage includes provider metadata, bounded RPC normalization, ArcScan parsing, unsupported-token rejection, swap grouping, evidence-only CCTP, Vault directions, stable ordering, cursor validation, local/on-chain collapse, corrupt cache rejection, all filters, hash/address search, and refresh wiring. Manual QA still requires comparing real wallet hashes and visual checks at 375, 390, 430, 768, and desktop widths in light/dark EN/VI modes.
+# Phase 10.6 — Pre-sign simulation and transaction safety
+
+- Shared model: strict `TransactionIntent` and structured `TransactionSafetyAssessment` suitable for human review or a future programmatic caller.
+- Registry: exact repository-configured Arc token, XyloNet, Arc Memo, Makoto Vault, Circle CCTP, and Circle Gateway targets only.
+- Blocking policy: wrong chain/account, invalid recipient/amount, insufficient amount or converted fee balance, expired quote, simulation revert, unlimited approval, expected-target drift, or fingerprint drift.
+- Fingerprint: deterministic Keccak-256 of material request fields, including exact calldata, asset amounts, minimum receive/slippage metadata, approval, and fee envelope.
+- Simulation: exact read-only contract simulation or gas estimation remains required before writes. Errors are sanitized; simulation is never presented as transaction success.
+- Review UI: compact structured status/checks plus responsive advanced target, simulation, and shortened-fingerprint details. Send and Arc Memo use the shared engine directly; existing Swap, Circle Bridge/CCTP, and Vault review paths retain their exact simulations, finite approvals, request snapshots, fee checks, and receipt gates while consuming the same registry/model boundary incrementally.
+- Security Center: capability disclosure only—no scores, stored transaction details, scam-detection claim, or audit claim.
+- Receipt rule: only a successful receipt may create Confirmed UI, Activity refresh, or final balance refresh.
+- Scope: Phase 10.6 does not include an AI agent.
+
+Manual QA may stop at wallet confirmation and cancel. No additional testnet funds need to be spent. Verify long-address/fee layouts at 375, 390, 430, 768, and desktop widths in EN/VI and light/dark themes.

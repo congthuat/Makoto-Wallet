@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useConnection, usePublicClient, useWriteContract } from "wagmi";
+import { encodeFunctionData, type Hex } from "viem";
 import { arcTestnet } from "viem/chains";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
 import { formatAssetAmount, getAssetById, SUPPORTED_ASSETS, type SupportedAssetId } from "@/lib/assets";
@@ -15,8 +16,9 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { WalletPanel } from "./WalletPanel";
 import { globalReviewChecks, hasBlockingChecks, sendRecipientChecks } from "@/lib/transactionReview";
-import { TransactionSafetyChecks } from "./TransactionSafetyReview";
+import { TransactionExpectedChanges, TransactionSafetyAssessmentView, TransactionSafetyChecks } from "./TransactionSafetyReview";
 import { arcFeeMateriallyChanged, calculateArcFee, formatArcFeeEstimate, maxSendAmountAfterArcFee, sendCostWithArcFee } from "@/lib/arcFees";
+import { assessTransaction, assertReviewedRequest, type TransactionIntent } from "@/lib/transactionSafety";
 
 type TransactionStage = "idle" | "awaiting" | "confirming" | "confirmed" | "failed" | "unknown";
 type RecipientKind = "checking" | "wallet" | "contract" | "unknown";
@@ -47,6 +49,8 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
   const [reviewedAccount, setReviewedAccount] = useState<`0x${string}`>();
   const [reviewNetworkVerified, setReviewNetworkVerified] = useState(false);
   const [feeEstimate, setFeeEstimate] = useState<FeeEstimate>({ status: "idle" });
+  const reviewedFingerprintRef = useRef<Hex | undefined>(undefined);
+  const [reviewPreparedAt, setReviewPreparedAt] = useState(0);
   const submittingRef = useRef(false);
   const connection = useConnection();
   const chain = useVerifiedWalletChain();
@@ -66,6 +70,15 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
   const feeCost = !("error" in validated) && feeEstimate.status === "ready" ? sendCostWithArcFee(assetId === "usdc" ? validated.amount : 0n, assetId === "usdc" ? balance : balances.usdc, feeEstimate.rawFee) : undefined;
   const feeBlocksSend = Boolean(feeCost && feeCost.remainingUsdc6 === undefined);
   const safetyChecks = "error" in validated ? [] : [...globalReviewChecks({ connected: connection.isConnected, account: connection.address, reviewedAccount, isArc: reviewNetworkVerified && chain.isArc, amount: validated.amount, balance }), ...sendRecipientChecks(validated.address, connection.address, Boolean(matchedContact || recents.some((item) => item.address.toLowerCase() === validated.address.toLowerCase())), Boolean(memoNote.note)), ...(feeBlocksSend ? [{ code: "fee-balance", status: "blocking" as const, label: copy.feeInsufficient }] : [])];
+  function currentSafetyIntent(preparedAt = reviewPreparedAt): TransactionIntent | undefined {
+    if ("error" in validated || !connection.address || memoNote.error) return undefined;
+    const memoTransfer = memoNote.note ? buildArcMemoTransfer({ sender: connection.address, token: asset.address, recipient: validated.address, amount: validated.amount, note: memoNote.note }) : undefined;
+    const target = memoTransfer ? ARC_MEMO_ADDRESS : asset.address;
+    const calldata = memoTransfer ? encodeFunctionData({ abi: arcMemoAbi, functionName: "memo", args: memoTransfer.args }) : encodeFunctionData({ abi: erc20BalanceAbi, functionName: "transfer", args: [validated.address, validated.amount] });
+    return { id: `send:${asset.id}`, kind: memoTransfer ? "memo-send" : "send", chainId: arcTestnet.id, account: connection.address, target, calldata, value: 0n, recipient: validated.address, assetOut: { assetId: asset.id, amount: validated.amount }, preparedAt };
+  }
+  const safetyIntent = currentSafetyIntent();
+  const safetyAssessment = safetyIntent ? assessTransaction(safetyIntent, { connectedAccount: connection.address, connectedChainId: reviewNetworkVerified && chain.isArc ? arcTestnet.id : undefined, balances, simulation: feeEstimate.status === "ready" ? "passed" : "unavailable", expectedTarget: safetyIntent.target, now: reviewPreparedAt }) : undefined;
 
   useEffect(() => {
     if (!reviewing) return;
@@ -100,12 +113,13 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
     const message = validationMessage();
     if (message) return setError(message);
     if (memoNote.error) return setError(copy.memoInvalid);
-    setError(undefined); setReviewedAccount(connection.address); setStage("idle"); setFeeEstimate({ status: "loading" });
+    const preparedAt = 0;
+    setError(undefined); setReviewedAccount(connection.address); setReviewPreparedAt(preparedAt); setStage("idle"); setFeeEstimate({ status: "loading" });
     const networkVerified = await chain.verifyNow();
     setReviewNetworkVerified(networkVerified); setReviewing(true);
     if ("error" in validated || !client) return;
     if (networkVerified) {
-      try { const rawFee = await estimateSendFee(validated.amount); setFeeEstimate(rawFee === undefined ? { status: "unavailable" } : { status: "ready", rawFee }); }
+      try { const rawFee = await estimateSendFee(validated.amount); setFeeEstimate(rawFee === undefined ? { status: "unavailable" } : { status: "ready", rawFee }); const intent = currentSafetyIntent(preparedAt); if (rawFee !== undefined && intent) reviewedFingerprintRef.current = assessTransaction(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances, simulation: "passed", expectedTarget: intent.target, now: preparedAt }).reviewedFingerprint; }
       catch { setFeeEstimate({ status: "unavailable" }); }
     } else setFeeEstimate({ status: "unavailable" });
     setRecipientKind("checking");
@@ -122,7 +136,7 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
     } catch { setRecipientKind("unknown"); if (memoNote.note) setMemoCompatibility("unavailable"); }
   }
 
-  function resetSafety() { setLargeAcknowledged(false); setRecipientKind("unknown"); setMemoCompatibility("none"); setMemoVerification("none"); setReviewNetworkVerified(false); setFeeEstimate({ status: "idle" }); setError(undefined); }
+  function resetSafety() { setLargeAcknowledged(false); setRecipientKind("unknown"); setMemoCompatibility("none"); setMemoVerification("none"); setReviewNetworkVerified(false); setFeeEstimate({ status: "idle" }); reviewedFingerprintRef.current = undefined; setError(undefined); }
 
   function selectRecipient(address: `0x${string}`) { setRecipient(address); setReviewing(false); setContactFormOpen(false); setContactFeedback(undefined); resetSafety(); }
 
@@ -166,6 +180,8 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
   async function submit() {
     if (submittingRef.current || pending || "error" in validated || !connection.address || !client || memoNote.error || (memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)) return;
     if (!reviewedAccount || reviewedAccount.toLowerCase() !== connection.address.toLowerCase()) { setReviewing(false); setError(copy.detailsChanged); return; }
+    if (!safetyIntent || !reviewedFingerprintRef.current || safetyAssessment?.status !== "ready") { setReviewing(false); setError(copy.detailsChanged); return; }
+    try { assertReviewedRequest(safetyIntent, reviewedFingerprintRef.current); } catch { setReviewing(false); setError(copy.detailsChanged); return; }
     submittingRef.current = true; setError(undefined); setStage("awaiting");
     let submittedHash: `0x${string}` | undefined;
     try {
@@ -230,6 +246,8 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
     <div className="recipient-actions"><button type="button" onClick={() => void navigator.clipboard.writeText(validated.address)}>{copy.copyAddress}</button><a href={arcScanAddressUrl(validated.address)} target="_blank" rel="noreferrer">ArcScan ↗</a></div>
     {recipientKind === "checking" && <p className="wallet-hint">{copy.checkingRecipient}</p>}
     <TransactionSafetyChecks checks={safetyChecks} />
+    {safetyAssessment && <TransactionSafetyAssessmentView assessment={safetyAssessment} />}
+    {safetyIntent && <TransactionExpectedChanges intent={safetyIntent} />}
     {recipientKind === "contract" && <p className="wallet-warning" role="alert">{copy.contractWarning}</p>}
     {memoNote.note ? <p className="memo-public-warning" role="alert">{copy.memoPublic}</p> : <p className="wallet-notice">{copy.noMemo}</p>}
     {memoCompatibility === "checking" && <p className="wallet-hint" role="status">{copy.memoChecking}</p>}
@@ -243,7 +261,7 @@ export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { ba
     {stage === "failed" && error && <p className="field-error" role="alert">{error}</p>}
     {!reviewNetworkVerified && <p className="field-error">{copy.arcRequired}</p>}
     {!reviewNetworkVerified && <button type="button" className="secondary-action" onClick={() => void chain.switchToArc()}>{copy.switchArc}</button>}
-    <div className="modal-actions"><button type="button" className="secondary-action" onClick={() => { setReviewing(false); setStage("idle"); }} disabled={pending}>{copy.back}</button><button type="button" className="primary-action" onClick={() => void submit()} disabled={pending || feeEstimate.status === "loading" || hasBlockingChecks(safetyChecks) || Boolean(memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)}>{stage === "awaiting" ? copy.awaitingShort : stage === "confirming" ? copy.confirmingShort : copy.confirm}</button></div>
+    <div className="modal-actions"><button type="button" className="secondary-action" onClick={() => { setReviewing(false); setStage("idle"); }} disabled={pending}>{copy.back}</button><button type="button" className="primary-action" onClick={() => void submit()} disabled={pending || feeEstimate.status === "loading" || safetyAssessment?.status !== "ready" || hasBlockingChecks(safetyChecks) || Boolean(memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)}>{stage === "awaiting" ? copy.awaitingShort : stage === "confirming" ? copy.confirmingShort : copy.confirm}</button></div>
   </div> : <form className="create-form wallet-flow" onSubmit={(event) => { event.preventDefault(); void review(); }}>
     <label>{copy.asset}<select className="asset-selector" value={assetId} onChange={(event) => selectAsset(event.target.value as SupportedAssetId)}>{SUPPORTED_ASSETS.map((item) => <option key={item.id} value={item.id}>{item.symbol} · {item.name}</option>)}</select></label>
     <label>{copy.recipient}<div className="wallet-field-with-action"><input value={recipient} onChange={(event) => { setRecipient(event.target.value); setContactFormOpen(false); setContactFeedback(undefined); resetSafety(); }} placeholder="0x…" spellCheck={false} /><button type="button" onClick={() => void pasteRecipient()}>{copy.paste}</button></div></label>
