@@ -75,3 +75,14 @@ test("Agent source has no persistence or wallet-write execution surface", () => 
   for (const forbidden of ["localStorage", "sessionStorage", "document.cookie", "writeContract", "sendTransaction", "submitReviewedTransaction", "switchChain", "walletClient", "signMessage"]) assert.equal(source.includes(forbidden), false, forbidden);
   assert.match(ui, /setMessages\(\[\]\)/); assert.match(ui, /aria-live="polite"/); assert.match(ui, /Read-only Preview/); assert.match(ui, /Bản xem trước chỉ đọc/);
 });
+
+test("Agent shell follows the shared sidebar and mobile content geometry", () => {
+  const css = readFileSync(new URL("../components/MakotoAgentPage.module.css", import.meta.url), "utf8");
+  assert.match(css, /\.shell\{box-sizing:border-box;width:min\(100%,1840px\);min-width:0;min-height:100vh;margin:0 auto;padding:112px 32px 40px 272px\}/);
+  assert.match(css, /@media\(max-width:1120px\)\{\.shell\{padding-left:252px\}\}/);
+  assert.match(css, /@media\(max-width:767px\)\{\.shell\{width:100%;padding:92px 14px 110px\}/);
+  assert.match(css, /\.messages article>p\{[^}]*overflow-wrap:anywhere/);
+  assert.match(css, /\.draft dd\{[^}]*overflow-wrap:anywhere/);
+  assert.match(css, /\.composer input\{[^}]*width:100%;min-width:0/);
+  assert.doesNotMatch(css, /margin-left\s*:|translateX\(|100vw|width\s*:\s*calc\(/);
+});
