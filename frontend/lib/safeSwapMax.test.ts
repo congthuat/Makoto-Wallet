@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { calculateSafeUsdcSwapMax, SAFE_MAX_MAX_ITERATIONS, SafeSwapMaxError } from "./safeSwapMax.ts";
+import { calculateSafeUsdcSwapMax, SAFE_MAX_FINAL_VERIFY_ATTEMPTS, SAFE_MAX_MAX_ITERATIONS, SAFE_MAX_SOLVE_ATTEMPTS, SafeSwapMaxError } from "./safeSwapMax.ts";
 import { safeMaxCanUseSwapEstimate } from "./swapApprovalFlow.ts";
 
 const flow = readFileSync(new URL("../components/RealSwapFlow.tsx", import.meta.url), "utf8");
@@ -12,10 +12,17 @@ test("2 sufficient allowance calculates MAX", async () => assert.deepEqual((awai
 test("3 initial full-balance estimate failure recovers with bounded backoff", async () => { const result = await calculateSafeUsdcSwapMax(100n, async (candidate) => { if (candidate === 100n) throw new Error("insufficient funds for gas"); return { fee: 7n }; }); assert.equal(result.amount, 93n); assert.equal(result.usedBackoff, true); });
 test("4 final candidate is below wallet balance", async () => assert.ok((await calculateSafeUsdcSwapMax(100n, async () => ({ fee: 3n }))).amount < 100n));
 test("5 final candidate plus real fee fits balance", async () => { const result = await calculateSafeUsdcSwapMax(100n, async () => ({ fee: 9n })); assert.ok(result.amount + result.fee <= 100n); });
-test("6 solver contains no arbitrary fixed reserve", () => { assert.doesNotMatch(solver, /0\.01|percent|percentage/); assert.match(solver, /balance - observed\.fee/); });
+test("6 solver contains no arbitrary fixed reserve", () => { assert.doesNotMatch(solver, /0\.01|percent|percentage/); assert.match(solver, /balance - maxObservedFee/); });
 test("7 convergence terminates within the fixed bound", async () => assert.ok((await calculateSafeUsdcSwapMax(1_000n, async () => ({ fee: 11n }))).iterations <= SAFE_MAX_MAX_ITERATIONS));
-test("8 changing RPC estimates converge", async () => { let call = 0; const fees = [10n, 12n, 11n, 11n]; const result = await calculateSafeUsdcSwapMax(1_000n, async () => ({ fee: fees[Math.min(call++, fees.length - 1)] })); assert.equal(result.amount, 989n); });
-test("9 a final fee increase reduces the candidate", async () => { let call = 0; const result = await calculateSafeUsdcSwapMax(100n, async () => ({ fee: call++ < 2 ? 5n : 8n })); assert.equal(result.amount, 92n); });
+test("8 changing gas prices do not cause no-convergence", async () => { let call = 0; const fees = [4_600n, 4_680n, 4_630n, 4_710n, 4_690n]; const result = await calculateSafeUsdcSwapMax(1_000_000n, async () => ({ fee: fees[Math.min(call++, fees.length - 1)] })); assert.ok(result.amount > 0n); });
+test("9 oscillating fees produce a safe conservative result", async () => { let call = 0; const fees = [10n, 14n, 11n, 15n, 12n]; const result = await calculateSafeUsdcSwapMax(100n, async () => ({ fee: fees[Math.min(call++, fees.length - 1)] })); assert.ok(result.amount + result.fee <= 100n); assert.ok(result.amount <= 86n); });
+test("9a monotonically increasing fees reduce MAX", async () => { let call = 0; const fees = [5n, 6n, 7n, 8n, 9n, 10n, 10n]; const result = await calculateSafeUsdcSwapMax(100n, async () => ({ fee: fees[Math.min(call++, fees.length - 1)] })); assert.equal(result.amount, 90n); assert.ok(result.amount + result.fee <= 100n); });
+test("9b decreasing fees never reclaim the conservative reserve", async () => { let call = 0; const fees = [10n, 9n, 8n, 7n]; const result = await calculateSafeUsdcSwapMax(100n, async () => ({ fee: fees[Math.min(call++, fees.length - 1)] })); assert.equal(result.amount, 90n); });
+test("9c a higher final live fee reduces MAX", async () => { const result = await calculateSafeUsdcSwapMax(100n, async () => ({ fee: 5n }), async () => ({ fee: 8n })); assert.equal(result.amount, 92n); assert.equal(result.fee, 8n); });
+test("9d a lower final live fee keeps the conservative amount", async () => { const result = await calculateSafeUsdcSwapMax(100n, async () => ({ fee: 8n }), async () => ({ fee: 5n })); assert.equal(result.amount, 92n); assert.equal(result.fee, 5n); });
+test("9e solve exhaustion retains independent final verification capacity", async () => { let solveCalls = 0, finalCalls = 0; const result = await calculateSafeUsdcSwapMax(1_000n, async () => ({ fee: 10n + BigInt(solveCalls++) }), async () => { finalCalls += 1; return { fee: 20n }; }); assert.equal(solveCalls, SAFE_MAX_SOLVE_ATTEMPTS); assert.ok(finalCalls > 0 && finalCalls <= SAFE_MAX_FINAL_VERIFY_ATTEMPTS); assert.ok(result.amount + result.fee <= 1_000n); });
+test("9f fixed solve snapshot and fresh final estimator remain separate", () => { assert.match(flow, /const fixedFeePerGas = await gasPrice\(\)/); assert.match(flow, /estimateCandidate\(candidate, fixedFeePerGas\)/); assert.match(flow, /estimateCandidate\(candidate\)\)/); });
+test("9g state override fallback remains estimation-only", () => { assert.match(flow, /stateOverride: \[\{ address: connection\.address, balance:/); assert.match(flow, /useNativeBalanceOverride = false/); assert.doesNotMatch(flow.slice(flow.indexOf("async function execute")), /stateOverride/); });
 test("10 balance changes invalidate MAX", () => assert.match(flow, /safeMax\.balance === balance/));
 test("11 account changes invalidate MAX", () => assert.match(flow, /safeMax\.account\.toLowerCase\(\) === connection\.address/));
 test("12 chain changes invalidate MAX", () => assert.match(flow, /safeMax\.chainId === arcTestnet\.id && chain\.isArc/));

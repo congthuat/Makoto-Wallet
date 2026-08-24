@@ -23,6 +23,14 @@ import { TransactionSafetyReview } from "./TransactionSafetyReview";
 type Props = { locale: "en" | "vi"; onBusyChange(busy: boolean): void; onConfirmed?(): void };
 type MaxApprovalReview = { account: `0x${string}`; balance: bigint; allowance: bigint; approvalFee: bigint };
 
+function safeMaxFailure(locale: "en" | "vi", caught: unknown) {
+  const vi = locale === "vi";
+  if (caught instanceof SafeSwapMaxError && (caught.code === "zero-balance" || caught.code === "too-small")) return vi ? "Số dư không đủ để swap sau khi chừa phí Arc." : "Balance is insufficient to swap after reserving Arc gas.";
+  if (caught instanceof SafeSwapMaxError && caught.code === "no-estimate") return vi ? "Không thể lấy ước tính gas cho SAFE MAX." : "SAFE MAX gas estimate is unavailable.";
+  if (caught instanceof SafeSwapMaxError && caught.code === "no-convergence") return vi ? "SAFE MAX chưa hội tụ an toàn. Hãy thử lại." : "SAFE MAX could not converge safely. Try again.";
+  return vi ? "RPC Arc tạm thời không phản hồi khi tính SAFE MAX." : "Arc RPC failed while calculating SAFE MAX.";
+}
+
 export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
   const vi = locale === "vi", connection = useConnection(), chain = useVerifiedWalletChain();
   const client = usePublicClient({ chainId: arcTestnet.id }), writer = useWriteContract(), balances = useWalletBalances(connection.address, chain.isArc);
@@ -63,30 +71,33 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
     const price = await gasPrice();
     return price === undefined ? undefined : calculateArcFee(gas, price).rawFee;
   }
-  async function estimateSwapFee(candidate: SwapQuote, overrideNativeBalance = false) {
+  async function estimateSwapFee(candidate: SwapQuote, overrideNativeBalance = false, fixedFeePerGas?: bigint) {
     if (!client || !connection.address) return undefined;
     const swapGas = await client.estimateContractGas({ ...buildXyloSwapRequest(candidate, candidate.amountOut, slippage, connection.address), ...(overrideNativeBalance ? { stateOverride: [{ address: connection.address, balance: 2n ** 128n }] } : {}) });
-    const price = await gasPrice();
+    const price = fixedFeePerGas ?? await gasPrice();
     return price === undefined ? undefined : calculateArcFee(swapGas, price).rawFee;
   }
   async function solveSafeMax(currentBalance: bigint, allowance: bigint) {
     if (!client || !connection.address || !safeMaxCanUseSwapEstimate(allowance, currentBalance)) throw new SafeSwapMaxError("no-estimate");
     let useNativeBalanceOverride = true;
-    return calculateSafeUsdcSwapMax(currentBalance, async (candidate) => {
+    const fixedFeePerGas = await gasPrice();
+    if (fixedFeePerGas === undefined) throw new SafeSwapMaxError("no-estimate");
+    const estimateCandidate = async (candidate: bigint, feePerGas?: bigint) => {
       const output = await client.readContract({ address: XYLO_ROUTER, abi: xyloRouterAbi, functionName: "getAmountOut", args: [from.address, to.address, candidate] });
       const candidateQuote = createXyloQuote(from.id, to.id, candidate, output);
       try {
-        const fee = await estimateSwapFee(candidateQuote, useNativeBalanceOverride);
+        const fee = await estimateSwapFee(candidateQuote, useNativeBalanceOverride, feePerGas);
         if (fee === undefined) throw new Error("fee");
         return { fee };
       } catch (caught) {
         if (!useNativeBalanceOverride) throw caught;
         useNativeBalanceOverride = false;
-        const fee = await estimateSwapFee(candidateQuote, false);
+        const fee = await estimateSwapFee(candidateQuote, false, feePerGas);
         if (fee === undefined) throw caught;
         return { fee };
       }
-    });
+    };
+    return calculateSafeUsdcSwapMax(currentBalance, (candidate) => estimateCandidate(candidate, fixedFeePerGas), (candidate) => estimateCandidate(candidate));
   }
   async function chooseQuickAmount(percent: SwapQuickPercent) {
     let selected = swapAmountForPercent(balance, percent);
@@ -102,7 +113,7 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
         }
         calculatedSafeMax = await solveSafeMax(balance, allowance);
         selected = calculatedSafeMax.amount;
-      } catch (caught) { return setError(caught instanceof SafeSwapMaxError && caught.code === "too-small" ? (vi ? "Số dư quá nhỏ để swap sau khi chừa phí Arc." : "Balance is too small to swap after reserving Arc gas.") : (vi ? "Không thể tính MAX an toàn từ phí Arc thực tế." : "A safe MAX could not be calculated from real Arc fees.")); }
+      } catch (caught) { return setError(safeMaxFailure(locale, caught)); }
       finally { setPending(undefined); }
     }
     changeAmount(selected > 0n ? formatAssetAmount(selected, from) : "");
@@ -138,6 +149,7 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
       setAmount(formatAssetAmount(result.amount, from)); setSafeMax({ ...result, balance: postApprovalBalance, account: connection.address, chainId: arcTestnet.id }); setMaxApproval(undefined);
     } catch (caught) {
       if (caught instanceof Error && caught.message === "arc") setError(vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.");
+      else if (caught instanceof SafeSwapMaxError) setError(safeMaxFailure(locale, caught));
       else { const kind = classifyWalletFailure(caught, false); setError(kind === "rejected" ? (vi ? "Bạn đã từ chối Approve cho MAX." : "You rejected Approve for MAX.") : (vi ? "Không thể hoàn tất Approve cho MAX." : "Approve for MAX could not be completed.")); }
     } finally { setPending(undefined); }
   }
