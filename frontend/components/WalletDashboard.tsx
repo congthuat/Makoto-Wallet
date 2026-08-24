@@ -49,7 +49,7 @@ function ExternalLinkIcon() {
   return <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 10 12 4M7 4h5v5" /><path d="M12 10v2H4V4h2" /></svg>;
 }
 
-function DashboardAppIcon({ name }: { name: "send" | "receive" | "swap" | "jar" | "pay" | "security" | "unified" }) {
+function DashboardAppIcon({ name }: { name: "send" | "receive" | "swap" | "jar" | "pay" | "security" | "unified" | "agent" }) {
   const paths = {
     send: <><path d="M7 17 17 7" /><path d="M8 7h9v9" /></>,
     receive: <><path d="m7 7 10 10" /><path d="M16 7v10H6" /></>,
@@ -58,6 +58,7 @@ function DashboardAppIcon({ name }: { name: "send" | "receive" | "swap" | "jar" 
     pay: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M3 10h18M7 15h4" /></>,
     security: <><path d="M12 3 5 6v5c0 4.5 3 7.8 7 10 4-2.2 7-5.5 7-10V6l-7-3Z" /><path d="m9 12 2 2 4-4" /></>,
     unified: <><circle cx="8" cy="12" r="4" /><circle cx="16" cy="12" r="4" /><path d="M10 8.6 12 5l2 3.6M10 15.4 12 19l2-3.6" /></>,
+    agent: <><path d="M7 8a5 5 0 0 1 10 0v7a4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4V8Z" /><path d="M9 12h.01M15 12h.01M10 15h4M12 3V1" /></>,
   };
   return <span className={styles.appIconTile}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg></span>;
 }
@@ -326,6 +327,7 @@ export function WalletDashboard() {
                   <Link href="/savings"><DashboardAppIcon name="jar" /><span className={styles.appModuleCopy}><strong>Makoto Vault</strong><small>{locale === "vi" ? "Tiết kiệm theo mục tiêu được bảo vệ." : "Goal-based protected savings."}</small></span></Link>
                   <Link href="/pay"><DashboardAppIcon name="pay" /><span className={styles.appModuleCopy}><strong>Makoto Pay</strong><small>{locale === "vi" ? "Dịch vụ thanh toán USDC hằng ngày." : "Everyday USDC payment services."}</small></span></Link>
                   <Link href="/unified-balance"><DashboardAppIcon name="unified" /><span className={styles.appModuleCopy}><strong>Unified Balance</strong><small>{locale === "vi" ? "Nạp USDC đa chuỗi và chi tiêu trên Arc." : "Deposit USDC across chains and spend on Arc."}</small></span></Link>
+                  <a href="/agent"><DashboardAppIcon name="agent" /><span className={styles.appModuleCopy}><strong>Makoto Agent</strong><small>{locale === "vi" ? "Trợ lý ví chỉ đọc bằng tiếng Việt và tiếng Anh." : "Read-only wallet assistant in English and Vietnamese."}</small></span></a>
                   <Link href="/settings#security"><DashboardAppIcon name="security" /><span className={styles.appModuleCopy}><strong>{locale === "vi" ? "Trung tâm bảo mật" : "Security Center"}</strong><small>{locale === "vi" ? "Trạng thái ví, mạng, khôi phục và riêng tư." : "Wallet, network, recovery and privacy status."}</small></span></Link>
                 </div>
               </article>

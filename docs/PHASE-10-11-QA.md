@@ -125,3 +125,16 @@ Automated coverage includes provider metadata, bounded RPC normalization, ArcSca
 Final migration automation covers swap account/route/expiry/minimum mutations, exact finite approval behavior, Circle-managed estimate truthfulness, CCTP fee/total-burn changes, Vault target changes, duplicate submission, cancellation release, and receipt-only success. SAFE MAX regression coverage remains part of the complete frontend suite.
 
 Manual QA may stop at wallet confirmation and cancel. No additional testnet funds need to be spent. Verify long-address/fee layouts at 375, 390, 430, 768, and desktop widths in EN/VI and light/dark themes.
+# Phase 10.8 — Makoto Agent read-only QA
+
+- Confirm `/agent` loads while disconnected and a balance question asks the user to connect.
+- On Arc Testnet, compare Agent USDC/EURC balances with Dashboard, recent swaps/bridges with Activity, and Vault totals with Makoto Vault.
+- Confirm partial Activity state is disclosed and missing values say unavailable rather than zero.
+- Verify English and Vietnamese balance, network, history, Vault, safety, and explanation prompts.
+- Ask for send, swap, bridge, Vault deposit, and Vault withdrawal. Confirm a preview-only `AgentActionDraft` appears, missing fields are named, and there is no Execute button or wallet popup.
+- On the wrong network, ask for network status. Confirm the current/required chain is explained and no network switch is requested.
+- Clear the conversation and refresh; confirm chat messages are not persisted.
+- Verify light/dark themes and widths 375, 390, 430, 768, and desktop. Check wrapping for messages, addresses, and hashes; keyboard submit; accessible input label; focus return; and `aria-live` updates.
+- Confirm Security Center describes Agent capabilities and limitations without a score or audit claim.
+
+Architecture boundary: `AgentContextSnapshot` → deterministic read-only tool → grounded response. Action language stops at a data-only `AgentActionDraft`. Phase 10.8 does **not** allow Makoto Agent to execute transactions. Future conversion to `TransactionIntent` must enter the existing Phase 10.7 review, safety assessment, expiry/fingerprint revalidation, wallet confirmation, and receipt-confirmation path.
