@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useQueryClient } from "@tanstack/react-query";
 import { useConnection, useSwitchChain } from "wagmi";
 import { arcTestnet } from "viem/chains";
+import { isVerifiedArcReview } from "@/lib/transactionReview";
 
 type ChainProvider = {
   request(args: { method: string; params?: readonly unknown[] }): Promise<unknown>;
@@ -87,6 +88,17 @@ export function WalletNetworkProvider({ children }: { children: ReactNode }) {
       provider?.removeListener?.("chainChanged", refreshAfterProviderEvent);
     };
   }, [connection.status, connector, synchronize]);
+
+  useEffect(() => {
+    if (connection.status !== "connected") return;
+    const refresh = () => { if (document.visibilityState === "visible") void synchronize().catch(() => undefined); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [connection.status, synchronize]);
 
   const switchToArc = useCallback(async () => {
     if (connection.status !== "connected" || !connector) {
@@ -180,7 +192,11 @@ export function useVerifiedWalletChain() {
 }
 
 function isVerifiedArc(chain?: VerifiedChain) {
-  return chain?.connectorChainId === arcTestnet.id && chain.providerChainId === arcTestnet.id;
+  return isVerifiedArcSnapshot(chain?.connectorChainId, chain?.providerChainId);
+}
+
+export function isVerifiedArcSnapshot(connectorChainId?: number, providerChainId?: number) {
+  return isVerifiedArcReview(connectorChainId, providerChainId);
 }
 
 function parseChainId(value: unknown) {

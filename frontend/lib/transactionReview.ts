@@ -1,6 +1,10 @@
 import { getAddress, isAddress, zeroAddress, type Address } from "viem";
 import { arcTestnet } from "viem/chains";
 
+export function isVerifiedArcReview(connectorChainId?: number, providerChainId?: number): boolean {
+  return connectorChainId === arcTestnet.id && providerChainId === arcTestnet.id;
+}
+
 export type TransactionReviewKind = "send" | "swap" | "bridge" | "savingsDeposit" | "createJar" | "withdrawal" | "batchPayment" | "unifiedBalanceSpend";
 export type SafetyCheckStatus = "verified" | "info" | "attention" | "blocking";
 export type SafetyCheck = { code: string; status: SafetyCheckStatus; label: string; detail?: string };
