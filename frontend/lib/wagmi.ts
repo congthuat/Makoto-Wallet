@@ -2,7 +2,7 @@ import { createAppKit, type AppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { createConfig, injected, type Config } from "wagmi";
 import { fallback, http } from "viem";
-import { arcTestnet } from "viem/chains";
+import { arcTestnet, baseSepolia } from "viem/chains";
 import { ARC_PUBLIC_RPC_URLS, arcRpcUrl } from "./config";
 import { REOWN_METADATA, resolveReownProjectId } from "./reown";
 
@@ -19,17 +19,20 @@ const transports = {
     ARC_PUBLIC_RPC_URLS.map((url) => http(url, { retryCount: 1, retryDelay: 250, timeout: 10_000 })),
     { rank: false, retryCount: 1, retryDelay: 300 },
   ),
+  [baseSepolia.id]: http(),
 } as const;
+
+const supportedNetworks: [typeof configuredArcTestnet, typeof baseSepolia] = [configuredArcTestnet, baseSepolia];
 
 let appKit: AppKit | undefined;
 let wagmiConfig: Config;
 
 if (REOWN_PROJECT_ID) {
-  const adapter = new WagmiAdapter({ networks: [configuredArcTestnet], projectId: REOWN_PROJECT_ID, ssr: true, transports });
+  const adapter = new WagmiAdapter({ networks: supportedNetworks, projectId: REOWN_PROJECT_ID, ssr: true, transports });
   wagmiConfig = adapter.wagmiConfig;
   appKit = createAppKit({
     adapters: [adapter],
-    networks: [configuredArcTestnet],
+    networks: supportedNetworks,
     defaultNetwork: configuredArcTestnet,
     projectId: REOWN_PROJECT_ID,
     metadata: REOWN_METADATA,
@@ -50,7 +53,7 @@ if (REOWN_PROJECT_ID) {
   });
 } else {
   wagmiConfig = createConfig({
-    chains: [configuredArcTestnet],
+    chains: supportedNetworks,
     connectors: [injected({ shimDisconnect: true })],
     multiInjectedProviderDiscovery: true,
     ssr: true,

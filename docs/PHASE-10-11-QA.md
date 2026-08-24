@@ -1,33 +1,27 @@
-# Phase 10–11 manual QA
+# Phase 10.1 + 10.2 live QA
 
-## Phase 10.0 — Arc Transaction Engine V2
+Use testnet assets only. Connect the same Reown wallet throughout each case.
 
-- Prerequisites: connected wallet on Arc Testnet. Action: send a small real USDC transfer. Expected: Preparing → signature → Submitted/Pending → Final, with fee in USDC and an ArcScan link. Failure: reject signature and confirm no transaction is resubmitted. Mobile: repeat at 375 px.
+## A. Read
 
-## Phase 10.1 — Circle App Kit
+Open `/unified-balance`, connect, and refresh. Confirm available, pending, and per-chain USDC values match Circle Gateway and no placeholder balance appears.
 
-- Prerequisites: configured App Kit adapter. Action: inspect capabilities. Expected: only adapter-supported actions are enabled. Failure: remove configuration; actions say configuration required. Mobile: no dead or overflowing controls.
+## B. Arc deposit
 
-## Phase 10.2 — Unified Balance
+Select Arc Testnet, enter a positive USDC amount, review, approve any wallet-requested authorization, and confirm the deposit. Verify the real transaction hash in ArcScan and refresh after Gateway indexing.
 
-- Prerequisites: Circle Gateway configuration and a real deposit. Action: load balance breakdown. Expected: provider-reported available, pending, total, and source chains. Failure: disconnect provider; no wallet-balance summation is shown as unified balance. Mobile: breakdown is readable at 390 px.
+## C. Base Sepolia deposit
 
-## Phase 10.3 — Universal Bridge
+Select Base Sepolia and repeat the deposit. Confirm Makoto requests the network through the active connector and never uses a different injected account. Verify the hash in BaseScan.
 
-- Prerequisites: supported CCTP/App Kit route. Action: bridge test USDC. Expected: source hash, message state, destination state, and completion only after destination execution. Failure: unsupported route stays disabled. Mobile: status timeline fits at 430 px.
+## D. Spend on Arc
 
-## Phase 10.4 — Smart Swap Router
+Enter a valid Arc recipient and amount, request an estimate, inspect every returned fee, then confirm. Verify the returned transaction result and Arc explorer link.
 
-- Prerequisites: XyloNet and, if configured, App Kit quotes. Action: request USDC/EURC quote. Expected: current real routes are compared and provider is named. Failure: wait for expiry; signing is blocked. Mobile: review has no horizontal overflow.
+## E. Rejections and stale state
 
-## Phase 10.5 — Activity / Indexer
+Reject approval, deposit, and spend prompts in turn. Confirm each reports cancellation and permits retry. Change account or network during review and confirm the operation stops or the wallet requests the required network.
 
-- Prerequisites: wallet with known transactions. Action: reload on a clean browser. Expected: indexed/direct-chain records appear and duplicate optimistic entries merge into verified records. Failure: disable indexer; existing direct-chain/receipt fallback remains truthful. Mobile: filters remain keyboard/touch usable.
+## F. Responsive and localized UI
 
-## Phase 10.6 — Batch Pay
-
-- Prerequisites: verified official Multicall3From configuration and enough USDC. Action: enter two unique recipients and review. Expected: exact total, fee, contract, and one signature. Failure: duplicate/zero/invalid/over-balance rows block review. Until address verification, expected state is configuration required. Mobile: rows remain editable at 375 px.
-
-## Phase 11.0 — Smart Wallet
-
-- Prerequisites: configured Arc-compatible ERC-4337 provider. Action: query capabilities and submit a test operation only if available. Expected: provider-derived account and operation status. Failure: without provider, creation is unavailable/configuration required; gasless is never shown. Mobile: normal wallet connection remains available at 768 px and below.
+Repeat at 390 px and desktop widths in English and Vietnamese. Confirm controls remain reachable, hashes/addresses wrap, and pending/success/error states are legible.

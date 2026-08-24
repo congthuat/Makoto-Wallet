@@ -146,7 +146,7 @@ test("dashboard previews five activities and opens paginated full history", () =
   assert.match(wallet, /\.savingsSummary\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);
 });
 
-test("wallet actions are separated from the three real Makoto Tools modules", () => {
+test("wallet actions are separated from the four real Makoto Tools modules", () => {
   const balanceStart = dashboard.indexOf("<div className={styles.primaryActions}>");
   const balanceEnd = dashboard.indexOf("</div>", balanceStart);
   const balanceActions = dashboard.slice(balanceStart, balanceEnd);
@@ -166,7 +166,8 @@ test("wallet actions are separated from the three real Makoto Tools modules", ()
   assert.match(apps, /href="\/savings"[\s\S]*Makoto Vault/);
   assert.match(apps, /href="\/pay"[\s\S]*Makoto Pay/);
   assert.match(apps, /href="\/settings#security"[\s\S]*Security Center/);
-  assert.equal(apps.match(/<Link href=/g)?.length, 3);
+  assert.match(apps, /href="\/unified-balance"[\s\S]*Unified Balance/);
+  assert.equal(apps.match(/<Link href=/g)?.length, 4);
   assert.match(apps, /Công cụ Makoto[\s\S]*Makoto Tools/);
   assert.doesNotMatch(apps, />Apps<|>Ứng dụng</);
   assert.match(dashboard, /styles\.savingsPosition[\s\S]*styles\.appsFooterLink[\s\S]*href="\/savings"/);

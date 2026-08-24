@@ -9,7 +9,7 @@ Makoto UI
   |-- transaction review -> Arc lifecycle -> wallet / Arc RPC -> verified receipt
   |-- swap router -> XyloNet | Arc App Kit (when configured)
   |-- bridge -> existing CCTP V2 | Arc App Kit (when configured)
-  |-- unified balance -> Circle Gateway (when configured)
+  |-- unified balance -> Circle App Kit -> permissionless Circle Gateway
   |-- activity -> indexer adapter | direct logs | verified receipts | local pending
   |-- batch planner -> Multicall3From (disabled until official address is verified)
   `-- smart-wallet interface -> provider (configuration required)
@@ -21,7 +21,7 @@ Transactions use Preparing, Awaiting signature, Submitted, Pending, Final succes
 
 ## Circle App Kit, Gateway, and bridge
 
-The provider-neutral capability layer recognizes Circle Gateway's Arc Testnet domain 26, Gateway Wallet `0x0077777d7EBA4688BDeF3E311b846F25870A19B9`, and Gateway Minter `0x0022222ABE238Cc2C7Bb1f21003F0a260052475B`. Unified balances accept only actual provider values. App Kit swap/bridge actions are configuration-required until a real adapter is connected. Bridge completion requires destination execution, not merely a successful source receipt. Existing CCTP V2 remains the working fallback.
+The live Unified Balance route adapts only the active Reown connector's EIP-1193 provider through Circle App Kit. It recognizes Circle Gateway's Arc Testnet domain 26, Gateway Wallet `0x0077777d7EBA4688BDeF3E311b846F25870A19B9`, and Gateway Minter `0x0022222ABE238Cc2C7Bb1f21003F0a260052475B`. Gateway is permissionless: no Circle API key, entity secret, or application private key is used. Balance, pending state, source-chain breakdown, fee estimates, and transaction results come from the SDK. Deposits support Arc Testnet and Base Sepolia; automatic-allocation spends target Arc Testnet. App Kit swap/bridge actions remain configuration-required. Existing CCTP V2 remains the working bridge fallback.
 
 ## Swap and activity
 

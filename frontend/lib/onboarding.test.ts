@@ -45,11 +45,12 @@ test("onboarding intent parsing rejects stale or malformed values", () => {
   assert.equal(parseOnboardingIntent(null), undefined);
 });
 
-test("onboarding remains pinned to the official Arc Testnet Viem chain", () => {
+test("onboarding keeps official Arc as default and permits the Unified Balance source network", () => {
   assert.equal(arcTestnet.id, 5042002);
   assert.equal(arcTestnet.testnet, true);
   assert.match(wagmiSource, /configuredArcTestnet\s*=\s*\{[\s\S]*?\.\.\.arcTestnet/);
-  assert.match(wagmiSource, /networks:\s*\[configuredArcTestnet\]/);
+  assert.match(wagmiSource, /supportedNetworks[^=]*=\s*\[configuredArcTestnet, baseSepolia\]/);
+  assert.match(wagmiSource, /defaultNetwork:\s*configuredArcTestnet/);
 });
 
 test("English and Vietnamese onboarding labels cover both paths and success", () => {
