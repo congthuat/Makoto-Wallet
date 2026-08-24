@@ -16,8 +16,8 @@ test("6 approval-for-MAX contains no swap submission", () => { assert.doesNotMat
 test("7 successful approval refreshes balance", () => assert.match(maxHandler, /postApprovalBalance/));
 test("8 successful approval invokes existing SAFE MAX solver", () => assert.match(maxHandler, /solveSafeMax\(postApprovalBalance, postApprovalAllowance\)/));
 test("9 calculated amount is auto-populated", () => assert.match(maxHandler, /setAmount\(formatAssetAmount\(result\.amount/));
-test("10 populated amount is below balance", async () => assert.ok((await calculateSafeUsdcSwapMax(100n, async () => ({ fee: 4n }))).amount < 100n));
-test("11 populated amount plus verified fee fits", async () => { const result = await calculateSafeUsdcSwapMax(100n, async () => ({ fee: 4n })); assert.ok(result.amount + result.fee <= 100n); });
+test("10 populated amount is below balance", async () => assert.ok((await calculateSafeUsdcSwapMax(100n, async () => ({ feeUsdc6: 4n }))).amount < 100n));
+test("11 populated amount plus verified fee fits", async () => { const result = await calculateSafeUsdcSwapMax(100n, async () => ({ feeUsdc6: 4n })); assert.ok(result.amount + result.feeUsdc6 <= 100n); });
 test("12 sufficient allowance skips extra approval", () => { assert.equal(safeMaxCanUseSwapEstimate(10n, 10n), true); assert.match(maxHandler, /if \(currentAllowance < currentBalance\)/); });
 test("13 balance increase beyond allowance requests approval again", () => assert.equal(safeMaxCanUseSwapEstimate(10n, 11n), false));
 test("14 normal quick percentages remain unchanged", () => assert.match(flow, /\[25, 50, 75, 100\]/));
