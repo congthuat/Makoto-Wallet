@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Hex } from "viem";
+import { encodeFunctionData, type Hex } from "viem";
 import { arcTestnet } from "viem/chains";
 import { useConnection, usePublicClient, useWriteContract } from "wagmi";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
-import { arcFeeToUsdcAtomic, calculateArcFee, formatArcFeeEstimate, swapCostWithArcFee } from "@/lib/arcFees";
+import { calculateArcFee, formatArcFeeEstimate, swapCostWithArcFee } from "@/lib/arcFees";
 import { formatAssetAmount, getAssetById, parseAssetAmount, SUPPORTED_ASSETS, type SupportedAssetId } from "@/lib/assets";
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { confirmThenRefresh } from "@/lib/confirmedTransaction";
@@ -15,6 +15,7 @@ import { buildXyloSwapRequest, createXyloQuote, exactApprovalRequired, isSwapQuo
 import { CIRCLE_BROWSER_SWAP_STATUS, selectRouteForMode, swapRouteLabel, type SwapMode } from "@/lib/swapRouter";
 import { planSwapReview, safeMaxCanUseSwapEstimate } from "@/lib/swapApprovalFlow";
 import { calculateSafeUsdcSwapMax, SafeSwapMaxError, type SafeSwapMaxResult } from "@/lib/safeSwapMax";
+import { createSwapFeeEnvelope, type SwapFeeEnvelope } from "@/lib/swapFeeEnvelope";
 import { globalReviewChecks } from "@/lib/transactionReview";
 import { classifyWalletFailure } from "@/lib/walletSafety";
 import { createAssetActivity, recordWalletActivity } from "@/lib/walletActivity";
@@ -36,6 +37,7 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
   const client = usePublicClient({ chainId: arcTestnet.id }), writer = useWriteContract(), balances = useWalletBalances(connection.address, chain.isArc);
   const [fromId, setFromId] = useState<SupportedAssetId>("usdc"), [mode, setMode] = useState<SwapMode>("smart"), [amount, setAmount] = useState("");
   const [slippage, setSlippage] = useState<(typeof SWAP_SLIPPAGE_OPTIONS)[number]>(0.005), [quote, setQuote] = useState<SwapQuote>(), [approvalGasFee, setApprovalGasFee] = useState<bigint>(), [swapGasFee, setSwapGasFee] = useState<bigint>();
+  const [swapEnvelope, setSwapEnvelope] = useState<SwapFeeEnvelope>();
   const [reviewStage, setReviewStage] = useState<"approval" | "swap">(), [gasUnavailable, setGasUnavailable] = useState(false), [pending, setPending] = useState<string>(), [error, setError] = useState<string>(), [quickFeedback, setQuickFeedback] = useState<string>();
   const [reviewedAccount, setReviewedAccount] = useState<`0x${string}`>(), [success, setSuccess] = useState<{ hash: Hex; quote: SwapQuote; received: bigint }>();
   const [safeMax, setSafeMax] = useState<(SafeSwapMaxResult & { balance: bigint; account: `0x${string}`; chainId: number })>();
@@ -43,7 +45,7 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
   useEffect(() => onBusyChange(Boolean(pending)), [onBusyChange, pending]);
   const from = getAssetById(fromId)!, to = getAssetById(oppositeAssetId(fromId))!, balance = balances.assets[fromId].data ?? 0n, usdcBalance = balances.assets.usdc.data ?? 0n, parsed = parseAssetAmount(amount, from);
   const route = quote ? selectRouteForMode(mode, [{ provider: "xylonet", output: quote.amountOut, fee: swapGasFee ?? approvalGasFee ?? 0n, quotedAt: quote.quotedAt, expiresAt: quote.quotedAt + SWAP_QUOTE_MAX_AGE_MS, available: true }], quote.quotedAt) : undefined;
-  const gasCost = quote && swapGasFee !== undefined ? swapCostWithArcFee(quote.amountIn, from.id, usdcBalance, swapGasFee) : undefined;
+  const gasCost = quote && swapGasFee !== undefined ? swapCostWithArcFee(quote.amountIn, from.id, usdcBalance, swapEnvelope?.rawMaxFee18 ?? swapGasFee) : undefined;
   const approvalGasCovered = approvalGasFee !== undefined && swapCostWithArcFee(0n, "eurc", usdcBalance, approvalGasFee).sufficientGasBalance;
   const maxApprovalGasCovered = maxApproval !== undefined && swapCostWithArcFee(0n, "eurc", usdcBalance, maxApproval.approvalFee).sufficientGasBalance;
 
@@ -57,7 +59,7 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
     const timeout = window.setTimeout(() => setMaxApproval(undefined), 0);
     return () => window.clearTimeout(timeout);
   }, [balance, chain.isArc, connection.address, from.id, maxApproval]);
-  function invalidate() { setQuote(undefined); setReviewStage(undefined); setError(undefined); setQuickFeedback(undefined); setApprovalGasFee(undefined); setSwapGasFee(undefined); setGasUnavailable(false); setSafeMax(undefined); setMaxApproval(undefined); }
+  function invalidate() { setQuote(undefined); setReviewStage(undefined); setError(undefined); setQuickFeedback(undefined); setApprovalGasFee(undefined); setSwapGasFee(undefined); setSwapEnvelope(undefined); setGasUnavailable(false); setSafeMax(undefined); setMaxApproval(undefined); }
   function changeAmount(value: string) { setAmount(value); invalidate(); }
   function reset() { setAmount(""); invalidate(); setSuccess(undefined); }
   async function gasPrice() {
@@ -71,33 +73,41 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
     const price = await gasPrice();
     return price === undefined ? undefined : calculateArcFee(gas, price).rawFee;
   }
-  async function estimateSwapFee(candidate: SwapQuote, overrideNativeBalance = false, fixedFeePerGas?: bigint) {
-    if (!client || !connection.address) return undefined;
-    const swapGas = await client.estimateContractGas({ ...buildXyloSwapRequest(candidate, candidate.amountOut, slippage, connection.address), ...(overrideNativeBalance ? { stateOverride: [{ address: connection.address, balance: 2n ** 128n }] } : {}) });
-    const price = fixedFeePerGas ?? await gasPrice();
-    return price === undefined ? undefined : calculateArcFee(swapGas, price).rawFee;
+  async function prepareSwapEnvelope(candidate: SwapQuote, overrideNativeBalance = false, fixedFees?: { maxFeePerGas: bigint; maxPriorityFeePerGas?: bigint }) {
+    if (!client || !connection.address) throw new Error("gas");
+    const request = buildXyloSwapRequest(candidate, candidate.amountOut, slippage, connection.address);
+    const publicRpcGas = await client.estimateContractGas({ ...request, ...(overrideNativeBalance ? { stateOverride: [{ address: connection.address, balance: 2n ** 128n }] } : {}) });
+    let walletProviderGas: bigint | undefined;
+    if (!overrideNativeBalance && connection.connector) {
+      try {
+        const provider = await connection.connector.getProvider() as { request(args: { method: string; params: unknown[] }): Promise<string> };
+        const data = encodeFunctionData({ abi: request.abi, functionName: request.functionName, args: request.args });
+        walletProviderGas = BigInt(await provider.request({ method: "eth_estimateGas", params: [{ from: connection.address, to: request.address, data }] }));
+      } catch { walletProviderGas = undefined; }
+    }
+    const fees = fixedFees ?? await client.estimateFeesPerGas();
+    const maxFeePerGas = fees.maxFeePerGas ?? await client.getGasPrice();
+    return createSwapFeeEnvelope(publicRpcGas, walletProviderGas, maxFeePerGas, fees.maxPriorityFeePerGas ?? undefined);
   }
   async function solveSafeMax(currentBalance: bigint, allowance: bigint) {
     if (!client || !connection.address || !safeMaxCanUseSwapEstimate(allowance, currentBalance)) throw new SafeSwapMaxError("no-estimate");
     let useNativeBalanceOverride = true;
-    const fixedFeePerGas = await gasPrice();
-    if (fixedFeePerGas === undefined) throw new SafeSwapMaxError("no-estimate");
-    const estimateCandidate = async (candidate: bigint, feePerGas?: bigint) => {
+    const fixedFees = await client.estimateFeesPerGas();
+    const fixedFeePerGas = fixedFees.maxFeePerGas ?? await client.getGasPrice();
+    const estimateCandidate = async (candidate: bigint, fixed?: { maxFeePerGas: bigint; maxPriorityFeePerGas?: bigint }) => {
       const output = await client.readContract({ address: XYLO_ROUTER, abi: xyloRouterAbi, functionName: "getAmountOut", args: [from.address, to.address, candidate] });
       const candidateQuote = createXyloQuote(from.id, to.id, candidate, output);
       try {
-        const rawFee18 = await estimateSwapFee(candidateQuote, useNativeBalanceOverride, feePerGas);
-        if (rawFee18 === undefined) throw new Error("fee");
-        return { feeUsdc6: arcFeeToUsdcAtomic(rawFee18) };
+        const envelope = await prepareSwapEnvelope(candidateQuote, useNativeBalanceOverride, fixed);
+        return { feeUsdc6: envelope.feeUsdc6 };
       } catch (caught) {
         if (!useNativeBalanceOverride) throw caught;
         useNativeBalanceOverride = false;
-        const rawFee18 = await estimateSwapFee(candidateQuote, false, feePerGas);
-        if (rawFee18 === undefined) throw caught;
-        return { feeUsdc6: arcFeeToUsdcAtomic(rawFee18) };
+        const envelope = await prepareSwapEnvelope(candidateQuote, false, fixed);
+        return { feeUsdc6: envelope.feeUsdc6 };
       }
     };
-    return calculateSafeUsdcSwapMax(currentBalance, (candidate) => estimateCandidate(candidate, fixedFeePerGas), (candidate) => estimateCandidate(candidate));
+    return calculateSafeUsdcSwapMax(currentBalance, (candidate) => estimateCandidate(candidate, { maxFeePerGas: fixedFeePerGas, maxPriorityFeePerGas: fixedFees.maxPriorityFeePerGas ?? undefined }), (candidate) => estimateCandidate(candidate));
   }
   async function chooseQuickAmount(percent: SwapQuickPercent) {
     let selected = swapAmountForPercent(balance, percent);
@@ -165,12 +175,12 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
       try {
         if (needsApproval) setApprovalGasFee(await estimateApprovalFee(parsed));
         else {
-          const fee = await estimateSwapFee(nextQuote);
-          if (fee !== undefined && safeMax && parsed === safeMax.amount && parsed + arcFeeToUsdcAtomic(fee) > balance) {
+          const envelope = await prepareSwapEnvelope(nextQuote);
+          if (safeMax && parsed === safeMax.amount && parsed + envelope.feeUsdc6 > balance) {
             const recalculated = await solveSafeMax(balance, allowance); setAmount(formatAssetAmount(recalculated.amount, from)); setSafeMax({ ...recalculated, balance, account: connection.address, chainId: arcTestnet.id });
             setQuote(undefined); setError(vi ? "Phí Arc đã thay đổi. MAX đã được tính lại; hãy kiểm tra lại." : "Arc gas changed. MAX was recalculated; review again."); return;
           }
-          setSwapGasFee(fee);
+          setSwapEnvelope(envelope); setSwapGasFee(envelope.rawMaxFee18);
         }
       } catch { setGasUnavailable(true); }
       setReviewedAccount(connection.address); setReviewStage(needsApproval ? "approval" : "swap");
@@ -204,10 +214,9 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
       if (allowance < quote.amountIn) throw new Error("allowance");
       if (nextBalance < quote.amountIn) throw new Error("balance");
       const freshQuote = createXyloQuote(from.id, to.id, quote.amountIn, freshOutput);
-      const fee = await estimateSwapFee(freshQuote);
-      if (fee === undefined) throw new Error("gas");
-      const cost = swapCostWithArcFee(freshQuote.amountIn, from.id, nextUsdcBalance, fee);
-      setQuote(freshQuote); setApprovalGasFee(undefined); setSwapGasFee(fee); setGasUnavailable(false); setReviewStage("swap");
+      const envelope = await prepareSwapEnvelope(freshQuote);
+      const cost = swapCostWithArcFee(freshQuote.amountIn, from.id, nextUsdcBalance, envelope.rawMaxFee18);
+      setQuote(freshQuote); setApprovalGasFee(undefined); setSwapEnvelope(envelope); setSwapGasFee(envelope.rawMaxFee18); setGasUnavailable(false); setReviewStage("swap");
       if (!cost.sufficientGasBalance) setError(vi ? "Không đủ USDC cho phí gas của giao dịch swap." : "Insufficient USDC for the swap network fee.");
     } catch (caught) {
       if (caught instanceof Error && caught.message === "arc") setError(vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.");
@@ -227,8 +236,11 @@ export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
       const allowance = await client.readContract({ address: from.address, abi: erc20BalanceAbi, functionName: "allowance", args: [connection.address, XYLO_ROUTER] });
       if (allowance < quote.amountIn) { setReviewStage(undefined); return setError(vi ? "Allowance đã thay đổi. Vui lòng kiểm tra lại." : "Allowance changed. Please review again."); }
       if (!(await chain.verifyNow())) throw new Error("arc"); freshBalance = await client.readContract({ address: from.address, abi: erc20BalanceAbi, functionName: "balanceOf", args: [connection.address] }); if (quote.amountIn > freshBalance) throw new Error("balance");
-      const freshOutput = await client.readContract({ address: XYLO_ROUTER, abi: xyloRouterAbi, functionName: "getAmountOut", args: [from.address, to.address, quote.amountIn] }), request = buildXyloSwapRequest(quote, freshOutput, slippage, connection.address);
-      setPending(vi ? "Đang chờ bạn xác nhận swap trong ví…" : "Waiting for swap confirmation in your wallet…"); const simulation = await client.simulateContract(request), hash = await writer.writeContractAsync(simulation.request); submitted = true;
+      const [freshOutput, freshUsdcBalance] = await Promise.all([client.readContract({ address: XYLO_ROUTER, abi: xyloRouterAbi, functionName: "getAmountOut", args: [from.address, to.address, quote.amountIn] }), client.readContract({ address: getAssetById("usdc")!.address, abi: erc20BalanceAbi, functionName: "balanceOf", args: [connection.address] })]), freshQuote = createXyloQuote(from.id, to.id, quote.amountIn, freshOutput), request = buildXyloSwapRequest(freshQuote, freshOutput, slippage, connection.address), freshEnvelope = await prepareSwapEnvelope(freshQuote);
+      if (safeMax && quote.amountIn === safeMax.amount && quote.amountIn + freshEnvelope.feeUsdc6 > freshBalance) { const recalculated = await solveSafeMax(freshBalance, allowance); setAmount(formatAssetAmount(recalculated.amount, from)); setSafeMax({ ...recalculated, balance: freshBalance, account: connection.address, chainId: arcTestnet.id }); setQuote(undefined); setReviewStage(undefined); return setError(vi ? "Phí Arc đã thay đổi. MAX đã được tính lại; hãy kiểm tra lại." : "Arc fees changed. MAX was recalculated. Review again."); }
+      const finalCost = swapCostWithArcFee(quote.amountIn, from.id, freshUsdcBalance, freshEnvelope.rawMaxFee18); if (!finalCost.sufficientGasBalance) throw new Error("balance");
+      const preparedRequest = { ...request, gas: freshEnvelope.gasLimit, maxFeePerGas: freshEnvelope.maxFeePerGas, maxPriorityFeePerGas: freshEnvelope.maxPriorityFeePerGas };
+      setPending(vi ? "Đang chờ bạn xác nhận swap trong ví…" : "Waiting for swap confirmation in your wallet…"); const simulation = await client.simulateContract(preparedRequest), hash = await writer.writeContractAsync(simulation.request); submitted = true;
       setPending(vi ? "Đã gửi. Đang chờ Arc xác nhận…" : "Submitted. Waiting for Arc confirmation…"); const receipt = await client.waitForTransactionReceipt({ hash }); if (receipt.status !== "success") throw new Error("revert"); const block = await client.getBlock({ blockNumber: receipt.blockNumber });
       await confirmThenRefresh({ receipt: Promise.resolve(receipt), onConfirmed: () => { const soldLog = receipt.logs.find((log) => log.address.toLowerCase() === from.address.toLowerCase()), receivedLog = receipt.logs.find((log) => log.address.toLowerCase() === to.address.toLowerCase()); recordWalletActivity(connection.address!, arcTestnet.id, createAssetActivity(from, { hash: receipt.transactionHash, logIndex: soldLog?.logIndex ?? -1, direction: "send", kind: "swap", amount: quote.amountIn, counterparty: XYLO_ROUTER, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber, swapReceive: { amount: freshOutput, assetId: to.id, assetSymbol: to.symbol, tokenAddress: to.address, decimals: to.decimals, logIndex: receivedLog?.logIndex ?? 0 } })); setSuccess({ hash: receipt.transactionHash, quote, received: freshOutput }); setReviewStage(undefined); }, refresh: async () => { await Promise.all([balances.usdc.refetch(), balances.eurc.refetch()]); onConfirmed?.(); } });
     } catch (caught) {
