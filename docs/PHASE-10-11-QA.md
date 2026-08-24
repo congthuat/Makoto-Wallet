@@ -85,3 +85,14 @@ If allowance is insufficient, MAX must open **Approve for MAX** instead of leavi
 ## D. Live completion and evidence
 
 Execute a small testnet swap in each direction. Confirm pending stages remain legible, final success appears only after a successful receipt, both balances refresh, the activity record includes sold and received assets, and the ArcScan link matches the real transaction hash.
+# Phase 10.5 — Live Activity + Arc indexer
+
+- Primary history: server-side ArcScan ERC-20 token-transfer API, with input/cursor validation, a 10-second timeout, sanitized errors, cursor pagination, and `no-store` responses.
+- Recent fallback: bounded Arc RPC USDC/EURC `Transfer` logs for the connected wallet as sender and recipient. RPC-only responses are marked partial.
+- Canonical merge: transaction hash + log index + token address; on-chain data precedes matching local receipt enrichment.
+- Classification: evidence-based Send, Receive, XyloNet Swap, CCTP Bridge, Makoto Vault Deposit, and Makoto Vault Withdraw.
+- Refresh: panel open, manual Refresh, successful Makoto activity event, account/query-key change, window focus, visibility restore, and conservative 25-second polling only while the panel is open.
+- UI: EN/VI labels, provider status, filters (All/Send/Receive/Swap/Bridge/Vault), loaded-record hash/address search, ArcScan links, and locally observed confirmation labels.
+- Failure behavior: ArcScan outage falls back to recent RPC activity and `Partial history`; total provider outage retains validated local receipt activity and never presents a misleading clean empty state.
+
+Automated coverage includes provider metadata, bounded RPC normalization, ArcScan parsing, unsupported-token rejection, swap grouping, evidence-only CCTP, Vault directions, stable ordering, cursor validation, local/on-chain collapse, corrupt cache rejection, all filters, hash/address search, and refresh wiring. Manual QA still requires comparing real wallet hashes and visual checks at 375, 390, 430, 768, and desktop widths in light/dark EN/VI modes.

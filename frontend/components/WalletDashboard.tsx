@@ -79,11 +79,11 @@ export function WalletDashboard() {
   } = useOwnerJars(onArc ? connection.address : undefined);
 
   const [action, setAction] = useState<Action>();
-  const activity = useWalletActivity(connection.address, onArc);
+  const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
+  const activity = useWalletActivity(connection.address, onArc, activityHistoryOpen);
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
   const [copied, setCopied] = useState(false);
   const [receiptActivity, setReceiptActivity] = useState<WalletActivity>();
-  const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
   const [activityHistoryLimit, setActivityHistoryLimit] = useState(20);
   const [createGuideOpen, setCreateGuideOpen] = useState(false);
   const [balanceHistory, setBalanceHistory] = useState<BalanceSnapshot[]>([]);
@@ -440,10 +440,12 @@ export function WalletDashboard() {
         limit={activityHistoryLimit}
         loading={activity.isLoading}
         loadingMore={activity.isLoadingMore}
-        partial={activity.isError}
+        partial={activity.partial}
+        unavailable={activity.unavailable}
         canLoadMore={activityHistoryLimit < activities.length || Boolean(activity.hasNextPage)}
         onClose={() => setActivityHistoryOpen(false)}
         onLoadMore={() => void showMoreActivity()}
+        onRefresh={() => void activity.refetch()}
         onReceipt={(item) => setReceiptActivity(item)}
       />}
       {createGuideOpen && <div className={styles.createGuideLayer}>

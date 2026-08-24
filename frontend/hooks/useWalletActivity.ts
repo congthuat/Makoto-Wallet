@@ -8,18 +8,8 @@ import { arcTestnet } from "viem/chains";
 import { deserializeWalletActivityPage, normalizeWalletActivities } from "@/lib/onchainActivity";
 import { loadWalletActivity, mergeWalletActivity, WALLET_ACTIVITY_UPDATED_EVENT } from "@/lib/walletActivity";
 
-export function useWalletActivity(address?: Address, enabled = false) {
+export function useWalletActivity(address?: Address, enabled = false, panelOpen = false) {
   const [localRevision, setLocalRevision] = useState(0);
-  useEffect(() => {
-    if (!address) return;
-    const normalized = address.toLowerCase();
-    const handleUpdate = (event: Event) => {
-      const detail = (event as CustomEvent<{ address?: string; chainId?: number }>).detail;
-      if (detail?.address === normalized && detail.chainId === arcTestnet.id) setLocalRevision((value) => value + 1);
-    };
-    window.addEventListener(WALLET_ACTIVITY_UPDATED_EVENT, handleUpdate);
-    return () => window.removeEventListener(WALLET_ACTIVITY_UPDATED_EVENT, handleUpdate);
-  }, [address]);
   const query = useInfiniteQuery({
     queryKey: ["wallet-activity", arcTestnet.id, address?.toLowerCase()],
     enabled: Boolean(address && enabled),
@@ -34,11 +24,25 @@ export function useWalletActivity(address?: Address, enabled = false) {
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: 15_000,
-    refetchInterval: enabled ? 25_000 : false,
+    refetchInterval: panelOpen ? 25_000 : false,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     retry: 1,
   });
+  const refetch = query.refetch;
+  useEffect(() => {
+    if (!address) return;
+    const normalized = address.toLowerCase();
+    const handleUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{ address?: string; chainId?: number }>).detail;
+      if (detail?.address === normalized && detail.chainId === arcTestnet.id) {
+        setLocalRevision((value) => value + 1);
+        void refetch();
+      }
+    };
+    window.addEventListener(WALLET_ACTIVITY_UPDATED_EVENT, handleUpdate);
+    return () => window.removeEventListener(WALLET_ACTIVITY_UPDATED_EVENT, handleUpdate);
+  }, [address, refetch]);
 
   const data = useMemo(() => {
     void localRevision;
@@ -47,12 +51,22 @@ export function useWalletActivity(address?: Address, enabled = false) {
     return mergeWalletActivity(onchain, local);
   }, [address, localRevision, query.data]);
 
+  useEffect(() => {
+    if (!panelOpen) return;
+    void refetch();
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refetch(); };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => document.removeEventListener("visibilitychange", refreshWhenVisible);
+  }, [panelOpen, address, refetch]);
+
   return {
     data,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,
-    refetch: query.refetch,
+    partial: query.isError || Boolean(query.data?.pages.some((page) => page.partial)),
+    unavailable: query.isError,
+    refetch,
     hasNextPage: query.hasNextPage,
     loadMore: query.fetchNextPage,
     isLoadingMore: query.isFetchingNextPage,

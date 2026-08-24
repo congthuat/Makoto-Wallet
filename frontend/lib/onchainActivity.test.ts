@@ -127,7 +127,7 @@ test("activity sorts newest block and log first", () => {
 });
 
 test("empty explorer response stays empty", () => {
-  assert.deepEqual(parseArcScanActivity({ items: [] }, wallet), { activities: [] });
+  assert.deepEqual(parseArcScanActivity({ items: [] }, wallet), { activities: [], provider: "arcscan" });
 });
 
 test("pagination cursor round-trips and rejects malformed values", () => {

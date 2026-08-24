@@ -44,3 +44,12 @@ Batch Pay validates USDC recipients, duplicates, totals, balance, and a 20-recip
 ## Security and unsupported roadmap features
 
 No private keys or entity secrets belong in the frontend. Provider failures degrade to unavailable states. Privacy, post-quantum claims, USYC consumer support, fake indexer data, simulated smart accounts, and unverified sponsored gas remain unsupported.
+# Phase 10.5 live Activity indexing
+
+Makoto Activity uses three layers. The server-only `/api/wallet-activity` route queries ArcScan token transfers as the primary historical provider, then merges a bounded recent Arc RPC scan of USDC and EURC `Transfer` logs. RPC queries cover only the latest 10,000 blocks, query the wallet independently as sender and recipient, and never claim to represent complete history.
+
+Provider payload parsing and classification stay outside React. Records are normalized into `WalletActivity`, grouped for verified XyloNet USDC/EURC swaps, and deduplicated by transaction hash + log index + token address. Ordering is confirmed timestamp descending, then block number descending, then log index descending. ArcScan records are inserted before overlapping RPC records, so indexed evidence wins.
+
+Special classifications require evidence: Xylo swaps require the router send and opposite-asset pool receive in one transaction; CCTP requires the supported USDC burn transfer plus the verified CCTP method (RPC also verifies transaction destination and selector); Vault Deposit/Withdraw requires the configured PenguJar contract counterparty. Other supported transfers remain Send or Receive.
+
+`makoto-wallet:activity:v3` remains a validated, wallet-and-chain-scoped cache. It provides immediate enrichment after a successful receipt and continuity during provider outages, but is never treated as the ledger. Canonical on-chain records replace matching local records deterministically. ArcScan failure with working RPC returns valid recent records with `partial: true`; failure of both providers preserves validated local receipt activity and displays an explicit provider warning.

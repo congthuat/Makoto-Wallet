@@ -17,6 +17,7 @@ export type WalletActivity = {
   tokenAddress: Address;
   decimals: number;
   source?: "local" | "onchain";
+  provider?: "arcscan" | "rpc" | "local-receipt";
   swapReceive?: {
     amount: bigint;
     assetId: SupportedAssetId;

@@ -5,9 +5,9 @@ import { CCTP_TOKEN_MINTER_V2 } from "./cctp.ts";
 import { XYLO_POOL, XYLO_ROUTER } from "./swap.ts";
 import type { WalletActivity } from "./wallet.ts";
 
-export type WalletActivityPage = { activities: WalletActivity[]; nextCursor?: string };
+export type WalletActivityPage = { activities: WalletActivity[]; nextCursor?: string; partial?: boolean; provider?: "arcscan" | "rpc" | "arcscan+rpc" };
 export type SerializedWalletActivity = Omit<WalletActivity, "amount" | "blockNumber" | "swapReceive"> & { amount: string; blockNumber: string; swapReceive?: Omit<NonNullable<WalletActivity["swapReceive"]>, "amount"> & { amount: string } };
-export type SerializedWalletActivityPage = { activities: SerializedWalletActivity[]; nextCursor?: string };
+export type SerializedWalletActivityPage = { activities: SerializedWalletActivity[]; nextCursor?: string; partial?: boolean; provider?: WalletActivityPage["provider"] };
 
 type RecordValue = Record<string, unknown>;
 
@@ -32,13 +32,15 @@ export function parseArcScanActivity(payload: unknown, wallet: Address, vaultAdd
     if (parsed) records.push(parsed);
   }
   const nextCursor = encodeArcScanCursor(payload.next_page_params);
-  return { activities: normalizeWalletActivities(groupXyloSwaps(records), 50), ...(nextCursor ? { nextCursor } : {}) };
+  return { activities: normalizeWalletActivities(groupXyloSwaps(records), 50), ...(nextCursor ? { nextCursor } : {}), provider: "arcscan" };
 }
 
 export function serializeWalletActivityPage(page: WalletActivityPage): SerializedWalletActivityPage {
   return {
     activities: page.activities.map((item) => { const { swapReceive, ...rest } = item; return { ...rest, amount: item.amount.toString(), blockNumber: item.blockNumber.toString(), ...(swapReceive ? { swapReceive: { ...swapReceive, amount: swapReceive.amount.toString() } } : {}) }; }),
     ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
+    ...(page.partial ? { partial: true } : {}),
+    ...(page.provider ? { provider: page.provider } : {}),
   };
 }
 
@@ -54,7 +56,9 @@ export function deserializeWalletActivityPage(payload: unknown): WalletActivityP
     activities.push({ ...value, hash: value.hash, tokenAddress: asset.address, counterparty: getAddress(value.counterparty), amount: BigInt(value.amount), blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, decimals: asset.decimals, ...(swapReceive ? { swapReceive } : {}) } as WalletActivity);
   }
   const nextCursor = typeof payload.nextCursor === "string" && decodeArcScanCursor(payload.nextCursor) ? payload.nextCursor : undefined;
-  return { activities: normalizeWalletActivities(activities, 50), ...(nextCursor ? { nextCursor } : {}) };
+  const partial = payload.partial === true;
+  const provider = payload.provider === "arcscan" || payload.provider === "rpc" || payload.provider === "arcscan+rpc" ? payload.provider : undefined;
+  return { activities: normalizeWalletActivities(activities, 50), ...(nextCursor ? { nextCursor } : {}), ...(partial ? { partial } : {}), ...(provider ? { provider } : {}) };
 }
 
 export function encodeArcScanCursor(value: unknown) {
@@ -107,10 +111,11 @@ function parseTransfer(value: unknown, wallet: Address, vaultAddress?: Address):
     tokenAddress: asset.address,
     decimals: asset.decimals,
     source: "onchain",
+    provider: "arcscan",
   };
 }
 
-function groupXyloSwaps(records: WalletActivity[]) {
+export function groupXyloSwaps(records: WalletActivity[]) {
   const byTransaction = new Map<string, WalletActivity[]>();
   for (const record of records) {
     const key = record.hash.toLowerCase();

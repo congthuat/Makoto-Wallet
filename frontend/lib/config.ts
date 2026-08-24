@@ -1,5 +1,5 @@
 import { getAddress, isAddress } from "viem";
-import { getAssetById } from "./assets";
+import { getAssetById } from "./assets.ts";
 
 export const ARC_EXPLORER_URL = "https://testnet.arcscan.app";
 export const EXPECTED_USDC_ADDRESS = getAssetById("usdc")!.address;

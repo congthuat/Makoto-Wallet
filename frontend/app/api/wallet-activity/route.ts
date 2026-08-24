@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAddress, isAddress } from "viem";
 
-import { decodeArcScanCursor, parseArcScanActivity, serializeWalletActivityPage } from "@/lib/onchainActivity";
+import { decodeArcScanCursor, groupXyloSwaps, normalizeWalletActivities, parseArcScanActivity, serializeWalletActivityPage, type WalletActivityPage } from "@/lib/onchainActivity";
 import { contractAddress } from "@/lib/config";
+import { loadRecentRpcActivity } from "@/lib/indexer/rpcFallback";
 
 export const dynamic = "force-dynamic";
 
@@ -28,22 +29,28 @@ export async function GET(request: NextRequest) {
     upstreamUrl.searchParams.set("index", String(cursor.index));
   }
 
-  let response: Response;
-  try {
-    response = await fetch(upstreamUrl, {
+  const arcscanRequest = async () => {
+    const response = await fetch(upstreamUrl, {
       cache: "no-store",
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(10_000),
     });
-  } catch {
-    return errorResponse("Activity provider is temporarily unavailable.", 502);
-  }
-  if (!response.ok) return errorResponse("Activity provider could not load this wallet.", 502);
+    if (!response.ok) throw new Error("ArcScan request failed");
+    return parseArcScanActivity(await response.json(), address, contractAddress);
+  };
 
-  try {
-    const page = parseArcScanActivity(await response.json(), address, contractAddress);
-    return NextResponse.json(serializeWalletActivityPage(page), { headers: { "Cache-Control": "private, no-store" } });
-  } catch {
-    return errorResponse("Activity provider returned an invalid response.", 502);
-  }
+  const [arcscan, rpc] = await Promise.allSettled([
+    arcscanRequest(),
+    cursor ? Promise.resolve([]) : loadRecentRpcActivity(address, contractAddress),
+  ]);
+  if (arcscan.status === "rejected" && (cursor || rpc.status === "rejected")) return errorResponse("On-chain history is temporarily unavailable.", 502);
+
+  const arcscanPage = arcscan.status === "fulfilled" ? arcscan.value : undefined;
+  const rpcRecords = rpc.status === "fulfilled" ? rpc.value : [];
+  const page: WalletActivityPage = {
+    activities: normalizeWalletActivities(groupXyloSwaps([...(arcscanPage?.activities ?? []), ...rpcRecords]), 100),
+    ...(arcscanPage?.nextCursor ? { nextCursor: arcscanPage.nextCursor } : {}),
+    ...(arcscanPage ? { provider: rpcRecords.length ? "arcscan+rpc" : "arcscan" } : { provider: "rpc", partial: true }),
+  };
+  return NextResponse.json(serializeWalletActivityPage(page), { headers: { "Cache-Control": "private, no-store" } });
 }

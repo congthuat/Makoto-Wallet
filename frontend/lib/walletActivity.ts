@@ -17,7 +17,7 @@ export function v2WalletActivityKey(address: Address, chainId: number) { return 
 export function legacyWalletActivityKey(address: Address, chainId: number) { return `${V1_PREFIX}:${address.toLowerCase()}:${chainId}`; }
 
 export function createAssetActivity(asset: SupportedAsset, record: Omit<WalletActivity, "assetId" | "assetSymbol" | "tokenAddress" | "decimals">): WalletActivity {
-  return { source: "local", ...record, assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals };
+  return { source: "local", provider: "local-receipt", ...record, assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals };
 }
 
 export function serializeWalletActivity(records: WalletActivity[]) {
@@ -65,10 +65,8 @@ export function recordWalletActivity(address: Address, chainId: number, record: 
 }
 
 export function mergeWalletActivity(onchain: WalletActivity[], local: WalletActivity[], limit = 250) {
-  const localCanonical = new Set(local.map(canonicalTransferIdentity));
-  const enrichedOnchain = onchain.map((item) => localCanonical.has(canonicalTransferIdentity(item)) ? { ...item, source: "local" as const } : item);
   const canonical = new Set(onchain.map(canonicalTransferIdentity));
-  return normalizeWalletActivities([...enrichedOnchain, ...local.filter((item) => !canonical.has(canonicalTransferIdentity(item)))], limit);
+  return normalizeWalletActivities([...onchain, ...local.filter((item) => !canonical.has(canonicalTransferIdentity(item)))], limit);
 }
 
 function canonicalTransferIdentity(item: WalletActivity) {
@@ -87,7 +85,7 @@ function parseV3Record(value: unknown): WalletActivity | undefined {
     swapReceive = { amount: BigInt(value.swapReceive.amount), assetId: receivedAsset.id, assetSymbol: receivedAsset.symbol, tokenAddress: receivedAsset.address, decimals: receivedAsset.decimals, logIndex: value.swapReceive.logIndex };
   }
   if ((value.kind === "swap") !== Boolean(swapReceive)) return undefined;
-  return { hash: value.hash, logIndex: value.logIndex, direction: value.direction, kind: value.kind, amount: BigInt(value.amount), counterparty: getAddress(value.counterparty), confirmedAt: value.confirmedAt, blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals, source: "local", ...(swapReceive ? { swapReceive } : {}) };
+  return { hash: value.hash, logIndex: value.logIndex, direction: value.direction, kind: value.kind, amount: BigInt(value.amount), counterparty: getAddress(value.counterparty), confirmedAt: value.confirmedAt, blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals, source: "local", provider: "local-receipt", ...(swapReceive ? { swapReceive } : {}) };
 }
 
 function deserializeOldActivity(payload: string, hasAsset: boolean): WalletActivity[] {
