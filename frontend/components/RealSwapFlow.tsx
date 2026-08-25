@@ -13,7 +13,7 @@ import { arcFeeToUsdcAtomic, calculateArcFee, formatArcFeeEstimate, swapCostWith
 import { formatAssetAmount, getAssetById, parseAssetAmount, SUPPORTED_ASSETS, type SupportedAssetId } from "@/lib/assets";
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { confirmThenRefresh } from "@/lib/confirmedTransaction";
-import { buildXyloSwapRequest, createXyloQuote, exactApprovalRequired, isSwapQuoteFresh, minimumSwapOutput, oppositeAssetId, swapAmountForPercent, SWAP_QUOTE_MAX_AGE_MS, SWAP_SLIPPAGE_OPTIONS, XYLO_ROUTER, xyloRouterAbi, type SwapQuickPercent, type SwapQuote } from "@/lib/swap";
+import { buildXyloSwapRequest, createXyloQuote, exactApprovalRequired, isSwapQuoteFresh, minimumSwapOutput, oppositeAssetId, prepareXyloSwapRequest, swapAmountForPercent, SWAP_QUOTE_MAX_AGE_MS, SWAP_SLIPPAGE_OPTIONS, validatePreparedXyloSwap, XYLO_ROUTER, xyloRouterAbi, type PreparedXyloSwapRequest, type SwapQuickPercent, type SwapQuote } from "@/lib/swap";
 import { CIRCLE_BROWSER_SWAP_STATUS, selectRouteForMode, swapRouteLabel, type SwapMode } from "@/lib/swapRouter";
 import { planSwapReview, safeMaxCanUseSwapEstimate } from "@/lib/swapApprovalFlow";
 import { calculateSafeUsdcSwapMax, SafeSwapMaxError, type SafeSwapMaxResult } from "@/lib/safeSwapMax";
@@ -43,6 +43,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   const [fromId, setFromId] = useState<SupportedAssetId>(initialValues?.asset ?? (initialValues?.outputAsset === "usdc" ? "eurc" : "usdc")), [mode, setMode] = useState<SwapMode>("smart"), [amount, setAmount] = useState(initialValues?.amount ?? "");
   const [slippage, setSlippage] = useState<(typeof SWAP_SLIPPAGE_OPTIONS)[number]>(0.005), [quote, setQuote] = useState<SwapQuote>(), [approvalGasFee, setApprovalGasFee] = useState<bigint>(), [swapGasFee, setSwapGasFee] = useState<bigint>();
   const [swapEnvelope, setSwapEnvelope] = useState<SwapFeeEnvelope>();
+  const [preparedSwap, setPreparedSwap] = useState<PreparedXyloSwapRequest>();
   const [reviewStage, setReviewStage] = useState<"approval" | "swap">(), [gasUnavailable, setGasUnavailable] = useState(false), [pending, setPending] = useState<string>(), [error, setError] = useState<string>(), [quickFeedback, setQuickFeedback] = useState<string>();
   const [reviewedAccount, setReviewedAccount] = useState<`0x${string}`>(), [success, setSuccess] = useState<{ hash: Hex; quote: SwapQuote; received: bigint }>();
   const [safeMax, setSafeMax] = useState<(SafeSwapMaxResult & { balance: bigint; account: `0x${string}`; chainId: number })>();
@@ -66,10 +67,10 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     const timeout = window.setTimeout(() => setMaxApproval(undefined), 0);
     return () => window.clearTimeout(timeout);
   }, [balance, chain.isArc, connection.address, from.id, maxApproval]);
-  function invalidate() { setQuote(undefined); setReviewStage(undefined); setApprovalReview(undefined); setSwapReview(undefined); setError(undefined); setQuickFeedback(undefined); setApprovalGasFee(undefined); setSwapGasFee(undefined); setSwapEnvelope(undefined); setGasUnavailable(false); setSafeMax(undefined); setMaxApproval(undefined); }
+  function invalidate() { setQuote(undefined); setReviewStage(undefined); setApprovalReview(undefined); setSwapReview(undefined); setPreparedSwap(undefined); setError(undefined); setQuickFeedback(undefined); setApprovalGasFee(undefined); setSwapGasFee(undefined); setSwapEnvelope(undefined); setGasUnavailable(false); setSafeMax(undefined); setMaxApproval(undefined); }
 
   function approvalIntentFor(inputAmount: bigint, preparedAt: number, fee?: bigint) { if (!connection.address) return undefined; return approvalIntent({ id: "swap-approval", account: connection.address, target: from.address, token: from.address, spender: XYLO_ROUTER, amount: inputAmount, assetId: from.id, calldata: "0x", preparedAt, expiresAt: preparedAt + SWAP_QUOTE_MAX_AGE_MS, gas: fee === undefined ? undefined : { gasLimit: 0n, maxFeeRaw18: fee, maxFeeUsdc6: arcFeeToUsdcAtomic(fee) } }); }
-  function swapIntentFor(current: SwapQuote, envelope: SwapFeeEnvelope) { if (!connection.address) return undefined; const request = buildXyloSwapRequest(current, current.amountOut, slippage, connection.address); return swapIntent({ id: "smart-swap", account: connection.address, target: XYLO_ROUTER, calldata: encodeFunctionData({ abi: request.abi, functionName: request.functionName, args: request.args }), preparedAt: current.quotedAt, expiresAt: current.quotedAt + SWAP_QUOTE_MAX_AGE_MS, inputAsset: from.id, outputAsset: to.id, amount: current.amountIn, quoteOutput: current.amountOut, minimumReceive: minimumSwapOutput(current.amountOut, slippage), slippageBps: Math.round(slippage * 10_000), route: "xylonet", gas: { gasLimit: envelope.gasLimit, maxFeePerGas: envelope.maxFeePerGas, maxPriorityFeePerGas: envelope.maxPriorityFeePerGas, maxFeeRaw18: envelope.rawMaxFee18, maxFeeUsdc6: envelope.feeUsdc6 } }); }
+  function swapIntentFor(prepared: PreparedXyloSwapRequest, envelope: SwapFeeEnvelope) { if (!connection.address) return undefined; return swapIntent({ id: "smart-swap", account: connection.address, target: XYLO_ROUTER, calldata: prepared.calldata, preparedAt: prepared.quote.quotedAt, expiresAt: prepared.quote.quotedAt + SWAP_QUOTE_MAX_AGE_MS, inputAsset: prepared.quote.fromAssetId, outputAsset: prepared.quote.toAssetId, amount: prepared.quote.amountIn, quoteOutput: prepared.quote.amountOut, minimumReceive: prepared.minimumReceive, slippageBps: Math.round(slippage * 10_000), route: "xylonet", gas: { gasLimit: envelope.gasLimit, maxFeePerGas: envelope.maxFeePerGas, maxPriorityFeePerGas: envelope.maxPriorityFeePerGas, maxFeeRaw18: envelope.rawMaxFee18, maxFeeUsdc6: envelope.feeUsdc6 }, metadata: { deadline: prepared.deadline.toString(), recipient: prepared.recipient } }); }
 
   function changeAmount(value: string) { setAmount(value); invalidate(); }
   function reset() { setAmount(""); invalidate(); setSuccess(undefined); }
@@ -84,9 +85,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     const price = await gasPrice();
     return price === undefined ? undefined : calculateArcFee(gas, price).rawFee;
   }
-  async function prepareSwapEnvelope(candidate: SwapQuote, overrideNativeBalance = false, fixedFees?: { maxFeePerGas: bigint; maxPriorityFeePerGas?: bigint }) {
+  async function prepareSwapEnvelope(candidate: SwapQuote, overrideNativeBalance = false, fixedFees?: { maxFeePerGas: bigint; maxPriorityFeePerGas?: bigint }, frozen?: PreparedXyloSwapRequest) {
     if (!client || !connection.address) throw new Error("gas");
-    const request = buildXyloSwapRequest(candidate, candidate.amountOut, slippage, connection.address);
+    const request = frozen?.request ?? buildXyloSwapRequest(candidate, candidate.amountOut, slippage, connection.address);
     const publicRpcGas = await client.estimateContractGas({ ...request, ...(overrideNativeBalance ? { stateOverride: [{ address: connection.address, balance: 2n ** 128n }] } : {}) });
     let walletProviderGas: bigint | undefined;
     if (!overrideNativeBalance && connection.connector) {
@@ -188,13 +189,14 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       try {
         if (needsApproval) { const fee = await estimateApprovalFee(parsed); setApprovalGasFee(fee); if (fee !== undefined) { const intent = approvalIntentFor(parsed, nextQuote.quotedAt, fee); if (intent) setApprovalReview(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { [from.id]: balance, usdc: usdcBalance }, allowance, simulation: "passed", expectedTarget: from.address })); } }
         else {
-          const envelope = await prepareSwapEnvelope(nextQuote);
+          const frozen = prepareXyloSwapRequest(nextQuote, slippage, connection.address);
+          const envelope = await prepareSwapEnvelope(nextQuote, false, undefined, frozen);
           if (safeMax && parsed === safeMax.amount && parsed + envelope.feeUsdc6 > balance) {
             const recalculated = await solveSafeMax(balance, allowance); setAmount(formatAssetAmount(recalculated.amount, from)); setSafeMax({ ...recalculated, balance, account: connection.address, chainId: arcTestnet.id });
             setQuote(undefined); setError(vi ? "Phí Arc đã thay đổi. MAX đã được tính lại; hãy kiểm tra lại." : "Arc gas changed. MAX was recalculated; review again."); return;
           }
-          setSwapEnvelope(envelope); setSwapGasFee(envelope.rawMaxFee18);
-          const intent = swapIntentFor(nextQuote, envelope); if (intent) setSwapReview(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { [from.id]: balance, usdc: usdcBalance }, allowance, simulation: "passed", expectedTarget: XYLO_ROUTER }));
+          setPreparedSwap(frozen); setSwapEnvelope(envelope); setSwapGasFee(envelope.rawMaxFee18);
+          const intent = swapIntentFor(frozen, envelope); if (intent) setSwapReview(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { [from.id]: balance, usdc: usdcBalance }, allowance, simulation: "passed", expectedTarget: XYLO_ROUTER }));
         }
       } catch { setGasUnavailable(true); }
       setReviewedAccount(connection.address); setReviewStage(needsApproval ? "approval" : "swap");
@@ -232,10 +234,11 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       if (allowance < quote.amountIn) throw new Error("allowance");
       if (nextBalance < quote.amountIn) throw new Error("balance");
       const freshQuote = createXyloQuote(from.id, to.id, quote.amountIn, freshOutput);
-      const envelope = await prepareSwapEnvelope(freshQuote);
+      const frozen = prepareXyloSwapRequest(freshQuote, slippage, connection.address);
+      const envelope = await prepareSwapEnvelope(freshQuote, false, undefined, frozen);
       const cost = swapCostWithArcFee(freshQuote.amountIn, from.id, nextUsdcBalance, envelope.rawMaxFee18);
-      const nextIntent = swapIntentFor(freshQuote, envelope); if (nextIntent) setSwapReview(prepareFlowReview(nextIntent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { [from.id]: nextBalance, usdc: nextUsdcBalance }, allowance, simulation: "passed", expectedTarget: XYLO_ROUTER }));
-      setApprovalReview(undefined); setQuote(freshQuote); setApprovalGasFee(undefined); setSwapEnvelope(envelope); setSwapGasFee(envelope.rawMaxFee18); setGasUnavailable(false); setReviewStage("swap");
+      const nextIntent = swapIntentFor(frozen, envelope); if (nextIntent) setSwapReview(prepareFlowReview(nextIntent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { [from.id]: nextBalance, usdc: nextUsdcBalance }, allowance, simulation: "passed", expectedTarget: XYLO_ROUTER }));
+      setApprovalReview(undefined); setQuote(freshQuote); setPreparedSwap(frozen); setApprovalGasFee(undefined); setSwapEnvelope(envelope); setSwapGasFee(envelope.rawMaxFee18); setGasUnavailable(false); setReviewStage("swap");
       if (!cost.sufficientGasBalance) setError(vi ? "Không đủ USDC cho phí gas của giao dịch swap." : "Insufficient USDC for the swap network fee.");
     } catch (caught) {
       if (caught instanceof Error && caught.message === "arc") setError(vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.");
@@ -244,7 +247,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     } finally { setPending(undefined); }
   }
   async function execute() {
-    if (!connection.address || !client || !quote || !route || !swapReview || !swapEnvelope || reviewStage !== "swap" || pending) return;
+    if (!connection.address || !client || !quote || !route || !swapReview || !swapEnvelope || !preparedSwap || reviewStage !== "swap" || pending) return;
     if (!reviewedAccount || connection.address.toLowerCase() !== reviewedAccount.toLowerCase()) { setReviewStage(undefined); return setError(vi ? "Chi tiết giao dịch đã thay đổi. Vui lòng kiểm tra lại." : "Transaction details changed. Please review again."); }
     if (!isSwapQuoteFresh(quote.quotedAt)) { setQuote(undefined); setReviewStage(undefined); return setError(vi ? "Báo giá đã hết hạn." : "Quote expired. Get a fresh quote."); }
     if (gasUnavailable || !gasCost?.sufficientGasBalance) return setError(vi ? "Không đủ số dư USDC đã tính cả phí Arc, hoặc chưa thể ước tính phí an toàn." : "USDC balance including Arc gas is insufficient, or a safe fee estimate is unavailable.");
@@ -255,12 +258,15 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       const allowance = await client.readContract({ address: from.address, abi: erc20BalanceAbi, functionName: "allowance", args: [connection.address, XYLO_ROUTER] });
       if (allowance < quote.amountIn) { setReviewStage(undefined); return setError(vi ? "Allowance đã thay đổi. Vui lòng kiểm tra lại." : "Allowance changed. Please review again."); }
       if (!(await chain.verifyNow())) throw new Error("arc"); freshBalance = await client.readContract({ address: from.address, abi: erc20BalanceAbi, functionName: "balanceOf", args: [connection.address] }); if (quote.amountIn > freshBalance) throw new Error("balance");
-      const [freshOutput, freshUsdcBalance] = await Promise.all([client.readContract({ address: XYLO_ROUTER, abi: xyloRouterAbi, functionName: "getAmountOut", args: [from.address, to.address, quote.amountIn] }), client.readContract({ address: getAssetById("usdc")!.address, abi: erc20BalanceAbi, functionName: "balanceOf", args: [connection.address] })]), freshQuote = createXyloQuote(from.id, to.id, quote.amountIn, freshOutput), request = buildXyloSwapRequest(freshQuote, freshOutput, slippage, connection.address), freshEnvelope = await prepareSwapEnvelope(freshQuote);
+      const [freshOutput, freshUsdcBalance] = await Promise.all([client.readContract({ address: XYLO_ROUTER, abi: xyloRouterAbi, functionName: "getAmountOut", args: [from.address, to.address, quote.amountIn] }), client.readContract({ address: getAssetById("usdc")!.address, abi: erc20BalanceAbi, functionName: "balanceOf", args: [connection.address] })]);
+      const liveCheck = validatePreparedXyloSwap(preparedSwap, freshOutput, reviewNow());
+      if (!liveCheck.valid) { setSwapReview(undefined); setReviewStage(undefined); return setError(liveCheck.reason === "output-below-minimum" ? (vi ? "Sản lượng thị trường đã thấp hơn mức tối thiểu bạn kiểm tra. Hãy lấy báo giá mới." : "Market output moved below your reviewed minimum. Get a fresh quote.") : (vi ? "Bản kiểm tra swap đã hết hạn. Hãy lấy báo giá mới." : "Swap review expired. Get a fresh quote.")); }
+      const freshEnvelope = await prepareSwapEnvelope(quote, false, undefined, preparedSwap);
       if (safeMax && quote.amountIn === safeMax.amount && quote.amountIn + freshEnvelope.feeUsdc6 > freshBalance) { const recalculated = await solveSafeMax(freshBalance, allowance); setAmount(formatAssetAmount(recalculated.amount, from)); setSafeMax({ ...recalculated, balance: freshBalance, account: connection.address, chainId: arcTestnet.id }); setQuote(undefined); setReviewStage(undefined); return setError(vi ? "Phí Arc đã thay đổi. MAX đã được tính lại; hãy kiểm tra lại." : "Arc fees changed. MAX was recalculated. Review again."); }
       if (!isSwapFeeWithinEnvelope(swapEnvelope, freshEnvelope)) { setSwapReview(undefined); setReviewStage(undefined); return setError(vi ? "Phí mạng hiện tại vượt quá giới hạn đã kiểm tra. Hãy kiểm tra lại." : "Current network fees exceed the reviewed safety envelope. Review again."); }
       const finalCost = swapCostWithArcFee(quote.amountIn, from.id, freshUsdcBalance, swapEnvelope.rawMaxFee18); if (!finalCost.sufficientGasBalance) throw new Error("balance");
-      const preparedRequest = { ...request, gas: swapEnvelope.gasLimit, maxFeePerGas: swapEnvelope.maxFeePerGas, maxPriorityFeePerGas: swapEnvelope.maxPriorityFeePerGas };
-      const finalQuote = { ...freshQuote, quotedAt: quote.quotedAt }, finalIntent = swapIntentFor(finalQuote, swapEnvelope)!;
+      const preparedRequest = { ...preparedSwap.request, gas: swapEnvelope.gasLimit, maxFeePerGas: swapEnvelope.maxFeePerGas, maxPriorityFeePerGas: swapEnvelope.maxPriorityFeePerGas };
+      const finalIntent = swapIntentFor(preparedSwap, swapEnvelope)!;
       const checked = revalidateTransactionReview(swapReview, { intent: finalIntent, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { [from.id]: freshBalance, usdc: freshUsdcBalance }, allowance, simulation: "passed", expectedTarget: XYLO_ROUTER }, request: { to: XYLO_ROUTER, data: finalIntent.calldata, value: 0n, chainId: arcTestnet.id, gas: swapEnvelope.gasLimit, maxFeePerGas: swapEnvelope.maxFeePerGas, maxPriorityFeePerGas: swapEnvelope.maxPriorityFeePerGas }, now: reviewNow() });
       if (!checked.valid) { setSwapReview(undefined); setReviewStage(undefined); return setError(vi ? "Báo giá, mức tối thiểu, tuyến hoặc chi tiết giao dịch đã thay đổi. Hãy kiểm tra lại." : "Quote, minimum receive, route, or transaction details changed. Review again."); }
       setPending(vi ? "Đang chờ bạn xác nhận swap trong ví…" : "Waiting for swap confirmation in your wallet…"); const simulation = await client.simulateContract(preparedRequest), hash = await submissionGuard.current.run(swapReview.fingerprint, () => writer.writeContractAsync(simulation.request)); submitted = true;

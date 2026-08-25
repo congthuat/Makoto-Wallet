@@ -12,7 +12,7 @@ test("3 approval gas uses a real approve estimate", () => assert.match(flow, /es
 test("4 approval review distinguishes both network fees", () => { assert.match(flow, /Approval network fee/); assert.match(flow, /Estimated after approval/); });
 test("5 approval remains exact", () => { assert.match(flow, /exactApprovalRequired/); assert.match(flow, /args: \[XYLO_ROUTER, approval\]/); });
 test("6 a fresh quote is fetched after approval", () => assert.match(flow, /approvalHash[\s\S]*getAmountOut[\s\S]*createXyloQuote/));
-test("7 swap gas is estimated from the fresh post-approval quote", () => assert.match(flow, /freshQuote = createXyloQuote[\s\S]*prepareSwapEnvelope\(freshQuote\)/));
+test("7 swap gas is estimated from the fresh frozen post-approval request", () => assert.match(flow, /freshQuote = createXyloQuote[\s\S]*prepareXyloSwapRequest\(freshQuote[\s\S]*prepareSwapEnvelope\(freshQuote, false, undefined, frozen\)/));
 test("8 successful approval advances to a second review", () => assert.equal(stageAfterApproval(true, 10n, 10n), "swap-review"));
 test("9 approval never advances directly to swap execution", () => { assert.equal(stageAfterApproval(false, 10n, 10n), "approval"); assert.match(flow, /setReviewStage\("swap"\)/); });
 test("10 stale pre-approval quote is rejected and replaced after mined approval", () => { assert.match(flow, /Quote expired\. Get a fresh quote before approving/); assert.match(flow, /const freshQuote/); });

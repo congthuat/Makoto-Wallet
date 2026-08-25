@@ -167,3 +167,5 @@ Smart Swap pre-wallet revalidation regression:
 - A fresh gas estimate inside the reviewed maximum fee envelope proceeds with the explicit reviewed caps; estimates above that envelope require Review again.
 - Account, chain, router, calldata, amount, route, slippage, minimum receive, recipient, allowance, and quote expiry remain material and exact.
 - After a finite approval confirms, the newly prepared swap review is retained and the swap still requires its own wallet confirmation.
+- Freeze the reviewed Xylo calldata, minimum receive, recipient, and deadline. Waiting before Continue must not rebuild any of them.
+- Treat the latest pool output as a read-only safety check: output at or above the reviewed minimum may continue; output below it or an expired deadline requires a fresh quote with a specific visible reason.
