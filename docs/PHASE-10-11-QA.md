@@ -161,3 +161,9 @@ Final consumption checks:
 - Confirm the deposit handoff opens the existing exact-allowance review. A confirmed approval stops at the independent Continue control; it never auto-deposits.
 - Confirm Vault withdrawal truthfully reviews the contract-supported full balance of the selected goal; Agent text cannot create a partial-withdraw path that the contract does not support.
 - Return to `/agent` after confirmed, cancelled, failed/reverted, and unknown outcomes. Confirm the minimal one-time result is factual, account-bound, and removed after display. Non-Agent transactions must produce no Agent result.
+
+Smart Swap pre-wallet revalidation regression:
+
+- A fresh gas estimate inside the reviewed maximum fee envelope proceeds with the explicit reviewed caps; estimates above that envelope require Review again.
+- Account, chain, router, calldata, amount, route, slippage, minimum receive, recipient, allowance, and quote expiry remain material and exact.
+- After a finite approval confirms, the newly prepared swap review is retained and the swap still requires its own wallet confirmation.

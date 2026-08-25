@@ -15,3 +15,8 @@ export function createSwapFeeEnvelope(publicRpcGas: bigint, walletProviderGas: b
   const rawMaxFee18 = selected.gasLimit * maxFeePerGas;
   return { ...selected, maxFeePerGas, maxPriorityFeePerGas, rawMaxFee18, feeUsdc6: arcFeeToUsdcAtomic(rawMaxFee18), preparedAt };
 }
+
+/** A fresh estimate may drift down inside the reviewed fee limits, but never above them. */
+export function isSwapFeeWithinEnvelope(reviewed: SwapFeeEnvelope, fresh: SwapFeeEnvelope) {
+  return fresh.gasLimit <= reviewed.gasLimit && fresh.maxFeePerGas <= reviewed.maxFeePerGas && fresh.rawMaxFee18 <= reviewed.rawMaxFee18;
+}
