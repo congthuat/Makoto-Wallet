@@ -16,9 +16,33 @@ export type AgentPreparedAction = Readonly<{
 }>;
 
 export type AgentActionHandoff = Readonly<{
+  id: string;
   path: string;
-  query: Readonly<Record<string, string>>;
+  action: AgentActionDraft["kind"];
+  account: string;
+  createdAt: number;
+  expiresAt: number;
+  amount: string;
+  asset: string;
+  sourceChain?: string;
+  destinationChain?: string;
+  outputAsset?: string;
+  recipient?: string;
+  jarId?: string;
   source: "makoto-agent";
+}>;
+
+export type AgentActionResult = Readonly<{
+  id: string;
+  account: string;
+  action: AgentActionDraft["kind"];
+  status: "confirmed" | "cancelled" | "failed" | "unknown";
+  createdAt: number;
+  amount?: string;
+  asset?: string;
+  outputAmount?: string;
+  outputAsset?: string;
+  transactionHash?: string;
 }>;
 
 export type AgentDraftValidation = Readonly<{

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { parseActionDraft } from "./agent/parser.ts";
-import { handoffUrl, prepareAgentActionHandoff, validateAgentActionDraft } from "./agent/actions/index.ts";
+import { bindAgentHandoffJar, consumeAgentHandoff, consumeAgentResult, handoffUrl, prepareAgentActionHandoff, storeAgentHandoff, storeAgentResult, validateAgentActionDraft } from "./agent/actions/index.ts";
 
 const recipient = "0x1111111111111111111111111111111111111111";
 
@@ -31,16 +31,35 @@ test("swap requires a distinct supported output asset", () => {
 
 test("bridge requires a distinct supported destination and defaults to Universal handoff", () => {
   assert.deepEqual(validateAgentActionDraft(parseActionDraft("bridge 5 USDC")!).missingFields, ["destinationChain"]);
-  const prepared = prepareAgentActionHandoff(parseActionDraft("bridge 5 USDC to Base Sepolia")!);
-  assert.equal(prepared.handoff?.path, "/unified-balance");
+  const prepared = prepareAgentActionHandoff(parseActionDraft("bridge 5 USDC to Base Sepolia")!, recipient, 1_000);
+  assert.equal(prepared.handoff?.path, "/");
   assert.equal(handoffUrl(prepared.handoff!).includes("cctp-direct"), false);
 });
 
 test("Prepare safely yields only a structured handoff and no signing client", () => {
-  const prepared = prepareAgentActionHandoff(parseActionDraft(`send 5 USDC to ${recipient}`)!);
+  const prepared = prepareAgentActionHandoff(parseActionDraft(`send 5 USDC to ${recipient}`)!, recipient, 1_000);
   assert.equal(prepared.status, "preparing"); assert.equal(prepared.transactionIntent, undefined); assert.equal(prepared.reviewSnapshot, undefined);
-  assert.match(handoffUrl(prepared.handoff!), /source=makoto-agent/);
+  assert.match(handoffUrl(prepared.handoff!), /agentHandoff=/);
   assert.equal(JSON.stringify(prepared).includes("privateKey"), false);
+});
+
+function memoryStore() { const values = new Map<string, string>(); return { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => void values.set(key, value), removeItem: (key: string) => void values.delete(key) }; }
+
+test("handoff is account-bound, expires, and is consumed only once", () => {
+  const handoff = prepareAgentActionHandoff(parseActionDraft(`send 5 USDC to ${recipient}`)!, recipient, 1_000).handoff!, store = memoryStore();
+  storeAgentHandoff(store, handoff); assert.equal(consumeAgentHandoff(store, handoff.id, recipient, 2_000)?.id, handoff.id); assert.equal(consumeAgentHandoff(store, handoff.id, recipient, 2_000), undefined);
+  storeAgentHandoff(store, handoff); assert.equal(consumeAgentHandoff(store, handoff.id, "0x2222222222222222222222222222222222222222", 2_000), undefined);
+  storeAgentHandoff(store, handoff); assert.equal(consumeAgentHandoff(store, handoff.id, recipient, handoff.expiresAt + 1), undefined);
+});
+
+test("Vault selection binds the exact goal and regenerates a one-time id", () => {
+  const handoff = prepareAgentActionHandoff(parseActionDraft("withdraw 5 USDC from Vault")!, recipient, 1_000).handoff!, selected = bindAgentHandoffJar(handoff, 42n, 2_000);
+  assert.equal(selected.jarId, "42"); assert.notEqual(selected.id, handoff.id); assert.equal(selected.action, "vault-withdraw");
+});
+
+test("Agent results are account-bound, factual data-only, and consumed once", () => {
+  const store = memoryStore(), result = { id: "result", account: recipient, action: "send" as const, status: "confirmed" as const, createdAt: 1_000, amount: "5", asset: "USDC", transactionHash: "0xabc" };
+  storeAgentResult(store, result); assert.deepEqual(consumeAgentResult(store, recipient), result); assert.equal(consumeAgentResult(store, recipient), undefined);
 });
 
 test("Agent action source contains no wallet or network request", () => {

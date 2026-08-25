@@ -8,10 +8,10 @@ import { UniversalBridgeFlow } from "./UniversalBridgeFlow";
 
 type Mode = "swap" | "bridge";
 
-export function SwapPanel({ initialValues, onClose, onConfirmed }: { initialValues?: { amount?: string; asset?: "usdc" | "eurc"; outputAsset?: "usdc" | "eurc" }; onClose(): void; onConfirmed?(): void }) {
+export function SwapPanel({ initialValues, initialMode = "swap", onClose, onConfirmed }: { initialValues?: { amount?: string; asset?: "usdc" | "eurc"; outputAsset?: "usdc" | "eurc"; sourceChain?: string; destinationChain?: string; recipient?: string; origin?: "agent" }; initialMode?: Mode; onClose(): void; onConfirmed?(result?: { hash: `0x${string}`; amount: bigint; asset: "usdc" | "eurc"; outputAmount: bigint; outputAsset: "usdc" | "eurc" }): void }) {
   const { locale } = usePreferences();
   const vi = locale === "vi";
-  const [mode, setMode] = useState<Mode>("swap");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [busy, setBusy] = useState(false);
 
   return (
@@ -24,7 +24,7 @@ export function SwapPanel({ initialValues, onClose, onConfirmed }: { initialValu
           Bridge USDC
         </button>
       </div>
-      {mode === "swap" ? <RealSwapFlow locale={locale} initialValues={initialValues} onBusyChange={setBusy} onConfirmed={onConfirmed} /> : <UniversalBridgeFlow locale={locale} onBusyChange={setBusy} />}
+      {mode === "swap" ? <RealSwapFlow locale={locale} initialValues={initialValues} onBusyChange={setBusy} onConfirmed={onConfirmed} /> : <UniversalBridgeFlow locale={locale} initialValues={initialValues} onBusyChange={setBusy} />}
     </WalletPanel>
   );
 }

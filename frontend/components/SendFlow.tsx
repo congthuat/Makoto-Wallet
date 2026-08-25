@@ -1,4 +1,6 @@
 "use client";
+/* Date.now is used only in user-triggered async transaction handlers. */
+/* eslint-disable react-hooks/purity */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useConnection, usePublicClient, useWriteContract } from "wagmi";
@@ -20,6 +22,7 @@ import { TransactionExpectedChanges, TransactionSafetyAssessmentView, Transactio
 import { arcFeeMateriallyChanged, calculateArcFee, formatArcFeeEstimate, maxSendAmountAfterArcFee, sendCostWithArcFee } from "@/lib/arcFees";
 import { assessTransaction, type TransactionIntent } from "@/lib/transactionSafety";
 import { prepareTransactionReview, revalidateTransactionReview, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import { storeAgentResult } from "@/lib/agent/actions";
 
 type TransactionStage = "idle" | "awaiting" | "confirming" | "confirmed" | "failed" | "unknown";
 type RecipientKind = "checking" | "wallet" | "contract" | "unknown";
@@ -27,7 +30,7 @@ type MemoCompatibility = "none" | "checking" | "compatible" | "contract-wallet" 
 type MemoVerification = "none" | "verified" | "unverified";
 type FeeEstimate = { status: "idle" | "loading" | "unavailable" } | { status: "ready"; rawFee: bigint };
 
-export function SendFlow({ balances, initialValues, onClose, onConfirmed, onViewReceipt }: { balances: Record<SupportedAssetId, bigint>; initialValues?: { amount?: string; asset?: SupportedAssetId; recipient?: string }; onClose(): void; onConfirmed(activity: WalletActivity): void; onViewReceipt?(activity: WalletActivity): void }) {
+export function SendFlow({ balances, initialValues, origin, onClose, onConfirmed, onViewReceipt }: { balances: Record<SupportedAssetId, bigint>; initialValues?: { amount?: string; asset?: SupportedAssetId; recipient?: string }; origin?: "agent"; onClose(): void; onConfirmed(activity: WalletActivity): void; onViewReceipt?(activity: WalletActivity): void }) {
   const { locale, t } = usePreferences();
   const copy = sendCopy(locale, t);
   const [recipient, setRecipient] = useState(initialValues?.recipient ?? "");
@@ -223,6 +226,7 @@ export function SendFlow({ balances, initialValues, onClose, onConfirmed, onView
       setStage("confirmed");
     } catch (caught) {
       const failure = classifyWalletFailure(caught, Boolean(submittedHash));
+      if (origin === "agent" && connection.address) storeAgentResult(window.sessionStorage, { id: `send-${Date.now()}`, account: connection.address, action: "send", status: failure === "rejected" ? "cancelled" : failure === "confirmation-unknown" ? "unknown" : "failed", createdAt: Date.now(), transactionHash: submittedHash });
       setError(copy.failures[failure]); setStage(failure === "confirmation-unknown" ? "unknown" : "failed");
       if (!submittedHash) submittingRef.current = false;
     }

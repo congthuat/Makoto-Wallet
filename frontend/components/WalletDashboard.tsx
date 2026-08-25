@@ -31,6 +31,7 @@ import { activityIdentity } from "@/lib/onchainActivity";
 import { mergeWalletActivity, recordWalletActivity } from "@/lib/walletActivity";
 import { deriveNetworkSafety, deriveOverallSecurityStatus, deriveSecurityAlerts, summarizeJarProtection } from "@/lib/securityCenter";
 import { loadBalanceHistory, recordBalanceSnapshot, type BalanceSnapshot } from "@/lib/balanceHistory";
+import { consumeAgentHandoff, storeAgentResult, type AgentActionHandoff } from "@/lib/agent/actions";
 import {
   appKitViewForPath,
   appKitViewForCreateMethod,
@@ -80,7 +81,7 @@ export function WalletDashboard() {
   } = useOwnerJars(onArc ? connection.address : undefined);
 
   const [action, setAction] = useState<Action>();
-  const [agentHandoff, setAgentHandoff] = useState<{ amount?: string; asset?: "usdc" | "eurc"; recipient?: string; outputAsset?: "usdc" | "eurc" }>();
+  const [agentHandoff, setAgentHandoff] = useState<AgentActionHandoff>();
   const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
   const activity = useWalletActivity(connection.address, onArc, activityHistoryOpen);
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
@@ -95,17 +96,17 @@ export function WalletDashboard() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("source") !== "makoto-agent") return;
-    const requested = params.get("action");
-    if (requested !== "send" && requested !== "swap") return;
-    const asset = params.get("asset")?.toLowerCase(), outputAsset = params.get("outputAsset")?.toLowerCase();
+    const id = params.get("agentHandoff");
+    if (!id || !connection.address) return;
     const timer = window.setTimeout(() => {
-      setAgentHandoff({ amount: params.get("amount") ?? undefined, recipient: params.get("recipient") ?? undefined, asset: asset === "usdc" || asset === "eurc" ? asset : undefined, outputAsset: outputAsset === "usdc" || outputAsset === "eurc" ? outputAsset : undefined });
-      setAction(requested);
+      const handoff = consumeAgentHandoff(window.sessionStorage, id, connection.address);
+      if (!handoff || !["send", "swap", "bridge"].includes(handoff.action)) return;
+      setAgentHandoff(handoff);
+      setAction(handoff.action === "send" ? "send" : "swap");
     }, 0);
     window.history.replaceState({}, "", window.location.pathname);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [connection.address]);
 
   useEffect(() => {
     if (!createGuideOpen) return;
@@ -427,10 +428,12 @@ export function WalletDashboard() {
 
       {action === "send" && (
         <SendFlow
-          initialValues={agentHandoff}
+          initialValues={agentHandoff ? { amount: agentHandoff.amount, asset: agentHandoff.asset.toLowerCase() as "usdc" | "eurc", recipient: agentHandoff.recipient } : undefined}
+          origin={agentHandoff?.source === "makoto-agent" ? "agent" : undefined}
           balances={{ usdc: balances.usdc.data ?? 0n, eurc: balances.eurc.data ?? 0n }}
           onClose={() => setAction(undefined)}
           onConfirmed={(item) => {
+            if (agentHandoff?.source === "makoto-agent" && connection.address) storeAgentResult(window.sessionStorage, { id: `send-${Date.now()}`, account: connection.address, action: "send", status: "confirmed", createdAt: Date.now(), amount: formatAssetAmount(item.amount, getAssetById(item.assetId)!), asset: item.assetSymbol, transactionHash: item.hash });
             if (connection.address) setOptimisticActivity({ address: connection.address, records: recordWalletActivity(connection.address, arcTestnet.id, item) });
             void balances.usdc.refetch();
             void balances.eurc.refetch();
@@ -448,7 +451,7 @@ export function WalletDashboard() {
       )}
 
       {action === "swap" && (
-        <SwapPanel initialValues={agentHandoff} onClose={() => setAction(undefined)} onConfirmed={() => void activity.refetch()} />
+        <SwapPanel initialMode={agentHandoff?.action === "bridge" ? "bridge" : "swap"} initialValues={agentHandoff ? { amount: agentHandoff.amount, asset: agentHandoff.asset.toLowerCase() as "usdc" | "eurc", outputAsset: agentHandoff.outputAsset?.toLowerCase() as "usdc" | "eurc" | undefined, sourceChain: agentHandoff.sourceChain, destinationChain: agentHandoff.destinationChain, recipient: agentHandoff.recipient, origin: "agent" } : undefined} onClose={() => setAction(undefined)} onConfirmed={() => void activity.refetch()} />
       )}
 
       {receiptActivity && connection.address && <TransactionReceiptPanel activity={receiptActivity} walletAddress={connection.address} onClose={() => setReceiptActivity(undefined)} />}

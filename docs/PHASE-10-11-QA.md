@@ -152,3 +152,12 @@ Architecture boundary: `AgentContextSnapshot` → deterministic read-only tool �
 - Check light/dark layouts at 375, 390, 430, 768, and desktop; keyboard reachability, focus movement, `aria-live` preparation status, disabled-control explanation, and long-address/hash wrapping.
 
 Architecture boundary: natural language → data-only `AgentActionDraft` → explicit Prepare safely → protocol-owned `TransactionIntent` and shared review → explicit Continue to wallet → final revalidation → wallet → confirmed evidence → Activity. No external LLM is used. **Makoto Agent never signs transactions.**
+
+Final consumption checks:
+
+- Confirm the URL contains only an opaque handoff identifier. Inspect session storage: the temporary handoff is account-bound and timestamped, contains no provider/signer/conversation, and disappears immediately on consumption.
+- Bridge must open the existing Universal Bridge tab, prefill amount and route, retain Standard unless explicitly supplied, load a real Circle estimate, and never open Advanced/CCTP Direct automatically.
+- Vault deposit and withdrawal must show the loaded-goal selector. Private goals display only non-sensitive identifiers/balance/privacy state. Removing or changing the selected goal before route consumption must invalidate the handoff.
+- Confirm the deposit handoff opens the existing exact-allowance review. A confirmed approval stops at the independent Continue control; it never auto-deposits.
+- Confirm Vault withdrawal truthfully reviews the contract-supported full balance of the selected goal; Agent text cannot create a partial-withdraw path that the contract does not support.
+- Return to `/agent` after confirmed, cancelled, failed/reverted, and unknown outcomes. Confirm the minimal one-time result is factual, account-bound, and removed after display. Non-Agent transactions must produce no Agent result.

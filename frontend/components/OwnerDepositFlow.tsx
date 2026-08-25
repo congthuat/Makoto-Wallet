@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { encodeFunctionData, getAddress, zeroAddress, type Address, type Hash } from "viem";
 import { useConnection, usePublicClient, useReadContract, useWriteContract } from "wagmi";
@@ -21,10 +21,11 @@ import { globalReviewChecks } from "@/lib/transactionReview";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, prepareFlowReview, vaultIntent } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import { isWalletCancellation, storeAgentResult } from "@/lib/agent/actions";
 
 type Step = "form" | "review" | "checking" | "approval-required" | "approval-wallet" | "approval-submitted" | "approval-confirmed" | "ready" | "deposit-wallet" | "deposit-submitted" | "confirming" | "success" | "error";
 
-export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; open: boolean; onClose(): void; onSuccess(): Promise<void> }) {
+export function OwnerDepositFlow({ jar, open, initialAmount, origin, onClose, onSuccess }: { jar: Jar; open: boolean; initialAmount?: string; origin?: "agent"; onClose(): void; onSuccess(): Promise<void> }) {
   const { t, locale } = usePreferences();
   const vi = locale === "vi";
   const connection = useConnection();
@@ -41,7 +42,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
     chainId: arcTestnet.id,
     query: { enabled: Boolean(open && connection.address && contractAddress && verifiedChain.isArc) },
   });
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialAmount ?? "");
   const [step, setStep] = useState<Step>("form");
   const [error, setError] = useState<string>();
   const [approvalHash, setApprovalHash] = useState<Hash>();
@@ -49,12 +50,13 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
   const [reviewedAccount, setReviewedAccount] = useState<Address>();
   const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
   const submissionGuard = useRef(new ReviewSubmissionGuard());
+  const handoffStarted = useRef(false);
   const amount = useMemo(() => { try { return parseDepositAmount(value); } catch { return undefined; } }, [value]);
 
   function depositIntent(currentAmount: bigint) { if (!connection.address || !contractAddress) return undefined; return vaultIntent({ id: "vault-deposit", kind: "vault-deposit", account: connection.address, target: contractAddress, calldata: encodeFunctionData({ abi: penguJarV3Abi, functionName: "depositToJar", args: [jar.id, currentAmount] }), preparedAt: Date.now(), assetId: "usdc", amount: currentAmount, jarId: jar.id, metadata: { allowance: (allowance.data ?? 0n).toString() } }); }
 
-  function review(event: FormEvent) {
-    event.preventDefault();
+  function review(event?: Pick<FormEvent, "preventDefault">) {
+    event?.preventDefault();
     try {
       const parsed = parseDepositAmount(value);
       if (balances.usdc.data !== undefined && parsed > balances.usdc.data) throw new Error("Deposit exceeds your available USDC balance.");
@@ -66,6 +68,9 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       setError(t("validation.amount"));
     }
   }
+  // The one-shot handoff intentionally captures the validated initial values only.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!open || origin !== "agent" || !initialAmount || !connection.address || handoffStarted.current) return; handoffStarted.current = true; const timeout = window.setTimeout(() => review(), 0); return () => window.clearTimeout(timeout); }, [connection.address, initialAmount, open, origin]);
 
   async function checkAllowance() {
     if (!amount) return;
@@ -171,10 +176,11 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       const block = await publicClient.getBlock({ blockNumber: receipt.blockNumber });
       await confirmThenRefresh({
         receipt: Promise.resolve(receipt),
-        onConfirmed: () => { const usdc = getAssetById("usdc")!; const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === usdc.address.toLowerCase()); recordWalletActivity(connection.address!, arcTestnet.id, createAssetActivity(usdc, { hash: receipt.transactionHash, logIndex: transferLog?.logIndex ?? -1, direction: "send", kind: "vault-deposit", amount: amount!, counterparty: contractAddress!, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber })); setStep("success"); },
+        onConfirmed: () => { const usdc = getAssetById("usdc")!; const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === usdc.address.toLowerCase()); recordWalletActivity(connection.address!, arcTestnet.id, createAssetActivity(usdc, { hash: receipt.transactionHash, logIndex: transferLog?.logIndex ?? -1, direction: "send", kind: "vault-deposit", amount: amount!, counterparty: contractAddress!, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber })); if (origin === "agent") storeAgentResult(window.sessionStorage, { id: `vault-deposit-${Date.now()}`, account: connection.address!, action: "vault-deposit", status: "confirmed", createdAt: Date.now(), amount: formatUsdc(amount!), asset: "USDC", transactionHash: receipt.transactionHash }); setStep("success"); },
         refresh: () => Promise.all([onSuccess(), balances.usdc.refetch(), allowance.refetch(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]),
       });
     } catch (reason) {
+      if (origin === "agent" && connection.address) storeAgentResult(window.sessionStorage, { id: `vault-deposit-${Date.now()}`, account: connection.address, action: "vault-deposit", status: isWalletCancellation(reason) ? "cancelled" : "failed", createdAt: Date.now() });
       setError(transactionError(reason, "deposit", t));
       setStep("error");
     }

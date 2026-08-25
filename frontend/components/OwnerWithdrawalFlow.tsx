@@ -17,10 +17,11 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { TransactionSafetyChecks, TransactionSafetyReview } from "./TransactionSafetyReview";
 import { prepareFlowReview, vaultIntent } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import { isWalletCancellation, storeAgentResult } from "@/lib/agent/actions";
 
 type Step = "review" | "wallet" | "submitted" | "confirming" | "success" | "error";
 
-export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Jar; open: boolean; onClose(): void; onSuccess(): Promise<void> }) {
+export function OwnerWithdrawalFlow({ jar, open, origin, onClose, onSuccess }: { jar: Jar; open: boolean; origin?: "agent"; onClose(): void; onSuccess(): Promise<void> }) {
   const { t, locale } = usePreferences();
   const vi = locale === "vi";
   const connection = useConnection();
@@ -90,7 +91,7 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
       const block = await publicClient.getBlock({ blockNumber: receipt.blockNumber });
       await confirmThenRefresh({
         receipt: Promise.resolve(receipt),
-        onConfirmed: () => { const usdc = getAssetById("usdc")!; const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === usdc.address.toLowerCase()); recordWalletActivity(owner, arcTestnet.id, createAssetActivity(usdc, { hash: receipt.transactionHash, logIndex: transferLog?.logIndex ?? -1, direction: "receive", kind: "vault-withdraw", amount: freshJar.balance, counterparty: jarAddress, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber })); setStep("success"); },
+        onConfirmed: () => { const usdc = getAssetById("usdc")!; const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === usdc.address.toLowerCase()); recordWalletActivity(owner, arcTestnet.id, createAssetActivity(usdc, { hash: receipt.transactionHash, logIndex: transferLog?.logIndex ?? -1, direction: "receive", kind: "vault-withdraw", amount: freshJar.balance, counterparty: jarAddress, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber })); if (origin === "agent") storeAgentResult(window.sessionStorage, { id: `vault-withdraw-${Date.now()}`, account: owner, action: "vault-withdraw", status: "confirmed", createdAt: Date.now(), amount: formatUsdc(freshJar.balance), asset: "USDC", transactionHash: receipt.transactionHash }); setStep("success"); },
         refresh: async () => {
           const [withdrawnJar] = await Promise.all([publicClient.readContract({ address: jarAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] }), onSuccess(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]);
           if (!withdrawnJar.closed || withdrawnJar.balance !== 0n) throw new Error("Confirmed withdrawal state refresh has not caught up yet.");
@@ -98,6 +99,7 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
         },
       });
     } catch (reason) {
+      if (origin === "agent" && connection.address) storeAgentResult(window.sessionStorage, { id: `vault-withdraw-${Date.now()}`, account: connection.address, action: "vault-withdraw", status: isWalletCancellation(reason) ? "cancelled" : "failed", createdAt: Date.now() });
       setError(withdrawalError(reason, t));
       setStep("error");
     }

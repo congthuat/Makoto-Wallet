@@ -72,7 +72,8 @@ test("network status is explanatory and never switches a wallet", () => {
 
 test("Agent source has no persistence or wallet-write execution surface", () => {
   const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8"); const source = [ui, readFileSync(new URL("./agent/planner.ts", import.meta.url), "utf8"), readFileSync(new URL("./agent/tools.ts", import.meta.url), "utf8")].join("\n");
-  for (const forbidden of ["localStorage", "sessionStorage", "document.cookie", "writeContract", "sendTransaction", "submitReviewedTransaction", "switchChain", "walletClient", "signMessage"]) assert.equal(source.includes(forbidden), false, forbidden);
+  for (const forbidden of ["localStorage", "document.cookie", "writeContract", "sendTransaction", "submitReviewedTransaction", "switchChain", "walletClient", "signMessage"]) assert.equal(source.includes(forbidden), false, forbidden);
+  assert.match(ui, /storeAgentHandoff\(window\.sessionStorage/);
   assert.match(ui, /setMessages\(\[\]\)/); assert.match(ui, /aria-live="polite"/); assert.match(ui, /Safe Actions/); assert.match(ui, /Prepare safely/);
 });
 
