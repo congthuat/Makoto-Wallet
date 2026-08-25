@@ -169,3 +169,6 @@ Smart Swap pre-wallet revalidation regression:
 - After a finite approval confirms, the newly prepared swap review is retained and the swap still requires its own wallet confirmation.
 - Freeze the reviewed Xylo calldata, minimum receive, recipient, and deadline. Waiting before Continue must not rebuild any of them.
 - Treat the latest pool output as a read-only safety check: output at or above the reviewed minimum may continue; output below it or an expired deadline requires a fresh quote with a specific visible reason.
+- Agent Vault deposits list only owner goals that remain open and before unlock. Recheck eligibility after selection and before every approval/deposit boundary; stale selections return to goal selection instead of choosing another goal.
+- Closed/unlocked deposit errors use the active-goal message, never the allowance-required message. A genuine low allowance still uses an exact finite approval, stops after confirmation, and presents a fresh deposit review.
+- Agent action copy describes preparation without signing authority. Verified Bridge account checks must show an unchanged/account-match label, never changed-details copy.

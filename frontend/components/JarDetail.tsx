@@ -22,7 +22,8 @@ import { JarActivity } from "./JarActivity";
 import { ShareJar } from "./ShareJar";
 import { PrivateMetadataPanel } from "./PrivateMetadataPanel";
 import { JarSecurityPanel } from "./JarSecurityPanel";
-import { consumeAgentHandoff, type AgentActionHandoff } from "@/lib/agent/actions";
+import { consumeAgentHandoff, handoffUrl, resetAgentHandoffGoal, storeAgentHandoff, type AgentActionHandoff } from "@/lib/agent/actions";
+import { canJarAcceptDeposits } from "@/lib/jarDepositEligibility";
 
 export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
   const { t } = usePreferences();
@@ -41,7 +42,7 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
 
   const { jar, viewerContribution, isLoading, error, refetch } = useJar(jarId, viewer);
   const activity = useJarActivity(jarId);
-  useEffect(() => { const id = new URLSearchParams(window.location.search).get("agentHandoff"); if (!id || !connection.address || !jar) return; const timer = window.setTimeout(() => { const handoff = consumeAgentHandoff(window.sessionStorage, id, connection.address); window.history.replaceState({}, "", window.location.pathname); if (!handoff || handoff.jarId !== jar.id.toString() || jar.closed || jar.owner.toLowerCase() !== connection.address!.toLowerCase()) return; setAgentHandoff(handoff); if (handoff.action === "vault-deposit") setDepositOpen(true); else if (handoff.action === "vault-withdraw") setWithdrawalOpen(true); }, 0); return () => window.clearTimeout(timer); }, [connection.address, jar]);
+  useEffect(() => { const id = new URLSearchParams(window.location.search).get("agentHandoff"); if (!id || !connection.address || !jar) return; const timer = window.setTimeout(() => { const handoff = consumeAgentHandoff(window.sessionStorage, id, connection.address); window.history.replaceState({}, "", window.location.pathname); if (!handoff || handoff.jarId !== jar.id.toString() || jar.owner.toLowerCase() !== connection.address!.toLowerCase()) return; if (handoff.action === "vault-deposit" && !canJarAcceptDeposits(jar)) { const reselection = resetAgentHandoffGoal(handoff); storeAgentHandoff(window.sessionStorage, reselection); window.location.assign(handoffUrl(reselection)); return; } if (jar.closed) return; setAgentHandoff(handoff); if (handoff.action === "vault-deposit") setDepositOpen(true); else if (handoff.action === "vault-withdraw") setWithdrawalOpen(true); }, 0); return () => window.clearTimeout(timer); }, [connection.address, jar]);
 
   if (contractAddressError || !contractAddress) return <DetailState title={t("jar.contractConfigTitle")} copy={contractAddressError ?? t("jar.contractConfigCopy")} />;
   if (!validJarId) return <DetailState title={t("jar.invalidIdTitle")} copy={t("jar.invalidIdCopy")} />;
@@ -55,6 +56,7 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
   const statusLabel = status === "Locked" ? t("status.locked") : status === "Unlocked" ? t("status.unlocked") : t("status.closed");
   const activityItems = [...(activity.data ?? []), ...(unlockedOnchain ? [{ id: `unlock-${jar.id}`, type: "unlocked" as const, actor: jar.owner, timestamp: jar.unlockTime, blockNumber: 0n, logIndex: 0 }] : [])].sort((a, b) => a.timestamp > b.timestamp ? -1 : a.timestamp < b.timestamp ? 1 : 0);
   const ownerConnected = Boolean(hydrated && connection.isConnected && connection.address?.toLowerCase() === jar.owner.toLowerCase());
+  function reselectAgentGoal() { if (!agentHandoff) return; const reselection = resetAgentHandoffGoal(agentHandoff); storeAgentHandoff(window.sessionStorage, reselection); window.location.assign(handoffUrl(reselection)); }
   const depositEnabled = ownerConnected && verifiedChain.isArc && status === "Locked";
   const contributeEnabled = Boolean(hydrated && connection.isConnected && verifiedChain.isArc && status === "Locked");
   const withdrawEnabled = Boolean(ownerConnected && verifiedChain.isArc && unlockedOnchain && jar.balance > 0n && !jar.closed && jar.mode === 0 && !jar.frozen);
@@ -91,7 +93,7 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
       <JarActivity items={activityItems} isLoading={activity.isLoading} isError={activity.isError} onRetry={() => void activity.refetch()} />
       <section className="trust-note"><span aria-hidden="true">⌁</span><div><strong>{t("jar.lockMeansLocked")}</strong><p>{t("jar.lockRule")}</p></div></section>
       <footer><span>Makoto Vault · Arc Testnet</span><span>{t("footer.rule")}</span></footer>
-      <OwnerDepositFlow jar={jar} open={depositOpen} initialAmount={agentHandoff?.action === "vault-deposit" ? agentHandoff.amount : undefined} origin={agentHandoff?.action === "vault-deposit" ? "agent" : undefined} onClose={() => setDepositOpen(false)} onSuccess={async () => { await Promise.all([refetch(), activity.refetch()]); }} />
+      <OwnerDepositFlow jar={jar} open={depositOpen} initialAmount={agentHandoff?.action === "vault-deposit" ? agentHandoff.amount : undefined} origin={agentHandoff?.action === "vault-deposit" ? "agent" : undefined} onAgentGoalIneligible={reselectAgentGoal} onClose={() => setDepositOpen(false)} onSuccess={async () => { await Promise.all([refetch(), activity.refetch()]); }} />
       <SharedContributionFlow jar={jar} open={contributionOpen} onClose={() => setContributionOpen(false)} onSuccess={async () => { await Promise.all([refetch(), activity.refetch()]); }} />
       <OwnerWithdrawalFlow jar={jar} open={withdrawalOpen} origin={agentHandoff?.action === "vault-withdraw" ? "agent" : undefined} onClose={() => setWithdrawalOpen(false)} onSuccess={async () => { await Promise.all([refetch(), latestBlock.refetch(), activity.refetch()]); }} />
     </div></main>

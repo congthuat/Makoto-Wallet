@@ -17,12 +17,12 @@ test("Bridge handoff never submits or switches before explicit preparation", () 
 
 test("Vault handoff requires a real goal selection and binds exact jar id", () => {
   const dashboard = component("Dashboard.tsx"), detail = component("JarDetail.tsx"), prepare = action("prepare.ts");
-  assert.match(dashboard, /Choose Vault goal/); assert.match(dashboard, /jars\.filter/); assert.match(dashboard, /privacyMode/); assert.match(dashboard, /chooseAgentGoal\(jar\.id\)/); assert.match(prepare, /bindAgentHandoffJar/); assert.match(detail, /handoff\.jarId !== jar\.id\.toString\(\)/); assert.match(detail, /setDepositOpen\(true\)/); assert.match(detail, /setWithdrawalOpen\(true\)/);
+  assert.match(dashboard, /Choose Vault goal/); assert.match(dashboard, /agentGoalOptions/); assert.match(dashboard, /privacyMode/); assert.match(dashboard, /chooseAgentGoal\(jar\.id\)/); assert.match(prepare, /bindAgentHandoffJar/); assert.match(detail, /handoff\.jarId !== jar\.id\.toString\(\)/); assert.match(detail, /setDepositOpen\(true\)/); assert.match(detail, /setWithdrawalOpen\(true\)/);
 });
 
 test("Vault deposit preserves finite approval and never auto-deposits after approval", () => {
   const source = component("OwnerDepositFlow.tsx");
-  assert.match(source, /amount, assetId: "usdc"/); assert.match(source, /setStep\("approval-confirmed"\)/); assert.match(source, /onClick=\{\(\) => setStep\("ready"\)\}/); assert.doesNotMatch(source, /setStep\("approval-confirmed"\).*void deposit\(\)/);
+  assert.match(source, /amount, assetId: "usdc"/); assert.match(source, /setStep\("approval-confirmed"\)/); assert.match(source, /onClick=\{\(\) => setStep\("review"\)\}/); assert.doesNotMatch(source, /setStep\("approval-confirmed"\).*void deposit\(\)/);
 });
 
 test("handoffs are minimal session-only, account-bound, expiring, and one-shot", () => {

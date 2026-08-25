@@ -17,6 +17,10 @@ export function bindAgentHandoffJar(handoff: AgentActionHandoff, jarId: bigint, 
   return Object.freeze({ ...handoff, id: createId(now), jarId: jarId.toString(), createdAt: now, expiresAt: now + AGENT_HANDOFF_TTL_MS });
 }
 
+export function resetAgentHandoffGoal(handoff: AgentActionHandoff, now = Date.now()): AgentActionHandoff {
+  return Object.freeze({ ...handoff, id: createId(now), path: "/savings", jarId: undefined, createdAt: now, expiresAt: now + AGENT_HANDOFF_TTL_MS });
+}
+
 function handoffFor(draft: AgentActionDraft, account: string, now: number): AgentActionHandoff {
   return Object.freeze({ id: createId(now), path: draft.kind === "vault-deposit" || draft.kind === "vault-withdraw" ? "/savings" : "/", action: draft.kind, account, createdAt: now, expiresAt: now + AGENT_HANDOFF_TTL_MS, amount: draft.amount!, asset: draft.asset!, sourceChain: draft.sourceChain, destinationChain: draft.destinationChain, outputAsset: draft.outputAsset, recipient: draft.recipient, source: "makoto-agent" });
 }

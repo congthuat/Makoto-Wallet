@@ -359,6 +359,7 @@ export const vi = {
   "flow.expectedBalance": "Số dư dự kiến",
   "flow.checkAllowance": "Kiểm tra hạn mức",
   "flow.approvalRequired": "Cần phê duyệt USDC",
+  "flow.depositIneligible": "Mục tiêu Vault này không còn nhận tiền gửi. Hãy chọn một mục tiêu đang hoạt động.",
   "flow.approvalConfirmed": "Đã phê duyệt",
   "flow.approveExact": "Phê duyệt đúng số tiền",
   "flow.approvalExactCopy": "Chỉ phê duyệt đúng số USDC được yêu cầu cho Makoto Vault—không phê duyệt vô hạn.",

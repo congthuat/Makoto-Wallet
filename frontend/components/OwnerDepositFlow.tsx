@@ -22,10 +22,11 @@ import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, prepareFlowReview, vaultIntent } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 import { isWalletCancellation, storeAgentResult } from "@/lib/agent/actions";
+import { assertJarAcceptsDeposits, JarDepositEligibilityError } from "@/lib/jarDepositEligibility";
 
 type Step = "form" | "review" | "checking" | "approval-required" | "approval-wallet" | "approval-submitted" | "approval-confirmed" | "ready" | "deposit-wallet" | "deposit-submitted" | "confirming" | "success" | "error";
 
-export function OwnerDepositFlow({ jar, open, initialAmount, origin, onClose, onSuccess }: { jar: Jar; open: boolean; initialAmount?: string; origin?: "agent"; onClose(): void; onSuccess(): Promise<void> }) {
+export function OwnerDepositFlow({ jar, open, initialAmount, origin, onAgentGoalIneligible, onClose, onSuccess }: { jar: Jar; open: boolean; initialAmount?: string; origin?: "agent"; onAgentGoalIneligible?(): void; onClose(): void; onSuccess(): Promise<void> }) {
   const { t, locale } = usePreferences();
   const vi = locale === "vi";
   const connection = useConnection();
@@ -53,7 +54,7 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onClose, on
   const handoffStarted = useRef(false);
   const amount = useMemo(() => { try { return parseDepositAmount(value); } catch { return undefined; } }, [value]);
 
-  function depositIntent(currentAmount: bigint) { if (!connection.address || !contractAddress) return undefined; return vaultIntent({ id: "vault-deposit", kind: "vault-deposit", account: connection.address, target: contractAddress, calldata: encodeFunctionData({ abi: penguJarV3Abi, functionName: "depositToJar", args: [jar.id, currentAmount] }), preparedAt: Date.now(), assetId: "usdc", amount: currentAmount, jarId: jar.id, metadata: { allowance: (allowance.data ?? 0n).toString() } }); }
+  function depositIntent(currentAmount: bigint, currentAllowance = allowance.data ?? 0n) { if (!connection.address || !contractAddress) return undefined; return vaultIntent({ id: "vault-deposit", kind: "vault-deposit", account: connection.address, target: contractAddress, calldata: encodeFunctionData({ abi: penguJarV3Abi, functionName: "depositToJar", args: [jar.id, currentAmount] }), preparedAt: Date.now(), assetId: "usdc", amount: currentAmount, jarId: jar.id, metadata: { allowance: currentAllowance.toString() } }); }
 
   function review(event?: Pick<FormEvent, "preventDefault">) {
     event?.preventDefault();
@@ -87,7 +88,8 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onClose, on
       }
       setStep("approval-required");
     } catch (reason) {
-      setError(transactionError(reason, "approval", t));
+      if (reason instanceof JarDepositEligibilityError && origin === "agent") { onAgentGoalIneligible?.(); return; }
+      setError(transactionError(reason, t));
       setStep("error");
     }
   }
@@ -129,9 +131,10 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onClose, on
       setStep("approval-confirmed");
       const confirmedAllowance = await allowance.refetch();
       if ((confirmedAllowance.data ?? 0n) < amount) throw new Error("The confirmed USDC allowance is still too low.");
-      const freshIntent = depositIntent(amount); if (freshIntent) setReviewSnapshot(prepareFlowReview(freshIntent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: confirmedAllowance.data, simulation: "passed", expectedTarget: contractAddress }));
+      const freshIntent = depositIntent(amount, confirmedAllowance.data ?? 0n); if (freshIntent) setReviewSnapshot(prepareFlowReview(freshIntent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: confirmedAllowance.data, simulation: "passed", expectedTarget: contractAddress }));
     } catch (reason) {
-      setError(transactionError(reason, "approval", t));
+      if (reason instanceof JarDepositEligibilityError && origin === "agent") { onAgentGoalIneligible?.(); return; }
+      setError(transactionError(reason, t));
       setStep("error");
     }
   }
@@ -148,7 +151,7 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onClose, on
       if (!contractAddress || !connection.address || !publicClient) throw new Error("Deposit configuration is unavailable.");
 
       if (!reviewSnapshot) throw new Error("Review again.");
-      const intent = depositIntent(amount)!;
+      const intent = depositIntent(amount, freshAllowance.data ?? 0n)!;
       const checked = revalidateTransactionReview(reviewSnapshot, { intent: { ...intent, preparedAt: reviewSnapshot.intent.preparedAt }, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: freshAllowance.data, simulation: "passed", expectedTarget: contractAddress }, now: Date.now() });
       if (!checked.valid) throw new Error("Review again.");
 
@@ -180,8 +183,9 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onClose, on
         refresh: () => Promise.all([onSuccess(), balances.usdc.refetch(), allowance.refetch(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]),
       });
     } catch (reason) {
+      if (reason instanceof JarDepositEligibilityError && origin === "agent") { onAgentGoalIneligible?.(); return; }
       if (origin === "agent" && connection.address) storeAgentResult(window.sessionStorage, { id: `vault-deposit-${Date.now()}`, account: connection.address, action: "vault-deposit", status: isWalletCancellation(reason) ? "cancelled" : "failed", createdAt: Date.now() });
-      setError(transactionError(reason, "deposit", t));
+      setError(transactionError(reason, t));
       setStep("error");
     }
   }
@@ -226,7 +230,7 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onClose, on
       </TransactionSafetyReview>}
 
       {step === "approval-required" && <TransactionPanel title={t("flow.approvalRequired")} copy={t("flow.approvalExactCopy")} hashes={{ approvalHash }} action={<button className="primary-action standalone-action" onClick={() => void approve()}>{t("flow.approveExact")}</button>} />}
-      {step === "approval-confirmed" && <TransactionPanel title={t("flow.approvalConfirmed")} copy={t("tx.success")} hashes={{ approvalHash }} action={<button className="primary-action standalone-action" onClick={() => setStep("ready")}>{t("flow.continue")}</button>} />}
+      {step === "approval-confirmed" && <TransactionPanel title={t("flow.approvalConfirmed")} copy={t("tx.success")} hashes={{ approvalHash }} action={<button className="primary-action standalone-action" onClick={() => setStep("review")}>{t("flow.continue")}</button>} />}
       {step === "ready" && <TransactionPanel title={t("flow.readyDeposit")} copy={t("create.waitingCopy")} hashes={{ approvalHash }} action={<button className="primary-action standalone-action" onClick={() => void deposit()}>{t("flow.confirmDeposit")}</button>} />}
       {step === "success" && <TransactionPanel title={t("flow.depositSuccess")} copy={t("tx.success")} hashes={{ approvalHash, depositHash }} action={<button className="primary-action standalone-action" onClick={close}>{t("flow.updatedJar")}</button>} />}
       {step === "error" && <TransactionPanel title={t("flow.depositFailed")} copy={error ?? t("tx.failed")} hashes={{ approvalHash, depositHash }} action={<button className="primary-action standalone-action" onClick={() => setStep("review")}>{t("flow.reviewRetry")}</button>} />}
@@ -270,17 +274,14 @@ async function assertCurrentOwner(owner: Address, connector: ReturnType<typeof u
   if (providerChainId !== arcTestnet.id || connectorChainId !== arcTestnet.id) throw new Error("The connected wallet is not verified on Arc Testnet.");
 }
 
-function transactionError(reason: unknown, action: "approval" | "deposit", t: ReturnType<typeof usePreferences>["t"]) {
+function transactionError(reason: unknown, t: ReturnType<typeof usePreferences>["t"]) {
   const message = reason instanceof Error ? reason.message : "";
+  if (reason instanceof JarDepositEligibilityError) return t("flow.depositIneligible");
   if (/reject|denied|4001|replac|cancel/i.test(message)) return t("tx.rejected");
   if (/balance/i.test(message)) return t("validation.balance");
   if (/owner/i.test(message)) return t("common.ownerOnly");
+  if (/allowance/i.test(message)) return t("flow.approvalRequired");
   if (/network|Arc|provider/i.test(message)) return t("wallet.switch");
   if (/revert|execution/i.test(message)) return t("validation.reverted");
-  return action === "approval" ? t("flow.approvalRequired") : t("tx.rpc");
-}
-
-function assertJarAcceptsDeposits(jar: Jar) {
-  if (jar.closed) throw new Error("This savings goal is closed and cannot receive deposits.");
-  if (BigInt(Math.floor(Date.now() / 1000)) >= jar.unlockTime) throw new Error("This savings goal has reached its unlock time and cannot receive deposits.");
+  return t("tx.rpc");
 }

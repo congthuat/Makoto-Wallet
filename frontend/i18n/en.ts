@@ -357,6 +357,7 @@ export const en = {
   "flow.expectedBalance": "Expected balance",
   "flow.checkAllowance": "Check allowance",
   "flow.approvalRequired": "Approval required",
+  "flow.depositIneligible": "This Vault goal can no longer receive deposits. Choose an active goal.",
   "flow.approvalConfirmed": "Approval confirmed",
   "flow.approveExact": "Approve exact amount",
   "flow.approvalExactCopy": "Approve exactly the requested USDC amount for Makoto Vault—never unlimited.",

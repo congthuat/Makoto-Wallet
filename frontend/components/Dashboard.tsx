@@ -16,6 +16,7 @@ import { formatUsdc } from "@/lib/format";
 import { usePreferences } from "@/hooks/usePreferences";
 import { summarizeSavingsJars } from "@/lib/savingsSummary";
 import { bindAgentHandoffJar, consumeAgentHandoff, handoffUrl, storeAgentHandoff, type AgentActionHandoff } from "@/lib/agent/actions";
+import { canJarAcceptDeposits } from "@/lib/jarDepositEligibility";
 
 export function Dashboard({ initialOwner }: { initialOwner?: string }) {
   const { t, locale } = usePreferences();
@@ -25,6 +26,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
   const [inputError, setInputError] = useState<string>();
   const [createOpen, setCreateOpen] = useState(false);
   const [vaultHandoff, setVaultHandoff] = useState<AgentActionHandoff>();
+  const [vaultSelectionError, setVaultSelectionError] = useState<string>();
   const handoffStatusRef = useRef<HTMLDivElement>(null);
   const hydrated = useHydrated();
   const connection = useConnection();
@@ -44,9 +46,10 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
   });
 
   const totals = useMemo(() => summarizeSavingsJars(jars), [jars]);
+  const agentGoalOptions = useMemo(() => jars.filter((jar) => jar.owner.toLowerCase() === connection.address?.toLowerCase() && (vaultHandoff?.action === "vault-deposit" ? canJarAcceptDeposits(jar) : !jar.closed)), [connection.address, jars, vaultHandoff?.action]);
   useEffect(() => { const id = new URLSearchParams(window.location.search).get("agentHandoff"); if (!id || !connection.address) return; const timer = window.setTimeout(() => { const handoff = consumeAgentHandoff(window.sessionStorage, id, connection.address); if (handoff && (handoff.action === "vault-deposit" || handoff.action === "vault-withdraw")) { setVaultHandoff(handoff); handoffStatusRef.current?.focus(); } window.history.replaceState({}, "", window.location.pathname); }, 0); return () => window.clearTimeout(timer); }, [connection.address]);
 
-  function chooseAgentGoal(jarId: bigint) { if (!vaultHandoff) return; const selected = bindAgentHandoffJar({ ...vaultHandoff, path: `/jars/${jarId}` }, jarId); storeAgentHandoff(window.sessionStorage, selected); setVaultHandoff(undefined); window.location.assign(handoffUrl(selected)); }
+  function chooseAgentGoal(jarId: bigint) { if (!vaultHandoff) return; const jar = agentGoalOptions.find((candidate) => candidate.id === jarId); if (!jar || vaultHandoff.action === "vault-deposit" && !canJarAcceptDeposits(jar)) { setVaultSelectionError(locale === "vi" ? "Mục tiêu này không còn nhận tiền gửi. Hãy chọn một mục tiêu đang hoạt động." : "This goal can no longer receive deposits. Choose an active goal."); void refetch(); return; } const selected = bindAgentHandoffJar({ ...vaultHandoff, path: `/jars/${jarId}` }, jarId); storeAgentHandoff(window.sessionStorage, selected); setVaultHandoff(undefined); window.location.assign(handoffUrl(selected)); }
 
   function submitAddress(event: FormEvent) {
     event.preventDefault();
@@ -104,7 +107,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
         </section>}
 
         <section className="jars-section">
-          {vaultHandoff && <div className="agent-goal-selection" ref={handoffStatusRef} tabIndex={-1} aria-live="polite"><p className="eyebrow">{t("savings.footerName")}</p><h2>{locale === "vi" ? "Chọn mục tiêu Vault" : "Choose Vault goal"}</h2><p>{vaultHandoff.action === "vault-deposit" ? `${vaultHandoff.amount} USDC · ${t("actions.deposit")}` : `${vaultHandoff.amount} USDC · ${t("actions.withdraw")}`}</p><div className="card-grid">{jars.filter((jar) => !jar.closed && jar.owner.toLowerCase() === connection.address?.toLowerCase()).map((jar) => <button type="button" className="agent-goal-option" key={jar.id.toString()} onClick={() => chooseAgentGoal(jar.id)}><strong>#{jar.id.toString()}</strong><span>{formatUsdc(jar.balance)} USDC</span><small>{Number(jar.privacyMode) === 1 ? "PRIVATE" : jar.name}</small></button>)}</div>{jars.filter((jar) => !jar.closed).length === 0 && <p role="alert">{t("dashboard.noJars")}</p>}</div>}
+          {vaultHandoff && <div className="agent-goal-selection" ref={handoffStatusRef} tabIndex={-1} aria-live="polite"><p className="eyebrow">{t("savings.footerName")}</p><h2>{locale === "vi" ? "Chọn mục tiêu Vault" : "Choose Vault goal"}</h2><p>{vaultHandoff.action === "vault-deposit" ? `${vaultHandoff.amount} USDC · ${t("actions.deposit")}` : `${vaultHandoff.amount} USDC · ${t("actions.withdraw")}`}</p><div className="card-grid">{agentGoalOptions.map((jar) => <button type="button" className="agent-goal-option" key={jar.id.toString()} onClick={() => chooseAgentGoal(jar.id)}><strong>#{jar.id.toString()}</strong><span>{formatUsdc(jar.balance)} USDC</span><small>{Number(jar.privacyMode) === 1 ? "PRIVATE" : jar.name}</small></button>)}</div>{agentGoalOptions.length === 0 && <p role="alert">{vaultHandoff.action === "vault-deposit" ? (locale === "vi" ? "Không có mục tiêu Vault đang hoạt động nào có thể nhận khoản tiền gửi này." : "No active Vault goal can receive this deposit.") : t("dashboard.noJars")}</p>}{vaultSelectionError && <p role="alert">{vaultSelectionError}</p>}</div>}
           <div className="section-heading"><div><p className="eyebrow">{t("dashboard.goals")}</p><h2>{t("dashboard.myJars")}</h2></div>{owner && <button className="refresh-button" onClick={() => void refetch()} disabled={isLoading} aria-busy={isLoading}>{isLoading ? t("common.refreshing") : t("common.refresh")}</button>}</div>
           {contractAddressError ? (
             <StatePanel icon="!" title={t("dashboard.configNeeded")}><p>{contractAddressError}</p></StatePanel>

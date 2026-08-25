@@ -56,7 +56,7 @@ function statusIcon(status: SafetyCheck["status"]) { return ({ verified: "✓", 
 function statusLabel(status: SafetyCheck["status"], t: ReturnType<typeof usePreferences>["t"]) { return ({ verified: t("review.verified"), info: t("review.info"), attention: t("review.attention"), blocking: t("review.blocking") })[status]; }
 function checkLabel(check: SafetyCheck, t: ReturnType<typeof usePreferences>["t"]) {
   if (check.code === "wallet") return check.status === "verified" ? t("review.walletConnected") : t("review.walletDisconnected");
-  if (check.code === "account") return t("review.changed");
+  if (check.code === "account") return check.status === "verified" ? check.label : t("review.changed");
   if (check.code === "network") return check.status === "verified" ? "Arc Testnet · 5042002" : t("review.arcRequired");
   if (check.code === "amount") return t("review.amountInvalid");
   if (check.code === "balance") return check.status === "verified" ? t("review.balanceVerified") : t("review.balanceInsufficient");
