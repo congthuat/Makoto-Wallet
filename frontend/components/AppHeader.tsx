@@ -11,13 +11,13 @@ import styles from "./MakotoWallet.module.css";
 
 type HeaderIconName = "wallet" | "activity" | "pay" | "savings" | "settings" | "network" | "language" | "theme" | "sun" | "address";
 
-const navItems: ReadonlyArray<{ href: string; icon: HeaderIconName; en: string; vi: string; mobile?: boolean }> = [
-  { href: "/", icon: "wallet", en: "Dashboard", vi: "Tổng quan", mobile: true },
+const navItems: ReadonlyArray<{ href: string; icon: HeaderIconName; en: string; vi: string; mobileEn?: string; mobileVi?: string; mobile?: boolean }> = [
+  { href: "/", icon: "wallet", en: "Dashboard", vi: "Tổng quan", mobileEn: "Home", mobileVi: "Trang chủ", mobile: true },
   { href: "/#assets", icon: "wallet", en: "Wallet", vi: "Ví" },
-  { href: "/#apps", icon: "pay", en: "Tools", vi: "Công cụ", mobile: true },
-  { href: "/pay", icon: "pay", en: "Pay", vi: "Thanh toán", mobile: true },
-  { href: "/savings", icon: "savings", en: "Makoto Vault", vi: "Makoto Vault", mobile: true },
-  { href: "/settings#security", icon: "settings", en: "Security Center", vi: "Trung tâm bảo mật", mobile: true },
+  { href: "/#apps", icon: "pay", en: "Tools", vi: "Công cụ", mobileEn: "Tools", mobileVi: "Công cụ", mobile: true },
+  { href: "/pay", icon: "pay", en: "Pay", vi: "Thanh toán", mobileEn: "Pay", mobileVi: "Pay", mobile: true },
+  { href: "/savings", icon: "savings", en: "Makoto Vault", vi: "Makoto Vault", mobileEn: "Vault", mobileVi: "Vault", mobile: true },
+  { href: "/settings#security", icon: "settings", en: "Security Center", vi: "Trung tâm bảo mật", mobileEn: "Security", mobileVi: "Bảo mật", mobile: true },
   { href: "/#activity", icon: "activity", en: "Activity", vi: "Hoạt động" },
 ];
 
@@ -99,9 +99,11 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
             key={item.en}
             className={`${item.mobile ? "" : styles.mobileNavHidden} ${isActive(item.href) ? styles.navActive : ""}`.trim() || undefined}
             href={item.href}
+            aria-current={isActive(item.href) ? "page" : undefined}
           >
             <HeaderIcon name={item.icon} className={styles.headerGlyph} />
-            <span>{locale === "vi" ? item.vi : item.en}</span>
+            <span className={styles.desktopNavLabel}>{locale === "vi" ? item.vi : item.en}</span>
+            {item.mobile && <span className={styles.mobileNavLabel}>{locale === "vi" ? item.mobileVi : item.mobileEn}</span>}
           </Link>
         ))}
 

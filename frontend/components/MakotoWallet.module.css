@@ -1845,6 +1845,7 @@
 .nav a.navActive { color: var(--mw-text); border-color: rgba(124,92,255,.2); background: var(--mw-nav-active-bg); }
 .nav a.navActive::before { content: ""; position: absolute; left: -1px; width: 2px; height: 20px; border-radius: 2px; background: var(--mw-accent); }
 .headerGlyph { width: 18px; height: 18px; color: currentColor; }
+.mobileNavLabel { display: none; }
 
 .pageHeading {
   position: absolute;
@@ -2127,4 +2128,49 @@
 .quickPanel .compactActions{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:1120px){.primaryActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.primaryActions>*{min-width:0}.appsRow .appShortcuts{grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}}
 @media(max-width:767px){.primaryActions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.primaryActions button,.primaryActions a{width:100%;min-height:42px}.appsRow .appShortcuts{grid-template-columns:1fr}.appsRow .appShortcuts a{min-height:72px}.quickPanel .compactActions{grid-template-columns:1fr}}
+
+/* Final phone-width fit: compact header, deterministic five-item nav, and contained dashboard controls. */
+@media(max-width:767px){
+  .shell{padding:82px 14px 20px}
+  .header{min-height:58px}
+  .brand{top:0;left:14px;height:58px}
+  .headerActions{top:10px;right:14px;max-width:calc(100% - 64px);gap:5px}
+  .desktopNavLabel{display:none}
+  .mobileNavLabel{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:10px;line-height:1.15}
+  .nav{height:calc(68px + env(safe-area-inset-bottom));padding:6px 4px env(safe-area-inset-bottom);grid-template-columns:repeat(5,minmax(0,1fr));gap:0}
+  .nav a{box-sizing:border-box;width:100%;min-width:0;min-height:56px;padding:4px 2px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;font-size:10px;overflow:hidden}
+  .nav .headerGlyph{width:18px;height:18px;flex-basis:18px}
+  .nav a.navActive::before{top:-7px}
+  .pageHeading{top:62px;left:14px}
+  .pageHeading h1{font-size:21px;line-height:1.15}
+  .walletControlWrap{box-sizing:border-box;max-width:126px;min-width:0;padding:0 5px}
+  .walletControlWrap :global(.wallet-summary){box-sizing:border-box;max-width:116px;min-height:38px;padding:4px 8px;gap:7px;border:0;background:transparent}
+  .walletControlWrap :global(.wallet-summary small){display:none}
+  .walletControlWrap :global(.wallet-summary strong){max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .balanceCard,.statusCard,.assetsSection.dashboardCard,.savingsPosition,.appsPanel,.activityCard,.networkCard,.quickPanel{box-sizing:border-box;width:100%}
+  .primaryActions .primaryActionSwap{grid-column:1/-1}
+  .balanceChart{max-width:100%;overflow:hidden}
+  .chartRanges{width:100%;justify-content:space-between}
+  .chartRanges button{flex:1 1 0;min-width:0;max-width:46px}
+  .statusList div{min-width:0}
+  .statusList dd{min-width:0;overflow-wrap:anywhere}
+}
+@media(max-width:430px){
+  .brandWords{display:none}
+  .brandLogo{width:34px;height:34px}
+}
+@media(max-width:360px){
+  .headerActions{gap:4px}
+  .languageTrigger{min-height:38px;padding-inline:7px;gap:0}
+  .languageTrigger .languageGlyph,.languageChevron{display:none}
+  .themeButton{width:38px;min-height:38px}
+  .walletControlWrap{max-width:116px}
+  .walletControlWrap :global(.wallet-summary){max-width:108px;padding-inline:6px}
+  .walletControlWrap :global(.wallet-summary strong){max-width:76px;font-size:10px}
+  .balanceCard,.statusCard,.assetsSection.dashboardCard,.savingsPosition,.appsPanel,.activityCard,.networkCard,.quickPanel{padding:16px}
+  .dashboardBalance{font-size:clamp(36px,12vw,43px);letter-spacing:-1.5px}
+  .dashboardBalance small{margin-left:6px;font-size:11px}
+  .chartRanges{gap:1px}
+  .chartRanges button{height:27px;padding-inline:3px;font-size:8px}
+}
 

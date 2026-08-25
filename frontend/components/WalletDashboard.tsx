@@ -281,9 +281,9 @@ export function WalletDashboard() {
                   <div className={styles.dashboardBalance}>{usdcBalance}<small>USDC</small></div>
                   <p className={styles.dataDisclosure}>{locale === "vi" ? "Số dư trực tiếp và lịch sử quan sát cục bộ của ví đang kết nối." : "Live balance with locally observed history for this connected wallet."}</p>
                   <div className={styles.primaryActions}>
-                    <button type="button" onClick={() => setAction("send")} disabled={!onArc}><DashboardAppIcon name="send" /><span>{t("walletHome.send")}</span></button>
-                    <button type="button" onClick={() => setAction("receive")} disabled={!onArc}><DashboardAppIcon name="receive" /><span>{t("walletHome.receive")}</span></button>
-                    <button type="button" onClick={() => setAction("swap")} disabled={!onArc}><DashboardAppIcon name="swap" /><span>{t("walletHome.swap")}</span></button>
+                    <button className={styles.primaryActionSend} type="button" onClick={() => setAction("send")} disabled={!onArc}><DashboardAppIcon name="send" /><span>{t("walletHome.send")}</span></button>
+                    <button className={styles.primaryActionReceive} type="button" onClick={() => setAction("receive")} disabled={!onArc}><DashboardAppIcon name="receive" /><span>{t("walletHome.receive")}</span></button>
+                    <button className={styles.primaryActionSwap} type="button" onClick={() => setAction("swap")} disabled={!onArc}><DashboardAppIcon name="swap" /><span>{t("walletHome.swap")}</span></button>
                   </div>
                   {!onArc && <button type="button" className={styles.inlineNetworkAction} onClick={() => void chain.switchToArc()}>{t("wallet.switch")}</button>}
                   {onArc && (balances.usdc.isError || balances.eurc.isError) && <p className={styles.balanceError} role="alert">{t("walletHome.balanceError")}</p>}

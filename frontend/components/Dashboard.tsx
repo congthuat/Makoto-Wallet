@@ -66,7 +66,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
   const usdcMismatch = usdcQuery.data && usdcQuery.data.toLowerCase() !== EXPECTED_USDC_ADDRESS.toLowerCase();
 
   return (
-    <main>
+    <main className="savings-page">
       <div className="shell">
         <AppHeader />
         <section className="savings-hero">

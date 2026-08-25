@@ -6,6 +6,7 @@ const globals = readFileSync(new URL("../app/globals.css", import.meta.url), "ut
 const wallet = readFileSync(new URL("../components/MakotoWallet.module.css", import.meta.url), "utf8");
 const balanceHook = readFileSync(new URL("../hooks/useWalletBalances.ts", import.meta.url), "utf8");
 const dashboard = readFileSync(new URL("../components/WalletDashboard.tsx", import.meta.url), "utf8");
+const vaultDashboard = readFileSync(new URL("../components/Dashboard.tsx", import.meta.url), "utf8");
 const walletControl = readFileSync(new URL("../components/WalletControl.tsx", import.meta.url), "utf8");
 const languageMenu = readFileSync(new URL("../components/LanguageMenu.tsx", import.meta.url), "utf8");
 const header = readFileSync(new URL("../components/AppHeader.tsx", import.meta.url), "utf8");
@@ -19,10 +20,49 @@ test("responsive CSS fixes overflow sources instead of masking the page", () => 
 });
 
 test("mobile dashboard uses five-item navigation and removes promotional artwork", () => {
-  assert.match(wallet, /@media\(max-width:767px\)[\s\S]*?\.nav\{grid-template-columns:repeat\(5,1fr\)\}/);
+  assert.match(wallet, /@media\(max-width:767px\)[\s\S]*?\.nav\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(wallet, /\.appShortcuts\{grid-template-columns:repeat\(3,1fr\)/);
   assert.match(dashboard, /styles\.dashboardGrid[\s\S]*styles\.portfolioGrid[\s\S]*styles\.assetsSection[\s\S]*styles\.savingsPosition[\s\S]*styles\.appsRow[\s\S]*styles\.appsPanel[\s\S]*styles\.lowerGrid/);
   assert.doesNotMatch(dashboard, /styles\.companionCard|companion-art\.jpg|MakotoPayHomeSection/);
+});
+
+test("mobile shell uses compact controls and short localized five-item navigation labels", () => {
+  assert.match(header, /mobileEn: "Home", mobileVi: "Trang chủ"/);
+  assert.match(header, /mobileEn: "Tools", mobileVi: "Công cụ"/);
+  assert.match(header, /mobileEn: "Pay", mobileVi: "Pay"/);
+  assert.match(header, /mobileEn: "Vault", mobileVi: "Vault"/);
+  assert.match(header, /mobileEn: "Security", mobileVi: "Bảo mật"/);
+  assert.match(header, /className=\{styles\.desktopNavLabel\}/);
+  assert.match(header, /className=\{styles\.mobileNavLabel\}/);
+  assert.match(header, /aria-current=\{isActive\(item\.href\) \? "page" : undefined\}/);
+  assert.match(header, /en: "Makoto Vault"/);
+  assert.match(header, /en: "Security Center"/);
+  assert.doesNotMatch(header, />Makoto VaultSecurity Center</);
+  assert.match(wallet, /\.desktopNavLabel\{display:none\}/);
+  assert.match(wallet, /\.mobileNavLabel\{[^}]*white-space:nowrap[^}]*text-align:center[^}]*font-size:10px/);
+  assert.match(wallet, /\.nav a\{[^}]*width:100%[^}]*min-width:0[^}]*flex-direction:column/);
+});
+
+test("mobile content reserves fixed-nav space and narrow controls stay contained", () => {
+  assert.match(globals, /@media \(max-width: 767px\)[\s\S]*main:has\(nav\[aria-label="Primary"\]\)[^}]*padding-bottom: calc\(84px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(wallet, /@media\(max-width:430px\)[\s\S]*?\.brandWords\{display:none\}/);
+  assert.match(wallet, /@media\(max-width:360px\)[\s\S]*?\.languageTrigger \.languageGlyph,\.languageChevron\{display:none\}/);
+  assert.match(wallet, /\.walletControlWrap :global\(\.wallet-summary small\)\{display:none\}/);
+  assert.match(wallet, /\.primaryActions \.primaryActionSwap\{grid-column:1\/-1\}/);
+  assert.match(wallet, /\.chartRanges button\{flex:1 1 0;min-width:0;max-width:46px\}/);
+  assert.match(dashboard, /className=\{styles\.primaryActionSend\}[\s\S]*setAction\("send"\)/);
+  assert.match(dashboard, /className=\{styles\.primaryActionReceive\}[\s\S]*setAction\("receive"\)/);
+  assert.match(dashboard, /className=\{styles\.primaryActionSwap\}[\s\S]*setAction\("swap"\)/);
+});
+
+test("Makoto Vault desktop content clears the shared sidebar and header", () => {
+  assert.match(vaultDashboard, /<main className="savings-page">/);
+  assert.match(globals, /\.savings-page>\.shell\{[^}]*box-sizing:border-box[^}]*width:min\(100%,1840px\)[^}]*padding:112px 32px 64px 272px/);
+});
+
+test("Makoto Vault mobile hero starts below the shared header", () => {
+  assert.match(globals, /@media\(max-width:767px\)\{\.savings-page>\.shell\{[^}]*width:100%[^}]*padding:92px 14px/);
+  assert.match(globals, /@media \(max-width: 620px\) \{[\s\S]*?\.savings-hero \{[^}]*margin-top:12px/);
 });
 
 test("Dashboard heading is route-local and sidebar fragments resolve exactly", () => {
