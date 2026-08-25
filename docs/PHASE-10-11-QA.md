@@ -138,3 +138,17 @@ Manual QA may stop at wallet confirmation and cancel. No additional testnet fund
 - Confirm Security Center describes Agent capabilities and limitations without a score or audit claim.
 
 Architecture boundary: `AgentContextSnapshot` → deterministic read-only tool → grounded response. Action language stops at a data-only `AgentActionDraft`. Phase 10.8 does **not** allow Makoto Agent to execute transactions. Future conversion to `TransactionIntent` must enter the existing Phase 10.7 review, safety assessment, expiry/fingerprint revalidation, wallet confirmation, and receipt-confirmation path.
+
+# Phase 10.9 — Makoto Agent safe actions QA
+
+- Confirm Send, Swap, Universal Bridge, Vault deposit, and Vault withdrawal phrases in EN/VI create a draft only. Parsing must not open a wallet or request a network switch.
+- Confirm missing amount/recipient/destination, malformed or zero recipient, non-positive amount, unsupported asset, and ambiguous Vault goal block preparation. Agent MAX must say to use the manual flow; manual SAFE MAX remains unchanged.
+- Select **Prepare safely** and verify the supported manual protocol adapter is preselected. Preparation may load balance, allowance, live quote/estimate, fee, and simulation, but must not open the wallet.
+- Verify the prepared action enters the shared `TransactionIntent` → `TransactionSafetyAssessment` → `TransactionReviewSnapshot` presentation with Details, Transaction safety, Expected changes, and Wallet confirmation.
+- Expire or mutate account, chain, recipient, amount, target, calldata, route, minimum receive, slippage, approval, or fee envelope. **Continue to wallet** must block with an expired/changed-review message.
+- If finite approval is required, cancel it and verify no swap/deposit follows. After a confirmed approval, verify a fresh quote, allowance, gas, simulation, and new review are required, plus a second explicit Continue.
+- Rapidly activate Continue twice and verify one wallet request. Reject it and verify cancellation only: no retry, success message, or Activity success row.
+- Verify pending and reverted transactions are not success. Only confirmed evidence may append an Agent result and refresh canonical Activity.
+- Check light/dark layouts at 375, 390, 430, 768, and desktop; keyboard reachability, focus movement, `aria-live` preparation status, disabled-control explanation, and long-address/hash wrapping.
+
+Architecture boundary: natural language → data-only `AgentActionDraft` → explicit Prepare safely → protocol-owned `TransactionIntent` and shared review → explicit Continue to wallet → final revalidation → wallet → confirmed evidence → Activity. No external LLM is used. **Makoto Agent never signs transactions.**

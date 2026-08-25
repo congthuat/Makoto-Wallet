@@ -8,7 +8,7 @@ import { UniversalBridgeFlow } from "./UniversalBridgeFlow";
 
 type Mode = "swap" | "bridge";
 
-export function SwapPanel({ onClose, onConfirmed }: { onClose(): void; onConfirmed?(): void }) {
+export function SwapPanel({ initialValues, onClose, onConfirmed }: { initialValues?: { amount?: string; asset?: "usdc" | "eurc"; outputAsset?: "usdc" | "eurc" }; onClose(): void; onConfirmed?(): void }) {
   const { locale } = usePreferences();
   const vi = locale === "vi";
   const [mode, setMode] = useState<Mode>("swap");
@@ -24,7 +24,7 @@ export function SwapPanel({ onClose, onConfirmed }: { onClose(): void; onConfirm
           Bridge USDC
         </button>
       </div>
-      {mode === "swap" ? <RealSwapFlow locale={locale} onBusyChange={setBusy} onConfirmed={onConfirmed} /> : <UniversalBridgeFlow locale={locale} onBusyChange={setBusy} />}
+      {mode === "swap" ? <RealSwapFlow locale={locale} initialValues={initialValues} onBusyChange={setBusy} onConfirmed={onConfirmed} /> : <UniversalBridgeFlow locale={locale} onBusyChange={setBusy} />}
     </WalletPanel>
   );
 }

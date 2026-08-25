@@ -23,7 +23,7 @@ import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, prepareFlowReview, swapIntent } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 
-type Props = { locale: "en" | "vi"; onBusyChange(busy: boolean): void; onConfirmed?(): void };
+type Props = { locale: "en" | "vi"; initialValues?: { amount?: string; asset?: SupportedAssetId; outputAsset?: SupportedAssetId }; onBusyChange(busy: boolean): void; onConfirmed?(): void };
 type MaxApprovalReview = { account: `0x${string}`; balance: bigint; allowance: bigint; approvalFee: bigint };
 
 function safeMaxFailure(locale: "en" | "vi", caught: unknown) {
@@ -34,10 +34,10 @@ function safeMaxFailure(locale: "en" | "vi", caught: unknown) {
   return vi ? "RPC Arc tạm thời không phản hồi khi tính SAFE MAX." : "Arc RPC failed while calculating SAFE MAX.";
 }
 
-export function RealSwapFlow({ locale, onBusyChange, onConfirmed }: Props) {
+export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed }: Props) {
   const vi = locale === "vi", connection = useConnection(), chain = useVerifiedWalletChain();
   const client = usePublicClient({ chainId: arcTestnet.id }), writer = useWriteContract(), balances = useWalletBalances(connection.address, chain.isArc);
-  const [fromId, setFromId] = useState<SupportedAssetId>("usdc"), [mode, setMode] = useState<SwapMode>("smart"), [amount, setAmount] = useState("");
+  const [fromId, setFromId] = useState<SupportedAssetId>(initialValues?.asset ?? (initialValues?.outputAsset === "usdc" ? "eurc" : "usdc")), [mode, setMode] = useState<SwapMode>("smart"), [amount, setAmount] = useState(initialValues?.amount ?? "");
   const [slippage, setSlippage] = useState<(typeof SWAP_SLIPPAGE_OPTIONS)[number]>(0.005), [quote, setQuote] = useState<SwapQuote>(), [approvalGasFee, setApprovalGasFee] = useState<bigint>(), [swapGasFee, setSwapGasFee] = useState<bigint>();
   const [swapEnvelope, setSwapEnvelope] = useState<SwapFeeEnvelope>();
   const [reviewStage, setReviewStage] = useState<"approval" | "swap">(), [gasUnavailable, setGasUnavailable] = useState(false), [pending, setPending] = useState<string>(), [error, setError] = useState<string>(), [quickFeedback, setQuickFeedback] = useState<string>();

@@ -82,4 +82,12 @@ The read-only registry exposes wallet overview, recent Activity with type/limit 
 
 Recognized send, swap, bridge, Vault-deposit, and Vault-withdraw requests may become immutable `AgentActionDraft` values. These drafts contain only parsed data, explicitly set `executionEnabled: false`, and have no execution method. Phase 10.8 does not produce or submit a `TransactionIntent` and cannot call wallet write, signing, approval, or network-switch APIs. A later phase may explicitly convert a user-approved draft into the existing Phase 10.7 `TransactionIntent` and shared review/revalidation pipeline; it must not duplicate or bypass that pipeline.
 
+# Phase 10.9 — Makoto Agent safe action handoff
+
+Phase 10.9 adds a deterministic, provider-free application layer under `frontend/lib/agent/actions`. `AgentActionDraft` remains data-only. Parsing natural language creates only a draft; the first consent boundary is the explicit **Prepare safely** action. Central validation rejects missing or malformed fields, zero/negative amounts, partial or zero addresses, unsupported assets/networks, and all Agent MAX requests. Manual SAFE MAX is unchanged.
+
+An approved draft becomes an `AgentPreparedAction` and a structured handoff to the existing Send, Smart Swap/XyloNet, recommended Universal Bridge/Circle, or Makoto Vault flow. Protocol adapters—not the parser—materialize the exact `TransactionIntent`. The existing shared orchestration then owns simulation, finite approval, `TransactionSafetyAssessment`, fingerprinted `TransactionReviewSnapshot`, expiry, and final `revalidateTransactionReview` immediately before the wallet request. Approval and the following swap/deposit are separate reviews; a confirmed approval invalidates the old protocol review and never opens the next wallet request automatically. Agent bridge handoffs never silently select CCTP Direct.
+
+The second consent boundary is **Continue to wallet** in the shared review. Only that action may open the wallet, under `ReviewSubmissionGuard`. Wallet rejection is cancellation, is never retried automatically, and creates no Activity success. Success text and Activity refresh remain gated by `confirmThenRefresh` and confirmed receipt/provider evidence. Conversations are not persisted and no external LLM is used. **Makoto Agent never signs transactions.**
+
 Conversation state exists only in React memory and is cleared on refresh or with Clear conversation. It is not written to storage, cookies, analytics, or a server.

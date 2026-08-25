@@ -80,6 +80,7 @@ export function WalletDashboard() {
   } = useOwnerJars(onArc ? connection.address : undefined);
 
   const [action, setAction] = useState<Action>();
+  const [agentHandoff, setAgentHandoff] = useState<{ amount?: string; asset?: "usdc" | "eurc"; recipient?: string; outputAsset?: "usdc" | "eurc" }>();
   const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
   const activity = useWalletActivity(connection.address, onArc, activityHistoryOpen);
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
@@ -91,6 +92,20 @@ export function WalletDashboard() {
   const [onboardingIntent, setOnboardingIntent] = useState<OnboardingPath | undefined>(() =>
     typeof window === "undefined" ? undefined : parseOnboardingIntent(window.sessionStorage.getItem(ONBOARDING_INTENT_KEY)),
   );
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("source") !== "makoto-agent") return;
+    const requested = params.get("action");
+    if (requested !== "send" && requested !== "swap") return;
+    const asset = params.get("asset")?.toLowerCase(), outputAsset = params.get("outputAsset")?.toLowerCase();
+    const timer = window.setTimeout(() => {
+      setAgentHandoff({ amount: params.get("amount") ?? undefined, recipient: params.get("recipient") ?? undefined, asset: asset === "usdc" || asset === "eurc" ? asset : undefined, outputAsset: outputAsset === "usdc" || outputAsset === "eurc" ? outputAsset : undefined });
+      setAction(requested);
+    }, 0);
+    window.history.replaceState({}, "", window.location.pathname);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!createGuideOpen) return;
@@ -412,6 +427,7 @@ export function WalletDashboard() {
 
       {action === "send" && (
         <SendFlow
+          initialValues={agentHandoff}
           balances={{ usdc: balances.usdc.data ?? 0n, eurc: balances.eurc.data ?? 0n }}
           onClose={() => setAction(undefined)}
           onConfirmed={(item) => {
@@ -432,7 +448,7 @@ export function WalletDashboard() {
       )}
 
       {action === "swap" && (
-        <SwapPanel onClose={() => setAction(undefined)} onConfirmed={() => void activity.refetch()} />
+        <SwapPanel initialValues={agentHandoff} onClose={() => setAction(undefined)} onConfirmed={() => void activity.refetch()} />
       )}
 
       {receiptActivity && connection.address && <TransactionReceiptPanel activity={receiptActivity} walletAddress={connection.address} onClose={() => setReceiptActivity(undefined)} />}

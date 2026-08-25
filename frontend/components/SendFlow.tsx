@@ -27,12 +27,12 @@ type MemoCompatibility = "none" | "checking" | "compatible" | "contract-wallet" 
 type MemoVerification = "none" | "verified" | "unverified";
 type FeeEstimate = { status: "idle" | "loading" | "unavailable" } | { status: "ready"; rawFee: bigint };
 
-export function SendFlow({ balances, onClose, onConfirmed, onViewReceipt }: { balances: Record<SupportedAssetId, bigint>; onClose(): void; onConfirmed(activity: WalletActivity): void; onViewReceipt?(activity: WalletActivity): void }) {
+export function SendFlow({ balances, initialValues, onClose, onConfirmed, onViewReceipt }: { balances: Record<SupportedAssetId, bigint>; initialValues?: { amount?: string; asset?: SupportedAssetId; recipient?: string }; onClose(): void; onConfirmed(activity: WalletActivity): void; onViewReceipt?(activity: WalletActivity): void }) {
   const { locale, t } = usePreferences();
   const copy = sendCopy(locale, t);
-  const [recipient, setRecipient] = useState("");
-  const [amount, setAmount] = useState("");
-  const [assetId, setAssetId] = useState<SupportedAssetId>("usdc");
+  const [recipient, setRecipient] = useState(initialValues?.recipient ?? "");
+  const [amount, setAmount] = useState(initialValues?.amount ?? "");
+  const [assetId, setAssetId] = useState<SupportedAssetId>(initialValues?.asset ?? "usdc");
   const [reviewing, setReviewing] = useState(false);
   const [error, setError] = useState<string>();
   const [hash, setHash] = useState<`0x${string}`>();
