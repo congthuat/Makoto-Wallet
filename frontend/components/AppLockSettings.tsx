@@ -25,7 +25,7 @@ export function AppLockSettings() {
   const newPin = flow === "change" ? next : pin;
   return <section className={`${styles.settingsCard} ${styles.settingsWide} ${styles.appLockCard}`}><h2>{t("appLock.title")}</h2>
     {!lock.available ? <p className={styles.settingsMuted}>{t("appLock.unavailable")}</p> : <>
-      <div className={styles.settingsInfo}><span>{t("appLock.status")}</span><strong>{lock.enabled ? t("appLock.enabled") : t("appLock.off")}</strong></div>
+      {lock.enabled && <div className={styles.settingsInfo}><span>{t("appLock.status")}</span><strong>{t("appLock.enabled")}</strong></div>}
       {!lock.enabled && <div className={`${styles.securityAlert} ${styles.securityAlert_attention}`}><strong>{t("appLock.off")}</strong><span>{t("appLock.storageDisclosure")}</span></div>}
       {lock.enabled && <><label className={styles.appLockTiming}>{t("appLock.autoLock")}<select value={lock.config?.autoLockMs ?? 0} onChange={(event) => lock.setAutoLockMs(Number(event.target.value))}>{AUTO_LOCK_OPTIONS.map((value) => <option key={value} value={value}>{autoLabel(value, t)}</option>)}</select></label>
         <div className={styles.appLockSessionSetting}>
@@ -33,7 +33,7 @@ export function AppLockSettings() {
           <button type="button" role="switch" aria-checked={lock.config?.keepUnlockedSession ?? false} aria-labelledby="app-lock-session-label" aria-describedby="app-lock-session-description" className={styles.appLockSwitch} onClick={() => lock.setKeepUnlockedSession(!(lock.config?.keepUnlockedSession ?? false))}><span aria-hidden="true" /><b>{t(lock.config?.keepUnlockedSession ? "appLock.on" : "appLock.offState")}</b></button>
         </div>
       </>}
-      <p className={styles.settingsMuted}>{t("appLock.disclosure")}</p><p className={styles.settingsMuted}>{t("appLock.storageDisclosure")}</p>
+      <p className={styles.settingsMuted}>{t("appLock.disclosure")}</p>{lock.enabled && <p className={styles.settingsMuted}>{t("appLock.storageDisclosure")}</p>}
       <div className={styles.settingsActions}>{!lock.enabled ? <button type="button" onClick={() => setFlow("setup")}>{t("appLock.setup")}</button> : <><button type="button" onClick={lock.lock}>{t("appLock.lockNow")}</button><button type="button" onClick={() => setFlow("change")}>{t("appLock.changePin")}</button><button type="button" onClick={() => setFlow("disable")}>{t("appLock.disable")}</button><button type="button" onClick={() => setFlow("reset")}>{t("appLock.forgot")}</button></>}</div>
     </>}
     {flow && <div className={styles.appLockPanel} role="dialog" aria-modal="true" aria-labelledby="app-lock-flow-title"><h3 id="app-lock-flow-title">{t(flow === "setup" ? "appLock.setup" : flow === "change" ? "appLock.changePin" : flow === "disable" ? "appLock.disable" : "appLock.resetTitle")}</h3>
