@@ -75,7 +75,7 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
             : t("actions.readyWithdraw");
 
   return (
-    <main><div className="shell"><AppHeader />
+    <main className="jar-detail-page"><div className="shell"><AppHeader />
       <div className="detail-back"><Link href="/">← {t("jar.back")}</Link><a href={`${ARC_EXPLORER_URL}/address/${contractAddress}`} target="_blank" rel="noreferrer">{t("jar.contractArcscan")} ↗</a></div>
       <section className="detail-hero">
         <div className="detail-title"><span className={`status-pill ${status.toLowerCase()}`}>{statusLabel}</span><p className="eyebrow">{t("jar.number", { id: jar.id.toString() })}</p><h1>{jar.name}</h1><p>{t("jar.created", { date: formatDate(jar.createdAt) })} · {jar.totalContributed > 0n ? t("jar.sharedActivity") : t("jar.personal")}</p><ShareJar jar={jar} /></div>
@@ -101,5 +101,5 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
 }
 
 function DetailState({ title, copy, loading, action }: { title: string; copy: string; loading?: boolean; action?: React.ReactNode }) {
-  return <main><div className="shell"><AppHeader /><div className="detail-state"><StatePanel icon={loading ? "…" : "!"} title={title}><p>{copy}</p>{action}</StatePanel></div></div></main>;
+  return <main className="jar-detail-page"><div className="shell"><AppHeader /><div className="detail-state"><StatePanel icon={loading ? "…" : "!"} title={title}><p>{copy}</p>{action}</StatePanel></div></div></main>;
 }

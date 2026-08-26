@@ -123,6 +123,17 @@ export function WalletDashboard() {
   }, [createGuideOpen]);
 
   useEffect(() => {
+    const settleDashboardFragment = () => {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      if (!(["assets", "apps", "activity"] as const).includes(id as "assets" | "apps" | "activity")) return;
+      window.requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "start" }));
+    };
+    settleDashboardFragment();
+    window.addEventListener("hashchange", settleDashboardFragment);
+    return () => window.removeEventListener("hashchange", settleDashboardFragment);
+  }, [connected]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!onArc || !connection.address) return setBalanceHistory([]);
       const history = balances.usdc.data === undefined
@@ -217,6 +228,7 @@ export function WalletDashboard() {
         </div>
 
         {!connected ? (
+          <>
           <section className={styles.disconnected}>
             <div className={styles.disconnectedCopy}>
               <span className={styles.kicker}>MAKOTO WALLET{" · "}ARC TESTNET</span>
@@ -258,6 +270,12 @@ export function WalletDashboard() {
               />
             </div>
           </section>
+          <DisconnectedDestinations
+            locale={locale}
+            onConnect={() => void beginOnboarding("existing")}
+            connectDisabled={!isReownConfigured}
+          />
+          </>
         ) : showWalletReady && connection.address ? (
           <section className={styles.walletReady} aria-labelledby="wallet-ready-title">
             <span className={styles.kicker}>MAKOTO WALLET{" · "}ARC TESTNET</span>
@@ -497,6 +515,33 @@ export function WalletDashboard() {
       </div>}
     </main>
   );
+}
+
+function DisconnectedDestinations({ locale, onConnect, connectDisabled }: { locale: "en" | "vi"; onConnect(): void; connectDisabled: boolean }) {
+  const vi = locale === "vi";
+  return <div className={styles.disconnectedDestinations}>
+    <section className={`${styles.dashboardCard} ${styles.disconnectedDestination}`} id="assets" aria-labelledby="assets-title">
+      <h2 id="assets-title">{vi ? "Tài sản của tôi" : "My Assets"}</h2>
+      <p>{vi ? "Kết nối ví để xem số dư USDC và EURC được hỗ trợ trên Arc Testnet." : "Connect a wallet to view supported USDC and EURC balances on Arc Testnet."}</p>
+      <button type="button" onClick={onConnect} disabled={connectDisabled}>{vi ? "Kết nối để xem tài sản" : "Connect to view assets"}</button>
+    </section>
+    <section className={`${styles.dashboardCard} ${styles.disconnectedDestination} ${styles.disconnectedTools}`} id="apps" aria-labelledby="apps-title">
+      <h2 id="apps-title">{vi ? "Công cụ Makoto" : "Makoto Tools"}</h2>
+      <p>{vi ? "Khám phá các công cụ công khai. Kết nối ví chỉ khi một hành động cần số dư hoặc chữ ký." : "Explore public tools. Connect only when an action needs your balance or signature."}</p>
+      <div className={styles.disconnectedToolLinks}>
+        <Link href="/savings">Makoto Vault</Link>
+        <Link href="/pay">Makoto Pay</Link>
+        <Link href="/unified-balance">Unified Balance</Link>
+        <Link href="/agent">Makoto Agent</Link>
+        <Link href="/settings#security">{vi ? "Trung tâm bảo mật" : "Security Center"}</Link>
+      </div>
+    </section>
+    <section className={`${styles.dashboardCard} ${styles.disconnectedDestination}`} id="activity" aria-labelledby="activity-title">
+      <h2 id="activity-title">{vi ? "Hoạt động" : "Activity"}</h2>
+      <p>{vi ? "Kết nối ví để xem hoạt động đã xác nhận của địa chỉ đó. Makoto không thể đọc lịch sử ví khi chưa có địa chỉ." : "Connect a wallet to view confirmed activity for that address. Makoto cannot load wallet history without an address."}</p>
+      <button type="button" onClick={onConnect} disabled={connectDisabled}>{vi ? "Kết nối để xem hoạt động" : "Connect to view activity"}</button>
+    </section>
+  </div>;
 }
 
 function formatActivityTime(timestamp: number, locale: "en" | "vi") {

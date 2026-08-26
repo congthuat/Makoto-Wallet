@@ -2174,3 +2174,15 @@
   .chartRanges button{height:27px;padding-inline:3px;font-size:8px}
 }
 
+/* Phase 11: persistent destinations and AA-safe interactive accents. */
+.hashDestination,.settingsHero,.settingsCard,.settingsSectionHeading,.disconnectedDestination{scroll-margin-top:92px}
+.settingsHero>p,.settingsSectionHeading>p{color:#6841d8}
+.settingsLink,.settingsAsset a,.disconnectedToolLinks a{color:#6841d8}
+:global(html[data-theme="dark"]) .settingsHero>p,:global(html[data-theme="dark"]) .settingsSectionHeading>p,
+:global(html[data-theme="dark"]) .settingsLink,:global(html[data-theme="dark"]) .settingsAsset a,:global(html[data-theme="dark"]) .disconnectedToolLinks a{color:#a995ff}
+@media(prefers-color-scheme:dark){:global(html[data-theme="system"]) .settingsHero>p,:global(html[data-theme="system"]) .settingsSectionHeading>p,:global(html[data-theme="system"]) .settingsLink,:global(html[data-theme="system"]) .settingsAsset a,:global(html[data-theme="system"]) .disconnectedToolLinks a{color:#a995ff}}
+.settingsReset button,.appLockCard .settingsActions button:first-child,.disconnectedDestination button{border-color:rgba(107,70,216,.48);color:#fff;background:#6b46d8}
+.disconnectedDestinations{margin-top:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.disconnectedDestination{padding:20px}.disconnectedDestination h2{margin:0 0 8px;font:700 18px/1.2 var(--font-display),system-ui,sans-serif}.disconnectedDestination p{margin:0;color:var(--mw-text-muted);font-size:12px;line-height:1.6}.disconnectedDestination button{min-height:44px;margin-top:16px;padding:0 14px;border-radius:9px;font-weight:800;cursor:pointer}.disconnectedDestination button:disabled{opacity:.55;cursor:not-allowed}.disconnectedTools{grid-column:1/-1}.disconnectedToolLinks{margin-top:15px;display:flex;flex-wrap:wrap;gap:8px}.disconnectedToolLinks a{min-height:44px;padding:0 13px;border:1px solid var(--mw-border);border-radius:9px;display:inline-flex;align-items:center;background:var(--mw-surface-solid);font-size:11px;font-weight:800}
+.disconnectedDestinations{padding-bottom:calc(100vh - 220px)}.hashDestination[id="help"]{margin-bottom:calc(100vh - 220px)}
+@media(max-width:767px){.nav a{color:#b8c1d6}.nav a.navActive{color:#fff}.disconnectedDestinations{grid-template-columns:1fr}.disconnectedTools{grid-column:auto}}
+

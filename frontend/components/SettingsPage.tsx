@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useConnection } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { AppHeader } from "./AppHeader";
@@ -32,15 +32,31 @@ export function SettingsPage() {
   const walletKind = walletKindFromConnector(connection.connector?.id);
   const switching = ["waiting", "switching", "missing"].includes(chain.switchStatus);
 
+  useEffect(() => {
+    const settleSettingsFragment = () => {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      if (!(["security", "guardian", "help"] as const).includes(id as "security" | "guardian" | "help")) return;
+      window.requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "start" }));
+    };
+    settleSettingsFragment();
+    window.addEventListener("hashchange", settleSettingsFragment);
+    return () => window.removeEventListener("hashchange", settleSettingsFragment);
+  }, []);
+
   async function copyAddress() { if (!connection.address) return; await navigator.clipboard.writeText(connection.address); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }
 
   return <main className={styles.page}><div className={styles.shell}>
     <AppHeader />
-    <span id="security" className={styles.routeAnchor} />
-    <span id="guardian" className={styles.routeAnchor} />
-    <span id="help" className={styles.routeAnchor} />
+    <div id="security" className={styles.hashDestination}>
     <section className={styles.settingsHero}><p>{vi ? "TRUNG TÂM BẢO MẬT" : "SECURITY CENTER"}</p><h1>{vi ? "Bảo mật ví" : "Wallet security"}</h1><span>{vi ? "Kiểm tra trạng thái ví, mạng, bảo vệ hũ tiết kiệm và cách Makoto xử lý dữ liệu của bạn." : "Review your wallet, network, savings protection, and how Makoto handles your data."}</span></section>
     <section className={`${styles.securityOverview} ${styles[`securityOverview_${overall}`]}`} aria-labelledby="security-status-title"><div><span className={styles.securityEyebrow}>{vi ? "TRẠNG THÁI TỔNG QUAN" : "OVERALL STATUS"}</span><h2 id="security-status-title">{statusLabel(overall, vi)}</h2><p>{statusCopy(overall, vi)}</p></div><span className={styles.securityStatusDot} aria-hidden="true" /></section>
+
+    </div>
+    <section id="guardian" className={`${styles.settingsCard} ${styles.settingsWide} ${styles.hashDestination}`} aria-labelledby="guardian-title">
+      <h2 id="guardian-title">{vi ? "Bảo vệ Guardian & Khôi phục" : "Guardian & recovery protection"}</h2>
+      <p className={styles.settingsMuted}>{vi ? "Guardian và Ví khôi phục là các lớp bảo vệ tùy chọn cho mục tiêu SHIELDED. Kết nối ví để Makoto kiểm tra trạng thái đã cấu hình." : "Guardian and Recovery Wallet are optional protection layers for SHIELDED goals. Connect a wallet so Makoto can verify their configured state."}</p>
+      <Link className={styles.settingsLink} href="/savings">{vi ? "Quản lý mục tiêu tiết kiệm" : "Manage savings goals"} →</Link>
+    </section>
 
     <div className={styles.settingsGrid}>
       <AppLockSettings />
@@ -61,6 +77,12 @@ export function SettingsPage() {
     <section className={styles.settingsSectionHeading}><p>{vi ? "TÙY CHỈNH" : "PREFERENCES"}</p><h2>{vi ? "Giao diện & ứng dụng" : "Interface & app"}</h2></section>
     <div className={styles.settingsGrid}><SettingsCard title={vi ? "Giao diện" : "Appearance"}><ChoiceGroup label={vi ? "Chủ đề" : "Theme"} value={theme} onChange={setTheme} options={[["system", vi ? "Hệ thống" : "System"], ["light", vi ? "Sáng" : "Light"], ["dark", vi ? "Tối" : "Dark"]]} /></SettingsCard><SettingsCard title={vi ? "Ngôn ngữ" : "Language"}><ChoiceGroup label={vi ? "Ngôn ngữ hiển thị" : "Display language"} value={locale} onChange={setLocale} options={[["en", "English"], ["vi", "Tiếng Việt"]]} /></SettingsCard><SettingsCard title={vi ? "Tài sản hỗ trợ" : "Supported assets"} wide>{SUPPORTED_ASSETS.map((asset) => <div className={styles.settingsAsset} key={asset.id}><span><strong>{asset.symbol}</strong><small>{shortAddress(asset.address)}</small></span><a href={`${ARC_EXPLORER_URL}/address/${asset.address}`} target="_blank" rel="noreferrer">ArcScan ↗</a></div>)}</SettingsCard></div>
     <section className={styles.settingsReset}><div><strong>{vi ? "Đặt lại tùy chọn giao diện" : "Reset interface preferences"}</strong><p>{vi ? "Chỉ đặt lại ngôn ngữ và giao diện. Không ngắt kết nối ví hoặc thay đổi dữ liệu blockchain." : "Resets only language and theme. It does not disconnect your wallet or change blockchain data."}</p></div><button type="button" onClick={resetPreferences}>{vi ? "Đặt lại" : "Reset"}</button></section>
+    <section id="help" className={`${styles.settingsCard} ${styles.settingsWide} ${styles.hashDestination}`} aria-labelledby="help-title">
+      <h2 id="help-title">{vi ? "Trợ giúp Makoto Wallet" : "Makoto Wallet help"}</h2>
+      <p className={styles.settingsMuted}>{vi ? "Kết nối ví từ thanh điều hướng, kiểm tra đúng Arc Testnet, rồi xem kỹ phần đánh giá trước khi xác nhận bất kỳ giao dịch nào trong ví." : "Connect from the navigation, verify Arc Testnet, and review every transaction summary before confirming it in your wallet."}</p>
+      <div className={styles.settingsActions}><Link href="/">{vi ? "Mở Tổng quan" : "Open Dashboard"}</Link><Link href="/savings">{vi ? "Mở Makoto Vault" : "Open Makoto Vault"}</Link></div>
+      <p className={styles.settingsMuted}>{vi ? "Makoto không bao giờ cần khóa riêng tư hoặc cụm từ khôi phục của bạn. Bản Public Beta này chỉ dùng tài sản Arc Testnet." : "Makoto never needs your private key or recovery phrase. This Public Beta uses Arc Testnet assets only."}</p>
+    </section>
   </div></main>;
 }
 

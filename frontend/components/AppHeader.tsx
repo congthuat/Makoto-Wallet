@@ -100,6 +100,7 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
             className={`${item.mobile ? "" : styles.mobileNavHidden} ${isActive(item.href) ? styles.navActive : ""}`.trim() || undefined}
             href={item.href}
             aria-current={isActive(item.href) ? "page" : undefined}
+            onNavigate={() => setHash(item.href.includes("#") ? `#${item.href.split("#")[1]}` : "")}
           >
             <HeaderIcon name={item.icon} className={styles.headerGlyph} />
             <span className={styles.desktopNavLabel}>{locale === "vi" ? item.vi : item.en}</span>
@@ -114,14 +115,19 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
           <Link href="/savings">{locale === "vi" ? "Tạo mục tiêu được bảo vệ" : "Create protected goal"}</Link>
         </aside>}
 
-        <Link className={styles.helpNavItem} href="/settings#help">
+        <Link
+          className={`${styles.helpNavItem} ${isActive("/settings#help") ? styles.navActive : ""}`.trim()}
+          href="/settings#help"
+          aria-current={isActive("/settings#help") ? "page" : undefined}
+          onNavigate={() => setHash("#help")}
+        >
           <HeaderIcon name="activity" className={styles.headerGlyph} />
           <span>{locale === "vi" ? "Trợ giúp" : "Help & Support"}</span>
         </Link>
       </nav>
 
       <div className={styles.headerActions}>
-        <span className={styles.networkPill} title={betaInfo} aria-label={`${betaLabel}. ${betaInfo}`}>
+        <span className={styles.networkPill} role="status" title={betaInfo} aria-label={`${betaLabel}. ${betaInfo}`}>
           <HeaderIcon name="network" className={`${styles.pillGlyph} ${styles.networkGlyph}`} />
           <span>{betaLabel}</span>
         </span>

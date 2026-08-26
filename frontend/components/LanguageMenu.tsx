@@ -20,7 +20,7 @@ export function LanguageMenu({ icon }: { icon?: ReactNode }) {
 
   return (
     <div className={styles.languageMenu} ref={root}>
-      <button type="button" className={styles.languageTrigger} aria-label={t("preferences.language")} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+      <button type="button" className={styles.languageTrigger} aria-label={`${t("preferences.language")} (${locale.toUpperCase()})`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
         {icon}
         <strong>{locale.toUpperCase()}</strong>
         <svg className={styles.languageChevron} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>
