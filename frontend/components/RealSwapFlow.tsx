@@ -50,7 +50,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   const [maxApproval, setMaxApproval] = useState<MaxApprovalReview>();
   const [approvalReview, setApprovalReview] = useState<TransactionReviewSnapshot>(), [swapReview, setSwapReview] = useState<TransactionReviewSnapshot>();
   const submissionGuard = useRef(new ReviewSubmissionGuard());
-  useEffect(() => onBusyChange(Boolean(pending)), [onBusyChange, pending]);
+  useEffect(() => onBusyChange(Boolean(pending && (maxApproval || reviewStage))), [maxApproval, onBusyChange, pending, reviewStage]);
   const from = getAssetById(fromId)!, to = getAssetById(oppositeAssetId(fromId))!, balance = balances.assets[fromId].data ?? 0n, usdcBalance = balances.assets.usdc.data ?? 0n, parsed = parseAssetAmount(amount, from);
   const route = quote ? selectRouteForMode(mode, [{ provider: "xylonet", output: quote.amountOut, fee: swapGasFee ?? approvalGasFee ?? 0n, quotedAt: quote.quotedAt, expiresAt: quote.quotedAt + SWAP_QUOTE_MAX_AGE_MS, available: true }], quote.quotedAt) : undefined;
   const gasCost = quote && swapGasFee !== undefined ? swapCostWithArcFee(quote.amountIn, from.id, usdcBalance, swapEnvelope?.rawMaxFee18 ?? swapGasFee) : undefined;
