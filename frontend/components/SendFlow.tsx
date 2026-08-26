@@ -236,7 +236,7 @@ export function SendFlow({ balances, initialValues, origin, onClose, onConfirmed
 
   if (stage === "unknown" && hash) return <WalletPanel title={copy.title} onClose={onClose}><div className="transaction-state transaction-unknown"><span>!</span><h3>{copy.unknownTitle}</h3><p>{error}</p><code>{hash}</code><a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">{copy.view} ↗</a><p className="wallet-notice">{copy.checkBeforeRetry}</p></div></WalletPanel>;
 
-  return <WalletPanel title={copy.title} onClose={onClose} closeDisabled={pending}>{reviewing && !("error" in validated) ? <div className="wallet-flow">
+  return <WalletPanel title={copy.title} onClose={onClose} closeDisabled={pending}>{reviewing && !("error" in validated) ? <div className="wallet-flow send-flow send-review-flow">
     <h3>{copy.review}</h3>
     <dl className="wallet-review">
       <div><dt>{copy.token}</dt><dd>{asset.symbol} · {asset.name} · <a href={arcScanAddressUrl(asset.address)} target="_blank" rel="noreferrer">{shortAddress(asset.address)} ↗</a></dd></div>
@@ -269,7 +269,7 @@ export function SendFlow({ balances, initialValues, origin, onClose, onConfirmed
     {!reviewNetworkVerified && <p className="field-error">{copy.arcRequired}</p>}
     {!reviewNetworkVerified && <button type="button" className="secondary-action" onClick={() => void chain.switchToArc()}>{copy.switchArc}</button>}
     <div className="modal-actions"><button type="button" className="secondary-action" onClick={() => { setReviewing(false); setStage("idle"); }} disabled={pending}>{copy.back}</button><button type="button" className="primary-action" onClick={() => void submit()} disabled={pending || feeEstimate.status === "loading" || safetyAssessment?.status !== "ready" || hasBlockingChecks(safetyChecks) || Boolean(memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)}>{stage === "awaiting" ? copy.awaitingShort : stage === "confirming" ? copy.confirmingShort : copy.confirm}</button></div>
-  </div> : <form className="create-form wallet-flow" onSubmit={(event) => { event.preventDefault(); void review(); }}>
+  </div> : <form className="create-form wallet-flow send-flow" onSubmit={(event) => { event.preventDefault(); void review(); }}>
     <label>{copy.asset}<select className="asset-selector" value={assetId} onChange={(event) => selectAsset(event.target.value as SupportedAssetId)}>{SUPPORTED_ASSETS.map((item) => <option key={item.id} value={item.id}>{item.symbol} · {item.name}</option>)}</select></label>
     <label>{copy.recipient}<div className="wallet-field-with-action"><input value={recipient} onChange={(event) => { setRecipient(event.target.value); setContactFormOpen(false); setContactFeedback(undefined); resetSafety(); }} placeholder="0x…" spellCheck={false} /><button type="button" onClick={() => void pasteRecipient()}>{copy.paste}</button></div></label>
     {(contacts.length > 0 || recents.length > 0 || canSaveContact || matchedContact) && <div className="recipient-helper">
