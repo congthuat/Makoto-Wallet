@@ -2215,3 +2215,79 @@
 .disconnectedDestinations{padding-bottom:calc(100vh - 220px)}.hashDestination[id="help"]{margin-bottom:calc(100vh - 220px)}
 @media(max-width:767px){.nav a{color:#b8c1d6}.nav a.navActive{color:#fff}.disconnectedDestinations{grid-template-columns:1fr}.disconnectedTools{grid-column:auto}}
 
+/* Phase 12B.2 — Ledger Calm navigation and dashboard composition. */
+.brand{border-color:var(--border-subtle)}
+.brandWords strong{font-weight:720}.brandWords small{font-weight:650;letter-spacing:1.15px}
+.nav{padding-inline:12px;border-color:var(--border-subtle);gap:3px}
+.nav a{min-height:44px;padding-inline:12px;border:0;border-radius:var(--radius-small);font-weight:580}
+.nav a.navActive{border:0;background:var(--accent-subtle);font-weight:700}
+.nav a.navActive::before{left:0;width:3px;height:22px;background:var(--action-primary)}
+.headerActions{gap:6px}
+.networkPill,.languageTrigger,.themeButton,.walletControlWrap{min-height:40px;border-color:var(--border-default);background:var(--surface-1);box-shadow:var(--shadow-1)}
+.networkPill{padding-inline:12px}.themeButton{width:40px}.walletControlWrap{padding:0 5px 0 9px}
+.walletControlWrap :global(.connect-button){min-height:38px;border-radius:var(--radius-small);padding-inline:14px;background:var(--action-primary);font-size:12px;font-weight:720;white-space:nowrap}
+.walletControlWrap :global(.connect-button:hover){background:var(--action-primary-hover)}
+
+.disconnected{min-height:0;grid-template-columns:minmax(0,1fr) 240px;border:1px solid var(--mw-border);border-radius:var(--radius-panel);background:var(--mw-surface);box-shadow:var(--shadow-1)}
+.disconnectedCopy{padding:44px 48px}.disconnectedCopy h1{max-width:680px;margin-top:10px;font-size:clamp(34px,4.2vw,52px);line-height:1.06;letter-spacing:-2px}
+.disconnectedCopy>p{max-width:650px;margin-top:16px;color:var(--mw-text-muted);font-size:15px;line-height:1.6}
+.onboardingPanel{max-width:720px;margin-top:26px;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:10px}
+.onboardingPanel h2,.onboardingPanel>p{grid-column:1/-1}.onboardingPanel h2{font-size:16px;font-weight:700}
+.createWalletButton,.connectExistingButton{min-height:68px;padding:13px 16px;border-radius:var(--radius-control);transition:background var(--motion-base) var(--ease-standard),border-color var(--motion-base) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}
+.createWalletButton{border-color:var(--action-primary);background:var(--action-primary);box-shadow:none}
+.createWalletButton:hover:not(:disabled){background:var(--action-primary-hover)}
+.connectExistingButton{border-color:var(--mw-border);background:var(--mw-surface-muted)}
+.createWalletButton:hover:not(:disabled),.connectExistingButton:hover:not(:disabled){transform:translateY(-1px)}
+.disconnectedArt{border-left:1px solid var(--mw-divider);background:var(--mw-surface-muted)}
+.disconnectedLogo{width:88px;height:88px;border-radius:20px;box-shadow:var(--shadow-2)}
+.disconnectedDestinations{margin-top:14px;gap:10px}.disconnectedDestination{padding:18px}.disconnectedDestination p{max-width:68ch}
+
+.dashboardGrid{grid-template-columns:minmax(0,2.25fr) minmax(270px,.75fr);gap:14px}
+.balanceCard{min-height:272px;border-color:color-mix(in srgb,var(--mw-accent) 16%,var(--mw-border));box-shadow:var(--shadow-1)}
+.statusCard{align-self:stretch;border-color:var(--border-subtle);background:var(--surface-2);box-shadow:none}
+.portfolioGrid{grid-template-columns:minmax(0,1.7fr) minmax(310px,.8fr);gap:14px}
+.portfolioGrid .assetsSection.dashboardCard{box-shadow:none}.portfolioGrid .savingsPosition{border-color:var(--border-subtle);background:var(--surface-2);box-shadow:none}
+.appsRow{margin-top:14px}.appsRow .appsPanel{padding-block:18px;box-shadow:none}.appsRow .appShortcuts{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.appsRow .appShortcuts a{min-height:70px;padding:11px 13px;background:transparent}
+.lowerGrid{margin-top:14px;grid-template-columns:minmax(0,1fr) 280px;gap:14px}.activityCard{box-shadow:none}.networkCard,.quickPanel{border-color:var(--border-subtle);background:var(--surface-2);box-shadow:none}
+
+/* Tablet rail: preserve every destination while returning content width. */
+@media(min-width:768px) and (max-width:1024px){
+  .shell{padding:104px 24px 36px 104px}
+  .brand{width:76px;height:80px;padding:0;justify-content:center}.brandWords{display:none}
+  .nav{top:80px;width:76px;padding:14px 9px;align-items:center;gap:5px}
+  .nav a{width:52px;min-height:48px;padding:0;justify-content:center}.nav a.navActive::before{left:-9px}
+  .desktopNavLabel,.guardianContextCard,.helpNavItem span{display:none}.helpNavItem{margin-top:auto!important}
+  .pageHeading{left:104px;top:27px}.headerActions{right:24px;top:24px}
+  .dashboardGrid,.portfolioGrid,.lowerGrid{grid-template-columns:1fr}
+  .appsRow .appShortcuts{grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}
+  .disconnected{grid-template-columns:minmax(0,1fr) 160px}.disconnectedCopy{padding:36px}.disconnectedArt{min-height:100%}
+}
+
+@media(max-width:767px){
+  .shell{padding-bottom:calc(94px + env(safe-area-inset-bottom))}
+  .brand{left:14px;height:58px}.headerActions{right:10px;max-width:calc(100% - 58px);gap:4px}
+  .languageTrigger,.themeButton,.walletControlWrap{min-height:40px}.themeButton{width:40px}
+  .walletControlWrap{max-width:118px;padding:0 4px}.walletControlWrap>.addressGlyph{display:none}
+  .walletControlWrap :global(.connect-button){max-width:108px;min-height:38px;padding-inline:10px;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+  .nav{height:calc(76px + env(safe-area-inset-bottom));padding:7px 4px max(7px,env(safe-area-inset-bottom));border-width:1px 0 0;gap:2px;background:color-mix(in srgb,var(--mw-sidebar) 97%,transparent)}
+  .nav a{min-height:58px;padding:4px 2px;border-radius:var(--radius-small);gap:4px;color:var(--mw-text-muted)}
+  .nav a.navActive{color:var(--mw-text);background:var(--accent-subtle)}.nav a.navActive::before{top:0;width:24px;height:3px}
+  .mobileNavLabel{font-size:11px;line-height:1.15;font-weight:650}
+  .disconnected{display:block}.disconnectedCopy{padding:26px 20px}.disconnectedCopy h1{font-size:32px;letter-spacing:-1.2px}.disconnectedCopy>p{margin-top:12px;font-size:14px}
+  .onboardingPanel{margin-top:22px;grid-template-columns:1fr}.onboardingPanel h2,.onboardingPanel>p{grid-column:auto}.createWalletButton,.connectExistingButton{min-height:64px}
+  .disconnectedArt{display:none}.disconnectedDestinations{margin-top:10px}.disconnectedDestination{padding:17px}
+  .dashboardGrid{margin-top:14px}.balanceCard{min-height:0;padding:20px}.statusCard{padding:18px}
+  .portfolioGrid,.appsRow,.lowerGrid{margin-top:12px}.portfolioGrid .assetsSection.dashboardCard,.portfolioGrid .savingsPosition,.appsRow .appsPanel,.activityCard,.networkCard,.quickPanel{padding:17px}
+  .appsRow .appShortcuts{grid-template-columns:1fr;gap:7px}.appsRow .appShortcuts a{min-height:64px}
+  .activityCard{min-height:300px}.sideStack{gap:10px}
+}
+@media(max-width:430px){
+  .headerActions{max-width:calc(100% - 54px)}.languageTrigger{padding-inline:7px}.walletControlWrap{max-width:108px}.walletControlWrap :global(.connect-button){max-width:100px;padding-inline:8px;font-size:10px}
+  .pageHeading{top:64px}.dashboardBalance{font-size:clamp(38px,12vw,48px)}
+}
+@media(max-width:340px){
+  .languageTrigger{padding-inline:6px}.themeButton{width:38px}.walletControlWrap{max-width:96px}.walletControlWrap :global(.connect-button){max-width:90px;padding-inline:6px;font-size:9px}
+  .disconnectedCopy{padding-inline:16px}.disconnectedCopy h1{font-size:29px}
+}
+
