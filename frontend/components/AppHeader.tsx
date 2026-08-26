@@ -78,7 +78,7 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
 
   return (
     <header className={styles.header}>
-      <Link className={styles.brand} href="/" aria-label="Makoto Wallet home">
+      <Link className={styles.brand} href="/" aria-label="Makoto Wallet">
         <Image
           src="/makoto/logo-pro-v2.png"
           width={52}
