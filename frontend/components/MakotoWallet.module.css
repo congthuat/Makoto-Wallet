@@ -2174,6 +2174,35 @@
   .chartRanges button{height:27px;padding-inline:3px;font-size:8px}
 }
 
+/* Phase 12B.1 — Ledger Calm design foundation. Visual tokens only. */
+.page{
+  --mw-bg:var(--canvas);--mw-sidebar:var(--surface-1);--mw-elevated:var(--surface-2);--mw-surface:var(--surface-1);--mw-surface-solid:var(--surface-1);--mw-surface-muted:var(--surface-2);
+  --mw-text:var(--text-strong);--mw-text-muted:var(--text-muted);--mw-divider:var(--border-subtle);--mw-border:var(--border-default);--mw-accent:var(--accent-text);--mw-nav-active:var(--accent-text);--mw-nav-active-bg:var(--accent-subtle);--mw-progress-track:var(--surface-3);
+  --mw-action-send:var(--accent-subtle);--mw-action-receive:var(--surface-2);--mw-action-swap:var(--success-subtle);--mw-action-save:var(--warning-subtle);--mw-asset-usdc:var(--surface-2);--mw-asset-eurc:var(--accent-subtle);
+  --header-control-bg:var(--surface-1);--header-control-border:var(--border-default);--header-control-shadow:var(--shadow-1);--header-control-radius:var(--radius-control);
+  color:var(--mw-text);background:var(--mw-bg);
+}
+.dashboardCard,.balanceHero,.actionsArea,.payHome,.assetsSection,.activityCard,.savingsCard,.disconnected,.securityOverview,.settingsCard,.settingsReset{border-color:var(--mw-border);border-radius:var(--radius-card);background:var(--mw-surface);box-shadow:var(--shadow-1)}
+.networkPill,.themeButton,.walletControlWrap,.languageTrigger{border-color:var(--mw-border);border-radius:var(--radius-control);background:var(--mw-elevated);box-shadow:var(--shadow-1)}
+.nav a,.primaryActions button,.primaryActions a,.compactActions button,.compactActions a,.settingsActions button,.settingsActions a,.settingsReset button,.viewButton,.cardLink,.actionCard,.appShortcuts button,.appShortcuts a,.payShortcut{border-radius:var(--radius-control)}
+.nav a{color:var(--mw-text-muted)}.nav a:hover{color:var(--mw-text);background:var(--mw-surface-muted)}.nav a.navActive{color:var(--mw-text);border-color:color-mix(in srgb,var(--mw-accent) 34%,var(--mw-border));background:var(--mw-nav-active-bg)}
+.primaryActions button:first-child{border-color:var(--action-primary);color:var(--on-primary);background:var(--action-primary)}
+.primaryActions button:first-child:not(:disabled):hover{border-color:var(--action-primary-hover);background:var(--action-primary-hover)}
+.actionCard,.appShortcuts button,.appShortcuts a,.payShortcut,.assetRow,.activityList li,.jarRow,.securityMetric{background:var(--mw-surface-muted);box-shadow:none}
+.actionCard:hover,.appShortcuts button:hover,.appShortcuts a:hover,.payShortcut:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--mw-accent) 38%,var(--mw-border));background:var(--mw-elevated);box-shadow:var(--shadow-1)}
+.balanceCard,.savingsPosition,.guardianContextCard{background:linear-gradient(145deg,var(--mw-surface) 0%,var(--mw-surface) 78%,color-mix(in srgb,var(--mw-accent) 5%,var(--mw-surface)) 100%)}
+.balanceCard::after{opacity:.45}.payHome{background:var(--mw-surface)}
+.statusGood,.activityStatus{color:var(--success-text);background:var(--success-subtle)}.statusAttention{color:var(--warning-text);background:var(--warning-subtle)}
+.securityAlert_info{border-left-color:var(--accent-text)}.securityAlert_attention{border-left-color:var(--warning-text)}.securityAlert_warning{border-left-color:var(--danger-text)}
+.pageHeading span,.assetsHeader p,.activityEyebrow,.cardLink,.viewButton,.statusList a,.assetContract a,.positionEmpty a{color:var(--accent-text)}
+.pageHeading span,.assetsHeader p,.activityEyebrow,.securityEyebrow{font-size:10px}.actionText small,.appModuleCopy small,.guardianContextCard p,.assetTableHead,.statusBadge{font-size:10px}.nav a,.pageHeading p,.securityOverview p,.securityAlert span{font-size:12px}
+.dashboardBalance,.assetBalance,.jarPositionBody dd,.statusList dd{font-variant-numeric:tabular-nums}
+.activityHistoryPanel{border-color:var(--mw-border);border-radius:var(--radius-dialog);background:var(--surface-overlay);box-shadow:var(--shadow-3)}
+.activityFilters button[aria-pressed="true"]{border-color:color-mix(in srgb,var(--mw-accent) 48%,var(--mw-border));color:var(--accent-text);background:var(--accent-subtle)}
+.actionCard,.payShortcut,.appShortcuts button,.appShortcuts a,.primaryActions button,.primaryActions a,.compactActions button,.compactActions a,.nav a{transition:color var(--motion-base) var(--ease-standard),background var(--motion-base) var(--ease-standard),border-color var(--motion-base) var(--ease-standard),transform var(--motion-fast) var(--ease-standard),box-shadow var(--motion-base) var(--ease-standard)}
+@media(max-width:767px){.nav{border-color:var(--mw-border);background:color-mix(in srgb,var(--mw-sidebar) 96%,transparent)}.nav a{color:var(--mw-text-muted)}.nav a.navActive{color:var(--mw-text)}.mobileNavLabel{font-size:10px;font-weight:650}}
+@media(prefers-reduced-motion:reduce){.page *,.page *::before,.page *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
 /* Phase 11: persistent destinations and AA-safe interactive accents. */
 .hashDestination,.settingsHero,.settingsCard,.settingsSectionHeading,.disconnectedDestination{scroll-margin-top:92px}
 .settingsHero>p,.settingsSectionHeading>p{color:#6841d8}
