@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { useConnection } from "wagmi";
 import { AppHeader } from "./AppHeader";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
@@ -40,11 +41,12 @@ export function MakotoAgentPage() {
 
 function ActionDraftCard({ draft, vi }: { draft: AgentActionDraft; vi: boolean }) {
   const connection = useConnection();
+  const router = useRouter();
   const [preparing, setPreparing] = useState(false);
   const progressRef = useRef<HTMLParagraphElement>(null);
   const validation = validateAgentActionDraft(draft), labels: Record<AgentActionDraft["kind"], string> = { send: vi ? "Gửi" : "Send", swap: vi ? "Hoán đổi" : "Swap", bridge: "Bridge", "vault-deposit": vi ? "Nạp Vault" : "Vault deposit", "vault-withdraw": vi ? "Rút Vault" : "Vault withdraw" };
   const helpId = `agent-draft-help-${draft.rawUserText.length}`;
-  function prepare() { const prepared = prepareAgentActionHandoff(draft, connection.address); if (prepared.handoff) { setPreparing(true); storeAgentHandoff(window.sessionStorage, prepared.handoff); window.requestAnimationFrame(() => { progressRef.current?.focus(); window.location.assign(handoffUrl(prepared.handoff!)); }); } }
+  function prepare() { const prepared = prepareAgentActionHandoff(draft, connection.address); if (prepared.handoff) { setPreparing(true); storeAgentHandoff(window.sessionStorage, prepared.handoff); window.requestAnimationFrame(() => { progressRef.current?.focus(); router.push(handoffUrl(prepared.handoff!)); }); } }
   if (preparing) return <section className={styles.draft}><header><strong>{vi ? "Đang chuẩn bị" : "Preparing"}</strong><span>{vi ? "Đang mở bước xem xét" : "Opening review"}</span></header><p ref={progressRef} tabIndex={-1} role="status" aria-live="polite">{vi ? "Đang chuẩn bị giao dịch…" : "Preparing transaction…"}</p></section>;
   return <section className={styles.draft} aria-label={vi ? "Bản nháp hành động" : "Action draft"}><header><strong>{vi ? "Bản nháp hành động" : "Action draft"}</strong><span>{validation.valid ? (vi ? "Sẵn sàng chuẩn bị" : "Ready to prepare") : validation.missingFields.length ? (vi ? "Thiếu thông tin" : "Missing information") : (vi ? "Đã chặn" : "Blocked")}</span></header><dl><div><dt>{vi ? "Hành động" : "Action"}</dt><dd>{labels[draft.kind]}</dd></div><div><dt>{vi ? "Số tiền" : "Amount"}</dt><dd>{draft.amount ? `${draft.amount} ${draft.asset ?? ""}` : vi ? "Chưa có" : "Missing"}{draft.outputAsset ? ` → ${draft.outputAsset}` : ""}</dd></div>{draft.recipient && <div><dt>{vi ? "Người nhận" : "Recipient"}</dt><dd className={styles.longValue}>{draft.recipient}</dd></div>}<div><dt>{vi ? "Mạng" : "Network"}</dt><dd>{draft.sourceChain}{draft.destinationChain ? ` → ${draft.destinationChain}` : ""}</dd></div>{validation.missingFields.length > 0 && <div><dt>{vi ? "Còn thiếu" : "Missing"}</dt><dd>{validation.missingFields.join(", ")}</dd></div>}{validation.errors.length > 0 && <div><dt>{vi ? "Đã chặn" : "Blocked"}</dt><dd>{validation.errors.some((value) => value.startsWith("MAX")) ? (vi ? "Hành động MAX cần dùng luồng thủ công." : "MAX actions require the manual flow.") : validation.errors.join(", ")}</dd></div>}</dl><p>{vi ? "Chuẩn bị không mở ví. Sau đó bạn vẫn phải xem xét an toàn và chọn Tiếp tục đến ví." : "Preparing does not open your wallet. You must still review safety and choose Continue to wallet."}</p><button type="button" className={styles.prepareButton} onClick={prepare} disabled={!validation.valid} aria-describedby={!validation.valid ? helpId : undefined}>{vi ? "Chuẩn bị an toàn" : "Prepare safely"}</button>{!validation.valid && <small id={helpId}>{vi ? "Hoàn tất hoặc sửa thông tin bị chặn trước." : "Complete or correct the blocked information first."}</small>}</section>;
 }

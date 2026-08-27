@@ -32,6 +32,7 @@ import { mergeWalletActivity, recordWalletActivity } from "@/lib/walletActivity"
 import { deriveNetworkSafety, deriveOverallSecurityStatus, deriveSecurityAlerts, summarizeJarProtection } from "@/lib/securityCenter";
 import { loadBalanceHistory, recordBalanceSnapshot, type BalanceSnapshot } from "@/lib/balanceHistory";
 import { consumeAgentHandoff, storeAgentResult, type AgentActionHandoff } from "@/lib/agent/actions";
+import { canConsumeAgentHandoff, deriveFinancialDataState, deriveWalletUiState } from "@/lib/walletHydration";
 import {
   appKitViewForPath,
   appKitViewForCreateMethod,
@@ -70,18 +71,22 @@ export function WalletDashboard() {
   const hydrated = useHydrated();
   const connection = useConnection();
   const chain = useVerifiedWalletChain();
-  const connected = hydrated && connection.isConnected;
-  const onArc = connected && chain.isArc;
+  const walletState = deriveWalletUiState({ hydrated, connectionStatus: connection.status, isConnected: connection.isConnected, connectorChainId: chain.connectorChainId, providerChainId: chain.providerChainId, isArc: chain.isArc });
+  const onArc = walletState === "arc";
 
   const balances = useWalletBalances(connection.address, onArc);
   const {
     jars,
     isLoading: jarsLoading,
+    error: jarsError,
     refetch: refetchJars,
   } = useOwnerJars(onArc ? connection.address : undefined);
 
   const [action, setAction] = useState<Action>();
   const [agentHandoff, setAgentHandoff] = useState<AgentActionHandoff>();
+  const [agentHandoffRequestId, setAgentHandoffRequestId] = useState<string | undefined>(() =>
+    typeof window === "undefined" ? undefined : new URLSearchParams(window.location.search).get("agentHandoff") ?? undefined,
+  );
   const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
   const activity = useWalletActivity(connection.address, onArc, activityHistoryOpen);
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
@@ -93,20 +98,22 @@ export function WalletDashboard() {
   const [onboardingIntent, setOnboardingIntent] = useState<OnboardingPath | undefined>(() =>
     typeof window === "undefined" ? undefined : parseOnboardingIntent(window.sessionStorage.getItem(ONBOARDING_INTENT_KEY)),
   );
+  const dashboardState = agentHandoffRequestId && walletState === "disconnected" ? "hydrating" : walletState;
+  const connected = dashboardState === "arc" || dashboardState === "wrong-network";
 
+  const balancesSettled = !balances.usdc.isPending && !balances.eurc.isPending;
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("agentHandoff");
-    if (!id || !connection.address) return;
+    if (!agentHandoffRequestId || !connection.address || !canConsumeAgentHandoff(walletState, balancesSettled)) return;
     const timer = window.setTimeout(() => {
-      const handoff = consumeAgentHandoff(window.sessionStorage, id, connection.address);
+      const handoff = consumeAgentHandoff(window.sessionStorage, agentHandoffRequestId, connection.address);
+      setAgentHandoffRequestId(undefined);
+      window.history.replaceState({}, "", window.location.pathname);
       if (!handoff || !["send", "swap", "bridge"].includes(handoff.action)) return;
       setAgentHandoff(handoff);
       setAction(handoff.action === "send" ? "send" : "swap");
     }, 0);
-    window.history.replaceState({}, "", window.location.pathname);
     return () => window.clearTimeout(timer);
-  }, [connection.address]);
+  }, [agentHandoffRequestId, balancesSettled, connection.address, walletState]);
 
   useEffect(() => {
     if (!createGuideOpen) return;
@@ -153,6 +160,7 @@ export function WalletDashboard() {
 
   const totals = useMemo(() => summarizeSavingsJars(jars), [jars]);
   const protection = useMemo(() => summarizeJarProtection(jars), [jars]);
+  const vaultDataState = deriveFinancialDataState({ enabled: onArc, isLoading: jarsLoading, isError: Boolean(jarsError) });
   const networkSafety = deriveNetworkSafety(connected, onArc);
   const securityAlerts = deriveSecurityAlerts({
     network: networkSafety,
@@ -227,7 +235,15 @@ export function WalletDashboard() {
           <p>{locale === "vi" ? "Cổng kết nối an toàn của bạn tới hệ sinh thái Arc" : "Your secure gateway to the Arc ecosystem"}</p>
         </div>
 
-        {!connected ? (
+        {dashboardState === "hydrating" ? (
+          <section className={styles.disconnected} role="status" aria-live="polite" aria-busy="true">
+            <div className={styles.disconnectedCopy}>
+              <span className={styles.kicker}>MAKOTO WALLET{" · "}ARC TESTNET</span>
+              <h1>{locale === "vi" ? "Đang khôi phục kết nối ví…" : "Restoring wallet connection…"}</h1>
+              <p>{locale === "vi" ? "Makoto đang xác minh tài khoản và mạng trước khi hiển thị số dư hoặc hành động đã chuẩn bị." : "Makoto is verifying the account and network before showing balances or prepared actions."}</p>
+            </div>
+          </section>
+        ) : !connected ? (
           <>
           <section className={styles.disconnected}>
             <div className={styles.disconnectedCopy}>
@@ -346,10 +362,10 @@ export function WalletDashboard() {
               <article className={`${styles.dashboardCard} ${styles.savingsPosition}`}>
                 <header className={styles.cardHeader}><div><span>Makoto Vault</span><small>{locale === "vi" ? "Vị thế tiết kiệm" : "Savings position"}</small></div><span className={`${styles.statusBadge} ${securityStatus === "protected" ? styles.statusGood : styles.statusAttention}`}>{securityStatus === "protected" ? (locale === "vi" ? "Được bảo vệ" : "Protected") : (locale === "vi" ? "Đang hoạt động" : "Active")}</span></header>
                 <div className={styles.jarPositionBody}>
-                  <dl><div><dt>{t("walletHome.totalSaved")}</dt><dd>{formatUsdc(totals.totalSaved)} USDC</dd></div><div><dt>{t("walletHome.activeJars")}</dt><dd>{totals.active}</dd></div><div><dt>{t("walletHome.completedJars")}</dt><dd>{totals.completed}</dd></div></dl>
+                  <dl><div><dt>{t("walletHome.totalSaved")}</dt><dd>{vaultDataState === "ready" ? formatUsdc(totals.totalSaved) : "—"} USDC</dd></div><div><dt>{t("walletHome.activeJars")}</dt><dd>{vaultDataState === "ready" ? totals.active : "—"}</dd></div><div><dt>{t("walletHome.completedJars")}</dt><dd>{vaultDataState === "ready" ? totals.completed : "—"}</dd></div></dl>
                   <div className={styles.jarVault} aria-hidden="true"><span className={styles.jarLid}/><span className={styles.jarGlassHighlight}/><Image src="/makoto/logo-pro-v2.png" alt="" width={48} height={48} /></div>
                 </div>
-                {jarsLoading ? <div className={styles.jarSkeleton}><span /></div> : visibleJars.length ? <Link className={styles.positionJarLink} href={`/jars/${visibleJars[0].id.toString()}`}>{visibleJars[0].name || t("jar.unnamed", { id: visibleJars[0].id.toString() })}<span>{formatUsdc(visibleJars[0].balance)} USDC</span></Link> : <div className={styles.positionEmpty}>{t("walletHome.noJars")}<Link href="/savings">{t("walletHome.createJar")}</Link></div>}
+                {vaultDataState === "loading" ? <div className={styles.jarSkeleton} role="status" aria-label={locale === "vi" ? "Đang tải Makoto Vault" : "Loading Makoto Vault"}><span /></div> : vaultDataState === "unavailable" ? <div className={styles.positionEmpty}>{locale === "vi" ? "Dữ liệu Vault hiện không khả dụng." : "Vault data is currently unavailable."}</div> : visibleJars.length ? <Link className={styles.positionJarLink} href={`/jars/${visibleJars[0].id.toString()}`}>{visibleJars[0].name || t("jar.unnamed", { id: visibleJars[0].id.toString() })}<span>{formatUsdc(visibleJars[0].balance)} USDC</span></Link> : <div className={styles.positionEmpty}>{t("walletHome.noJars")}<Link href="/savings">{t("walletHome.createJar")}</Link></div>}
                 <Link className={styles.appsFooterLink} href="/savings">{t("walletHome.viewSavings")}</Link>
               </article>
             </section>
