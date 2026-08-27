@@ -153,6 +153,7 @@ export const vi = {
   "walletHome.loadingSavings": "Đang tải mục tiêu tiết kiệm",
   "walletHome.assetLogo": "Biểu tượng {symbol}",
   "walletHome.publicBeta": "Bản thử nghiệm",
+  "walletHome.historyRangeAll": "Tất cả",
   "savings.statusTitle": "Đã kết nối với khoản tiết kiệm của bạn",
   "savings.statusCopy": "Dữ liệu tiết kiệm đã được cập nhật trên Arc Testnet.",
   "savings.createNew": "Tạo mục tiêu mới",

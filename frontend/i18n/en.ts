@@ -151,6 +151,7 @@ export const en = {
   "walletHome.loadingSavings": "Loading savings goals",
   "walletHome.assetLogo": "{symbol} logo",
   "walletHome.publicBeta": "Public Beta",
+  "walletHome.historyRangeAll": "All",
   "savings.statusTitle": "Connected to your savings",
   "savings.statusCopy": "Savings data is current on Arc Testnet.",
   "savings.createNew": "Create new goal",

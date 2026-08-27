@@ -2277,7 +2277,9 @@
   .disconnected{display:block}.disconnectedCopy{padding:26px 20px}.disconnectedCopy h1{font-size:32px;letter-spacing:-1.2px}.disconnectedCopy>p{margin-top:12px;font-size:14px}
   .onboardingPanel{margin-top:22px;grid-template-columns:1fr}.onboardingPanel h2,.onboardingPanel>p{grid-column:auto}.createWalletButton,.connectExistingButton{min-height:64px}
   .disconnectedArt{display:none}.disconnectedDestinations{margin-top:10px}.disconnectedDestination{padding:17px}
-  .dashboardGrid{margin-top:14px}.balanceCard{min-height:0;padding:20px}.statusCard{padding:18px}
+  .dashboardGrid{margin-top:14px;grid-template-columns:1fr}.balanceCard{min-height:0;padding:20px}.statusCard{padding:18px}
+  .chartRanges{min-height:44px;gap:8px}
+  .chartRanges button{height:44px;min-width:44px;max-width:none;padding-inline:8px;touch-action:manipulation}
   .portfolioGrid,.appsRow,.lowerGrid{margin-top:12px}.portfolioGrid .assetsSection.dashboardCard,.portfolioGrid .savingsPosition,.appsRow .appsPanel,.activityCard,.networkCard,.quickPanel{padding:17px}
   .appsRow .appShortcuts{grid-template-columns:1fr;gap:7px}.appsRow .appShortcuts a{min-height:64px}
   .activityCard{min-height:300px}.sideStack{gap:10px}
