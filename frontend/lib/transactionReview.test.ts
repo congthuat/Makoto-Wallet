@@ -28,7 +28,8 @@ test("send recipient checks validate address, zero address, self-send, unknown r
   assert.equal(hasBlockingChecks(sendRecipientChecks("bad", account)), true);
   assert.equal(hasBlockingChecks(sendRecipientChecks("0x0000000000000000000000000000000000000000", account)), true);
   assert.equal(sendRecipientChecks(account, account).some((check) => check.code === "self" && check.status === "attention"), true);
-  assert.equal(sendRecipientChecks(recipient, account).some((check) => check.code === "unknown-recipient"), true);
+  assert.equal(sendRecipientChecks(recipient, account).some((check) => check.code === "unknown-recipient" && check.status === "info"), true);
+  assert.equal(sendRecipientChecks(recipient, account).some((check) => check.status === "attention"), false);
   assert.equal(sendRecipientChecks(recipient, account, true, true).some((check) => check.label === "Public on-chain memo"), true);
 });
 

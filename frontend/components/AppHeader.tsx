@@ -13,12 +13,7 @@ type HeaderIconName = "wallet" | "activity" | "pay" | "savings" | "settings" | "
 
 const navItems: ReadonlyArray<{ href: string; icon: HeaderIconName; en: string; vi: string; mobileEn?: string; mobileVi?: string; mobile?: boolean }> = [
   { href: "/", icon: "wallet", en: "Dashboard", vi: "Tổng quan", mobileEn: "Home", mobileVi: "Trang chủ", mobile: true },
-  { href: "/#assets", icon: "wallet", en: "Wallet", vi: "Ví" },
-  { href: "/#apps", icon: "pay", en: "Tools", vi: "Công cụ", mobileEn: "Tools", mobileVi: "Công cụ", mobile: true },
-  { href: "/pay", icon: "pay", en: "Pay", vi: "Thanh toán", mobileEn: "Pay", mobileVi: "Pay", mobile: true },
-  { href: "/savings", icon: "savings", en: "Makoto Vault", vi: "Makoto Vault", mobileEn: "Vault", mobileVi: "Vault", mobile: true },
-  { href: "/settings#security", icon: "settings", en: "Security Center", vi: "Trung tâm bảo mật", mobileEn: "Security", mobileVi: "Bảo mật", mobile: true },
-  { href: "/#activity", icon: "activity", en: "Activity", vi: "Hoạt động" },
+  { href: "/#assets", icon: "wallet", en: "Wallet", vi: "Ví", mobileEn: "Wallet", mobileVi: "Ví", mobile: true },
 ];
 
 function HeaderIcon({ name, className }: { name: HeaderIconName; className: string }) {
@@ -53,9 +48,6 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
   function isActive(href: string) {
     if (href === "/") return pathname === "/" && !hash;
     const [route, fragment] = href.split("#");
-    if (href === "/settings#security") {
-      return pathname === "/settings" && (hash === "#security" || hash === "#guardian");
-    }
     if (pathname !== route && !(route === "/pay" && pathname.startsWith("/pay/"))) return false;
     return fragment ? hash === `#${fragment}` : !hash;
   }
@@ -73,8 +65,6 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
       : theme === "dark"
         ? t("preferences.switchLight")
         : t("preferences.systemMode");
-  const betaInfo = t("walletHome.betaInfo");
-  const betaLabel = `${t("walletHome.publicBeta")} · Arc Testnet`;
 
   return (
     <header className={styles.header}>
@@ -115,6 +105,21 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
           <Link href="/savings">{locale === "vi" ? "Tạo mục tiêu được bảo vệ" : "Create protected goal"}</Link>
         </aside>}
 
+        <Link className={`${styles.settingsNavItem} ${isActive("/settings#security") ? styles.navActive : ""}`.trim()} href="/settings#security" aria-current={isActive("/settings#security") ? "page" : undefined} onNavigate={() => setHash("#security")}>
+          <HeaderIcon name="settings" className={styles.headerGlyph} />
+          <span>{locale === "vi" ? "Cài đặt" : "Settings"}</span>
+        </Link>
+
+        <a
+          className={styles.feedbackNavItem}
+          href="https://docs.google.com/forms/d/e/1FAIpQLSfH_cQv0Gkxy604YcpVHpitSfoWbF5_ud3f5WG_Jc4d7A6nVg/viewform"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <HeaderIcon name="activity" className={styles.headerGlyph} />
+          <span>{locale === "vi" ? "Phản hồi" : "Feedback"}</span>
+        </a>
+
         <Link
           className={`${styles.helpNavItem} ${isActive("/settings#help") ? styles.navActive : ""}`.trim()}
           href="/settings#help"
@@ -127,9 +132,9 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
       </nav>
 
       <div className={styles.headerActions}>
-        <span className={styles.networkPill} role="status" title={betaInfo} aria-label={`${betaLabel}. ${betaInfo}`}>
+        <span className={styles.networkPill} role="status">
           <HeaderIcon name="network" className={`${styles.pillGlyph} ${styles.networkGlyph}`} />
-          <span>{betaLabel}</span>
+          <span>Arc Testnet</span>
         </span>
 
         <LanguageMenu icon={<HeaderIcon name="language" className={`${styles.pillGlyph} ${styles.languageGlyph}`} />} />

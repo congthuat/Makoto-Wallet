@@ -24,8 +24,8 @@ test("open review invalidates on chain or account change and submit re-verifies"
 });
 
 test("normal and Memo sends estimate their exact contract calls", () => {
-  assert.match(send, /estimateContractGas\(\{ address: ARC_MEMO_ADDRESS[\s\S]*functionName: "memo"/);
-  assert.match(send, /estimateContractGas\(\{ address: asset\.address[\s\S]*functionName: "transfer"/);
+  assert.match(send, /estimateContractGas\(\{\s*address: ARC_MEMO_ADDRESS[\s\S]*?functionName: "memo"/);
+  assert.match(send, /estimateContractGas\(\{\s*address: asset\.address[\s\S]*?functionName: "transfer"/);
   assert.match(send, /estimateFeesPerGas\(\)/);
   assert.match(send, /formatArcFeeEstimate\(feeEstimate\.rawFee\)/);
 });

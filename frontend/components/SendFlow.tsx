@@ -18,7 +18,7 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { WalletPanel } from "./WalletPanel";
 import { globalReviewChecks, hasBlockingChecks, sendRecipientChecks } from "@/lib/transactionReview";
-import { TransactionExpectedChanges, TransactionSafetyAssessmentView, TransactionSafetyChecks } from "./TransactionSafetyReview";
+import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { arcFeeMateriallyChanged, calculateArcFee, formatArcFeeEstimate, maxSendAmountAfterArcFee, sendCostWithArcFee } from "@/lib/arcFees";
 import { assessTransaction, type TransactionIntent } from "@/lib/transactionSafety";
 import { prepareTransactionReview, revalidateTransactionReview, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
@@ -30,7 +30,25 @@ type MemoCompatibility = "none" | "checking" | "compatible" | "contract-wallet" 
 type MemoVerification = "none" | "verified" | "unverified";
 type FeeEstimate = { status: "idle" | "loading" | "unavailable" } | { status: "ready"; rawFee: bigint };
 
-export function SendFlow({ balances, initialValues, origin, onClose, onConfirmed, onViewReceipt }: { balances: Record<SupportedAssetId, bigint>; initialValues?: { amount?: string; asset?: SupportedAssetId; recipient?: string }; origin?: "agent"; onClose(): void; onConfirmed(activity: WalletActivity): void; onViewReceipt?(activity: WalletActivity): void }) {
+export function SendFlow({
+  balances,
+  initialValues,
+  origin,
+  onClose,
+  onConfirmed,
+  onViewReceipt,
+}: {
+  balances: Record<SupportedAssetId, bigint>;
+  initialValues?: {
+    amount?: string;
+    asset?: SupportedAssetId;
+    recipient?: string;
+  };
+  origin?: "agent";
+  onClose(): void;
+  onConfirmed(activity: WalletActivity): void;
+  onViewReceipt?(activity: WalletActivity): void;
+}) {
   const { locale, t } = usePreferences();
   const copy = sendCopy(locale, t);
   const [recipient, setRecipient] = useState(initialValues?.recipient ?? "");
@@ -52,7 +70,9 @@ export function SendFlow({ balances, initialValues, origin, onClose, onConfirmed
   const [confirmedActivity, setConfirmedActivity] = useState<WalletActivity>();
   const [reviewedAccount, setReviewedAccount] = useState<`0x${string}`>();
   const [reviewNetworkVerified, setReviewNetworkVerified] = useState(false);
-  const [feeEstimate, setFeeEstimate] = useState<FeeEstimate>({ status: "idle" });
+  const [feeEstimate, setFeeEstimate] = useState<FeeEstimate>({
+    status: "idle",
+  });
   const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
   const [reviewPreparedAt, setReviewPreparedAt] = useState(0);
   const submittingRef = useRef(false);
@@ -65,24 +85,90 @@ export function SendFlow({ balances, initialValues, origin, onClose, onConfirmed
   const validated = validateAssetSend(recipient, amount, balance, asset, connection.address);
   const pending = stage === "awaiting" || stage === "confirming";
   const large = !("error" in validated) && isLargeSend(validated.amount, balance);
-  const contacts = useMemo(() => { void contactsRevision; return connection.address ? loadContacts(connection.address, arcTestnet.id) : []; }, [connection.address, contactsRevision]);
-  const recents = useMemo(() => { void contactsRevision; return connection.address ? loadRecentRecipients(connection.address, arcTestnet.id) : []; }, [connection.address, contactsRevision]);
+  const contacts = useMemo(() => {
+    void contactsRevision;
+    return connection.address ? loadContacts(connection.address, arcTestnet.id) : [];
+  }, [connection.address, contactsRevision]);
+  const recents = useMemo(() => {
+    void contactsRevision;
+    return connection.address ? loadRecentRecipients(connection.address, arcTestnet.id) : [];
+  }, [connection.address, contactsRevision]);
   const normalizedRecipient = normalizeRecipient(recipient);
   const matchedContact = normalizedRecipient ? contacts.find((item) => item.address.toLowerCase() === normalizedRecipient.toLowerCase()) : undefined;
   const canSaveContact = Boolean(connection.address && normalizedRecipient && normalizedRecipient.toLowerCase() !== connection.address.toLowerCase() && !matchedContact);
   const memoNote = memoNoteResult(note);
   const feeCost = !("error" in validated) && feeEstimate.status === "ready" ? sendCostWithArcFee(assetId === "usdc" ? validated.amount : 0n, assetId === "usdc" ? balance : balances.usdc, feeEstimate.rawFee) : undefined;
   const feeBlocksSend = Boolean(feeCost && feeCost.remainingUsdc6 === undefined);
-  const safetyChecks = "error" in validated ? [] : [...globalReviewChecks({ connected: connection.isConnected, account: connection.address, reviewedAccount, isArc: reviewNetworkVerified && chain.isArc, amount: validated.amount, balance }), ...sendRecipientChecks(validated.address, connection.address, Boolean(matchedContact || recents.some((item) => item.address.toLowerCase() === validated.address.toLowerCase())), Boolean(memoNote.note)), ...(feeBlocksSend ? [{ code: "fee-balance", status: "blocking" as const, label: copy.feeInsufficient }] : [])];
+  const safetyChecks =
+    "error" in validated
+      ? []
+      : [
+          ...globalReviewChecks({
+            connected: connection.isConnected,
+            account: connection.address,
+            reviewedAccount,
+            isArc: reviewNetworkVerified && chain.isArc,
+            amount: validated.amount,
+            balance,
+          }),
+          ...sendRecipientChecks(validated.address, connection.address, Boolean(matchedContact || recents.some((item) => item.address.toLowerCase() === validated.address.toLowerCase())), Boolean(memoNote.note)),
+          ...(feeBlocksSend
+            ? [
+                {
+                  code: "fee-balance",
+                  status: "blocking" as const,
+                  label: copy.feeInsufficient,
+                },
+              ]
+            : []),
+        ];
   function currentSafetyIntent(preparedAt = reviewPreparedAt): TransactionIntent | undefined {
     if ("error" in validated || !connection.address || memoNote.error) return undefined;
-    const memoTransfer = memoNote.note ? buildArcMemoTransfer({ sender: connection.address, token: asset.address, recipient: validated.address, amount: validated.amount, note: memoNote.note }) : undefined;
+    const memoTransfer = memoNote.note
+      ? buildArcMemoTransfer({
+          sender: connection.address,
+          token: asset.address,
+          recipient: validated.address,
+          amount: validated.amount,
+          note: memoNote.note,
+        })
+      : undefined;
     const target = memoTransfer ? ARC_MEMO_ADDRESS : asset.address;
-    const calldata = memoTransfer ? encodeFunctionData({ abi: arcMemoAbi, functionName: "memo", args: memoTransfer.args }) : encodeFunctionData({ abi: erc20BalanceAbi, functionName: "transfer", args: [validated.address, validated.amount] });
-    return { id: `send:${asset.id}`, kind: memoTransfer ? "memo-send" : "send", chainId: arcTestnet.id, account: connection.address, target, calldata, value: 0n, recipient: validated.address, assetOut: { assetId: asset.id, amount: validated.amount }, preparedAt };
+    const calldata = memoTransfer
+      ? encodeFunctionData({
+          abi: arcMemoAbi,
+          functionName: "memo",
+          args: memoTransfer.args,
+        })
+      : encodeFunctionData({
+          abi: erc20BalanceAbi,
+          functionName: "transfer",
+          args: [validated.address, validated.amount],
+        });
+    return {
+      id: `send:${asset.id}`,
+      kind: memoTransfer ? "memo-send" : "send",
+      chainId: arcTestnet.id,
+      account: connection.address,
+      target,
+      calldata,
+      value: 0n,
+      recipient: validated.address,
+      assetOut: { assetId: asset.id, amount: validated.amount },
+      preparedAt,
+    };
   }
   const safetyIntent = currentSafetyIntent();
-  const safetyAssessment = safetyIntent ? assessTransaction(safetyIntent, { connectedAccount: connection.address, connectedChainId: reviewNetworkVerified && chain.isArc ? arcTestnet.id : undefined, balances, simulation: feeEstimate.status === "ready" ? "passed" : "unavailable", expectedTarget: safetyIntent.target, now: reviewPreparedAt }) : undefined;
+  const safetyAssessment = safetyIntent
+    ? assessTransaction(safetyIntent, {
+        connectedAccount: connection.address,
+        connectedChainId: reviewNetworkVerified && chain.isArc ? arcTestnet.id : undefined,
+        balances,
+        simulation: feeEstimate.status === "ready" ? "passed" : "unavailable",
+        expectedTarget: safetyIntent.target,
+        now: reviewPreparedAt,
+      })
+    : undefined;
 
   useEffect(() => {
     if (!reviewing) return;
@@ -90,19 +176,41 @@ export function SendFlow({ balances, initialValues, origin, onClose, onConfirmed
     const wrongAccount = Boolean(reviewedAccount && connection.address?.toLowerCase() !== reviewedAccount.toLowerCase());
     if (!wrongChain && !wrongAccount) return;
     const timeout = window.setTimeout(() => {
-      setReviewNetworkVerified(false); setReviewing(false); setError(copy.detailsChanged);
+      setReviewNetworkVerified(false);
+      setReviewing(false);
+      setError(copy.detailsChanged);
     }, 0);
     return () => window.clearTimeout(timeout);
   }, [chain.connectorChainId, chain.providerChainId, connection.address, copy.detailsChanged, reviewedAccount, reviewing]);
 
   async function estimateSendFee(sendAmount: bigint) {
     if (!client || !connection.address || !normalizedRecipient || memoNote.error) return undefined;
-    const memoTransfer = memoNote.note ? buildArcMemoTransfer({ sender: connection.address, token: asset.address, recipient: normalizedRecipient, amount: sendAmount, note: memoNote.note }) : undefined;
+    const memoTransfer = memoNote.note
+      ? buildArcMemoTransfer({
+          sender: connection.address,
+          token: asset.address,
+          recipient: normalizedRecipient,
+          amount: sendAmount,
+          note: memoNote.note,
+        })
+      : undefined;
     const gas = memoTransfer
-      ? await client.estimateContractGas({ address: ARC_MEMO_ADDRESS, abi: arcMemoAbi, functionName: "memo", args: memoTransfer.args, account: connection.address })
-      : await client.estimateContractGas({ address: asset.address, abi: erc20BalanceAbi, functionName: "transfer", args: [normalizedRecipient, sendAmount], account: connection.address });
+      ? await client.estimateContractGas({
+          address: ARC_MEMO_ADDRESS,
+          abi: arcMemoAbi,
+          functionName: "memo",
+          args: memoTransfer.args,
+          account: connection.address,
+        })
+      : await client.estimateContractGas({
+          address: asset.address,
+          abi: erc20BalanceAbi,
+          functionName: "transfer",
+          args: [normalizedRecipient, sendAmount],
+          account: connection.address,
+        });
     const fees = await client.estimateFeesPerGas();
-    const price = fees.maxFeePerGas ?? await client.getGasPrice();
+    const price = fees.maxFeePerGas ?? (await client.getGasPrice());
     return calculateArcFee(gas, price).rawFee;
   }
 
@@ -118,13 +226,38 @@ export function SendFlow({ balances, initialValues, origin, onClose, onConfirmed
     if (message) return setError(message);
     if (memoNote.error) return setError(copy.memoInvalid);
     const preparedAt = nowMs();
-    setError(undefined); setReviewedAccount(connection.address); setReviewPreparedAt(preparedAt); setStage("idle"); setFeeEstimate({ status: "loading" });
+    setError(undefined);
+    setReviewedAccount(connection.address);
+    setReviewPreparedAt(preparedAt);
+    setStage("idle");
+    setFeeEstimate({ status: "loading" });
     const networkVerified = await chain.verifyNow();
-    setReviewNetworkVerified(networkVerified); setReviewing(true);
+    setReviewNetworkVerified(networkVerified);
+    setReviewing(true);
     if ("error" in validated || !client) return;
     if (networkVerified) {
-      try { const rawFee = await estimateSendFee(validated.amount); setFeeEstimate(rawFee === undefined ? { status: "unavailable" } : { status: "ready", rawFee }); const intent = currentSafetyIntent(preparedAt); if (rawFee !== undefined && intent) setReviewSnapshot(prepareTransactionReview({ intent, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances, simulation: "passed", expectedTarget: intent.target, now: preparedAt }, preparedAt })); }
-      catch { setFeeEstimate({ status: "unavailable" }); }
+      try {
+        const rawFee = await estimateSendFee(validated.amount);
+        setFeeEstimate(rawFee === undefined ? { status: "unavailable" } : { status: "ready", rawFee });
+        const intent = currentSafetyIntent(preparedAt);
+        if (rawFee !== undefined && intent)
+          setReviewSnapshot(
+            prepareTransactionReview({
+              intent,
+              context: {
+                connectedAccount: connection.address,
+                connectedChainId: arcTestnet.id,
+                balances,
+                simulation: "passed",
+                expectedTarget: intent.target,
+                now: preparedAt,
+              },
+              preparedAt,
+            })
+          );
+      } catch {
+        setFeeEstimate({ status: "unavailable" });
+      }
     } else setFeeEstimate({ status: "unavailable" });
     setRecipientKind("checking");
     setMemoCompatibility(memoNote.note ? "checking" : "none");
@@ -137,157 +270,655 @@ export function SendFlow({ balances, initialValues, origin, onClose, onConfirmed
       const [recipientCode, senderCode, memoCode] = await Promise.all([client.getBytecode({ address: validated.address }), client.getBytecode({ address: connection.address }), client.getBytecode({ address: ARC_MEMO_ADDRESS })]);
       setRecipientKind(recipientCode && recipientCode !== "0x" ? "contract" : "wallet");
       setMemoCompatibility(senderCode && senderCode !== "0x" ? "contract-wallet" : memoCode && memoCode !== "0x" ? "compatible" : "unavailable");
-    } catch { setRecipientKind("unknown"); if (memoNote.note) setMemoCompatibility("unavailable"); }
+    } catch {
+      setRecipientKind("unknown");
+      if (memoNote.note) setMemoCompatibility("unavailable");
+    }
   }
 
-  function resetSafety() { setLargeAcknowledged(false); setRecipientKind("unknown"); setMemoCompatibility("none"); setMemoVerification("none"); setReviewNetworkVerified(false); setFeeEstimate({ status: "idle" }); setReviewSnapshot(undefined); setError(undefined); }
+  function resetSafety() {
+    setLargeAcknowledged(false);
+    setRecipientKind("unknown");
+    setMemoCompatibility("none");
+    setMemoVerification("none");
+    setReviewNetworkVerified(false);
+    setFeeEstimate({ status: "idle" });
+    setReviewSnapshot(undefined);
+    setError(undefined);
+  }
 
-  function selectRecipient(address: `0x${string}`) { setRecipient(address); setReviewing(false); setContactFormOpen(false); setContactFeedback(undefined); resetSafety(); }
+  function selectRecipient(address: `0x${string}`) {
+    setRecipient(address);
+    setReviewing(false);
+    setContactFormOpen(false);
+    setContactFeedback(undefined);
+    resetSafety();
+  }
 
   function submitContact() {
     if (!connection.address || !normalizedRecipient) return;
-    try { saveContact(connection.address, arcTestnet.id, contactName, normalizedRecipient); setContactsRevision((value) => value + 1); setContactName(""); setContactFormOpen(false); setContactFeedback(copy.contactSaved); }
-    catch (caught) { setContactFeedback(caught instanceof ContactError ? copy.contactErrors[caught.code] : copy.contactSaveFailed); }
+    try {
+      saveContact(connection.address, arcTestnet.id, contactName, normalizedRecipient);
+      setContactsRevision((value) => value + 1);
+      setContactName("");
+      setContactFormOpen(false);
+      setContactFeedback(copy.contactSaved);
+    } catch (caught) {
+      setContactFeedback(caught instanceof ContactError ? copy.contactErrors[caught.code] : copy.contactSaveFailed);
+    }
   }
 
   function removeSavedContact(contact: WalletContact) {
     if (!connection.address || !window.confirm(copy.removeConfirm.replace("{name}", contact.name))) return;
-    deleteContact(connection.address, arcTestnet.id, contact.address); setContactsRevision((value) => value + 1); setContactFeedback(copy.contactRemoved);
+    deleteContact(connection.address, arcTestnet.id, contact.address);
+    setContactsRevision((value) => value + 1);
+    setContactFeedback(copy.contactRemoved);
   }
 
   async function pasteRecipient() {
     try {
       const pasted = (await navigator.clipboard.readText()).trim();
-      setRecipient(pasted); resetSafety();
+      setRecipient(pasted);
+      resetSafety();
       const normalized = normalizeRecipient(pasted);
       if (!normalized) setError(copy.invalidAddress);
       else if (connection.address && normalized.toLowerCase() === connection.address.toLowerCase()) setError(copy.selfSend);
-    } catch { setError(copy.pasteFailed); }
+    } catch {
+      setError(copy.pasteFailed);
+    }
   }
 
   async function applySafeMax() {
     resetSafety();
-    if (assetId !== "usdc") { setAmount(formatAssetAmount(balance < 0n ? 0n : balance, asset)); return; }
-    if (!normalizedRecipient || !connection.address || balance <= 0n || memoNote.error || !(await chain.verifyNow())) { setError(copy.maxFeeUnavailable); return; }
+    if (assetId !== "usdc") {
+      setAmount(formatAssetAmount(balance < 0n ? 0n : balance, asset));
+      return;
+    }
+    if (!normalizedRecipient || !connection.address || balance <= 0n || memoNote.error || !(await chain.verifyNow())) {
+      setError(copy.maxFeeUnavailable);
+      return;
+    }
     try {
       const rawFee = await estimateSendFee(1n);
       const maximum = rawFee === undefined ? undefined : maxSendAmountAfterArcFee(balance, rawFee);
-      if (maximum === undefined) { setError(copy.maxFeeUnavailable); return; }
+      if (maximum === undefined) {
+        setError(copy.maxFeeUnavailable);
+        return;
+      }
       setAmount(formatAssetAmount(maximum, asset));
-    } catch { setError(copy.maxFeeUnavailable); }
+    } catch {
+      setError(copy.maxFeeUnavailable);
+    }
   }
 
   function selectAsset(next: SupportedAssetId) {
-    setAssetId(next); setAmount(""); setReviewing(false); setStage("idle"); setHash(undefined); submittingRef.current = false; resetSafety();
+    setAssetId(next);
+    setAmount("");
+    setReviewing(false);
+    setStage("idle");
+    setHash(undefined);
+    submittingRef.current = false;
+    resetSafety();
   }
 
   async function submit() {
     if (submittingRef.current || pending || "error" in validated || !connection.address || !client || memoNote.error || (memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)) return;
-    if (!reviewedAccount || reviewedAccount.toLowerCase() !== connection.address.toLowerCase()) { setReviewing(false); setError(copy.detailsChanged); return; }
-    if (!safetyIntent || !reviewSnapshot || safetyAssessment?.status !== "ready") { setReviewing(false); setError(copy.detailsChanged); return; }
-    const revalidation = revalidateTransactionReview(reviewSnapshot, { intent: safetyIntent, context: { connectedAccount: connection.address, connectedChainId: reviewNetworkVerified && chain.isArc ? arcTestnet.id : undefined, balances, simulation: "passed", expectedTarget: safetyIntent.target }, now: nowMs() });
-    if (!revalidation.valid) { setReviewing(false); setError(copy.detailsChanged); return; }
-    submittingRef.current = true; setError(undefined); setStage("awaiting");
+    if (!reviewedAccount || reviewedAccount.toLowerCase() !== connection.address.toLowerCase()) {
+      setReviewing(false);
+      setError(copy.detailsChanged);
+      return;
+    }
+    if (!safetyIntent || !reviewSnapshot || safetyAssessment?.status !== "ready") {
+      setReviewing(false);
+      setError(copy.detailsChanged);
+      return;
+    }
+    const revalidation = revalidateTransactionReview(reviewSnapshot, {
+      intent: safetyIntent,
+      context: {
+        connectedAccount: connection.address,
+        connectedChainId: reviewNetworkVerified && chain.isArc ? arcTestnet.id : undefined,
+        balances,
+        simulation: "passed",
+        expectedTarget: safetyIntent.target,
+      },
+      now: nowMs(),
+    });
+    if (!revalidation.valid) {
+      setReviewing(false);
+      setError(copy.detailsChanged);
+      return;
+    }
+    submittingRef.current = true;
+    setError(undefined);
+    setStage("awaiting");
     let submittedHash: `0x${string}` | undefined;
     try {
-      if (!(await chain.verifyNow())) { setReviewNetworkVerified(false); throw new Error("Wrong network: Arc Testnet is required"); }
-      const memoTransfer = memoNote.note ? buildArcMemoTransfer({ sender: connection.address, token: asset.address, recipient: validated.address, amount: validated.amount, note: memoNote.note }) : undefined;
+      if (!(await chain.verifyNow())) {
+        setReviewNetworkVerified(false);
+        throw new Error("Wrong network: Arc Testnet is required");
+      }
+      const memoTransfer = memoNote.note
+        ? buildArcMemoTransfer({
+            sender: connection.address,
+            token: asset.address,
+            recipient: validated.address,
+            amount: validated.amount,
+            note: memoNote.note,
+          })
+        : undefined;
       if (memoTransfer) {
         const [senderCode, memoCode] = await Promise.all([client.getBytecode({ address: connection.address }), client.getBytecode({ address: ARC_MEMO_ADDRESS })]);
-        if (senderCode && senderCode !== "0x") { setError(copy.eoaRequired); setStage("failed"); submittingRef.current = false; return; }
-        if (!memoCode || memoCode === "0x") { setError(copy.memoUnavailable); setStage("failed"); submittingRef.current = false; return; }
+        if (senderCode && senderCode !== "0x") {
+          setError(copy.eoaRequired);
+          setStage("failed");
+          submittingRef.current = false;
+          return;
+        }
+        if (!memoCode || memoCode === "0x") {
+          setError(copy.memoUnavailable);
+          setStage("failed");
+          submittingRef.current = false;
+          return;
+        }
       }
-      const freshBalance = await client.readContract({ address: asset.address, abi: erc20BalanceAbi, functionName: "balanceOf", args: [connection.address] });
+      const freshBalance = await client.readContract({
+        address: asset.address,
+        abi: erc20BalanceAbi,
+        functionName: "balanceOf",
+        args: [connection.address],
+      });
       const freshFee = await estimateSendFee(validated.amount).catch(() => undefined);
       if (freshFee !== undefined && feeEstimate.status === "ready" && arcFeeMateriallyChanged(feeEstimate.rawFee, freshFee)) {
-        setReviewing(false); setError(copy.detailsChanged); setStage("idle"); submittingRef.current = false; return;
+        setReviewing(false);
+        setError(copy.detailsChanged);
+        setStage("idle");
+        submittingRef.current = false;
+        return;
       }
       if (validated.amount > freshBalance || (assetId === "usdc" && freshFee !== undefined && sendCostWithArcFee(validated.amount, freshBalance, freshFee).remainingUsdc6 === undefined)) {
-        setError(copy.freshInsufficient); setStage("failed"); submittingRef.current = false; return;
+        setError(copy.freshInsufficient);
+        setStage("failed");
+        submittingRef.current = false;
+        return;
       }
       if (memoTransfer) {
-        await client.simulateContract({ address: ARC_MEMO_ADDRESS, abi: arcMemoAbi, functionName: "memo", args: memoTransfer.args, account: connection.address });
+        await client.simulateContract({
+          address: ARC_MEMO_ADDRESS,
+          abi: arcMemoAbi,
+          functionName: "memo",
+          args: memoTransfer.args,
+          account: connection.address,
+        });
         if (!(await chain.verifyNow())) throw new Error("Wrong network: Arc Testnet is required");
-        submittedHash = await writer.writeContractAsync({ address: ARC_MEMO_ADDRESS, abi: arcMemoAbi, functionName: "memo", args: memoTransfer.args, account: connection.address, chainId: arcTestnet.id });
+        submittedHash = await writer.writeContractAsync({
+          address: ARC_MEMO_ADDRESS,
+          abi: arcMemoAbi,
+          functionName: "memo",
+          args: memoTransfer.args,
+          account: connection.address,
+          chainId: arcTestnet.id,
+        });
       } else {
-        await client.simulateContract({ address: asset.address, abi: erc20BalanceAbi, functionName: "transfer", args: [validated.address, validated.amount], account: connection.address });
+        await client.simulateContract({
+          address: asset.address,
+          abi: erc20BalanceAbi,
+          functionName: "transfer",
+          args: [validated.address, validated.amount],
+          account: connection.address,
+        });
         if (!(await chain.verifyNow())) throw new Error("Wrong network: Arc Testnet is required");
-        submittedHash = await writer.writeContractAsync({ address: asset.address, abi: erc20BalanceAbi, functionName: "transfer", args: [validated.address, validated.amount], account: connection.address, chainId: arcTestnet.id });
+        submittedHash = await writer.writeContractAsync({
+          address: asset.address,
+          abi: erc20BalanceAbi,
+          functionName: "transfer",
+          args: [validated.address, validated.amount],
+          account: connection.address,
+          chainId: arcTestnet.id,
+        });
       }
-      setHash(submittedHash); setStage("confirming");
-      const receipt = await client.waitForTransactionReceipt({ hash: submittedHash });
+      setHash(submittedHash);
+      setStage("confirming");
+      const receipt = await client.waitForTransactionReceipt({
+        hash: submittedHash,
+      });
       if (receipt.status !== "success") throw new Error("Transaction receipt reported a revert");
       const block = await client.getBlock({ blockNumber: receipt.blockNumber });
       const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === asset.address.toLowerCase());
-      setMemoVerification(memoTransfer ? verifyMemoEvent(receipt.logs, { ...memoTransfer, sender: connection.address, target: asset.address }) ? "verified" : "unverified" : "none");
-      const activity = createAssetActivity(asset, { hash: submittedHash, logIndex: transferLog?.logIndex ?? -1, direction: "send", kind: "transfer", amount: validated.amount, counterparty: validated.address, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber });
-      setConfirmedActivity(activity); onConfirmed(activity);
+      setMemoVerification(
+        memoTransfer
+          ? verifyMemoEvent(receipt.logs, {
+              ...memoTransfer,
+              sender: connection.address,
+              target: asset.address,
+            })
+            ? "verified"
+            : "unverified"
+          : "none"
+      );
+      const activity = createAssetActivity(asset, {
+        hash: submittedHash,
+        logIndex: transferLog?.logIndex ?? -1,
+        direction: "send",
+        kind: "transfer",
+        amount: validated.amount,
+        counterparty: validated.address,
+        confirmedAt: Number(block.timestamp) * 1000,
+        blockNumber: receipt.blockNumber,
+      });
+      setConfirmedActivity(activity);
+      onConfirmed(activity);
       recordRecentRecipient(connection.address, arcTestnet.id, validated.address);
       setStage("confirmed");
     } catch (caught) {
       const failure = classifyWalletFailure(caught, Boolean(submittedHash));
-      if (origin === "agent" && connection.address) storeAgentResult(window.sessionStorage, { id: `send-${Date.now()}`, account: connection.address, action: "send", status: failure === "rejected" ? "cancelled" : failure === "confirmation-unknown" ? "unknown" : "failed", createdAt: Date.now(), transactionHash: submittedHash });
-      setError(copy.failures[failure]); setStage(failure === "confirmation-unknown" ? "unknown" : "failed");
+      if (origin === "agent" && connection.address)
+        storeAgentResult(window.sessionStorage, {
+          id: `send-${Date.now()}`,
+          account: connection.address,
+          action: "send",
+          status: failure === "rejected" ? "cancelled" : failure === "confirmation-unknown" ? "unknown" : "failed",
+          createdAt: Date.now(),
+          transactionHash: submittedHash,
+        });
+      setError(copy.failures[failure]);
+      setStage(failure === "confirmation-unknown" ? "unknown" : "failed");
       if (!submittedHash) submittingRef.current = false;
     }
   }
 
-  if (stage === "confirmed" && hash && !("error" in validated)) return <WalletPanel title={copy.title} onClose={onClose}><div className="transaction-state"><span>✓</span><h3>{copy.success}</h3><p>{formatAssetAmount(validated.amount, asset)} {asset.symbol} → {matchedContact?.name ?? shortAddress(validated.address)}<br /><span className="full-address">{validated.address}</span></p>{memoNote.note && <div className="memo-success"><strong>{copy.onchainNote}</strong><span>{memoNote.note}</span><b className={memoVerification === "verified" ? "memo-verified" : "memo-unverified"}>{memoVerification === "verified" ? `✓ ${copy.memoVerified}` : copy.memoUnverified}</b></div>}<div className="success-receipt-actions">{confirmedActivity && onViewReceipt && <button type="button" onClick={() => onViewReceipt(confirmedActivity)}>{copy.viewReceipt}</button>}<a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">{copy.view} ↗</a></div></div></WalletPanel>;
+  if (stage === "confirmed" && hash && !("error" in validated))
+    return (
+      <WalletPanel title={copy.title} onClose={onClose}>
+        <div className="transaction-state">
+          <span>✓</span>
+          <h3>{copy.success}</h3>
+          <p>
+            {formatAssetAmount(validated.amount, asset)} {asset.symbol} → {matchedContact?.name ?? shortAddress(validated.address)}
+          </p>
+          {memoNote.note && (
+            <div className="memo-success">
+              <strong>{copy.onchainNote}</strong>
+              <span>{memoNote.note}</span>
+              <b className={memoVerification === "verified" ? "memo-verified" : "memo-unverified"}>{memoVerification === "verified" ? `✓ ${copy.memoVerified}` : copy.memoUnverified}</b>
+            </div>
+          )}
+          <div className="success-receipt-actions">
+            {confirmedActivity && onViewReceipt && (
+              <button type="button" onClick={() => onViewReceipt(confirmedActivity)}>
+                {copy.viewReceipt}
+              </button>
+            )}
+            <a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">
+              {copy.view} ↗
+            </a>
+          </div>
+        </div>
+      </WalletPanel>
+    );
 
-  if (stage === "unknown" && hash) return <WalletPanel title={copy.title} onClose={onClose}><div className="transaction-state transaction-unknown"><span>!</span><h3>{copy.unknownTitle}</h3><p>{error}</p><code>{hash}</code><a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">{copy.view} ↗</a><p className="wallet-notice">{copy.checkBeforeRetry}</p></div></WalletPanel>;
+  if (stage === "unknown" && hash)
+    return (
+      <WalletPanel title={copy.title} onClose={onClose}>
+        <div className="transaction-state transaction-unknown">
+          <span>!</span>
+          <h3>{copy.unknownTitle}</h3>
+          <p>{error}</p>
+          <code>{hash}</code>
+          <a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">
+            {copy.view} ↗
+          </a>
+          <p className="wallet-notice">{copy.checkBeforeRetry}</p>
+        </div>
+      </WalletPanel>
+    );
 
-  return <WalletPanel title={copy.title} onClose={onClose} closeDisabled={pending}>{reviewing && !("error" in validated) ? <div className="wallet-flow send-flow send-review-flow">
-    <h3>{copy.review}</h3>
-    <dl className="wallet-review">
-      <div><dt>{copy.token}</dt><dd>{asset.symbol} · {asset.name} · <a href={arcScanAddressUrl(asset.address)} target="_blank" rel="noreferrer">{shortAddress(asset.address)} ↗</a></dd></div>
-      <div><dt>{copy.amount}</dt><dd>{formatAssetAmount(validated.amount, asset)} {asset.symbol}</dd></div>
-      <div><dt>{copy.destination}</dt><dd>{matchedContact && <strong className="recipient-contact-name">{matchedContact.name}</strong>}<span className="full-address">{validated.address}</span></dd></div>
-      <div><dt>{copy.network}</dt><dd>{reviewNetworkVerified ? "Arc Testnet · 5042002" : copy.wrongNetwork}</dd></div>
-      <div><dt>{copy.currentBalance}</dt><dd>{formatAssetAmount(balance, asset)} {asset.symbol}</dd></div>
-      <div><dt>{copy.estimatedFee}</dt><dd>{feeEstimate.status === "ready" ? formatArcFeeEstimate(feeEstimate.rawFee) : feeEstimate.status === "loading" ? copy.estimatingFee : copy.feeUnavailable}</dd></div>
-      <div><dt>{copy.estimatedTotal}</dt><dd>{feeEstimate.status === "ready" && feeCost ? assetId === "usdc" ? `${formatAssetAmount(feeCost.totalUsdc6, asset)} USDC` : `${formatAssetAmount(validated.amount, asset)} ${asset.symbol} + ${formatAssetAmount(feeCost.feeUsdc6, getAssetById("usdc")!)} USDC` : copy.feeUnavailable}</dd></div>
-      <div><dt>{copy.remainingBalance}</dt><dd>{feeEstimate.status === "ready" && feeCost ? feeCost.remainingUsdc6 === undefined ? copy.insufficient : assetId === "usdc" ? `${formatAssetAmount(feeCost.remainingUsdc6, asset)} USDC` : `${formatAssetAmount(validated.remaining, asset)} ${asset.symbol}` : copy.feeUnavailable}</dd></div>
-      {memoNote.note && <><div><dt>{copy.onchainNote}</dt><dd>{memoNote.note}</dd></div><div><dt>{copy.memoContract}</dt><dd>Arc Transaction Memo · {shortAddress(ARC_MEMO_ADDRESS)}</dd></div></>}
-    </dl>
-    <div className="recipient-actions"><button type="button" onClick={() => void navigator.clipboard.writeText(validated.address)}>{copy.copyAddress}</button><a href={arcScanAddressUrl(validated.address)} target="_blank" rel="noreferrer">ArcScan ↗</a></div>
-    {recipientKind === "checking" && <p className="wallet-hint">{copy.checkingRecipient}</p>}
-    <TransactionSafetyChecks checks={safetyChecks} />
-    {reviewSnapshot && <p className="review-validity">{locale === "vi" ? "Kiểm tra có hiệu lực đến" : "Review valid until"} · {new Date(reviewSnapshot.expiresAt).toLocaleTimeString(locale)}</p>}
-    {safetyAssessment && <TransactionSafetyAssessmentView assessment={safetyAssessment} />}
-    {safetyIntent && <TransactionExpectedChanges intent={safetyIntent} />}
-    {recipientKind === "contract" && <p className="wallet-warning" role="alert">{copy.contractWarning}</p>}
-    {memoNote.note ? <p className="memo-public-warning" role="alert">{copy.memoPublic}</p> : <p className="wallet-notice">{copy.noMemo}</p>}
-    {memoCompatibility === "checking" && <p className="wallet-hint" role="status">{copy.memoChecking}</p>}
-    {memoCompatibility === "contract-wallet" && <p className="field-error" role="alert">{copy.eoaRequired}</p>}
-    {memoCompatibility === "unavailable" && <p className="field-error" role="alert">{copy.memoUnavailable}</p>}
-    {memoNote.note && memoCompatibility === "compatible" && <p className="wallet-notice">{copy.memoWrap}</p>}
-    {large && <label className="large-send-warning"><strong>{copy.largeTitle}</strong><span>{copy.largeCopy}</span><span><input type="checkbox" checked={largeAcknowledged} onChange={(event) => setLargeAcknowledged(event.target.checked)} /> {copy.largeConfirm}</span></label>}
-    <p className="wallet-notice">{copy.note}</p>
-    {stage === "awaiting" && <p className="transaction-progress" role="status">{copy.awaiting}</p>}
-    {stage === "confirming" && <p className="transaction-progress" role="status">{copy.confirming}{hash && <> · <a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">ArcScan ↗</a></>}</p>}
-    {stage === "failed" && error && <p className="field-error" role="alert">{error}</p>}
-    {!reviewNetworkVerified && <p className="field-error">{copy.arcRequired}</p>}
-    {!reviewNetworkVerified && <button type="button" className="secondary-action" onClick={() => void chain.switchToArc()}>{copy.switchArc}</button>}
-    <div className="modal-actions"><button type="button" className="secondary-action" onClick={() => { setReviewing(false); setStage("idle"); }} disabled={pending}>{copy.back}</button><button type="button" className="primary-action" onClick={() => void submit()} disabled={pending || feeEstimate.status === "loading" || safetyAssessment?.status !== "ready" || hasBlockingChecks(safetyChecks) || Boolean(memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)}>{stage === "awaiting" ? copy.awaitingShort : stage === "confirming" ? copy.confirmingShort : copy.confirm}</button></div>
-  </div> : <form className="create-form wallet-flow send-flow" onSubmit={(event) => { event.preventDefault(); void review(); }}>
-    <label htmlFor="send-asset">{copy.asset}<select id="send-asset" name="asset" className="asset-selector" value={assetId} onChange={(event) => selectAsset(event.target.value as SupportedAssetId)}>{SUPPORTED_ASSETS.map((item) => <option key={item.id} value={item.id}>{item.symbol} · {item.name}</option>)}</select></label>
-    <label htmlFor="send-recipient">{copy.recipient}<div className="wallet-field-with-action"><input id="send-recipient" name="recipient" value={recipient} onChange={(event) => { setRecipient(event.target.value); setContactFormOpen(false); setContactFeedback(undefined); resetSafety(); }} placeholder="0x…" spellCheck={false} /><button type="button" onClick={() => void pasteRecipient()}>{copy.paste}</button></div></label>
-    {(contacts.length > 0 || recents.length > 0 || canSaveContact || matchedContact) && <div className="recipient-helper">
-      {contacts.length > 0 && <section aria-labelledby="saved-contacts-title"><div className="recipient-helper-heading"><strong id="saved-contacts-title">{copy.contacts}</strong><small>{copy.localOnly}</small></div><div className="recipient-list">{contacts.map((contact) => <div className="recipient-row" key={contact.address}><button type="button" className="recipient-choice" onClick={() => selectRecipient(contact.address)}><strong>{contact.name}</strong><span>{shortAddress(contact.address)}</span></button><button type="button" className="recipient-remove" aria-label={`${copy.remove} ${contact.name}`} onClick={() => removeSavedContact(contact)}>×</button></div>)}</div></section>}
-      {contacts.length === 0 && canSaveContact && <small className="recipient-empty">{copy.noContacts}</small>}
-      {recents.length > 0 && <section aria-labelledby="recent-recipients-title"><strong id="recent-recipients-title">{copy.recent}</strong><div className="recipient-chips">{recents.map((item) => <button type="button" key={item.address} onClick={() => selectRecipient(item.address)}>{shortAddress(item.address)}</button>)}</div></section>}
-      {matchedContact && <p className="contact-match">{copy.savedAs} <strong>{matchedContact.name}</strong></p>}
-      {canSaveContact && !contactFormOpen && <button type="button" className="save-contact-trigger" onClick={() => { setContactFormOpen(true); setContactFeedback(undefined); }}>+ {copy.saveContact}</button>}
-      {canSaveContact && contactFormOpen && <div className="contact-inline-form"><label>{copy.contactName}<input value={contactName} maxLength={40} autoFocus onChange={(event) => { setContactName(event.target.value); setContactFeedback(undefined); }} /></label><div><button type="button" onClick={() => { setContactFormOpen(false); setContactName(""); }}>{copy.cancel}</button><button type="button" className="primary-action" onClick={submitContact}>{copy.save}</button></div></div>}
-      {contactFeedback && <p className="contact-feedback" role="status">{contactFeedback}</p>}
-    </div>}
-    <label htmlFor="send-amount">{copy.amount}<div className="wallet-field-with-action amount"><input id="send-amount" name="amount" inputMode="decimal" value={amount} onChange={(event) => { setAmount(event.target.value); resetSafety(); }} placeholder="0.00" /><span>{asset.symbol}</span><button type="button" onClick={() => void applySafeMax()}>{copy.max}</button></div><small>{copy.available}: {formatAssetAmount(balance, asset)} {asset.symbol}</small></label>
-    <label htmlFor="send-note" className="send-note-field">{copy.noteOptional}<textarea id="send-note" name="note" value={note} onChange={(event) => { setNote(event.target.value); resetSafety(); }} rows={2} aria-invalid={Boolean(memoNote.error)} aria-describedby={memoNote.error ? "send-note-error" : memoNote.note ? "send-note-warning" : undefined} /><small>{Array.from(note).length}/100</small></label>
-    {memoNote.error && <p id="send-note-error" className="field-error" role="alert">{copy.memoInvalid}</p>}
-    {memoNote.note && <p id="send-note-warning" className="memo-public-warning" role="alert">{copy.memoPublic}</p>}
-    {error && <p className="field-error" role="alert">{error}</p>}
-    <div className="modal-actions"><button type="button" className="secondary-action" onClick={onClose}>{copy.back}</button><button type="submit" className="primary-action">{copy.next}</button></div>
-  </form>}</WalletPanel>;
+  return (
+    <WalletPanel title={copy.title} onClose={onClose} closeDisabled={pending}>
+      {reviewing && !("error" in validated) ? (
+        <TransactionSafetyReview
+          compact
+          title={copy.review}
+          summary=""
+          details={[
+            {
+              label: copy.amount,
+              value: `${formatAssetAmount(validated.amount, asset)} ${asset.symbol}`,
+            },
+            {
+              label: copy.destination,
+              value: matchedContact ? `${matchedContact.name} · ${shortAddress(validated.address)}` : shortAddress(validated.address),
+            },
+            {
+              label: copy.network,
+              value: reviewNetworkVerified ? "Arc Testnet" : copy.wrongNetwork,
+            },
+            {
+              label: copy.estimatedFee,
+              value: feeEstimate.status === "ready" ? formatArcFeeEstimate(feeEstimate.rawFee) : feeEstimate.status === "loading" ? copy.estimatingFee : copy.feeUnavailable,
+            },
+            {
+              label: copy.estimatedTotal,
+              value: feeEstimate.status === "ready" && feeCost ? (assetId === "usdc" ? `${formatAssetAmount(feeCost.totalUsdc6, asset)} USDC` : `${formatAssetAmount(validated.amount, asset)} ${asset.symbol} + ${formatAssetAmount(feeCost.feeUsdc6, getAssetById("usdc")!)} USDC`) : copy.feeUnavailable,
+            },
+            ...(memoNote.note ? [{ label: copy.onchainNote, value: memoNote.note }] : []),
+          ]}
+          technicalDetails={[
+            {
+              label: copy.token,
+              value: (
+                <>
+                  {asset.symbol} · {asset.name} ·{" "}
+                  <a href={arcScanAddressUrl(asset.address)} target="_blank" rel="noreferrer">
+                    {shortAddress(asset.address)} ↗
+                  </a>
+                </>
+              ),
+            },
+            {
+              label: copy.destination,
+              value: <span className="full-address">{validated.address}</span>,
+            },
+            {
+              label: copy.currentBalance,
+              value: `${formatAssetAmount(balance, asset)} ${asset.symbol}`,
+            },
+            {
+              label: copy.remainingBalance,
+              value: feeEstimate.status === "ready" && feeCost ? (feeCost.remainingUsdc6 === undefined ? copy.insufficient : assetId === "usdc" ? `${formatAssetAmount(feeCost.remainingUsdc6, asset)} USDC` : `${formatAssetAmount(validated.remaining, asset)} ${asset.symbol}`) : copy.feeUnavailable,
+            },
+            ...(memoNote.note
+              ? [
+                  {
+                    label: copy.memoContract,
+                    value: `Arc Transaction Memo · ${shortAddress(ARC_MEMO_ADDRESS)}`,
+                  },
+                ]
+              : []),
+          ]}
+          technicalContent={
+            <div className="recipient-actions">
+              <button type="button" onClick={() => void navigator.clipboard.writeText(validated.address)}>
+                {copy.copyAddress}
+              </button>
+              <a href={arcScanAddressUrl(validated.address)} target="_blank" rel="noreferrer">
+                ArcScan ↗
+              </a>
+            </div>
+          }
+          checks={safetyChecks}
+          assessment={safetyAssessment}
+          review={reviewSnapshot}
+          walletNotice=""
+          onBack={() => {
+            setReviewing(false);
+            setStage("idle");
+          }}
+          onContinue={() => void submit()}
+          continueLabel={stage === "awaiting" ? copy.awaitingShort : stage === "confirming" ? copy.confirmingShort : copy.confirm}
+          continueDisabled={pending || feeEstimate.status === "loading" || safetyAssessment?.status !== "ready" || hasBlockingChecks(safetyChecks) || Boolean(memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)}
+        >
+          {recipientKind === "checking" && <p className="wallet-hint">{copy.checkingRecipient}</p>}
+          {recipientKind === "contract" && (
+            <p className="wallet-warning" role="alert">
+              {copy.contractWarning}
+            </p>
+          )}
+          {memoNote.note && (
+            <p className="memo-public-warning" role="alert">
+              {copy.memoPublic}
+            </p>
+          )}
+          {memoCompatibility === "checking" && (
+            <p className="wallet-hint" role="status">
+              {copy.memoChecking}
+            </p>
+          )}
+          {memoCompatibility === "contract-wallet" && (
+            <p className="field-error" role="alert">
+              {copy.eoaRequired}
+            </p>
+          )}
+          {memoCompatibility === "unavailable" && (
+            <p className="field-error" role="alert">
+              {copy.memoUnavailable}
+            </p>
+          )}
+          {large && (
+            <label className="large-send-warning">
+              <strong>{copy.largeTitle}</strong>
+              <span>{copy.largeCopy}</span>
+              <span>
+                <input type="checkbox" checked={largeAcknowledged} onChange={(event) => setLargeAcknowledged(event.target.checked)} /> {copy.largeConfirm}
+              </span>
+            </label>
+          )}
+          {stage === "awaiting" && (
+            <p className="transaction-progress" role="status">
+              {copy.awaiting}
+            </p>
+          )}
+          {stage === "confirming" && (
+            <p className="transaction-progress" role="status">
+              {copy.confirming}
+              {hash && (
+                <>
+                  {" "}
+                  ·{" "}
+                  <a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">
+                    ArcScan ↗
+                  </a>
+                </>
+              )}
+            </p>
+          )}
+          {stage === "failed" && error && (
+            <p className="field-error" role="alert">
+              {error}
+            </p>
+          )}
+          {!reviewNetworkVerified && <p className="field-error">{copy.arcRequired}</p>}
+          {!reviewNetworkVerified && (
+            <button type="button" className="secondary-action" onClick={() => void chain.switchToArc()}>
+              {copy.switchArc}
+            </button>
+          )}
+        </TransactionSafetyReview>
+      ) : (
+        <form
+          className="create-form wallet-flow send-flow"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void review();
+          }}
+        >
+          <label htmlFor="send-asset">
+            {copy.asset}
+            <select id="send-asset" name="asset" className="asset-selector" value={assetId} onChange={(event) => selectAsset(event.target.value as SupportedAssetId)}>
+              {SUPPORTED_ASSETS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.symbol} · {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label htmlFor="send-recipient">
+            {copy.recipient}
+            <div className="wallet-field-with-action">
+              <input
+                id="send-recipient"
+                name="recipient"
+                value={recipient}
+                onChange={(event) => {
+                  setRecipient(event.target.value);
+                  setContactFormOpen(false);
+                  setContactFeedback(undefined);
+                  resetSafety();
+                }}
+                placeholder="0x…"
+                spellCheck={false}
+              />
+              <button type="button" onClick={() => void pasteRecipient()}>
+                {copy.paste}
+              </button>
+            </div>
+          </label>
+          {(contacts.length > 0 || recents.length > 0 || canSaveContact || matchedContact) && (
+            <div className="recipient-helper">
+              {contacts.length > 0 && (
+                <section aria-labelledby="saved-contacts-title">
+                  <div className="recipient-helper-heading">
+                    <strong id="saved-contacts-title">{copy.contacts}</strong>
+                    <small>{copy.localOnly}</small>
+                  </div>
+                  <div className="recipient-list">
+                    {contacts.map((contact) => (
+                      <div className="recipient-row" key={contact.address}>
+                        <button type="button" className="recipient-choice" onClick={() => selectRecipient(contact.address)}>
+                          <strong>{contact.name}</strong>
+                          <span>{shortAddress(contact.address)}</span>
+                        </button>
+                        <button type="button" className="recipient-remove" aria-label={`${copy.remove} ${contact.name}`} onClick={() => removeSavedContact(contact)}>
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+              {contacts.length === 0 && canSaveContact && <small className="recipient-empty">{copy.noContacts}</small>}
+              {recents.length > 0 && (
+                <section aria-labelledby="recent-recipients-title">
+                  <strong id="recent-recipients-title">{copy.recent}</strong>
+                  <div className="recipient-chips">
+                    {recents.map((item) => (
+                      <button type="button" key={item.address} onClick={() => selectRecipient(item.address)}>
+                        {shortAddress(item.address)}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+              {matchedContact && (
+                <p className="contact-match">
+                  {copy.savedAs} <strong>{matchedContact.name}</strong>
+                </p>
+              )}
+              {canSaveContact && !contactFormOpen && (
+                <button
+                  type="button"
+                  className="save-contact-trigger"
+                  onClick={() => {
+                    setContactFormOpen(true);
+                    setContactFeedback(undefined);
+                  }}
+                >
+                  + {copy.saveContact}
+                </button>
+              )}
+              {canSaveContact && contactFormOpen && (
+                <div className="contact-inline-form">
+                  <label>
+                    {copy.contactName}
+                    <input
+                      value={contactName}
+                      maxLength={40}
+                      autoFocus
+                      onChange={(event) => {
+                        setContactName(event.target.value);
+                        setContactFeedback(undefined);
+                      }}
+                    />
+                  </label>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setContactFormOpen(false);
+                        setContactName("");
+                      }}
+                    >
+                      {copy.cancel}
+                    </button>
+                    <button type="button" className="primary-action" onClick={submitContact}>
+                      {copy.save}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {contactFeedback && (
+                <p className="contact-feedback" role="status">
+                  {contactFeedback}
+                </p>
+              )}
+            </div>
+          )}
+          <label htmlFor="send-amount">
+            {copy.amount}
+            <div className="wallet-field-with-action amount">
+              <input
+                id="send-amount"
+                name="amount"
+                inputMode="decimal"
+                value={amount}
+                onChange={(event) => {
+                  setAmount(event.target.value);
+                  resetSafety();
+                }}
+                placeholder="0.00"
+              />
+              <span>{asset.symbol}</span>
+              <button type="button" onClick={() => void applySafeMax()}>
+                {copy.max}
+              </button>
+            </div>
+            <small>
+              {copy.available}: {formatAssetAmount(balance, asset)} {asset.symbol}
+            </small>
+          </label>
+          <label htmlFor="send-note" className="send-note-field">
+            {copy.noteOptional}
+            <textarea
+              id="send-note"
+              name="note"
+              value={note}
+              onChange={(event) => {
+                setNote(event.target.value);
+                resetSafety();
+              }}
+              rows={2}
+              aria-invalid={Boolean(memoNote.error)}
+              aria-describedby={memoNote.error ? "send-note-error" : memoNote.note ? "send-note-warning" : undefined}
+            />
+            <small>{Array.from(note).length}/100</small>
+          </label>
+          {memoNote.error && (
+            <p id="send-note-error" className="field-error" role="alert">
+              {copy.memoInvalid}
+            </p>
+          )}
+          {memoNote.note && (
+            <p id="send-note-warning" className="memo-public-warning" role="alert">
+              {copy.memoPublic}
+            </p>
+          )}
+          {error && (
+            <p className="field-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="modal-actions">
+            <button type="button" className="secondary-action" onClick={onClose}>
+              {copy.back}
+            </button>
+            <button type="submit" className="primary-action">
+              {copy.next}
+            </button>
+          </div>
+        </form>
+      )}
+    </WalletPanel>
+  );
 }
 
 function sendCopy(locale: "en" | "vi", t: ReturnType<typeof usePreferences>["t"]) {
@@ -301,11 +932,78 @@ function sendCopy(locale: "en" | "vi", t: ReturnType<typeof usePreferences>["t"]
     maxFeeUnavailable: vi ? "Không thể tính MAX an toàn vì chưa ước tính được phí Arc." : "A safe MAX amount cannot be calculated because the Arc fee is unavailable.",
     switchArc: vi ? "Chuyển sang Arc Testnet" : "Switch to Arc Testnet",
     wrongNetwork: vi ? "Sai mạng · Cần Arc Testnet 5042002" : "Wrong network · Arc Testnet 5042002 required",
-    title: vi ? "Gửi tài sản" : "Send asset", asset: vi ? "Tài sản" : "Asset", recipient: vi ? "Địa chỉ nhận" : "Recipient address", amount: vi ? "Số tiền" : "Amount", next: vi ? "Kiểm tra" : "Review", back: vi ? "Quay lại" : "Back", confirm: vi ? "Tiếp tục đến ví" : "Continue to wallet", review: vi ? "Kiểm tra gửi" : "Review Send", token: vi ? "Tài sản / hợp đồng token" : "Asset / token contract", network: vi ? "Mạng" : "Network", destination: vi ? "Người nhận" : "Recipient", currentBalance: vi ? "Số dư hiện tại" : "Current balance", remainingBalance: vi ? "Số dư ước tính còn lại" : "Estimated remaining balance", note: vi ? "Ví sẽ yêu cầu xác nhận rõ ràng. Phí mạng do ví và mạng Arc xác định." : "Your wallet will ask for explicit confirmation. Network fee is determined by the wallet and Arc network.", invalidAddress: vi ? "Nhập địa chỉ ví hợp lệ." : "Enter a valid wallet address.", selfSend: vi ? "Không thể gửi tài sản đến chính ví đang kết nối." : "You cannot send assets to the currently connected wallet.", invalidAmount: vi ? "Nhập số tiền lớn hơn 0, tối đa 6 chữ số thập phân." : "Enter an amount greater than 0 with at most 6 decimals.", insufficient: vi ? "Số dư tài sản đã chọn không đủ." : "Your selected asset balance is too low.", freshInsufficient: vi ? "Số dư vừa thay đổi và không còn đủ. Không có giao dịch nào được gửi." : "Your balance changed and is no longer sufficient. No transaction was submitted.", awaiting: vi ? "Đang chờ bạn xác nhận trong ví." : "Awaiting confirmation in your wallet.", awaitingShort: vi ? "Đang chờ ví…" : "Awaiting wallet…", confirming: vi ? "Đã gửi. Đang chờ Arc xác nhận giao dịch." : "Submitted. Confirming the transaction on Arc.", confirmingShort: vi ? "Đang xác nhận…" : "Confirming…", success: t("send.confirmed"), view: vi ? "Xem trên ArcScan" : "View on ArcScan", paste: vi ? "Dán" : "Paste", pasteFailed: vi ? "Không thể đọc bộ nhớ tạm." : "Clipboard access was unavailable.", max: vi ? "TỐI ĐA" : "MAX", available: vi ? "Khả dụng" : "Available", arcRequired: vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.", copyAddress: vi ? "Sao chép địa chỉ" : "Copy address", checkingRecipient: vi ? "Đang kiểm tra địa chỉ người nhận…" : "Checking recipient address…", contractWarning: vi ? "Địa chỉ người nhận là hợp đồng. Hãy chắc chắn hợp đồng này có thể nhận tài sản đã chọn." : "The recipient is a contract. Make sure it can receive the selected asset.", largeTitle: vi ? "Giao dịch lớn" : "Large send", largeCopy: vi ? "Bạn đang gửi ít nhất 50% số dư tài sản đã chọn." : "You are sending at least 50% of your selected asset balance.", largeConfirm: vi ? "Tôi đã kiểm tra người nhận và số tiền." : "I checked the recipient and amount.", unknownTitle: vi ? "Đã gửi — trạng thái xác nhận chưa rõ" : "Submitted — confirmation status unknown", checkBeforeRetry: vi ? "Kiểm tra giao dịch trên ArcScan trước khi thử lại để tránh gửi hai lần." : "Check ArcScan before retrying to avoid sending twice.",
-    noteOptional: vi ? "Ghi chú (không bắt buộc)" : "Note (optional)", onchainNote: vi ? "Ghi chú on-chain công khai" : "Public on-chain memo", memoContract: vi ? "Hợp đồng Memo" : "Memo contract", memoPublic: vi ? "Memo này sẽ công khai và tồn tại trên blockchain. Không nhập mật khẩu, thông tin riêng tư hoặc bí mật." : "This memo will be public and permanent on-chain. Do not include passwords, private information, or secrets.", noMemo: vi ? "Không có memo on-chain." : "No on-chain memo.", detailsChanged: vi ? "Chi tiết giao dịch đã thay đổi. Vui lòng kiểm tra lại." : "Transaction details changed. Please review again.", memoInvalid: vi ? "Ghi chú tối đa 100 ký tự và 256 byte UTF-8." : "The note must be at most 100 characters and 256 UTF-8 bytes.", memoChecking: vi ? "Đang kiểm tra khả năng hỗ trợ Arc Memo…" : "Checking Arc Memo compatibility…", eoaRequired: vi ? "Ghi chú on-chain hiện yêu cầu ví EOA trên Arc. Hãy xóa ghi chú để gửi bình thường." : "On-chain notes currently require an EOA wallet on Arc. Remove the note to send normally.", memoUnavailable: vi ? "Không thể xác minh ví hoặc hợp đồng Arc Memo. Hãy thử lại hoặc xóa ghi chú để gửi bình thường." : "The wallet or Arc Memo contract could not be verified. Retry or remove the note to send normally.", memoWrap: vi ? "Makoto sẽ bọc giao dịch bằng Arc Memo để ghi chú được phát on-chain. Ví của bạn có thể hiển thị đây là một tương tác hợp đồng." : "Makoto will wrap this transfer with Arc Memo so the note is emitted on-chain. Your wallet may display this as a contract interaction.", memoVerified: vi ? "Đã xác minh ghi chú on-chain" : "On-chain note verified", memoUnverified: vi ? "Giao dịch đã xác nhận. Không thể hoàn tất xác minh ghi chú." : "Transfer confirmed. Memo verification could not be completed.", viewReceipt: vi ? "Xem biên nhận" : "View receipt",
-    contacts: vi ? "Danh bạ" : "Contacts", recent: vi ? "Gần đây" : "Recent", saveContact: vi ? "Lưu liên hệ" : "Save contact", contactName: vi ? "Tên liên hệ" : "Contact name", save: vi ? "Lưu" : "Save", cancel: vi ? "Hủy" : "Cancel", remove: vi ? "Xóa" : "Remove", noContacts: vi ? "Chưa có liên hệ đã lưu" : "No saved contacts yet", localOnly: vi ? "Danh bạ chỉ được lưu trên trình duyệt này." : "Contacts are stored only in this browser.", savedAs: vi ? "Đã lưu dưới tên" : "Saved as", contactSaved: vi ? "Đã lưu liên hệ." : "Contact saved.", contactRemoved: vi ? "Đã xóa liên hệ." : "Contact removed.", contactSaveFailed: vi ? "Không thể lưu liên hệ trên trình duyệt này." : "This browser could not save the contact.", removeConfirm: vi ? "Xóa {name} khỏi danh bạ?" : "Remove {name} from contacts?",
+    title: vi ? "Gửi tài sản" : "Send asset",
+    asset: vi ? "Tài sản" : "Asset",
+    recipient: vi ? "Địa chỉ nhận" : "Recipient address",
+    amount: vi ? "Số tiền" : "Amount",
+    next: vi ? "Kiểm tra" : "Review",
+    back: vi ? "Quay lại" : "Back",
+    confirm: vi ? "Tiếp tục đến ví" : "Continue to wallet",
+    review: vi ? "Kiểm tra gửi" : "Review Send",
+    token: vi ? "Tài sản / hợp đồng token" : "Asset / token contract",
+    network: vi ? "Mạng" : "Network",
+    destination: vi ? "Người nhận" : "Recipient",
+    currentBalance: vi ? "Số dư hiện tại" : "Current balance",
+    remainingBalance: vi ? "Số dư ước tính còn lại" : "Estimated remaining balance",
+    note: vi ? "Ví sẽ yêu cầu xác nhận rõ ràng. Phí mạng do ví và mạng Arc xác định." : "Your wallet will ask for explicit confirmation. Network fee is determined by the wallet and Arc network.",
+    invalidAddress: vi ? "Nhập địa chỉ ví hợp lệ." : "Enter a valid wallet address.",
+    selfSend: vi ? "Không thể gửi tài sản đến chính ví đang kết nối." : "You cannot send assets to the currently connected wallet.",
+    invalidAmount: vi ? "Nhập số tiền lớn hơn 0, tối đa 6 chữ số thập phân." : "Enter an amount greater than 0 with at most 6 decimals.",
+    insufficient: vi ? "Số dư tài sản đã chọn không đủ." : "Your selected asset balance is too low.",
+    freshInsufficient: vi ? "Số dư vừa thay đổi và không còn đủ. Không có giao dịch nào được gửi." : "Your balance changed and is no longer sufficient. No transaction was submitted.",
+    awaiting: vi ? "Đang chờ bạn xác nhận trong ví." : "Awaiting confirmation in your wallet.",
+    awaitingShort: vi ? "Đang chờ ví…" : "Awaiting wallet…",
+    confirming: vi ? "Đã gửi. Đang chờ Arc xác nhận giao dịch." : "Submitted. Confirming the transaction on Arc.",
+    confirmingShort: vi ? "Đang xác nhận…" : "Confirming…",
+    success: t("send.confirmed"),
+    view: vi ? "Xem trên ArcScan" : "View on ArcScan",
+    paste: vi ? "Dán" : "Paste",
+    pasteFailed: vi ? "Không thể đọc bộ nhớ tạm." : "Clipboard access was unavailable.",
+    max: vi ? "TỐI ĐA" : "MAX",
+    available: vi ? "Khả dụng" : "Available",
+    arcRequired: vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.",
+    copyAddress: vi ? "Sao chép địa chỉ" : "Copy address",
+    checkingRecipient: vi ? "Đang kiểm tra địa chỉ người nhận…" : "Checking recipient address…",
+    contractWarning: vi ? "Địa chỉ người nhận là hợp đồng. Hãy chắc chắn hợp đồng này có thể nhận tài sản đã chọn." : "The recipient is a contract. Make sure it can receive the selected asset.",
+    largeTitle: vi ? "Giao dịch lớn" : "Large send",
+    largeCopy: vi ? "Bạn đang gửi ít nhất 50% số dư tài sản đã chọn." : "You are sending at least 50% of your selected asset balance.",
+    largeConfirm: vi ? "Tôi đã kiểm tra người nhận và số tiền." : "I checked the recipient and amount.",
+    unknownTitle: vi ? "Đã gửi — trạng thái xác nhận chưa rõ" : "Submitted — confirmation status unknown",
+    checkBeforeRetry: vi ? "Kiểm tra giao dịch trên ArcScan trước khi thử lại để tránh gửi hai lần." : "Check ArcScan before retrying to avoid sending twice.",
+    noteOptional: vi ? "Ghi chú (không bắt buộc)" : "Note (optional)",
+    onchainNote: vi ? "Ghi chú on-chain công khai" : "Public on-chain memo",
+    memoContract: vi ? "Hợp đồng Memo" : "Memo contract",
+    memoPublic: vi ? "Memo này sẽ công khai và tồn tại trên blockchain. Không nhập mật khẩu, thông tin riêng tư hoặc bí mật." : "This memo will be public and permanent on-chain. Do not include passwords, private information, or secrets.",
+    noMemo: vi ? "Không có memo on-chain." : "No on-chain memo.",
+    detailsChanged: vi ? "Chi tiết giao dịch đã thay đổi. Vui lòng kiểm tra lại." : "Transaction details changed. Please review again.",
+    memoInvalid: vi ? "Ghi chú tối đa 100 ký tự và 256 byte UTF-8." : "The note must be at most 100 characters and 256 UTF-8 bytes.",
+    memoChecking: vi ? "Đang kiểm tra khả năng hỗ trợ Arc Memo…" : "Checking Arc Memo compatibility…",
+    eoaRequired: vi ? "Ghi chú on-chain hiện yêu cầu ví EOA trên Arc. Hãy xóa ghi chú để gửi bình thường." : "On-chain notes currently require an EOA wallet on Arc. Remove the note to send normally.",
+    memoUnavailable: vi ? "Không thể xác minh ví hoặc hợp đồng Arc Memo. Hãy thử lại hoặc xóa ghi chú để gửi bình thường." : "The wallet or Arc Memo contract could not be verified. Retry or remove the note to send normally.",
+    memoWrap: vi ? "Makoto sẽ bọc giao dịch bằng Arc Memo để ghi chú được phát on-chain. Ví của bạn có thể hiển thị đây là một tương tác hợp đồng." : "Makoto will wrap this transfer with Arc Memo so the note is emitted on-chain. Your wallet may display this as a contract interaction.",
+    memoVerified: vi ? "Đã xác minh ghi chú on-chain" : "On-chain note verified",
+    memoUnverified: vi ? "Giao dịch đã xác nhận. Không thể hoàn tất xác minh ghi chú." : "Transfer confirmed. Memo verification could not be completed.",
+    viewReceipt: vi ? "Xem biên nhận" : "View receipt",
+    contacts: vi ? "Danh bạ" : "Contacts",
+    recent: vi ? "Gần đây" : "Recent",
+    saveContact: vi ? "Lưu liên hệ" : "Save contact",
+    contactName: vi ? "Tên liên hệ" : "Contact name",
+    save: vi ? "Lưu" : "Save",
+    cancel: vi ? "Hủy" : "Cancel",
+    remove: vi ? "Xóa" : "Remove",
+    noContacts: vi ? "Chưa có liên hệ đã lưu" : "No saved contacts yet",
+    localOnly: vi ? "Danh bạ chỉ được lưu trên trình duyệt này." : "Contacts are stored only in this browser.",
+    savedAs: vi ? "Đã lưu dưới tên" : "Saved as",
+    contactSaved: vi ? "Đã lưu liên hệ." : "Contact saved.",
+    contactRemoved: vi ? "Đã xóa liên hệ." : "Contact removed.",
+    contactSaveFailed: vi ? "Không thể lưu liên hệ trên trình duyệt này." : "This browser could not save the contact.",
+    removeConfirm: vi ? "Xóa {name} khỏi danh bạ?" : "Remove {name} from contacts?",
     contactErrors: {
-      "invalid-address": vi ? "Nhập địa chỉ ví hợp lệ." : "Enter a valid wallet address.", self: vi ? "Không thể lưu chính ví đang kết nối." : "You cannot save the connected wallet as a contact.", "empty-name": vi ? "Tên liên hệ là bắt buộc." : "Contact name is required.", "name-too-long": vi ? "Tên liên hệ không được quá 40 ký tự." : "Contact name must be 40 characters or fewer.", limit: vi ? "Danh bạ đã đạt giới hạn 50 liên hệ." : "Contacts are limited to 50.",
+      "invalid-address": vi ? "Nhập địa chỉ ví hợp lệ." : "Enter a valid wallet address.",
+      self: vi ? "Không thể lưu chính ví đang kết nối." : "You cannot save the connected wallet as a contact.",
+      "empty-name": vi ? "Tên liên hệ là bắt buộc." : "Contact name is required.",
+      "name-too-long": vi ? "Tên liên hệ không được quá 40 ký tự." : "Contact name must be 40 characters or fewer.",
+      limit: vi ? "Danh bạ đã đạt giới hạn 50 liên hệ." : "Contacts are limited to 50.",
     },
     failures: {
       rejected: vi ? "Bạn đã từ chối yêu cầu trong ví. Không có giao dịch nào được gửi." : "You rejected the wallet request. No transaction was submitted.",
@@ -319,7 +1017,13 @@ function sendCopy(locale: "en" | "vi", t: ReturnType<typeof usePreferences>["t"]
 }
 
 function memoNoteResult(value: string): { note?: string; error?: true } {
-  try { return { note: normalizeMemoNote(value) }; } catch { return { error: true }; }
+  try {
+    return { note: normalizeMemoNote(value) };
+  } catch {
+    return { error: true };
+  }
 }
 
-function nowMs() { return Date.now(); }
+function nowMs() {
+  return Date.now();
+}

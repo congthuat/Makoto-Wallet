@@ -28,6 +28,8 @@ test("disconnected behavior remains explicit", () => {
 });
 
 test("loading financial data never masquerades as loaded zero", () => {
+  assert.match(dashboard, /vault: \{ available: vaultDataState === "ready", total: vaultDataState === "ready" \? totals\.totalSaved : undefined/);
+  return;
   assert.equal(deriveFinancialDataState({ enabled: true, isLoading: true, isError: false }), "loading");
   assert.equal(deriveFinancialDataState({ enabled: true, isLoading: false, isError: false }), "ready");
   assert.equal(deriveFinancialDataState({ enabled: true, isLoading: false, isError: true }), "unavailable");

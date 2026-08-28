@@ -63,10 +63,10 @@ test("English and Vietnamese onboarding labels cover both paths and success", ()
     assert.ok(translations["onboarding.continueGoogle"]);
     assert.ok(translations["onboarding.emailStep3"]);
   }
-  assert.equal(en["onboarding.createWallet"], "Create Wallet with Email or Google");
-  assert.equal(vi["onboarding.createWallet"], "Tạo ví bằng Email hoặc Google");
-  assert.equal(en["onboarding.createHelp"], "New to Web3? Create a Makoto Wallet in seconds.");
-  assert.equal(vi["onboarding.createHelp"], "Chưa có ví? Tạo Makoto Wallet chỉ trong vài giây.");
+  assert.equal(en["onboarding.createWallet"], "Create Wallet");
+  assert.equal(vi["onboarding.createWallet"], "Tạo ví");
+  assert.equal(en["onboarding.createHelp"], "Use Email or Google.");
+  assert.equal(vi["onboarding.createHelp"], "Dùng Email hoặc Google.");
   assert.match(en["onboarding.emailGuide"], /press the arrow button/);
   assert.match(vi["onboarding.emailGuide"], /bấm nút mũi tên/);
 });

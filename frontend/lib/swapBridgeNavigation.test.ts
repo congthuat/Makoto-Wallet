@@ -5,16 +5,14 @@ import test from "node:test";
 const panel = readFileSync(new URL("../components/SwapPanel.tsx", import.meta.url), "utf8");
 const swap = readFileSync(new URL("../components/RealSwapFlow.tsx", import.meta.url), "utf8");
 
-test("Bridge selection renders Bridge and removes Swap from the active workflow", () => {
-  assert.match(panel, /onClick=\{\(\) => setMode\("bridge"\)\}/);
-  assert.match(panel, /mode === "swap" \? <RealSwapFlow[\s\S]*: <UniversalBridgeFlow/);
+test("outer action fixes the direct Swap or Bridge workflow", () => {
+  assert.match(panel, /initialMode === "swap" \? <RealSwapFlow[\s\S]*: <UniversalBridgeFlow/);
+  assert.match(panel, /title=\{initialMode === "bridge" \? "Bridge"[\s\S]*?"Swap"\}/);
 });
 
-test("Swap and Bridge remain selectable for repeated mode switching", () => {
-  assert.match(panel, /onClick=\{\(\) => setMode\("swap"\)\}/);
-  assert.match(panel, /onClick=\{\(\) => setMode\("bridge"\)\}/);
-  assert.match(panel, /className=\{mode === "swap"/);
-  assert.match(panel, /className=\{mode === "bridge"/);
+test("modal contains no duplicate Swap or Bridge chooser", () => {
+  assert.doesNotMatch(panel, /Swap & Bridge|Hoán đổi & Bridge|setMode\(|mode === "swap"/);
+  assert.doesNotMatch(panel, />\s*Bridge\s*<\/button>|>\s*Swap\s*<\/button>/);
 });
 
 test("quote preparation does not lock mode navigation", () => {
@@ -22,9 +20,8 @@ test("quote preparation does not lock mode navigation", () => {
   assert.doesNotMatch(swap, /onBusyChange\(Boolean\(pending\)\)/);
 });
 
-test("mode switching contains no signing or transaction submission", () => {
-  const modeControls = panel.slice(panel.indexOf('<div className="modal-actions"'), panel.indexOf('{mode === "swap"'));
+test("direct-flow wrapper contains no signing or transaction submission", () => {
   for (const forbidden of ["writeContract", "sendTransaction", "sign", "approve", "execute"]) {
-    assert.equal(modeControls.includes(forbidden), false, forbidden);
+    assert.equal(panel.includes(forbidden), false, forbidden);
   }
 });

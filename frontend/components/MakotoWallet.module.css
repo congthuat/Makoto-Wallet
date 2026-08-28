@@ -39,20 +39,20 @@
 
 :global(html[data-theme="dark"]) .page {
   --mw-navy: #f4f6ff;
-  --mw-page-base: #070b18;
-  --mw-surface: rgba(15, 23, 43, .94);
-  --mw-surface-solid: #101a30;
-  --mw-surface-muted: #1b2440;
+  --mw-page-base: #080717;
+  --mw-surface: rgba(12, 10, 29, .98);
+  --mw-surface-solid: #0c0a1d;
+  --mw-surface-muted: #110b27;
   --mw-text: #f4f6ff;
   --mw-text-muted: #aeb8d1;
   --mw-accent: #9b84ff;
   --mw-nav-active: #a58fff;
   --mw-nav-active-bg: linear-gradient(135deg, rgba(65, 49, 105, .96), rgba(40, 42, 80, .96));
-  --mw-border: rgba(154, 166, 220, .18);
-  --mw-divider: rgba(154, 166, 220, .15);
-  --mw-progress-track: #27324d;
-  --header-control-bg: rgba(16, 26, 48, .88);
-  --header-control-border: rgba(154, 166, 220, .18);
+  --mw-border: rgba(146, 105, 231, .28);
+  --mw-divider: rgba(172, 139, 239, .16);
+  --mw-progress-track: #21163d;
+  --header-control-bg: rgba(17, 11, 39, .94);
+  --header-control-border: rgba(146, 105, 231, .28);
   --header-control-shadow: 0 12px 30px rgba(0, 0, 0, .24);
   --mw-action-send: linear-gradient(135deg, #302650, #252146);
   --mw-action-receive: linear-gradient(135deg, #19354e, #192b48);
@@ -61,7 +61,7 @@
   --mw-asset-usdc: linear-gradient(135deg, #17344d, #182b46);
   --mw-asset-eurc: linear-gradient(135deg, #30284d, #262441);
   background:
-    radial-gradient(circle at 4% 7%, rgba(53, 201, 245, .11), transparent 25rem),
+    radial-gradient(circle at 4% 7%, rgba(113, 54, 228, .11), transparent 25rem),
     radial-gradient(circle at 92% 8%, rgba(166, 92, 255, .12), transparent 27rem),
     var(--mw-page-base);
 }
@@ -69,20 +69,20 @@
 @media (prefers-color-scheme: dark) {
   :global(html[data-theme="system"]) .page {
     --mw-navy: #f4f6ff;
-    --mw-page-base: #070b18;
-    --mw-surface: rgba(15, 23, 43, .94);
-    --mw-surface-solid: #101a30;
-    --mw-surface-muted: #1b2440;
+    --mw-page-base: #080717;
+    --mw-surface: rgba(12, 10, 29, .98);
+    --mw-surface-solid: #0c0a1d;
+    --mw-surface-muted: #110b27;
     --mw-text: #f4f6ff;
     --mw-text-muted: #aeb8d1;
     --mw-accent: #9b84ff;
     --mw-nav-active: #a58fff;
     --mw-nav-active-bg: linear-gradient(135deg, rgba(65, 49, 105, .96), rgba(40, 42, 80, .96));
-    --mw-border: rgba(154, 166, 220, .18);
-    --mw-divider: rgba(154, 166, 220, .15);
-    --mw-progress-track: #27324d;
-    --header-control-bg: rgba(16, 26, 48, .88);
-    --header-control-border: rgba(154, 166, 220, .18);
+    --mw-border: rgba(146, 105, 231, .28);
+    --mw-divider: rgba(172, 139, 239, .16);
+    --mw-progress-track: #21163d;
+    --header-control-bg: rgba(17, 11, 39, .94);
+    --header-control-border: rgba(146, 105, 231, .28);
     --header-control-shadow: 0 12px 30px rgba(0, 0, 0, .24);
     --mw-action-send: linear-gradient(135deg, #302650, #252146);
     --mw-action-receive: linear-gradient(135deg, #19354e, #192b48);
@@ -91,7 +91,7 @@
     --mw-asset-usdc: linear-gradient(135deg, #17344d, #182b46);
     --mw-asset-eurc: linear-gradient(135deg, #30284d, #262441);
     background:
-      radial-gradient(circle at 4% 7%, rgba(53, 201, 245, .11), transparent 25rem),
+      radial-gradient(circle at 4% 7%, rgba(113, 54, 228, .11), transparent 25rem),
       radial-gradient(circle at 92% 8%, rgba(166, 92, 255, .12), transparent 27rem),
       var(--mw-page-base);
   }
@@ -2203,22 +2203,144 @@
 @media(max-width:767px){.nav{border-color:var(--mw-border);background:color-mix(in srgb,var(--mw-sidebar) 96%,transparent)}.nav a{color:var(--mw-text-muted)}.nav a.navActive{color:var(--mw-text)}.mobileNavLabel{font-size:10px;font-weight:650}}
 @media(prefers-reduced-motion:reduce){.page *,.page *::before,.page *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
+/* Agent-centered dashboard */
+.pageHeadingSupporting{display:none}
+.agentHero{position:relative;isolation:isolate;margin:20px 0 18px;padding:30px clamp(28px,3.4vw,48px) 28px;border:1px solid rgba(154,112,255,.42);border-radius:30px;display:grid;grid-template-columns:minmax(210px,.52fr) minmax(520px,1.48fr);grid-template-areas:"copy visual" "interaction interaction" "commands commands";align-content:center;gap:14px 24px;overflow:hidden;background:radial-gradient(circle at 63% 28%,rgba(146,75,255,.3),transparent 27%),radial-gradient(circle at 78% 18%,rgba(232,87,255,.12),transparent 23%),radial-gradient(circle at 25% 115%,rgba(87,54,215,.22),transparent 43%),linear-gradient(145deg,#080616 0%,#0d0922 48%,#12082b 100%);box-shadow:0 30px 90px rgba(12,5,34,.38),inset 0 1px rgba(222,207,255,.08)}
+.agentHero::before{content:"";position:absolute;inset:0;z-index:-2;background:radial-gradient(circle at 12% 18%,rgba(238,231,255,.85) 0 1px,transparent 2px),radial-gradient(circle at 86% 13%,rgba(204,185,255,.8) 0 1.5px,transparent 2.5px),radial-gradient(circle at 93% 47%,rgba(166,119,255,.72) 0 1px,transparent 2px),radial-gradient(circle at 34% 42%,rgba(255,255,255,.38) 0 1px,transparent 2px),radial-gradient(circle at 72% 72%,rgba(234,203,255,.48) 0 1px,transparent 2px),linear-gradient(120deg,transparent 20%,rgba(141,90,255,.08) 52%,transparent 78%);pointer-events:none}
+.agentHero::after{content:"";position:absolute;inset:auto -8% -48% 22%;height:82%;z-index:-1;border-radius:50%;background:radial-gradient(ellipse,rgba(137,72,255,.34),rgba(99,44,207,.1) 40%,transparent 68%);filter:blur(18px);pointer-events:none}
+.agentAtmosphere{grid-area:visual;position:relative;width:min(100%,650px);min-height:365px;display:grid;place-items:center;justify-self:center;pointer-events:none}
+.agentAtmosphere::before,.agentAtmosphere::after{content:"";position:absolute;border-radius:50%;inset:8% 1%;background:radial-gradient(circle,color-mix(in srgb,var(--mw-accent) 32%,transparent) 0,transparent 63%);filter:blur(14px);animation:agentAura 5.8s ease-in-out infinite}
+.agentAtmosphere::after{inset:20% 14%;background:radial-gradient(circle,rgba(190,162,255,.34),transparent 68%);filter:blur(24px);animation-delay:-2.9s}
+.agentAura{position:absolute;width:480px;height:315px;border-radius:48%;background:radial-gradient(ellipse,rgba(184,113,255,.5) 0,rgba(111,53,255,.26) 38%,transparent 70%);filter:blur(20px);animation:agentAura 5.8s ease-in-out infinite}
+.agentCharacter{position:relative;z-index:3;width:min(98%,480px);height:auto;object-fit:contain;filter:drop-shadow(0 0 18px rgba(207,160,255,.72)) drop-shadow(0 0 46px rgba(130,62,255,.38)) drop-shadow(0 28px 34px rgba(14,4,48,.72));animation:agentFloat 6s ease-in-out infinite}
+.agentRingOuter,.agentRingMiddle,.agentRingInner{--tilt:68deg;position:absolute;z-index:1;border-radius:50%;background:conic-gradient(from 28deg,transparent 0 7%,rgba(210,193,255,.75) 10%,transparent 15% 27%,rgba(129,83,255,.62) 31%,transparent 37% 54%,rgba(230,220,255,.7) 58%,transparent 64% 82%,rgba(123,78,247,.5) 87%,transparent 93%);mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);filter:drop-shadow(0 0 8px rgba(144,99,255,.6));transform:rotateX(var(--tilt));animation:agentOrbit 22s linear infinite}
+.agentRingOuter{width:610px;height:390px;opacity:.82}.agentRingMiddle{--tilt:61deg;width:525px;height:345px;opacity:.68;animation-direction:reverse;animation-duration:17s}.agentRingInner{--tilt:74deg;z-index:4;width:425px;height:275px;opacity:.48;animation-duration:13s}
+.agentPlatform{position:absolute;z-index:2;bottom:0;width:350px;height:68px;border:1px solid rgba(222,207,255,.5);border-radius:50%;background:radial-gradient(ellipse,#fff 0,#d6b7ff 5%,rgba(147,76,255,.88) 13%,rgba(106,48,233,.38) 44%,transparent 72%);box-shadow:0 0 24px rgba(171,105,255,.78),0 0 70px rgba(121,54,255,.42);filter:blur(2px);animation:agentGlow 4.2s ease-in-out infinite}
+.agentParticleOne,.agentParticleTwo,.agentParticleThree,.agentParticleFour,.agentParticleFive{position:absolute;z-index:5;width:6px;height:6px;border-radius:50%;background:#eee9ff;box-shadow:0 0 6px #fff,0 0 15px #9b79ff;animation:agentParticleDrift 9s ease-in-out infinite}
+.agentParticleOne{top:13%;left:13%}.agentParticleTwo{top:21%;right:9%;width:8px;height:8px;animation-delay:-2.2s}.agentParticleThree{right:20%;bottom:17%;width:4px;height:4px;animation-delay:-4.1s}.agentParticleFour{left:20%;bottom:24%;width:3px;height:3px;animation-delay:-6.2s}.agentParticleFive{top:8%;left:53%;width:4px;height:4px;animation-delay:-7.4s}
+.agentHeroCopy{grid-area:copy;align-self:center;max-width:250px;min-width:0;z-index:6}
+.agentEyebrow{color:#cdb8ff;font-size:9px;font-weight:800;letter-spacing:1.7px}
+.agentHeroCopy h1{max-width:250px;margin:9px 0 7px;color:#f8f5ff;font:750 clamp(32px,2.7vw,42px)/1.02 var(--font-display),system-ui,sans-serif;letter-spacing:-1.2px;text-wrap:balance}
+.agentTagline{margin:0;color:#f5f0ff;font-size:clamp(16px,1.35vw,19px);font-weight:600}
+.agentSupport{max-width:245px;margin:11px 0 0;color:#bcb3d6;font-size:12px;line-height:1.6}
+.agentAmbientSuggestions{position:absolute;top:48px;right:32px;width:220px;height:285px;z-index:6;pointer-events:none}.agentAmbientSuggestions button{position:absolute;min-height:40px;max-width:190px;padding:9px 15px;border:1px solid rgba(183,145,255,.38);border-radius:999px;background:rgba(15,10,37,.74);color:#d2c8e8;font:650 11px/1.25 inherit;cursor:pointer;pointer-events:auto;box-shadow:0 10px 30px rgba(8,3,28,.34),inset 0 1px rgba(255,255,255,.05);backdrop-filter:blur(10px);transition:border-color .18s ease,color .18s ease,background .18s ease,transform .18s ease}.agentAmbientSuggestions button:nth-child(1){top:4px;left:0;transform:translateX(-38px)}.agentAmbientSuggestions button:nth-child(2){top:112px;right:0;transform:translateX(8px)}.agentAmbientSuggestions button:nth-child(3){top:224px;left:0;transform:translateX(-22px)}.agentAmbientSuggestions button:hover{border-color:rgba(206,174,255,.78);color:#fff;background:rgba(95,47,194,.32)}
+.agentInteraction{grid-area:interaction;width:min(100%,1040px);justify-self:center;display:grid;gap:12px;min-width:0}
+.agentComposer label{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.agentComposer{margin:0}.agentComposer>div{min-height:68px;padding:8px 9px 8px 24px;border:1px solid rgba(166,123,255,.54);border-radius:999px;display:flex;align-items:center;gap:10px;background:rgba(13,10,33,.92);box-shadow:0 14px 42px rgba(12,7,30,.28),0 0 24px rgba(127,76,232,.18),inset 0 1px rgba(255,255,255,.06);transition:border-color .18s ease,box-shadow .18s ease}
+.agentComposer input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:#f8f5ff;font:500 15px/1.4 inherit}
+.agentComposer input:focus,.agentComposer input:focus-visible{outline:none!important;box-shadow:none!important}
+.agentComposer input::placeholder{color:#9e94b8}
+.agentComposer button{width:50px;height:50px;border:0;border-radius:50%;background:var(--action-primary);color:var(--on-primary);font-size:22px;cursor:pointer;transition:background .18s ease,transform .18s ease}
+.agentComposer button:hover:not(:disabled){background:var(--action-primary-hover);transform:translateY(-1px)}.agentComposer button:disabled{opacity:.44;cursor:not-allowed}
+.agentComposer>div:focus-within{border-color:var(--mw-accent);box-shadow:0 14px 42px rgba(12,7,30,.2),0 0 0 3px color-mix(in srgb,var(--mw-accent) 24%,transparent),0 0 28px color-mix(in srgb,var(--mw-accent) 16%,transparent),inset 0 1px rgba(255,255,255,.06)}
+.agentResponse{max-height:240px;margin:0;padding:15px 18px;border:1px solid rgba(157,111,255,.28);border-radius:20px;overflow:auto;overscroll-behavior:contain;background:rgba(11,8,29,.76);box-shadow:0 12px 34px rgba(7,3,24,.18),inset 0 1px rgba(255,255,255,.05)}
+.agentResponse article{min-width:0}.agentResponse article+article{margin-top:10px;padding-top:10px;border-top:1px solid rgba(177,145,240,.18)}.agentResponse strong{color:#cdb8ff;font-size:9px;letter-spacing:.8px;text-transform:uppercase}.agentResponse p{margin:4px 0 0;color:#f5f1ff;font-size:13px;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere}.agentUserMessage{opacity:.72}.agentDraft{margin-top:10px}.agentDraft section{margin:0}
+.agentCommands{grid-area:commands;width:min(100%,1060px);justify-self:center;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.agentCommands button,.agentCommands a{min-width:0;min-height:52px;padding:9px 10px;border:1px solid rgba(159,119,241,.3);border-radius:15px;display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(14,10,34,.78);color:#f6f2ff;font:750 11px/1.15 inherit;text-align:center;text-decoration:none;cursor:pointer;box-shadow:inset 0 1px rgba(255,255,255,.04);transition:border-color .18s ease,background .18s ease,transform .18s ease}
+.agentCommands button:hover:not(:disabled),.agentCommands a:hover{border-color:rgba(196,162,255,.72);background:rgba(95,48,190,.28);transform:translateY(-1px)}
+.agentCommands .agentCommandPrimary{border-color:var(--action-primary);background:var(--action-primary);color:var(--on-primary);box-shadow:0 12px 30px color-mix(in srgb,var(--action-primary) 28%,transparent)}
+.agentCommands button:disabled{opacity:.48;cursor:not-allowed}.agentCommands .appIconTile{width:20px;height:20px;border:0;background:transparent}.agentCommands .appIconTile svg{width:18px;height:18px}
+@keyframes agentFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes agentAura{0%,100%{opacity:.64;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+@keyframes agentOrbit{to{transform:rotateX(var(--tilt)) rotateZ(360deg)}}
+@keyframes agentGlow{0%,100%{opacity:.62;transform:scale(.94)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes agentParticleDrift{0%,100%{opacity:.25;transform:translate3d(0,0,0)}50%{opacity:1;transform:translate3d(8px,-16px,0)}}
+@media(max-width:1100px){.agentHero{grid-template-columns:minmax(190px,.58fr) minmax(400px,1.42fr)}.agentAmbientSuggestions{right:20px;width:190px}.agentAmbientSuggestions button{max-width:165px}.agentAtmosphere{min-height:330px}.agentCharacter{width:min(96%,420px)}.agentRingOuter{width:500px;height:330px}.agentRingMiddle{width:440px;height:300px}.agentRingInner{width:360px;height:245px}.agentCommands{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:767px){.agentHero{margin:14px 0;padding:22px 16px;border-radius:23px;grid-template-columns:1fr;grid-template-areas:"copy" "visual" "interaction" "commands";gap:13px;text-align:center}.agentHeroCopy{justify-self:center;max-width:340px}.agentHeroCopy h1{max-width:340px;font-size:34px;letter-spacing:-1px}.agentSupport{max-width:340px;font-size:13px}.agentAmbientSuggestions{display:none}.agentAtmosphere{min-height:275px}.agentCharacter{width:min(96%,310px)}.agentAura{width:310px;height:205px}.agentRingOuter{width:350px;height:245px}.agentRingMiddle{width:310px;height:220px}.agentRingInner{width:265px;height:185px}.agentPlatform{bottom:0;width:245px}.agentInteraction{gap:10px;text-align:left}.agentResponse{max-height:240px;padding:12px 14px}.agentComposer>div{min-height:60px;padding-left:17px}.agentComposer button{width:44px;height:44px}.agentCommands{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.agentCommands button,.agentCommands a{min-height:50px;padding:9px 7px}.agentCommands>*:last-child{grid-column:1/-1}}
+@media(max-width:390px){.agentHero{padding-inline:13px}.agentHeroCopy h1{font-size:31px}.agentCommands button{min-height:50px}.agentComposer input{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.agentAtmosphere::before,.agentAtmosphere::after,.agentAura,.agentCharacter,.agentRingOuter,.agentRingMiddle,.agentRingInner,.agentPlatform,.agentParticleOne,.agentParticleTwo,.agentParticleThree,.agentParticleFour,.agentParticleFive{animation:none!important}.agentAmbientSuggestions button,.agentCommands button:hover:not(:disabled),.agentCommands a:hover,.agentComposer button:hover:not(:disabled){transform:none}}
+
+/* AI-first dashboard simplification: one atmosphere, three information surfaces. */
+.settingsNavItem{margin-top:auto!important;border-top:1px solid var(--mw-divider)!important}.feedbackNavItem,.helpNavItem{margin-top:0!important}.guardianContextCard+.settingsNavItem{margin-top:9px!important}
+.agentHero{margin-top:0;padding-top:22px;grid-template-columns:minmax(200px,.46fr) minmax(560px,1.54fr);background:radial-gradient(circle at 61% 26%,rgba(154,80,255,.36),transparent 28%),radial-gradient(circle at 82% 14%,rgba(225,96,255,.13),transparent 24%),radial-gradient(circle at 20% 110%,rgba(88,50,211,.24),transparent 46%),linear-gradient(145deg,#05040f 0%,#0a071b 46%,#14072c 100%)}
+.agentAtmosphere{justify-self:center;transform:translateX(-2%)}
+.agentAmbientSuggestions{right:clamp(14px,3vw,42px)}
+.agentCommands{grid-template-columns:repeat(4,minmax(0,1fr));max-width:760px}.agentCommands button{min-height:56px}
+.portfolioGrid{position:relative;margin-top:16px;grid-template-columns:minmax(0,1.8fr) minmax(290px,.7fr);gap:16px}
+.portfolioGrid::before,.lowerGrid::before{content:"";position:absolute;inset:-80px -30px auto;height:170px;z-index:-1;background:radial-gradient(ellipse at 55% 0,rgba(113,54,228,.16),transparent 68%);pointer-events:none}
+.portfolioGrid .dashboardCard,.lowerGrid .activityCard{border-color:rgba(146,105,231,.28);background:radial-gradient(circle at 90% 0,rgba(123,65,220,.1),transparent 34%),linear-gradient(145deg,rgba(12,10,29,.98),rgba(17,11,39,.98));box-shadow:0 18px 46px rgba(8,3,24,.18),inset 0 1px rgba(255,255,255,.04)}
+.portfolioGrid .dashboardCard,.portfolioGrid .dashboardCard h2,.portfolioGrid .dashboardCard strong,.portfolioGrid .dashboardCard dd,.lowerGrid .activityCard,.lowerGrid .activityCard h2,.lowerGrid .activityCard strong{color:#f6f2ff}
+.portfolioGrid .dashboardCard p,.portfolioGrid .dashboardCard small,.portfolioGrid .dashboardCard dt,.portfolioGrid .assetTableHead,.lowerGrid .activityCard small,.lowerGrid .emptyActivity span{color:#aaa1c2}
+.portfolioGrid .assetRow,.lowerGrid .activityList li{border-color:rgba(172,139,239,.16);background:rgba(255,255,255,.018)}
+.portfolioGrid .statusCard{padding:22px}.statusLinks{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px}.statusLinks .cardLink{margin-top:0}
+.lowerGrid{position:relative;margin-top:16px;display:block}.lowerGrid .activityCard{width:100%;min-height:320px}
+.footer{color:color-mix(in srgb,var(--mw-text-muted) 82%,transparent)}
+@media(max-width:1024px){.agentHero{grid-template-columns:minmax(180px,.52fr) minmax(420px,1.48fr)}.portfolioGrid{grid-template-columns:1fr}.agentCommands{max-width:680px}}
+@media(max-width:767px){.nav{grid-template-columns:repeat(3,1fr)}.feedbackNavItem,.helpNavItem{display:none!important}.agentHero{margin-top:0;grid-template-columns:1fr}.agentAtmosphere{transform:none}.agentCommands{grid-template-columns:repeat(2,minmax(0,1fr))}.agentCommands>*:last-child{grid-column:auto}.portfolioGrid{margin-top:12px}.lowerGrid{margin-top:12px}}
+
+/* Agent hero hierarchy refinement: focused copilot stage with separate wallet shortcuts. */
+.agentHero{min-height:548px;padding:24px clamp(24px,3vw,42px) 28px;grid-template-columns:1fr;grid-template-areas:"visual" "interaction";grid-template-rows:minmax(388px,1fr) auto;gap:18px;overflow:hidden;background:radial-gradient(circle at 50% 23%,rgba(177,100,255,.4),transparent 25%),radial-gradient(ellipse at 50% -12%,rgba(112,58,235,.3),transparent 52%),radial-gradient(circle at 86% 20%,rgba(229,96,255,.13),transparent 24%),linear-gradient(145deg,#05040f 0%,#0a071b 44%,#160832 100%);box-shadow:0 32px 92px rgba(8,3,28,.42),0 0 42px rgba(103,52,214,.13),inset 0 1px rgba(232,220,255,.1)}
+.agentHero::before{background:radial-gradient(circle at 8% 15%,rgba(238,231,255,.88) 0 1px,transparent 2px),radial-gradient(circle at 19% 48%,rgba(171,133,255,.62) 0 1px,transparent 2px),radial-gradient(circle at 33% 12%,rgba(255,255,255,.4) 0 1px,transparent 2px),radial-gradient(circle at 74% 10%,rgba(204,185,255,.82) 0 1.5px,transparent 2.5px),radial-gradient(circle at 91% 42%,rgba(166,119,255,.74) 0 1px,transparent 2px),radial-gradient(circle at 68% 63%,rgba(234,203,255,.5) 0 1px,transparent 2px),linear-gradient(120deg,transparent 20%,rgba(141,90,255,.09) 52%,transparent 78%)}
+.agentHero::after{inset:-48% 12% auto;height:82%;background:radial-gradient(ellipse,rgba(151,80,255,.4),rgba(99,44,207,.12) 42%,transparent 70%);filter:blur(26px)}
+.agentAtmosphere{width:min(100%,760px);min-height:388px;justify-self:center;transform:none}
+.agentAtmosphere::before{inset:2% -4%;filter:blur(18px)}.agentAtmosphere::after{inset:13% 12%;filter:blur(28px)}
+.agentAura{width:540px;height:345px;background:radial-gradient(ellipse,rgba(206,139,255,.58) 0,rgba(123,59,255,.3) 38%,transparent 72%);filter:blur(23px)}
+.agentCharacter{width:min(96%,500px);filter:drop-shadow(0 0 20px rgba(224,187,255,.82)) drop-shadow(0 0 58px rgba(139,68,255,.48)) drop-shadow(0 30px 38px rgba(10,2,39,.78))}
+.agentPlatform{width:370px;box-shadow:0 0 28px rgba(194,135,255,.86),0 0 82px rgba(121,54,255,.52)}
+.agentHeroCopy{position:absolute;top:50%;left:clamp(28px,3vw,44px);width:230px;max-width:230px;transform:translateY(-58%);z-index:7}
+.agentHeroCopy h1{max-width:230px;font-size:clamp(31px,2.5vw,40px)}
+.agentAmbientSuggestions{top:28px;right:auto;left:50%;width:min(820px,calc(100% - 36px));height:342px;transform:translateX(-50%);z-index:7}
+.agentAmbientSuggestions button{max-width:184px;min-height:42px;padding:10px 16px;background:rgba(13,8,34,.82);border-color:rgba(190,151,255,.48);box-shadow:0 12px 32px rgba(7,2,26,.42),0 0 18px rgba(127,71,240,.12),inset 0 1px rgba(255,255,255,.07)}
+.agentAmbientSuggestions button:nth-child(1){top:12px;left:15%;transform:none}.agentAmbientSuggestions button:nth-child(2){top:116px;right:0;transform:none}.agentAmbientSuggestions button:nth-child(3){top:auto;bottom:8px;left:12%;transform:none}
+.agentInteraction{width:min(100%,960px);gap:12px;z-index:8}
+.agentComposer{margin:0;padding:0;border:0;background:transparent;box-shadow:none}
+.agentComposer>div{min-height:66px;padding:7px 8px 7px 23px;border:1px solid rgba(176,133,255,.62);border-radius:999px;background:linear-gradient(180deg,rgba(20,14,45,.96),rgba(11,8,28,.96));box-shadow:0 16px 44px rgba(7,3,25,.34),0 0 28px rgba(126,71,234,.16),inset 0 1px rgba(255,255,255,.08)}
+.agentComposer input,.agentComposer input:hover,.agentComposer input:focus,.agentComposer input:focus-visible{min-height:48px;padding:0!important;border:0!important;border-radius:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;color:#faf7ff!important;appearance:none}
+.agentComposer input::placeholder{color:#aaa0c1;opacity:1}
+.agentComposer button{flex:0 0 50px;display:grid;place-items:center;padding:0;line-height:1;box-shadow:0 8px 24px color-mix(in srgb,var(--action-primary) 30%,transparent)}
+.agentComposer button span{display:block;transform:translateY(-1px)}
+.agentComposer>div:focus-within{border-color:#aa7cff;box-shadow:0 16px 44px rgba(7,3,25,.3),0 0 0 3px rgba(156,105,255,.2),0 0 32px rgba(136,77,246,.22),inset 0 1px rgba(255,255,255,.09)}
+.quickActionsPanel{position:relative;margin:0 0 16px;padding:20px 22px;border:1px solid rgba(146,105,231,.3);border-radius:24px;display:grid;grid-template-columns:minmax(220px,.7fr) minmax(420px,1.3fr);align-items:center;gap:20px;overflow:hidden;background:radial-gradient(circle at 88% 0,rgba(131,72,229,.16),transparent 34%),linear-gradient(145deg,rgba(11,9,27,.99),rgba(18,11,42,.99));box-shadow:0 18px 46px rgba(8,3,24,.2),inset 0 1px rgba(255,255,255,.05)}
+.quickActionsPanel::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 15%,rgba(146,94,255,.055) 50%,transparent 78%)}
+.quickActionsHeader{position:relative;z-index:1;min-width:0}.quickActionsHeader span{color:#bba6ef;font-size:9px;font-weight:800;letter-spacing:1.6px}.quickActionsHeader h2{margin:5px 0 0;color:#f7f3ff;font:730 21px/1.2 var(--font-display),system-ui,sans-serif}.quickActionsHeader p{max-width:330px;margin:8px 0 0;color:#aaa1c2;font-size:11px;line-height:1.5}
+.quickActionsPanel .agentCommands{position:relative;z-index:1;width:100%;max-width:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.quickActionsPanel .agentCommands button{min-height:58px;border-color:rgba(166,126,244,.32);background:rgba(23,16,50,.82)}
+.quickActionsPanel .agentCommands .agentCommandPrimary{border-color:var(--action-primary);background:var(--action-primary)}
+@media(max-width:1100px){.agentHero{min-height:auto;grid-template-columns:minmax(190px,.55fr) minmax(420px,1.45fr);grid-template-areas:"copy visual" "interaction interaction";grid-template-rows:auto auto}.agentHeroCopy{position:relative;top:auto;left:auto;width:auto;max-width:230px;transform:none}.agentAtmosphere{min-height:340px}.agentAmbientSuggestions{display:none}.quickActionsPanel{grid-template-columns:1fr}.quickActionsHeader{display:flex;align-items:end;justify-content:space-between;gap:20px}.quickActionsHeader p{margin:0;text-align:right}}
+@media(max-width:767px){.agentHero{min-height:auto;padding:22px 16px;grid-template-columns:1fr;grid-template-areas:"copy" "visual" "interaction";grid-template-rows:auto auto auto}.agentHeroCopy{justify-self:center;width:auto;max-width:340px}.agentHeroCopy h1{max-width:340px}.agentAtmosphere{min-height:286px}.agentAura{width:320px;height:215px}.agentCharacter{width:min(96%,320px)}.agentPlatform{width:250px}.quickActionsPanel{margin-bottom:12px;padding:18px 16px;border-radius:21px;gap:16px}.quickActionsHeader{display:block;text-align:left}.quickActionsHeader p{margin-top:7px;text-align:left}.quickActionsPanel .agentCommands{grid-template-columns:repeat(2,minmax(0,1fr))}.quickActionsPanel .agentCommands button{min-height:54px}.agentComposer>div{min-height:60px;padding:6px 7px 6px 17px}.agentComposer button{flex-basis:46px;width:46px;height:46px}}
+@media(prefers-reduced-motion:reduce){.agentAmbientSuggestions button:hover,.quickActionsPanel .agentCommands button:hover:not(:disabled){transform:none}}
+
+/* Final composition polish: Agent-anchored orbit, centered shortcuts, one continuous sidebar. */
+.agentOrbitStage{grid-area:visual;position:relative;width:min(100%,860px);min-height:388px;justify-self:center;display:grid;place-items:center;isolation:isolate}
+.agentOrbitStage::before{content:"";position:absolute;inset:22px 34px 18px;z-index:5;pointer-events:none;background:radial-gradient(circle at 24% 25%,rgba(237,226,255,.94) 0 2px,transparent 3px),radial-gradient(circle at 72% 23%,rgba(194,158,255,.82) 0 1.5px,transparent 2.5px),radial-gradient(circle at 82% 53%,rgba(235,214,255,.84) 0 2px,transparent 3px),radial-gradient(circle at 27% 74%,rgba(169,121,255,.86) 0 1.5px,transparent 2.5px),radial-gradient(circle at 63% 81%,rgba(255,255,255,.62) 0 1px,transparent 2px),radial-gradient(circle at 42% 15%,rgba(211,189,255,.7) 0 1px,transparent 2px),radial-gradient(circle at 78% 72%,rgba(190,153,255,.68) 0 1px,transparent 2px);filter:drop-shadow(0 0 8px rgba(153,101,255,.86))}
+.agentOrbitStage::after{content:"";position:absolute;top:50%;left:50%;width:min(calc(100% - 80px),660px);height:min(calc(100% - 72px),370px);z-index:2;border:1px solid rgba(188,148,255,.28);border-radius:50%;transform:translate(-50%,-50%) rotate(-7deg);box-shadow:0 0 18px rgba(137,79,245,.18),inset 0 0 20px rgba(151,92,255,.08);pointer-events:none}
+.agentAtmosphere{grid-area:auto;width:min(100%,760px)}
+.agentAmbientSuggestions{inset:0;left:0;width:100%;height:100%;transform:none}
+.agentAmbientSuggestions::before{display:none}
+.agentAmbientSuggestions button{width:max-content;max-width:184px;white-space:normal;text-wrap:balance}
+.agentAmbientSuggestions button:nth-child(1){top:calc(50% - 175px);left:calc(50% - 315px);transform:translate(-50%,-50%) rotate(-3deg)}
+.agentAmbientSuggestions button:nth-child(2){top:calc(50% - 165px);right:auto;left:calc(50% + 315px);transform:translate(-50%,-50%) rotate(2deg)}
+.agentAmbientSuggestions button:nth-child(3){top:calc(50% + 185px);bottom:auto;left:calc(50% - 300px);transform:translate(-50%,-50%) rotate(2deg)}
+.quickActionsPanel{grid-template-columns:1fr;justify-items:center;gap:0;padding:14px 22px;text-align:center}
+.quickActionsHeader{display:block;text-align:center}.quickActionsHeader p{margin:8px auto 0;text-align:center}
+.quickActionsPanel .agentCommands{grid-area:auto;place-self:center;width:min(100%,568px);grid-template-columns:repeat(4,minmax(118px,133px));justify-content:center;margin-inline:auto;gap:12px}
+.brand,.nav{border-color:var(--mw-sidebar-border,var(--border-subtle));background:var(--mw-sidebar)}
+:global(html[data-theme="dark"]) .page{--mw-sidebar:#080717;--mw-sidebar-border:rgba(151,112,229,.22)}
+@media(prefers-color-scheme:dark){:global(html[data-theme="system"]) .page{--mw-sidebar:#080717;--mw-sidebar-border:rgba(151,112,229,.22)}}
+.brand{border-bottom:0;box-shadow:inset -1px 0 rgba(177,136,255,.035)}
+.nav{box-shadow:inset -1px 0 rgba(177,136,255,.035)}
+.nav a{color:#9fa7be;background:transparent}.nav a:hover{color:#f1edff;background:rgba(137,92,235,.09)}
+.nav a.navActive{color:#f7f3ff;background:linear-gradient(90deg,rgba(129,82,233,.2),rgba(106,66,204,.09))}
+.settingsNavItem{margin-top:auto!important;border-top:0!important}.settingsNavItem::after{content:"";position:absolute;top:-11px;left:8px;right:8px;height:1px;background:linear-gradient(90deg,transparent,rgba(171,135,239,.3) 18%,rgba(171,135,239,.3) 82%,transparent)}
+.feedbackNavItem,.helpNavItem{margin-top:0!important;border:0!important;background:transparent!important}.feedbackNavItem:hover,.helpNavItem:hover{background:rgba(137,92,235,.09)!important}
+@media(min-width:768px) and (max-width:1100px){.agentOrbitStage{min-height:340px}.agentOrbitStage::after{width:min(calc(100% - 34px),610px);height:min(calc(100% - 20px),320px)}.agentAmbientSuggestions{display:block}.agentAmbientSuggestions button{max-width:156px}.agentAmbientSuggestions button:nth-child(1){top:calc(50% - 155px);left:calc(50% - min(44%,300px))}.agentAmbientSuggestions button:nth-child(2){top:calc(50% - 145px);right:auto;left:calc(50% + min(44%,300px))}.agentAmbientSuggestions button:nth-child(3){top:calc(50% + 175px);bottom:auto;left:calc(50% - min(44%,300px))}.settingsNavItem span,.feedbackNavItem span,.helpNavItem span{display:none}}
+@media(max-width:767px){.agentOrbitStage{min-height:350px;align-items:start}.agentOrbitStage::after{display:none}.agentAmbientSuggestions{position:absolute;inset:auto 0 4px;display:flex;width:100%;height:auto;justify-content:center;gap:8px;padding-inline:8px;transform:none}.agentAmbientSuggestions button{position:relative;inset:auto!important;max-width:150px;min-height:44px;transform:none!important}.agentAmbientSuggestions button:nth-child(3){display:none}.quickActionsPanel{padding:14px 16px}.quickActionsPanel .agentCommands{place-self:center;width:min(100%,310px);grid-template-columns:repeat(2,minmax(120px,145px));margin-inline:auto;gap:10px}.brand{background:transparent}.nav{background:linear-gradient(180deg,rgba(12,16,37,.98),rgba(16,13,42,.98))}}
+
 /* Phase 11: persistent destinations and AA-safe interactive accents. */
-.hashDestination,.settingsHero,.settingsCard,.settingsSectionHeading,.disconnectedDestination{scroll-margin-top:92px}
+.hashDestination,.settingsHero,.settingsCard,.settingsSectionHeading{scroll-margin-top:92px}
 .settingsHero>p,.settingsSectionHeading>p{color:#6841d8}
-.settingsLink,.settingsAsset a,.disconnectedToolLinks a{color:#6841d8}
+.settingsLink,.settingsAsset a{color:#6841d8}
 :global(html[data-theme="dark"]) .settingsHero>p,:global(html[data-theme="dark"]) .settingsSectionHeading>p,
-:global(html[data-theme="dark"]) .settingsLink,:global(html[data-theme="dark"]) .settingsAsset a,:global(html[data-theme="dark"]) .disconnectedToolLinks a{color:#a995ff}
-@media(prefers-color-scheme:dark){:global(html[data-theme="system"]) .settingsHero>p,:global(html[data-theme="system"]) .settingsSectionHeading>p,:global(html[data-theme="system"]) .settingsLink,:global(html[data-theme="system"]) .settingsAsset a,:global(html[data-theme="system"]) .disconnectedToolLinks a{color:#a995ff}}
-.settingsReset button,.appLockCard .settingsActions button:first-child,.disconnectedDestination button{border-color:rgba(107,70,216,.48);color:#fff;background:#6b46d8}
-.disconnectedDestinations{margin-top:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.disconnectedDestination{padding:20px}.disconnectedDestination h2{margin:0 0 8px;font:700 18px/1.2 var(--font-display),system-ui,sans-serif}.disconnectedDestination p{margin:0;color:var(--mw-text-muted);font-size:12px;line-height:1.6}.disconnectedDestination button{min-height:44px;margin-top:16px;padding:0 14px;border-radius:9px;font-weight:800;cursor:pointer}.disconnectedDestination button:disabled{opacity:.55;cursor:not-allowed}.disconnectedTools{grid-column:1/-1}.disconnectedToolLinks{margin-top:15px;display:flex;flex-wrap:wrap;gap:8px}.disconnectedToolLinks a{min-height:44px;padding:0 13px;border:1px solid var(--mw-border);border-radius:9px;display:inline-flex;align-items:center;background:var(--mw-surface-solid);font-size:11px;font-weight:800}
-.disconnectedDestinations{padding-bottom:calc(100vh - 220px)}.hashDestination[id="help"]{margin-bottom:calc(100vh - 220px)}
-@media(max-width:767px){.nav a{color:#b8c1d6}.nav a.navActive{color:#fff}.disconnectedDestinations{grid-template-columns:1fr}.disconnectedTools{grid-column:auto}}
+:global(html[data-theme="dark"]) .settingsLink,:global(html[data-theme="dark"]) .settingsAsset a{color:#a995ff}
+@media(prefers-color-scheme:dark){:global(html[data-theme="system"]) .settingsHero>p,:global(html[data-theme="system"]) .settingsSectionHeading>p,:global(html[data-theme="system"]) .settingsLink,:global(html[data-theme="system"]) .settingsAsset a{color:#a995ff}}
+.settingsReset button,.appLockCard .settingsActions button:first-child{border-color:rgba(107,70,216,.48);color:#fff;background:#6b46d8}
+.hashDestination[id="help"]{margin-bottom:calc(100vh - 220px)}
+@media(max-width:767px){.nav a{color:#b8c1d6}.nav a.navActive{color:#fff}}
 
 /* Phase 12B.2 — Ledger Calm navigation and dashboard composition. */
-.brand{border-color:var(--border-subtle)}
+.brand{border-color:var(--mw-sidebar-border,var(--border-subtle))}
 .brandWords strong{font-weight:720}.brandWords small{font-weight:650;letter-spacing:1.15px}
-.nav{padding-inline:12px;border-color:var(--border-subtle);gap:3px}
+.nav{padding-inline:12px;border-color:var(--mw-sidebar-border,var(--border-subtle));gap:3px}
 .nav a{min-height:44px;padding-inline:12px;border:0;border-radius:var(--radius-small);font-weight:580}
 .nav a.navActive{border:0;background:var(--accent-subtle);font-weight:700}
 .nav a.navActive::before{left:0;width:3px;height:22px;background:var(--action-primary)}
@@ -2240,7 +2362,6 @@
 .createWalletButton:hover:not(:disabled),.connectExistingButton:hover:not(:disabled){transform:translateY(-1px)}
 .disconnectedArt{border-left:1px solid var(--mw-divider);background:var(--mw-surface-muted)}
 .disconnectedLogo{width:88px;height:88px;border-radius:20px;box-shadow:var(--shadow-2)}
-.disconnectedDestinations{margin-top:14px;gap:10px}.disconnectedDestination{padding:18px}.disconnectedDestination p{max-width:68ch}
 
 .dashboardGrid{grid-template-columns:minmax(0,2.25fr) minmax(270px,.75fr);gap:14px}
 .balanceCard{min-height:272px;border-color:color-mix(in srgb,var(--mw-accent) 16%,var(--mw-border));box-shadow:var(--shadow-1)}
@@ -2276,7 +2397,7 @@
   .mobileNavLabel{font-size:11px;line-height:1.15;font-weight:650}
   .disconnected{display:block}.disconnectedCopy{padding:26px 20px}.disconnectedCopy h1{font-size:32px;letter-spacing:-1.2px}.disconnectedCopy>p{margin-top:12px;font-size:14px}
   .onboardingPanel{margin-top:22px;grid-template-columns:1fr}.onboardingPanel h2,.onboardingPanel>p{grid-column:auto}.createWalletButton,.connectExistingButton{min-height:64px}
-  .disconnectedArt{display:none}.disconnectedDestinations{margin-top:10px}.disconnectedDestination{padding:17px}
+  .disconnectedArt{display:none}
   .dashboardGrid{margin-top:14px;grid-template-columns:1fr}.balanceCard{min-height:0;padding:20px}.statusCard{padding:18px}
   .chartRanges{min-height:44px;gap:8px}
   .chartRanges button{height:44px;min-width:44px;max-width:none;padding-inline:8px;touch-action:manipulation}
@@ -2299,4 +2420,182 @@
 .settingsCard{padding:17px 19px}.settingsCard:not(.appLockCard){box-shadow:none}.settingsCard h2{font-weight:650}.settingsInfo strong,.securityMetric strong{font-variant-numeric:tabular-nums}.securityMetric{min-height:62px;border-radius:7px}.securityAlert{border-radius:7px;background:var(--mw-surface-muted)}.settingsDisclosure{line-height:1.65}.settingsReset{border-color:color-mix(in srgb,var(--danger-text) 42%,var(--mw-border));background:color-mix(in srgb,var(--danger-subtle) 42%,var(--mw-surface))}.settingsReset button{border-color:color-mix(in srgb,var(--danger-text) 58%,var(--mw-border));color:var(--danger-text);background:transparent}
 .activityHistoryPanel{width:min(960px,100%)}.activityTools{padding-bottom:12px;border-bottom:1px solid var(--mw-divider)}.activityList{margin-top:4px}.activityList li{min-height:68px;padding:10px 2px;grid-template-columns:38px minmax(220px,1.5fr) minmax(120px,.7fr) auto;border-top:1px solid var(--mw-divider);border-radius:0;background:transparent}.activityIcon{width:34px;height:34px}.activityMain strong{font-size:12px;font-variant-numeric:tabular-nums}.activityMain small{margin-top:4px;font-size:10px}.activityStatus{justify-self:start;border-radius:5px;font-size:9px;font-weight:700}.activityActions button,.activityLink{font-weight:650}.emptyActivity{min-height:180px}.activityPartialWarning{border-left:3px solid var(--warning-text);border-radius:7px}.activitySkeleton span{height:58px;border-radius:7px}
 @media(max-width:767px){.settingsGrid>.settingsWide:nth-child(9),.settingsGrid>.appLockCard{order:initial}.activityList li{grid-template-columns:36px minmax(0,1fr);padding:12px 0}.activityStatus,.activityActions{grid-column:2}.activityHistoryPanel{padding-bottom:max(24px,env(safe-area-inset-bottom))}}
+
+/* Keep disconnected artwork within the shared violet-black surface family. */
+:global(html[data-theme="dark"]) .disconnectedArt{border-left-color:var(--mw-divider);background:radial-gradient(circle,rgba(123,65,220,.16),transparent 62%),var(--mw-surface)}
+@media(prefers-color-scheme:dark){:global(html[data-theme="system"]) .disconnectedArt{border-left-color:var(--mw-divider);background:radial-gradient(circle,rgba(123,65,220,.16),transparent 62%),var(--mw-surface)}}
+
+/* Final state parity: semantic light surfaces and a right-side Agent suggestion rail. */
+@media(min-width:1101px){
+  .agentAmbientSuggestions{top:50%;right:24px;bottom:auto;left:auto;width:184px;height:auto;display:grid;gap:12px;transform:translateY(-50%)}
+  .agentAmbientSuggestions button,.agentAmbientSuggestions button:nth-child(1),.agentAmbientSuggestions button:nth-child(2),.agentAmbientSuggestions button:nth-child(3){position:relative;inset:auto;width:100%;max-width:none;min-height:46px;transform:none}
+}
+@media(min-width:768px) and (max-width:1100px){
+  .agentCharacter{width:min(96%,420px)}
+  .agentAmbientSuggestions{top:50%;right:0;bottom:auto;left:auto;width:156px;height:auto;display:grid;gap:10px;transform:translateY(-50%)}
+  .agentAmbientSuggestions button,.agentAmbientSuggestions button:nth-child(1),.agentAmbientSuggestions button:nth-child(2),.agentAmbientSuggestions button:nth-child(3){position:relative;inset:auto;width:100%;max-width:none;min-height:44px;transform:none}
+}
+:global(html[data-theme="light"]) .agentHero{border-color:rgba(104,65,216,.2);background:radial-gradient(circle at 50% 23%,rgba(154,96,255,.2),transparent 27%),radial-gradient(ellipse at 50% -12%,rgba(112,58,235,.12),transparent 54%),linear-gradient(145deg,#fff 0%,#faf8ff 48%,#f4efff 100%);box-shadow:0 24px 70px rgba(74,48,140,.12),inset 0 1px rgba(255,255,255,.9)}
+:global(html[data-theme="light"]) .agentHero::before{opacity:.34}
+:global(html[data-theme="light"]) .agentHeroCopy h1,:global(html[data-theme="light"]) .agentTagline{color:var(--mw-text)}
+:global(html[data-theme="light"]) .agentSupport{color:var(--mw-text-muted)}
+:global(html[data-theme="light"]) .agentAmbientSuggestions button{border-color:rgba(107,70,216,.22);color:#392b61;background:rgba(255,255,255,.9);box-shadow:0 10px 26px rgba(74,48,140,.1),inset 0 1px rgba(255,255,255,.9)}
+:global(html[data-theme="light"]) .agentComposer>div{border-color:rgba(107,70,216,.22);background:rgba(255,255,255,.96);box-shadow:0 14px 38px rgba(74,48,140,.11),inset 0 1px #fff}
+:global(html[data-theme="light"]) .agentComposer input,:global(html[data-theme="light"]) .agentComposer input:hover,:global(html[data-theme="light"]) .agentComposer input:focus,:global(html[data-theme="light"]) .agentComposer input:focus-visible{color:var(--mw-text)!important}
+:global(html[data-theme="light"]) .agentComposer input::placeholder{color:var(--mw-text-muted)}
+:global(html[data-theme="light"]) .quickActionsPanel{border-color:var(--mw-border);background:radial-gradient(circle at 88% 0,rgba(124,92,255,.1),transparent 34%),linear-gradient(145deg,var(--mw-surface-solid),var(--mw-surface-muted));box-shadow:var(--shadow-1),inset 0 1px rgba(255,255,255,.9)}
+:global(html[data-theme="light"]) .quickActionsPanel .agentCommands button{border-color:var(--mw-border);color:var(--mw-text);background:var(--mw-surface-solid)}
+:global(html[data-theme="light"]) .quickActionsPanel .agentCommands .agentCommandPrimary{border-color:var(--action-primary);color:var(--on-primary);background:var(--action-primary)}
+:global(html[data-theme="light"]) .portfolioGrid .dashboardCard,:global(html[data-theme="light"]) .lowerGrid .activityCard{border-color:var(--mw-border);color:var(--mw-text);background:radial-gradient(circle at 90% 0,rgba(124,92,255,.07),transparent 34%),linear-gradient(145deg,var(--mw-surface-solid),var(--mw-surface-muted));box-shadow:var(--shadow-1)}
+:global(html[data-theme="light"]) .portfolioGrid .dashboardCard h2,:global(html[data-theme="light"]) .portfolioGrid .dashboardCard strong,:global(html[data-theme="light"]) .portfolioGrid .dashboardCard dd,:global(html[data-theme="light"]) .lowerGrid .activityCard h2,:global(html[data-theme="light"]) .lowerGrid .activityCard strong{color:var(--mw-text)}
+:global(html[data-theme="light"]) .portfolioGrid .dashboardCard p,:global(html[data-theme="light"]) .portfolioGrid .dashboardCard small,:global(html[data-theme="light"]) .portfolioGrid .dashboardCard dt,:global(html[data-theme="light"]) .portfolioGrid .assetTableHead,:global(html[data-theme="light"]) .lowerGrid .activityCard small,:global(html[data-theme="light"]) .lowerGrid .emptyActivity span{color:var(--mw-text-muted)}
+:global(html[data-theme="light"]) .portfolioGrid .assetRow,:global(html[data-theme="light"]) .lowerGrid .activityList li{border-color:var(--mw-divider);background:rgba(255,255,255,.42)}
+
+/* Connected Agent hero: single-title composition and ranked speech-bubble rail. */
+.agentHeroCopy{top:34px;left:clamp(28px,3vw,44px);width:300px;max-width:300px;transform:none;align-self:start}
+.agentHeroCopy h1{max-width:300px;margin:0;color:#f8f5ff;font-size:clamp(44px,4vw,58px);line-height:.98;letter-spacing:-2.2px}
+.agentAmbientSuggestions button{position:relative;border-radius:20px;text-align:left;overflow:visible}
+.agentAmbientSuggestions button::before{content:"";position:absolute;top:50%;left:-9px;width:17px;height:17px;border-left:1px solid rgba(190,151,255,.48);border-bottom:1px solid rgba(190,151,255,.48);background:inherit;transform:translateY(-50%) rotate(45deg);border-radius:0 0 0 4px}
+.agentAmbientSuggestions button:focus-visible{outline:3px solid color-mix(in srgb,var(--mw-accent) 35%,transparent);outline-offset:3px}
+@media(min-width:1101px){
+  .agentAmbientSuggestions{top:50%;right:-112px;bottom:auto;left:auto;width:248px;height:auto;display:flex;flex-direction:column;align-items:flex-end;gap:18px;transform:translateY(-50%)}
+  .agentAmbientSuggestions button,.agentAmbientSuggestions button:nth-child(1),.agentAmbientSuggestions button:nth-child(2),.agentAmbientSuggestions button:nth-child(3){position:relative;inset:auto;max-width:none;transform:none}
+  .agentAmbientSuggestions button:nth-child(1){width:100%;min-height:68px;padding:15px 20px;font-size:13px;box-shadow:0 16px 40px rgba(7,2,26,.5),0 0 28px rgba(127,71,240,.22),inset 0 1px rgba(255,255,255,.09)}
+  .agentAmbientSuggestions button:nth-child(2){width:88%;min-height:60px;padding:13px 18px;font-size:12px}
+  .agentAmbientSuggestions button:nth-child(3){width:76%;min-height:52px;padding:11px 16px;font-size:11px;opacity:.9}
+}
+@media(min-width:768px) and (max-width:1100px){
+  .agentHero{grid-template-columns:1fr;grid-template-areas:"visual" "interaction";grid-template-rows:minmax(388px,1fr) auto}
+  .agentHeroCopy{position:absolute;top:30px;left:32px;width:260px;max-width:260px;transform:none}
+  .agentHeroCopy h1{max-width:260px;font-size:46px}
+  .agentOrbitStage{width:100%;min-height:388px}
+  .agentAmbientSuggestions{top:50%;right:4px;bottom:auto;left:auto;width:180px;height:auto;display:flex;flex-direction:column;align-items:flex-end;gap:14px;transform:translateY(-50%)}
+  .agentAmbientSuggestions button,.agentAmbientSuggestions button:nth-child(1),.agentAmbientSuggestions button:nth-child(2),.agentAmbientSuggestions button:nth-child(3){position:relative;inset:auto;max-width:none;transform:none}
+  .agentAmbientSuggestions button:nth-child(1){width:100%;min-height:58px;padding:12px 16px;font-size:11px}
+  .agentAmbientSuggestions button:nth-child(2){width:90%;min-height:52px;padding:11px 15px;font-size:10.5px}
+  .agentAmbientSuggestions button:nth-child(3){width:80%;min-height:46px;padding:10px 14px;font-size:10px}
+}
+@media(max-width:767px){
+  .agentHeroCopy{position:relative;top:auto;left:auto;width:auto;max-width:340px;transform:none}
+  .agentHeroCopy h1{max-width:340px;font-size:40px;letter-spacing:-1.6px}
+  .agentAmbientSuggestions button{border-radius:16px;text-align:center}
+  .agentAmbientSuggestions button::before{display:none}
+}
+:global(html[data-theme="light"]) .agentAmbientSuggestions button::before{border-color:rgba(107,70,216,.22)}
+
+/* Disconnected dashboard top-section pass: unified surfaces and connection CTA. */
+.page{
+  --connect-action:#34d399;
+  --connect-action-hover:#4adea5;
+  --connect-action-text:#052e22;
+  --connect-action-disabled:#29453d;
+  --connect-action-disabled-text:#8aa69e;
+  --connect-card-surface:color-mix(in srgb,var(--connect-action) 11%,var(--mw-surface));
+  --connect-card-surface-hover:color-mix(in srgb,var(--connect-action) 16%,var(--mw-surface));
+  --connect-card-border:color-mix(in srgb,var(--connect-action) 46%,var(--mw-border));
+  --connect-card-text:color-mix(in srgb,var(--connect-action) 18%,var(--mw-text));
+}
+:global(html[data-theme="dark"]) .page{
+  --mw-bg:#080611;
+  --mw-sidebar:#0c0918;
+  --mw-elevated:#151023;
+  --mw-surface:#110d1d;
+  --mw-surface-solid:#110d1d;
+  --mw-surface-muted:#171125;
+  --mw-divider:rgba(190,164,238,.14);
+  --mw-border:rgba(190,164,238,.2);
+  --mw-sidebar-border:rgba(190,164,238,.16);
+}
+@media(prefers-color-scheme:dark){
+  :global(html[data-theme="system"]) .page{
+    --mw-bg:#080611;
+    --mw-sidebar:#0c0918;
+    --mw-elevated:#151023;
+    --mw-surface:#110d1d;
+    --mw-surface-solid:#110d1d;
+    --mw-surface-muted:#171125;
+    --mw-divider:rgba(190,164,238,.14);
+    --mw-border:rgba(190,164,238,.2);
+    --mw-sidebar-border:rgba(190,164,238,.16);
+  }
+}
+:global(html[data-theme="light"]) .page{
+  --mw-bg:#f3f4f6;
+  --mw-sidebar:#fff;
+  --mw-elevated:#f8f9fb;
+  --mw-surface:#fff;
+  --mw-surface-solid:#fff;
+  --mw-surface-muted:#f7f7fa;
+  --mw-divider:#e7e5ec;
+  --mw-border:#dedce7;
+  --mw-sidebar-border:#e3e1e9;
+  --connect-action:#087a55;
+  --connect-action-hover:#066545;
+  --connect-action-text:#fff;
+  --connect-action-disabled:#d5ded9;
+  --connect-action-disabled-text:#6c7d75;
+}
+.brand,.nav{background:var(--mw-sidebar)}
+.networkPill,.languageTrigger,.themeButton,.walletControlWrap{border-color:var(--mw-border);background:var(--mw-surface);box-shadow:none}
+.walletControlWrap :global(.connect-button){
+  min-height:40px;
+  border:1px solid var(--connect-action);
+  color:var(--connect-action-text);
+  background:var(--connect-action);
+  box-shadow:0 8px 20px color-mix(in srgb,var(--connect-action) 22%,transparent);
+  transition:background var(--motion-base) var(--ease-standard),border-color var(--motion-base) var(--ease-standard),box-shadow var(--motion-base) var(--ease-standard);
+}
+.walletControlWrap :global(.connect-button:hover:not(:disabled)){border-color:var(--connect-action-hover);background:var(--connect-action-hover);box-shadow:0 10px 24px color-mix(in srgb,var(--connect-action) 28%,transparent)}
+.walletControlWrap :global(.connect-button:focus-visible){outline:3px solid color-mix(in srgb,var(--connect-action) 42%,transparent);outline-offset:3px}
+.walletControlWrap :global(.connect-button:disabled){border-color:var(--connect-action-disabled);color:var(--connect-action-disabled-text);background:var(--connect-action-disabled);box-shadow:none;cursor:not-allowed}
+.pageHeading{gap:4px}.pageHeading h1{margin:0}.pageHeading p{margin:0;color:var(--mw-text-muted)}
+.disconnected{
+  grid-template-columns:minmax(0,1fr) minmax(190px,240px);
+  overflow:hidden;
+  border-color:var(--mw-border);
+  background:var(--mw-surface);
+  box-shadow:none;
+}
+.disconnectedCopy{padding:36px 40px}.disconnectedCopy h1{margin-top:0}.disconnectedCopy>p{margin-top:10px}
+.onboardingPanel{margin-top:22px;gap:10px}.onboardingPanel h2{margin-bottom:2px}
+.createWalletButton,.connectExistingButton{min-height:64px;box-shadow:none}
+.createWalletButton:hover:not(:disabled),.connectExistingButton:hover:not(:disabled){transform:none}
+.connectExistingButton{
+  border-color:var(--connect-card-border);
+  color:var(--connect-card-text);
+  background:var(--connect-card-surface);
+  box-shadow:inset 0 1px color-mix(in srgb,var(--connect-action) 12%,transparent);
+}
+.connectExistingButton:hover:not(:disabled){border-color:color-mix(in srgb,var(--connect-action) 62%,var(--mw-border));background:var(--connect-card-surface-hover)}
+.createWalletButton:focus-visible{outline:3px solid color-mix(in srgb,var(--focus-ring) 42%,transparent);outline-offset:3px}
+.connectExistingButton:focus-visible{outline:3px solid color-mix(in srgb,var(--connect-action) 38%,transparent);outline-offset:3px}
+.onboardingSafety{margin-top:2px!important;padding-top:4px!important}
+.disconnectedArt{
+  border-left-color:var(--mw-divider);
+  background:radial-gradient(circle at 50% 48%,color-mix(in srgb,var(--mw-accent) 13%,transparent),transparent 58%),var(--mw-surface-muted);
+}
+:global(html[data-theme="dark"]) .disconnectedArt{background:radial-gradient(circle at 50% 48%,rgba(139,92,246,.14),transparent 58%),var(--mw-surface-muted)}
+@media(max-width:767px){
+  .disconnectedCopy{padding:24px 20px}.onboardingPanel{margin-top:20px}
+}
+
+/* Compact Security preferences and dashboard tail surfaces. */
+.settingsPreferenceReset{margin:12px 0 32px;text-align:right}
+.settingsPreferenceReset button{min-height:40px;padding:0 14px;border:1px solid var(--mw-border);border-radius:8px;color:var(--mw-text);background:var(--mw-surface-solid);font-size:10px;font-weight:850;cursor:pointer}
+.lowerGrid .activityCard{min-height:250px}
+.emptyActivity{min-height:120px}
+.footer{min-height:58px;padding-top:18px;display:block}
+@media(max-width:767px){.settingsPreferenceReset button{width:100%}.footer{min-height:52px;padding-top:15px}}
+
+/* Mobile dashboard tail: stack portfolio cards after the final desktop cascade. */
+@media(max-width:767px){
+  .shell{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+  .portfolioGrid{width:100%;min-width:0;grid-template-columns:minmax(0,1fr)}
+  .portfolioGrid>.dashboardCard,.portfolioGrid>.assetsSection,.portfolioGrid>.statusCard{width:100%;min-width:0;box-sizing:border-box}
+  .assetRows,.assetRow{width:100%;min-width:0}
+  .assetRow{grid-template-columns:auto minmax(0,1fr) auto}
+  .assetRow>div:nth-child(2){min-width:0}
+  .assetBalance{min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal}
+  .lowerGrid,.lowerGrid>.activityCard{width:100%;min-width:0;box-sizing:border-box}
+}
 

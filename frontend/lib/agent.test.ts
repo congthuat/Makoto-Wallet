@@ -30,7 +30,7 @@ test("wallet overview returns supplied values and preserves unavailable instead 
 
 test("bounded parser recognizes English and Vietnamese read intents", () => {
   const cases: Array<[string, AgentRequest["locale"], string, string?]> = [
-    ["how much USDC do I have", "en", "wallet-overview"], ["số dư của mình", "vi", "wallet-overview"],
+    ["how much USDC do I have", "en", "wallet-overview"], ["summarize my wallet", "en", "wallet-overview"], ["số dư của mình", "vi", "wallet-overview"], ["tóm tắt ví của tôi", "vi", "wallet-overview"],
     ["recent transactions", "en", "recent-activity", "all"], ["5 giao dịch gần nhất", "vi", "recent-activity", "all"],
     ["last swap", "en", "recent-activity", "swap"], ["recent bridges", "en", "recent-activity", "bridge"],
     ["what chain am I on", "en", "network-status"], ["đang ở mạng nào", "vi", "network-status"],

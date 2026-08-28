@@ -12,7 +12,7 @@ export function parseAgentRequest(request: AgentRequest): AgentIntent {
   const action = parseActionDraft(raw, text);
   if (action) return { kind: "action-draft", locale: request.locale, actionDraft: action };
   if (has(text, ["vault", "savings", "saving goal", "tiết kiệm", "mục tiêu"])) return { kind: "vault-summary", locale: request.locale };
-  if (has(text, ["balance", "portfolio", "how much", "số dư", "còn bao nhiêu", "tài sản"])) return { kind: "wallet-overview", locale: request.locale };
+  if (has(text, ["balance", "portfolio", "how much", "summarize my wallet", "wallet summary", "số dư", "còn bao nhiêu", "tài sản", "tóm tắt ví"])) return { kind: "wallet-overview", locale: request.locale };
   if (has(text, ["network", "chain", "mạng nào", "mạng", "chuỗi nào"])) return { kind: "network-status", locale: request.locale };
   if (has(text, ["security", "safety", "protect", "bảo mật", "an toàn", "bảo vệ"])) return { kind: "safety-capabilities", locale: request.locale };
   return { kind: "unknown", locale: request.locale };

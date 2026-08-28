@@ -12,8 +12,8 @@ import { SendFlow } from "./SendFlow";
 import { ReceivePanel } from "./ReceivePanel";
 import { SwapPanel } from "./SwapPanel";
 import { TransactionReceiptPanel } from "./TransactionReceiptPanel";
-import { BalanceHistoryChart } from "./BalanceHistoryChart";
 import { ActivityHistoryPanel } from "./ActivityHistoryPanel";
+import { ActionDraftCard } from "./MakotoAgentPage";
 
 import { useHydrated } from "@/hooks/useHydrated";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
@@ -21,6 +21,7 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { useWalletActivity } from "@/hooks/useWalletActivity";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
+import { useMakotoAgent } from "@/hooks/useMakotoAgent";
 
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { formatAssetAmount, getAssetById, SUPPORTED_ASSETS } from "@/lib/assets";
@@ -30,9 +31,10 @@ import { arcScanTransactionUrl, type WalletActivity } from "@/lib/wallet";
 import { activityIdentity } from "@/lib/onchainActivity";
 import { mergeWalletActivity, recordWalletActivity } from "@/lib/walletActivity";
 import { deriveNetworkSafety, deriveOverallSecurityStatus, deriveSecurityAlerts, summarizeJarProtection } from "@/lib/securityCenter";
-import { loadBalanceHistory, recordBalanceSnapshot, type BalanceSnapshot } from "@/lib/balanceHistory";
 import { consumeAgentHandoff, storeAgentResult, type AgentActionHandoff } from "@/lib/agent/actions";
 import { canConsumeAgentHandoff, deriveFinancialDataState, deriveWalletUiState } from "@/lib/walletHydration";
+import { createAgentContextSnapshot } from "@/lib/agent/context";
+import { rankAgentSuggestions, readSuggestionUsage, recordSuggestionUsage, suggestionStorageKey } from "@/lib/agent/suggestions";
 import {
   appKitViewForPath,
   appKitViewForCreateMethod,
@@ -44,8 +46,9 @@ import {
 } from "@/lib/onboarding";
 import { getAppKit, isReownConfigured } from "@/lib/wagmi";
 import styles from "./MakotoWallet.module.css";
+import agentStyles from "./MakotoAgentPage.module.css";
 
-type Action = "send" | "receive" | "swap";
+type Action = "send" | "receive" | "swap" | "bridge";
 
 function ExternalLinkIcon() {
   return <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 10 12 4M7 4h5v5" /><path d="M12 10v2H4V4h2" /></svg>;
@@ -79,7 +82,6 @@ export function WalletDashboard() {
     jars,
     isLoading: jarsLoading,
     error: jarsError,
-    refetch: refetchJars,
   } = useOwnerJars(onArc ? connection.address : undefined);
 
   const [action, setAction] = useState<Action>();
@@ -90,11 +92,9 @@ export function WalletDashboard() {
   const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
   const activity = useWalletActivity(connection.address, onArc, activityHistoryOpen);
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
-  const [copied, setCopied] = useState(false);
   const [receiptActivity, setReceiptActivity] = useState<WalletActivity>();
   const [activityHistoryLimit, setActivityHistoryLimit] = useState(20);
   const [createGuideOpen, setCreateGuideOpen] = useState(false);
-  const [balanceHistory, setBalanceHistory] = useState<BalanceSnapshot[]>([]);
   const [onboardingIntent, setOnboardingIntent] = useState<OnboardingPath | undefined>(() =>
     typeof window === "undefined" ? undefined : parseOnboardingIntent(window.sessionStorage.getItem(ONBOARDING_INTENT_KEY)),
   );
@@ -110,7 +110,7 @@ export function WalletDashboard() {
       window.history.replaceState({}, "", window.location.pathname);
       if (!handoff || !["send", "swap", "bridge"].includes(handoff.action)) return;
       setAgentHandoff(handoff);
-      setAction(handoff.action === "send" ? "send" : "swap");
+      setAction(handoff.action === "bridge" ? "bridge" : handoff.action === "swap" ? "swap" : "send");
     }, 0);
     return () => window.clearTimeout(timer);
   }, [agentHandoffRequestId, balancesSettled, connection.address, walletState]);
@@ -132,24 +132,13 @@ export function WalletDashboard() {
   useEffect(() => {
     const settleDashboardFragment = () => {
       const id = decodeURIComponent(window.location.hash.slice(1));
-      if (!(["assets", "apps", "activity"] as const).includes(id as "assets" | "apps" | "activity")) return;
+      if (!(["assets", "activity"] as const).includes(id as "assets" | "activity")) return;
       window.requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "start" }));
     };
     settleDashboardFragment();
     window.addEventListener("hashchange", settleDashboardFragment);
     return () => window.removeEventListener("hashchange", settleDashboardFragment);
   }, [connected]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (!onArc || !connection.address) return setBalanceHistory([]);
-      const history = balances.usdc.data === undefined
-        ? loadBalanceHistory(connection.address, arcTestnet.id, "usdc")
-        : recordBalanceSnapshot(connection.address, arcTestnet.id, "usdc", balances.usdc.data);
-      setBalanceHistory(history);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [balances.usdc.data, connection.address, onArc]);
 
   const activities = useMemo(() => {
     const optimistic = optimisticActivity && connection.address && optimisticActivity.address.toLowerCase() === connection.address.toLowerCase()
@@ -168,27 +157,41 @@ export function WalletDashboard() {
     summary: protection,
   });
   const securityStatus = deriveOverallSecurityStatus(networkSafety, jarsLoading ? "loading" : "ready", securityAlerts);
+  const agentSnapshot = useMemo(() => createAgentContextSnapshot({
+    connected: connection.isConnected,
+    account: connection.address,
+    walletType: connection.connector?.name,
+    verifiedChainId: chain.providerChainId,
+    isArc: chain.isArc,
+    balances: { usdc: balances.usdc.data, eurc: balances.eurc.data },
+    activity: activities,
+    activityPartial: activity.partial,
+    activityUnavailable: activity.unavailable,
+    vault: { available: vaultDataState === "ready", total: vaultDataState === "ready" ? totals.totalSaved : undefined, goalCount: vaultDataState === "ready" ? jars.length : undefined, activeCount: vaultDataState === "ready" ? totals.active : undefined },
+  }), [activities, activity.partial, activity.unavailable, balances.eurc.data, balances.usdc.data, chain.isArc, chain.providerChainId, connection.address, connection.connector?.name, connection.isConnected, jars.length, totals.active, totals.totalSaved, vaultDataState]);
+  const {
+    input: agentInput,
+    inputRef: agentInputRef,
+    messages: agentMessages,
+    setInput: setAgentInput,
+    ask: askAgent,
+    submit: submitAgent,
+  } = useMakotoAgent(agentSnapshot, locale, connection.address);
 
-  const visibleJars = jars.slice(0, 3);
+  const suggestionKey = suggestionStorageKey(connection.address, chain.providerChainId);
+  const agentSuggestions = useMemo(() => rankAgentSuggestions({
+    activities,
+    isArc: onArc,
+    usage: typeof window === "undefined" ? {} : readSuggestionUsage(window.localStorage, suggestionKey),
+  }), [activities, onArc, suggestionKey]);
+
+  function selectAgentSuggestion(id: Parameters<typeof recordSuggestionUsage>[2], prompt: string) {
+    recordSuggestionUsage(window.localStorage, suggestionKey, id);
+    askAgent(prompt);
+  }
+
   const guardianSetupJar = jars.find((jar) => !jar.closed && Number(jar.mode) === 1 && jar.guardian === zeroAddress);
   const visibleActivities = activities.slice(0, 5);
-  const refreshing = balances.usdc.isFetching || balances.eurc.isFetching;
-
-  async function copyAddress() {
-    if (!connection.address) return;
-    await navigator.clipboard.writeText(connection.address);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
-  }
-
-  async function refresh() {
-    await Promise.all([
-      balances.usdc.refetch(),
-      balances.eurc.refetch(),
-      refetchJars(),
-      activity.refetch(),
-    ]);
-  }
 
   async function showMoreActivity() {
     if (activityHistoryLimit < activities.length) {
@@ -229,10 +232,9 @@ export function WalletDashboard() {
     <main className={styles.page}>
       <div className={styles.shell}>
         <AppHeader guardianSetupJarId={guardianSetupJar?.id} />
-        <div className={styles.pageHeading}>
-          <span>{locale === "vi" ? "TỔNG QUAN VÍ" : "WALLET OVERVIEW"}</span>
-          <h1>{locale === "vi" ? "Tổng quan" : "Dashboard"}</h1>
-          <p>{locale === "vi" ? "Cổng kết nối an toàn của bạn tới hệ sinh thái Arc" : "Your secure gateway to the Arc ecosystem"}</p>
+        <div className={`${styles.pageHeading} ${connected ? styles.pageHeadingSupporting : ""}`}>
+          <h1>{t("walletHome.pageTitle")}</h1>
+          <p>{t("walletHome.pageSubtitle")}</p>
         </div>
 
         {dashboardState === "hydrating" ? (
@@ -247,7 +249,6 @@ export function WalletDashboard() {
           <>
           <section className={styles.disconnected}>
             <div className={styles.disconnectedCopy}>
-              <span className={styles.kicker}>MAKOTO WALLET{" · "}ARC TESTNET</span>
               <h1>{t("walletHome.connectTitle")}</h1>
               <p>{t("walletHome.connectCopy")}</p>
               <div className={styles.onboardingPanel} aria-labelledby="onboarding-title">
@@ -270,8 +271,7 @@ export function WalletDashboard() {
                   <strong>{t("onboarding.connectExisting")}</strong>
                   <span>{t("onboarding.connectHelp")}</span>
                 </button>
-                <p className={styles.onboardingSafety}>{t("onboarding.methods")}<br />{t("onboarding.noPrivateKeyStorage")}</p>
-                <p className={styles.onboardingProductStory}>{t("onboarding.payStory")}</p>
+                <p className={styles.onboardingSafety}>{t("onboarding.noPrivateKeyStorage")}</p>
                 {!isReownConfigured && <p className={styles.onboardingUnavailable} role="status">{t("onboarding.unavailable")}</p>}
               </div>
             </div>
@@ -286,11 +286,6 @@ export function WalletDashboard() {
               />
             </div>
           </section>
-          <DisconnectedDestinations
-            locale={locale}
-            onConnect={() => void beginOnboarding("existing")}
-            connectDisabled={!isReownConfigured}
-          />
           </>
         ) : showWalletReady && connection.address ? (
           <section className={styles.walletReady} aria-labelledby="wallet-ready-title">
@@ -308,39 +303,56 @@ export function WalletDashboard() {
           </section>
         ) : (
           <>
-            <section className={styles.dashboardGrid}>
-              <article className={`${styles.dashboardCard} ${styles.balanceCard} ${onArc ? "" : styles.wrongNetwork}`}>
-                <div className={styles.balanceContent}>
-                  <header className={styles.cardHeader}><div><span>{locale === "vi" ? "Số dư USDC" : "USDC balance"}</span><small>{onArc ? "Arc Testnet" : locale === "vi" ? "Sai mạng" : "Wrong network"}</small></div><button type="button" onClick={() => void refresh()} disabled={refreshing} aria-busy={refreshing}>{refreshing ? t("common.refreshing") : "↻"}</button></header>
-                  <div className={styles.dashboardBalance}>{usdcBalance}<small>USDC</small></div>
-                  <p className={styles.dataDisclosure}>{locale === "vi" ? "Số dư trực tiếp và lịch sử quan sát cục bộ của ví đang kết nối." : "Live balance with locally observed history for this connected wallet."}</p>
-                  <div className={styles.primaryActions}>
-                    <button className={styles.primaryActionSend} type="button" onClick={() => setAction("send")} disabled={!onArc}><DashboardAppIcon name="send" /><span>{t("walletHome.send")}</span></button>
-                    <button className={styles.primaryActionReceive} type="button" onClick={() => setAction("receive")} disabled={!onArc}><DashboardAppIcon name="receive" /><span>{t("walletHome.receive")}</span></button>
-                    <button className={styles.primaryActionSwap} type="button" onClick={() => setAction("swap")} disabled={!onArc}><DashboardAppIcon name="swap" /><span>{t("walletHome.swap")}</span></button>
-                  </div>
-                  {!onArc && <button type="button" className={styles.inlineNetworkAction} onClick={() => void chain.switchToArc()}>{t("wallet.switch")}</button>}
-                  {onArc && (balances.usdc.isError || balances.eurc.isError) && <p className={styles.balanceError} role="alert">{t("walletHome.balanceError")}</p>}
+            <section className={styles.agentHero} aria-labelledby="dashboard-agent-title">
+              <div className={styles.agentOrbitStage}>
+                <div className={styles.agentAtmosphere} aria-hidden="true">
+                  <span className={styles.agentRingOuter} />
+                  <span className={styles.agentRingMiddle} />
+                  <span className={styles.agentRingInner} />
+                  <span className={styles.agentParticleOne} />
+                  <span className={styles.agentParticleTwo} />
+                  <span className={styles.agentParticleThree} />
+                  <span className={styles.agentParticleFour} />
+                  <span className={styles.agentParticleFive} />
+                  <div className={styles.agentAura} />
+                  <Image className={styles.agentCharacter} src="/makoto/agent-hero-v2.png" width={768} height={512} alt="" priority />
+                  <div className={styles.agentPlatform} />
                 </div>
-                <BalanceHistoryChart history={balanceHistory} locale={locale} />
-              </article>
-
-              <article className={`${styles.dashboardCard} ${styles.statusCard}`}>
-                <header className={styles.cardHeader}><div><span>{locale === "vi" ? "Trạng thái ví" : "Wallet Status"}</span><small>{connection.connector?.name ?? (locale === "vi" ? "Ví kết nối" : "Connected wallet")}</small></div><span className={`${styles.statusBadge} ${securityStatus === "protected" ? styles.statusGood : styles.statusAttention}`}>{securityStatus === "protected" ? (locale === "vi" ? "Được bảo vệ" : "Protected") : (locale === "vi" ? "Nên kiểm tra" : "Review recommended")}</span></header>
-                <div className={`${styles.walletStatusBar} ${styles[`walletStatusBar_${securityStatus}`]}`} role="img" aria-label={securityStatus === "protected" ? (locale === "vi" ? "Trạng thái bảo mật: Được bảo vệ" : "Security status: Protected") : (locale === "vi" ? "Trạng thái bảo mật: Nên kiểm tra" : "Security status: Review recommended")}><span /></div>
-                <dl className={styles.statusList}>
-                  <div><dt>{t("wallet.network")}</dt><dd>{onArc ? "Arc Testnet" : locale === "vi" ? "Sai mạng" : "Wrong network"}</dd></div>
-                  <div><dt>{locale === "vi" ? "Tài khoản" : "Account"}</dt><dd>{connection.address ? shortAddress(connection.address) : "—"}</dd></div>
-                  <div><dt>{locale === "vi" ? "Người giám hộ" : "Guardian"}</dt><dd>{protection.guardianProtected ? `${protection.guardianProtected}/${protection.total}` : locale === "vi" ? "Chưa cấu hình" : "Not configured"}</dd></div>
-                  <div><dt>{locale === "vi" ? "Khôi phục" : "Recovery"}</dt><dd>{protection.recoveryConfigured ? `${protection.recoveryConfigured}/${protection.total}` : locale === "vi" ? "Chưa cấu hình" : "Not configured"}</dd></div>
-                </dl>
-                <Link className={styles.cardLink} href="/settings">{locale === "vi" ? "Mở Trung tâm bảo mật" : "Open Security Center"}</Link>
-              </article>
+                <div className={styles.agentAmbientSuggestions} aria-label={t("agentDashboard.suggestionsLabel")}>
+                  {agentSuggestions.map((suggestion) => {
+                    const prompt = t(suggestion.promptKey);
+                    return <button type="button" key={suggestion.id} onClick={() => selectAgentSuggestion(suggestion.id, prompt)}>{prompt}</button>;
+                  })}
+                </div>
+              </div>
+              <div className={styles.agentHeroCopy}>
+                <h1 id="dashboard-agent-title">{t("agentDashboard.title")}</h1>
+              </div>
+              <div className={styles.agentInteraction}>
+                {agentMessages.length > 0 && <div className={styles.agentResponse} aria-live="polite">
+                  {agentMessages.slice(-2).map((message) => <article key={message.id} className={message.role === "user" ? styles.agentUserMessage : styles.agentReply}>
+                    <strong>{message.role === "user" ? t("agentDashboard.you") : "Makoto Agent"}</strong>
+                    <p>{message.text}</p>
+                    {message.draft && <div className={`${styles.agentDraft} ${agentStyles.chat}`}><ActionDraftCard draft={message.draft} vi={locale === "vi"} /></div>}
+                  </article>)}
+                </div>}
+                <form className={styles.agentComposer} onSubmit={submitAgent}>
+                  <label htmlFor="dashboard-agent-question">{t("agentDashboard.inputLabel")}</label>
+                  <div><input ref={agentInputRef} id="dashboard-agent-question" name="agent-question" value={agentInput} onChange={(event) => setAgentInput(event.target.value)} placeholder={t("agentDashboard.placeholder")} autoComplete="off" /><button type="submit" disabled={!agentInput.trim()} aria-label={t("agentDashboard.sendRequest")}><span aria-hidden="true">↗</span></button></div>
+                </form>
+              </div>
             </section>
-
+            <section className={styles.quickActionsPanel} aria-label={t("agentDashboard.primaryCommands")}>
+              <div className={styles.agentCommands} aria-label={t("agentDashboard.primaryCommands")}>
+                <button className={styles.agentCommandPrimary} type="button" onClick={() => setAction("send")} disabled={!onArc}><DashboardAppIcon name="send" /><span>{t("walletHome.send")}</span></button>
+                <button type="button" onClick={() => setAction("receive")} disabled={!onArc}><DashboardAppIcon name="receive" /><span>{t("walletHome.receive")}</span></button>
+                <button type="button" onClick={() => setAction("swap")} disabled={!onArc}><DashboardAppIcon name="swap" /><span>{t("walletHome.swap")}</span></button>
+                <button type="button" onClick={() => setAction("bridge")} disabled={!onArc}><DashboardAppIcon name="unified" /><span>Bridge</span></button>
+              </div>
+            </section>
             <section className={styles.portfolioGrid}>
             <section className={`${styles.assetsSection} ${styles.dashboardCard}`} id="assets" aria-labelledby="assets-title">
-              <header className={styles.assetsHeader}><div><h2 id="assets-title">{locale === "vi" ? "Tài sản của tôi" : "My Assets"}</h2><p>{locale === "vi" ? "Tài sản Arc Testnet được hỗ trợ" : "Supported Arc Testnet assets"}</p></div></header>
+              <header className={styles.assetsHeader}><div><h2 id="assets-title">{locale === "vi" ? "Tài sản" : "Assets"}</h2></div></header>
               <div className={styles.assetTableHead}><span>{locale === "vi" ? "Tài sản" : "Asset"}</span><span>{locale === "vi" ? "Hợp đồng" : "Contract"}</span><span>{locale === "vi" ? "Số dư" : "Balance"}</span></div>
               <div className={styles.assetRows}>{SUPPORTED_ASSETS.map((asset) => {
                 const query = balances.assets[asset.id];
@@ -359,27 +371,16 @@ export function WalletDashboard() {
               })}</div>
             </section>
 
-              <article className={`${styles.dashboardCard} ${styles.savingsPosition}`}>
-                <header className={styles.cardHeader}><div><span>Makoto Vault</span><small>{locale === "vi" ? "Vị thế tiết kiệm" : "Savings position"}</small></div><span className={`${styles.statusBadge} ${securityStatus === "protected" ? styles.statusGood : styles.statusAttention}`}>{securityStatus === "protected" ? (locale === "vi" ? "Được bảo vệ" : "Protected") : (locale === "vi" ? "Đang hoạt động" : "Active")}</span></header>
-                <div className={styles.jarPositionBody}>
-                  <dl><div><dt>{t("walletHome.totalSaved")}</dt><dd>{vaultDataState === "ready" ? formatUsdc(totals.totalSaved) : "—"} USDC</dd></div><div><dt>{t("walletHome.activeJars")}</dt><dd>{vaultDataState === "ready" ? totals.active : "—"}</dd></div><div><dt>{t("walletHome.completedJars")}</dt><dd>{vaultDataState === "ready" ? totals.completed : "—"}</dd></div></dl>
-                  <div className={styles.jarVault} aria-hidden="true"><span className={styles.jarLid}/><span className={styles.jarGlassHighlight}/><Image src="/makoto/logo-pro-v2.png" alt="" width={48} height={48} /></div>
-                </div>
-                {vaultDataState === "loading" ? <div className={styles.jarSkeleton} role="status" aria-label={locale === "vi" ? "Đang tải Makoto Vault" : "Loading Makoto Vault"}><span /></div> : vaultDataState === "unavailable" ? <div className={styles.positionEmpty}>{locale === "vi" ? "Dữ liệu Vault hiện không khả dụng." : "Vault data is currently unavailable."}</div> : visibleJars.length ? <Link className={styles.positionJarLink} href={`/jars/${visibleJars[0].id.toString()}`}>{visibleJars[0].name || t("jar.unnamed", { id: visibleJars[0].id.toString() })}<span>{formatUsdc(visibleJars[0].balance)} USDC</span></Link> : <div className={styles.positionEmpty}>{t("walletHome.noJars")}<Link href="/savings">{t("walletHome.createJar")}</Link></div>}
-                <Link className={styles.appsFooterLink} href="/savings">{t("walletHome.viewSavings")}</Link>
-              </article>
-            </section>
-
-            <section className={styles.appsRow}>
-              <article className={`${styles.dashboardCard} ${styles.appsPanel}`} id="apps">
-                <header className={styles.cardHeader}><div><span>{locale === "vi" ? "Công cụ Makoto" : "Makoto Tools"}</span><small>{locale === "vi" ? "Công cụ và dịch vụ ví" : "Wallet tools and services"}</small></div></header>
-                <div className={styles.appShortcuts}>
-                  <Link href="/savings"><DashboardAppIcon name="jar" /><span className={styles.appModuleCopy}><strong>Makoto Vault</strong><small>{locale === "vi" ? "Tiết kiệm theo mục tiêu được bảo vệ." : "Goal-based protected savings."}</small></span></Link>
-                  <Link href="/pay"><DashboardAppIcon name="pay" /><span className={styles.appModuleCopy}><strong>Makoto Pay</strong><small>{locale === "vi" ? "Dịch vụ thanh toán USDC hằng ngày." : "Everyday USDC payment services."}</small></span></Link>
-                  <Link href="/unified-balance"><DashboardAppIcon name="unified" /><span className={styles.appModuleCopy}><strong>Unified Balance</strong><small>{locale === "vi" ? "Nạp USDC đa chuỗi và chi tiêu trên Arc." : "Deposit USDC across chains and spend on Arc."}</small></span></Link>
-                  <a href="/agent"><DashboardAppIcon name="agent" /><span className={styles.appModuleCopy}><strong>Makoto Agent</strong><small>{locale === "vi" ? "Trợ lý ví chỉ đọc bằng tiếng Việt và tiếng Anh." : "Read-only wallet assistant in English and Vietnamese."}</small></span></a>
-                  <Link href="/settings#security"><DashboardAppIcon name="security" /><span className={styles.appModuleCopy}><strong>{locale === "vi" ? "Trung tâm bảo mật" : "Security Center"}</strong><small>{locale === "vi" ? "Trạng thái ví, mạng, khôi phục và riêng tư." : "Wallet, network, recovery and privacy status."}</small></span></Link>
-                </div>
+              <article className={`${styles.dashboardCard} ${styles.statusCard}`}>
+                <header className={styles.cardHeader}><div><span>{locale === "vi" ? "Trạng thái ví" : "Wallet Status"}</span><small>{connection.connector?.name ?? (locale === "vi" ? "Ví kết nối" : "Connected wallet")}</small></div><span className={`${styles.statusBadge} ${securityStatus === "protected" ? styles.statusGood : styles.statusAttention}`}>{securityStatus === "protected" ? (locale === "vi" ? "Được bảo vệ" : "Protected") : (locale === "vi" ? "Nên kiểm tra" : "Review recommended")}</span></header>
+                <div className={`${styles.walletStatusBar} ${styles[`walletStatusBar_${securityStatus}`]}`} role="img" aria-label={securityStatus === "protected" ? (locale === "vi" ? "Trạng thái bảo mật: Được bảo vệ" : "Security status: Protected") : (locale === "vi" ? "Trạng thái bảo mật: Nên kiểm tra" : "Security status: Review recommended")}><span /></div>
+                <dl className={styles.statusList}>
+                  <div><dt>{t("wallet.network")}</dt><dd>{onArc ? "Arc Testnet" : locale === "vi" ? "Sai mạng" : "Wrong network"}</dd></div>
+                  <div><dt>{locale === "vi" ? "Tài khoản" : "Account"}</dt><dd>{connection.address ? shortAddress(connection.address) : "—"}</dd></div>
+                  <div><dt>Chain ID</dt><dd>{chain.providerChainId ?? "—"}</dd></div>
+                  <div><dt>{locale === "vi" ? "Bảo vệ" : "Protection"}</dt><dd>{securityStatus === "protected" ? (locale === "vi" ? "Đang bật" : "Active") : (locale === "vi" ? "Cần xem lại" : "Review")}</dd></div>
+                </dl>
+                <div className={styles.statusLinks}><Link className={styles.cardLink} href="/settings#security">{locale === "vi" ? "Mở Trung tâm bảo mật" : "Open Security Center"}</Link><a className={styles.cardLink} href={connection.address ? `${ARC_EXPLORER_URL}/address/${connection.address}` : ARC_EXPLORER_URL} target="_blank" rel="noreferrer">ArcScan <ExternalLinkIcon /></a></div>
               </article>
             </section>
 
@@ -387,7 +388,6 @@ export function WalletDashboard() {
               <article className={styles.activityCard} id="activity">
                 <div className={styles.activityHeader}>
                   <div className={styles.activityHeading}>
-                    <span className={styles.activityEyebrow}>{t("walletHome.activityEyebrow")}</span>
                     <h2 className={styles.activityTitle}>{t("walletHome.activity")}</h2>
                   </div>
                   <button className={styles.viewButton} type="button" onClick={() => { setActivityHistoryLimit(20); setActivityHistoryOpen(true); }}>
@@ -403,14 +403,7 @@ export function WalletDashboard() {
                   <div className={styles.emptyActivity}><strong>{t("walletHome.activityError")}</strong><button type="button" className={styles.viewButton} onClick={() => void activity.refetch()}>{t("common.tryAgain")}</button></div>
                 ) : activities.length === 0 ? (
                   <div className={styles.emptyActivity}>
-                    <Image
-                      src="/makoto/logo-pro-v2.png"
-                      alt=""
-                      width={62}
-                      height={62}
-                    />
                     <strong>{t("walletHome.noActivity")}</strong>
-                    <span>{t("walletHome.noActivitySub")}</span>
                   </div>
                 ) : (
                   <ul className={styles.activityList}>
@@ -446,18 +439,11 @@ export function WalletDashboard() {
                 )}
               </article>
 
-              <div className={styles.sideStack}>
-                <article className={`${styles.dashboardCard} ${styles.networkCard}`}><header className={styles.cardHeader}><div><span>{locale === "vi" ? "Mạng" : "Network"}</span><small>{onArc ? (locale === "vi" ? "Đã kết nối" : "Connected") : (locale === "vi" ? "Cần chuyển mạng" : "Switch required")}</small></div><span className={`${styles.networkDot} ${onArc ? styles.networkOnline : ""}`} /></header><dl className={styles.statusList}><div><dt>{t("wallet.network")}</dt><dd>Arc Testnet</dd></div><div><dt>Chain ID</dt><dd>{chain.providerChainId ?? "—"}</dd></div><div><dt>{locale === "vi" ? "Trình khám phá" : "Explorer"}</dt><dd><a href={ARC_EXPLORER_URL} target="_blank" rel="noreferrer">ArcScan <ExternalLinkIcon /></a></dd></div></dl>{!onArc && <button type="button" className={styles.inlineNetworkAction} onClick={() => void chain.switchToArc()}>{t("wallet.switch")}</button>}</article>
-                <article className={`${styles.dashboardCard} ${styles.quickPanel}`}><header className={styles.cardHeader}><div><span>{t("walletHome.quickActions")}</span><small>{t("walletHome.quickActionsCopy")}</small></div></header><div className={styles.compactActions}><button type="button" onClick={() => void copyAddress()}>{copied ? t("walletHome.copied") : t("walletHome.copy")}</button><Link href="/savings">Makoto Vault</Link><a href={connection.address ? `${ARC_EXPLORER_URL}/address/${connection.address}` : ARC_EXPLORER_URL} target="_blank" rel="noreferrer">ArcScan</a></div></article>
-              </div>
             </section>
           </>
         )}
 
-        <footer className={styles.footer} title={t("walletHome.betaInfo")}>
-          <span>Makoto Wallet{" · "}{t("walletHome.publicBeta")}{" · "}Arc Testnet</span>
-          <span>{t("savings.footerName")}</span>
-        </footer>
+        <footer className={styles.footer}>Makoto Wallet</footer>
       </div>
 
       {action === "send" && (
@@ -484,8 +470,8 @@ export function WalletDashboard() {
         />
       )}
 
-      {action === "swap" && (
-        <SwapPanel initialMode={agentHandoff?.action === "bridge" ? "bridge" : "swap"} initialValues={agentHandoff ? { amount: agentHandoff.amount, asset: agentHandoff.asset.toLowerCase() as "usdc" | "eurc", outputAsset: agentHandoff.outputAsset?.toLowerCase() as "usdc" | "eurc" | undefined, sourceChain: agentHandoff.sourceChain, destinationChain: agentHandoff.destinationChain, recipient: agentHandoff.recipient, origin: "agent" } : undefined} onClose={() => setAction(undefined)} onConfirmed={() => void activity.refetch()} />
+      {(action === "swap" || action === "bridge") && (
+        <SwapPanel initialMode={action} initialValues={agentHandoff ? { amount: agentHandoff.amount, asset: agentHandoff.asset.toLowerCase() as "usdc" | "eurc", outputAsset: agentHandoff.outputAsset?.toLowerCase() as "usdc" | "eurc" | undefined, sourceChain: agentHandoff.sourceChain, destinationChain: agentHandoff.destinationChain, recipient: agentHandoff.recipient, origin: "agent" } : undefined} onClose={() => setAction(undefined)} onConfirmed={() => void activity.refetch()} />
       )}
 
       {receiptActivity && connection.address && <TransactionReceiptPanel activity={receiptActivity} walletAddress={connection.address} onClose={() => setReceiptActivity(undefined)} />}
@@ -531,33 +517,6 @@ export function WalletDashboard() {
       </div>}
     </main>
   );
-}
-
-function DisconnectedDestinations({ locale, onConnect, connectDisabled }: { locale: "en" | "vi"; onConnect(): void; connectDisabled: boolean }) {
-  const vi = locale === "vi";
-  return <div className={styles.disconnectedDestinations}>
-    <section className={`${styles.dashboardCard} ${styles.disconnectedDestination}`} id="assets" aria-labelledby="assets-title">
-      <h2 id="assets-title">{vi ? "Tài sản của tôi" : "My Assets"}</h2>
-      <p>{vi ? "Kết nối ví để xem số dư USDC và EURC được hỗ trợ trên Arc Testnet." : "Connect a wallet to view supported USDC and EURC balances on Arc Testnet."}</p>
-      <button type="button" onClick={onConnect} disabled={connectDisabled}>{vi ? "Kết nối để xem tài sản" : "Connect to view assets"}</button>
-    </section>
-    <section className={`${styles.dashboardCard} ${styles.disconnectedDestination} ${styles.disconnectedTools}`} id="apps" aria-labelledby="apps-title">
-      <h2 id="apps-title">{vi ? "Công cụ Makoto" : "Makoto Tools"}</h2>
-      <p>{vi ? "Khám phá các công cụ công khai. Kết nối ví chỉ khi một hành động cần số dư hoặc chữ ký." : "Explore public tools. Connect only when an action needs your balance or signature."}</p>
-      <div className={styles.disconnectedToolLinks}>
-        <Link href="/savings">Makoto Vault</Link>
-        <Link href="/pay">Makoto Pay</Link>
-        <Link href="/unified-balance">Unified Balance</Link>
-        <Link href="/agent">Makoto Agent</Link>
-        <Link href="/settings#security">{vi ? "Trung tâm bảo mật" : "Security Center"}</Link>
-      </div>
-    </section>
-    <section className={`${styles.dashboardCard} ${styles.disconnectedDestination}`} id="activity" aria-labelledby="activity-title">
-      <h2 id="activity-title">{vi ? "Hoạt động" : "Activity"}</h2>
-      <p>{vi ? "Kết nối ví để xem hoạt động đã xác nhận của địa chỉ đó. Makoto không thể đọc lịch sử ví khi chưa có địa chỉ." : "Connect a wallet to view confirmed activity for that address. Makoto cannot load wallet history without an address."}</p>
-      <button type="button" onClick={onConnect} disabled={connectDisabled}>{vi ? "Kết nối để xem hoạt động" : "Connect to view activity"}</button>
-    </section>
-  </div>;
 }
 
 function formatActivityTime(timestamp: number, locale: "en" | "vi") {

@@ -27,6 +27,6 @@ test("mobile chart range controls expose 44px targets with spacing", () => {
 test("Send controls have stable names and explicit label associations", () => {
   for (const [id, name] of [["send-asset", "asset"], ["send-recipient", "recipient"], ["send-amount", "amount"], ["send-note", "note"]]) {
     assert.match(sendFlow, new RegExp(`label htmlFor="${id}"`));
-    assert.match(sendFlow, new RegExp(`id="${id}" name="${name}"`));
+    assert.match(sendFlow, new RegExp(`id="${id}"\\s+name="${name}"`));
   }
 });

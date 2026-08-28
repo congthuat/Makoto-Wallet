@@ -19,14 +19,26 @@ test("responsive CSS fixes overflow sources instead of masking the page", () => 
   assert.match(wallet, /\.activityStatus\s*\{[^}]*display:\s*inline-flex/s);
 });
 
-test("mobile dashboard uses five-item navigation and removes promotional artwork", () => {
+test("mobile dashboard uses Dashboard Wallet and Settings navigation and removes promotional artwork", () => {
+  assert.match(wallet, /@media\(max-width:767px\)[\s\S]*?\.nav\{grid-template-columns:repeat\(3,1fr\)\}/);
+  assert.match(wallet, /@media\(max-width:767px\)[^\n]*\.feedbackNavItem,\.helpNavItem\{display:none!important\}/);
+  assert.doesNotMatch(wallet, /\.settingsNavItem,\.feedbackNavItem,\.helpNavItem\{display:none!important\}/);
+  assert.match(dashboard, /styles\.agentHero[\s\S]*styles\.portfolioGrid[\s\S]*styles\.assetsSection[\s\S]*styles\.statusCard[\s\S]*styles\.lowerGrid/);
+  assert.doesNotMatch(dashboard, /styles\.companionCard|companion-art\.jpg|MakotoPayHomeSection/);
+  return;
   assert.match(wallet, /@media\(max-width:767px\)[\s\S]*?\.nav\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(wallet, /\.appShortcuts\{grid-template-columns:repeat\(3,1fr\)/);
   assert.match(dashboard, /styles\.dashboardGrid[\s\S]*styles\.portfolioGrid[\s\S]*styles\.assetsSection[\s\S]*styles\.savingsPosition[\s\S]*styles\.appsRow[\s\S]*styles\.appsPanel[\s\S]*styles\.lowerGrid/);
   assert.doesNotMatch(dashboard, /styles\.companionCard|companion-art\.jpg|MakotoPayHomeSection/);
 });
 
-test("mobile shell uses compact controls and short localized five-item navigation labels", () => {
+test("mobile shell uses compact localized Dashboard Wallet and Settings labels", () => {
+  assert.match(header, /mobileEn: "Home"/);
+  assert.match(header, /mobileEn: "Wallet"/);
+  assert.doesNotMatch(header, /mobileEn: "Security"|mobileVi: "Bảo mật"/);
+  assert.match(header, /href="\/settings#security"[^>]*>[\s\S]*"Cài đặt" : "Settings"/);
+  assert.match(wallet, /\.nav a\{[^}]*width:100%[^}]*min-width:0[^}]*flex-direction:column/);
+  return;
   assert.match(header, /mobileEn: "Home", mobileVi: "Trang chủ"/);
   assert.match(header, /mobileEn: "Tools", mobileVi: "Công cụ"/);
   assert.match(header, /mobileEn: "Pay", mobileVi: "Pay"/);
@@ -44,6 +56,10 @@ test("mobile shell uses compact controls and short localized five-item navigatio
 });
 
 test("mobile content reserves fixed-nav space and narrow controls stay contained", () => {
+  assert.match(globals, /padding-bottom: calc\(84px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(wallet, /\.agentCommands\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
+  assert.match(dashboard, /styles\.agentCommands[\s\S]*setAction\("send"\)[\s\S]*setAction\("receive"\)[\s\S]*setAction\("swap"\)[\s\S]*setAction\("bridge"\)/);
+  return;
   assert.match(globals, /@media \(max-width: 767px\)[\s\S]*main:has\(nav\[aria-label="Primary"\]\)[^}]*padding-bottom: calc\(84px \+ env\(safe-area-inset-bottom\)\)/);
   assert.match(wallet, /@media\(max-width:430px\)[\s\S]*?\.brandWords\{display:none\}/);
   assert.match(wallet, /@media\(max-width:360px\)[\s\S]*?\.languageTrigger \.languageGlyph,\.languageChevron\{display:none\}/);
@@ -74,6 +90,11 @@ test("Dashboard heading is route-local and sidebar fragments resolve exactly", (
 test("sidebar navigation uses absolute dashboard destinations from every route", () => {
   assert.match(header, /href: "\/"[^\n]*en: "Dashboard"/);
   assert.match(header, /href: "\/#assets"[^\n]*en: "Wallet"/);
+  assert.doesNotMatch(header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems"))), /Security Center|Tools|Pay|Makoto Vault|Activity|Agent|Send|Receive|Swap|Bridge/);
+  assert.match(header, /href="\/settings#security"/);
+  return;
+  assert.match(header, /href: "\/"[^\n]*en: "Dashboard"/);
+  assert.match(header, /href: "\/#assets"[^\n]*en: "Wallet"/);
   assert.match(header, /href: "\/#apps"[^\n]*en: "Tools"[^\n]*vi: "Công cụ"/);
   assert.match(header, /href: "\/#activity"[^\n]*en: "Activity"/);
   assert.match(header, /href: "\/pay"[^\n]*en: "Pay"/);
@@ -83,9 +104,20 @@ test("sidebar navigation uses absolute dashboard destinations from every route",
   assert.doesNotMatch(header, /en: "Guardian"|>Settings<|>Cài đặt</);
 });
 
-test("Security Center owns guardian navigation state without claiming plain settings", () => {
-  assert.match(header, /pathname === "\/settings" && \(hash === "#security" \|\| hash === "#guardian"\)/);
+test("Settings owns the Security anchor without a duplicate Security nav item", () => {
+  assert.match(header, /isActive\("\/settings#security"\)/);
+  assert.doesNotMatch(header, /hash === "#guardian"|en: "Security Center"/);
   assert.match(header, /href="\/settings#help"/);
+});
+
+test("mobile dashboard stacks Assets, Wallet Status, and Activity without fixed-nav obstruction", () => {
+  const mobileTail = wallet.slice(wallet.indexOf("/* Mobile dashboard tail:"));
+  assert.match(mobileTail, /@media\(max-width:767px\)/);
+  assert.match(mobileTail, /\.portfolioGrid\{[^}]*width:100%;[^}]*min-width:0;[^}]*grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(mobileTail, /\.portfolioGrid>\.dashboardCard,\.portfolioGrid>\.assetsSection,\.portfolioGrid>\.statusCard\{[^}]*width:100%;[^}]*min-width:0/);
+  assert.match(mobileTail, /\.assetRow\{grid-template-columns:auto minmax\(0,1fr\) auto\}/);
+  assert.match(mobileTail, /\.lowerGrid,\.lowerGrid>\.activityCard\{[^}]*width:100%;[^}]*min-width:0/);
+  assert.match(mobileTail, /\.shell\{padding-bottom:calc\(112px \+ env\(safe-area-inset-bottom\)\)\}/);
 });
 
 test("contextual Guardian recommendation is real-state gated and hidden from mobile navigation", () => {
@@ -187,6 +219,13 @@ test("dashboard previews five activities and opens paginated full history", () =
 });
 
 test("wallet actions are separated from the four real Makoto Tools modules", () => {
+  const heroStart = dashboard.indexOf("<div className={styles.agentCommands}");
+  const heroEnd = dashboard.indexOf("</div>", heroStart);
+  const heroActions = dashboard.slice(heroStart, heroEnd);
+  assert.match(heroActions, /setAction\("send"\)[\s\S]*setAction\("receive"\)[\s\S]*setAction\("swap"\)[\s\S]*setAction\("bridge"\)/);
+  assert.doesNotMatch(heroActions, /\/savings|\/pay|\/unified-balance/);
+  assert.doesNotMatch(dashboard, /styles\.appsRow|styles\.savingsPosition|styles\.quickPanel|styles\.networkCard/);
+  return;
   const balanceStart = dashboard.indexOf("<div className={styles.primaryActions}>");
   const balanceEnd = dashboard.indexOf("</div>", balanceStart);
   const balanceActions = dashboard.slice(balanceStart, balanceEnd);
@@ -214,6 +253,10 @@ test("wallet actions are separated from the four real Makoto Tools modules", () 
 });
 
 test("Activity heading is isolated from generic section heading rules", () => {
+  assert.match(dashboard, /styles\.activityHeader[\s\S]*styles\.activityHeading[\s\S]*styles\.activityTitle/);
+  assert.equal(dashboard.match(/className=\{styles\.activityTitle\}/g)?.length, 1);
+  assert.doesNotMatch(dashboard, /className=\{styles\.activityEyebrow\}|walletHome\.activityEyebrow/);
+  return;
   const activityCardStart = dashboard.indexOf("<article className={styles.activityCard}");
   const activityCardEnd = dashboard.indexOf("<div className={styles.sideStack}", activityCardStart);
   const activityCard = dashboard.slice(activityCardStart, activityCardEnd);

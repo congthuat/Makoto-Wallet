@@ -53,7 +53,7 @@ export function sendRecipientChecks(recipient: string, account?: Address, knownR
   const address = getAddress(recipient);
   const checks: SafetyCheck[] = [{ code: "recipient", status: "verified", label: "Recipient address is valid", detail: address }];
   if (account && address === getAddress(account)) checks.push({ code: "self", status: "attention", label: "Recipient is your connected wallet" });
-  else if (!knownRecipient) checks.push({ code: "unknown-recipient", status: "attention", label: "Recipient is not saved in Contacts or Recents" });
+  else if (!knownRecipient) checks.push({ code: "unknown-recipient", status: "info", label: "Recipient is not saved." });
   checks.push({ code: "memo", status: "info", label: hasMemo ? "Public on-chain memo" : "No on-chain memo" });
   return checks;
 }

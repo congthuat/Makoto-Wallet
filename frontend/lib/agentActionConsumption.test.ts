@@ -4,10 +4,11 @@ import { readFileSync } from "node:fs";
 
 const component = (name: string) => readFileSync(new URL(`../components/${name}`, import.meta.url), "utf8");
 const action = (name: string) => readFileSync(new URL(`./agent/actions/${name}`, import.meta.url), "utf8");
+const hook = (name: string) => readFileSync(new URL(`../hooks/${name}`, import.meta.url), "utf8");
 
 test("Universal Bridge consumes Agent values in the existing Circle flow", () => {
   const dashboard = component("WalletDashboard.tsx"), swap = component("SwapPanel.tsx"), bridge = component("UniversalBridgeFlow.tsx");
-  assert.match(dashboard, /consumeAgentHandoff/); assert.match(dashboard, /action === "bridge"/); assert.match(swap, /initialMode/); assert.match(bridge, /initialValues\?\.amount/); assert.match(bridge, /destinationChain/); assert.match(bridge, /getCircleAppKit/); assert.match(bridge, /estimateBridge/); assert.match(bridge, /TransactionSafetyReview/); assert.match(bridge, /ReviewSubmissionGuard/); assert.doesNotMatch(bridge, /setAdvanced\(true\).*initialValues/);
+  assert.match(dashboard, /setAction\(handoff\.action === "bridge" \? "bridge" : handoff\.action === "swap" \? "swap" : "send"\)/); assert.match(dashboard, /initialMode=\{action\}/); assert.match(swap, /initialMode/); assert.doesNotMatch(swap, /setMode\(/); assert.match(bridge, /initialValues\?\.amount/); assert.match(bridge, /destinationChain/); assert.match(bridge, /getCircleAppKit/); assert.match(bridge, /estimateBridge/); assert.match(bridge, /TransactionSafetyReview/); assert.match(bridge, /ReviewSubmissionGuard/); assert.doesNotMatch(bridge, /setAdvanced\(true\).*initialValues/);
 });
 
 test("Bridge handoff never submits or switches before explicit preparation", () => {
@@ -32,7 +33,7 @@ test("handoffs are minimal session-only, account-bound, expiring, and one-shot",
 
 test("Agent-origin outcomes are receipt-backed and cancellation is not success", () => {
   for (const name of ["SendFlow.tsx", "RealSwapFlow.tsx", "UniversalBridgeFlow.tsx", "OwnerDepositFlow.tsx", "OwnerWithdrawalFlow.tsx"]) assert.match(component(name), /storeAgentResult/);
-  const page = component("MakotoAgentPage.tsx"); assert.match(page, /Transaction cancelled in wallet/); assert.match(page, /Transaction receipt status is unknown/); assert.match(page, /Transaction failed/);
+  const agentResultUi = `${component("MakotoAgentPage.tsx")}\n${hook("useMakotoAgent.ts")}`; assert.match(agentResultUi, /Transaction cancelled in wallet/); assert.match(agentResultUi, /Transaction receipt status is unknown/); assert.match(agentResultUi, /Transaction failed/);
   assert.match(component("SendFlow.tsx"), /status: failure === "rejected" \? "cancelled"/); assert.match(component("RealSwapFlow.tsx"), /status: kind === "rejected" \? "cancelled"/);
 });
 
