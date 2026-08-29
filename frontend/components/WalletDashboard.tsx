@@ -326,7 +326,10 @@ export function WalletDashboard() {
                 </div>
               </div>
               <div className={styles.agentHeroCopy}>
-                <h1 id="dashboard-agent-title">{t("agentDashboard.title")}</h1>
+                <h1 id="dashboard-agent-title" aria-label={t("agentDashboard.title")}>
+                  <span className={styles.agentTitleMakoto} aria-hidden="true">Makoto</span>
+                  <span className={styles.agentTitleAgent} aria-hidden="true">Agent</span>
+                </h1>
               </div>
               <div className={styles.agentInteraction}>
                 {agentMessages.length > 0 && <div className={styles.agentResponse} aria-live="polite">

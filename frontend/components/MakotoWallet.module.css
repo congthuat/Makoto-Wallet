@@ -2451,9 +2451,21 @@
 :global(html[data-theme="light"]) .portfolioGrid .dashboardCard p,:global(html[data-theme="light"]) .portfolioGrid .dashboardCard small,:global(html[data-theme="light"]) .portfolioGrid .dashboardCard dt,:global(html[data-theme="light"]) .portfolioGrid .assetTableHead,:global(html[data-theme="light"]) .lowerGrid .activityCard small,:global(html[data-theme="light"]) .lowerGrid .emptyActivity span{color:var(--mw-text-muted)}
 :global(html[data-theme="light"]) .portfolioGrid .assetRow,:global(html[data-theme="light"]) .lowerGrid .activityList li{border-color:var(--mw-divider);background:rgba(255,255,255,.42)}
 
-/* Connected Agent hero: single-title composition and ranked speech-bubble rail. */
-.agentHeroCopy{top:34px;left:clamp(28px,3vw,44px);width:300px;max-width:300px;transform:none;align-self:start}
-.agentHeroCopy h1{max-width:300px;margin:0;color:#f8f5ff;font-size:clamp(44px,4vw,58px);line-height:.98;letter-spacing:-2.2px}
+/* Keep the large dashboard shells visibly rounded after the final surface cascade. */
+.page{
+  --radius-surface-lg:18px;
+  --radius-surface-md:16px;
+  --radius-control:12px;
+}
+.portfolioGrid .assetsSection.dashboardCard,
+.portfolioGrid .statusCard,
+.lowerGrid .activityCard{border-radius:var(--radius-surface-lg)}
+
+/* Connected Agent hero: compact title badge and ranked speech-bubble rail. */
+.agentHeroCopy{position:absolute;top:22px;left:22px;width:auto;max-width:calc(100% - 44px);transform:none;align-self:start;z-index:7}
+.agentHeroCopy h1{box-sizing:border-box;display:inline-flex;align-items:center;gap:8px;min-height:68px;max-width:none;margin:0;padding:15px 24px;border:1px solid rgba(190,151,255,.38);border-radius:17px;color:#f8f5ff;background:rgba(20,11,44,.78);box-shadow:0 14px 34px rgba(7,2,26,.3),0 0 24px rgba(134,77,242,.18),inset 0 1px rgba(255,255,255,.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font:750 30px/1 var(--font-display),system-ui,sans-serif;letter-spacing:-.7px;white-space:nowrap}
+.agentTitleMakoto{color:#f8f5ff}
+.agentTitleAgent{color:#c9adff}
 .agentAmbientSuggestions button{position:relative;border-radius:20px;text-align:left;overflow:visible}
 .agentAmbientSuggestions button::before{content:"";position:absolute;top:50%;left:-9px;width:17px;height:17px;border-left:1px solid rgba(190,151,255,.48);border-bottom:1px solid rgba(190,151,255,.48);background:inherit;transform:translateY(-50%) rotate(45deg);border-radius:0 0 0 4px}
 .agentAmbientSuggestions button:focus-visible{outline:3px solid color-mix(in srgb,var(--mw-accent) 35%,transparent);outline-offset:3px}
@@ -2466,8 +2478,7 @@
 }
 @media(min-width:768px) and (max-width:1100px){
   .agentHero{grid-template-columns:1fr;grid-template-areas:"visual" "interaction";grid-template-rows:minmax(388px,1fr) auto}
-  .agentHeroCopy{position:absolute;top:30px;left:32px;width:260px;max-width:260px;transform:none}
-  .agentHeroCopy h1{max-width:260px;font-size:46px}
+  .agentHeroCopy{top:22px;left:22px;width:auto;max-width:calc(100% - 44px)}
   .agentOrbitStage{width:100%;min-height:388px}
   .agentAmbientSuggestions{top:50%;right:4px;bottom:auto;left:auto;width:180px;height:auto;display:flex;flex-direction:column;align-items:flex-end;gap:14px;transform:translateY(-50%)}
   .agentAmbientSuggestions button,.agentAmbientSuggestions button:nth-child(1),.agentAmbientSuggestions button:nth-child(2),.agentAmbientSuggestions button:nth-child(3){position:relative;inset:auto;max-width:none;transform:none}
@@ -2476,11 +2487,14 @@
   .agentAmbientSuggestions button:nth-child(3){width:80%;min-height:46px;padding:10px 14px;font-size:10px}
 }
 @media(max-width:767px){
-  .agentHeroCopy{position:relative;top:auto;left:auto;width:auto;max-width:340px;transform:none}
-  .agentHeroCopy h1{max-width:340px;font-size:40px;letter-spacing:-1.6px}
+  .agentHeroCopy{position:absolute;top:14px;left:14px;justify-self:auto;width:auto;max-width:calc(100% - 28px);transform:none}
+  .agentHeroCopy h1{min-height:52px;max-width:none;padding:11px 17px;border-radius:15px;gap:6px;font-size:21px;letter-spacing:-.4px}
   .agentAmbientSuggestions button{border-radius:16px;text-align:center}
   .agentAmbientSuggestions button::before{display:none}
 }
+:global(html[data-theme="light"]) .agentHeroCopy h1{border-color:rgba(107,70,216,.28);color:#241a3d;background:rgba(255,255,255,.84);box-shadow:0 14px 34px rgba(74,48,140,.12),0 0 22px rgba(107,70,216,.1),inset 0 1px rgba(255,255,255,.95)}
+:global(html[data-theme="light"]) .agentTitleMakoto{color:#241a3d}
+:global(html[data-theme="light"]) .agentTitleAgent{color:#7047d8}
 :global(html[data-theme="light"]) .agentAmbientSuggestions button::before{border-color:rgba(107,70,216,.22)}
 
 /* Disconnected dashboard top-section pass: unified surfaces and connection CTA. */
@@ -2597,5 +2611,27 @@
   .assetRow>div:nth-child(2){min-width:0}
   .assetBalance{min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal}
   .lowerGrid,.lowerGrid>.activityCard{width:100%;min-width:0;box-sizing:border-box}
+}
+
+/* Global surface hierarchy: major shell, nested card, then rectangular control. */
+.quickActionsPanel,
+.disconnected,
+.securityOverview{border-radius:var(--radius-surface-lg)}
+.settingsCard,
+.createWalletButton,
+.connectExistingButton{border-radius:var(--radius-surface-md)}
+.settingsChoices label,
+.settingsActions button,
+.settingsActions a,
+.settingsPreferenceReset button,
+.nav a,
+.walletControlWrap :global(.connect-button){border-radius:var(--radius-control)}
+@media(max-width:767px){
+  .quickActionsPanel,
+  .portfolioGrid .assetsSection.dashboardCard,
+  .portfolioGrid .statusCard,
+  .lowerGrid .activityCard,
+  .disconnected,
+  .securityOverview{border-radius:var(--radius-surface-md)}
 }
 

@@ -49,10 +49,11 @@ test("Agent preparation remains a draft handoff with no wallet execution", () =>
   assert.doesNotMatch(dashboard.slice(dashboard.indexOf("styles.agentHero"), dashboard.indexOf("styles.dashboardGrid")), /writeContract|sendTransaction|signMessage/);
 });
 
-test("hero copy is localized in English and Vietnamese", () => {
+test("hero title is one semantic two-tone Makoto Agent badge in English and Vietnamese", () => {
   const heroCopy = dashboard.slice(dashboard.indexOf("styles.agentHeroCopy"), dashboard.indexOf("styles.agentInteraction"));
-  assert.match(heroCopy, /<h1 id="dashboard-agent-title">\{t\("agentDashboard\.title"\)\}<\/h1>/);
-  assert.doesNotMatch(heroCopy, /agentEyebrow|agentTagline|agentSupport|MAKOTO AGENT|ARC TESTNET/);
+  assert.match(heroCopy, /<h1 id="dashboard-agent-title" aria-label=\{t\("agentDashboard\.title"\)\}>[\s\S]*styles\.agentTitleMakoto} aria-hidden="true">Makoto<\/span>[\s\S]*styles\.agentTitleAgent} aria-hidden="true">Agent<\/span>[\s\S]*<\/h1>/);
+  assert.equal((heroCopy.match(/<h1/g) ?? []).length, 1);
+  assert.doesNotMatch(heroCopy, /agentEyebrow|agentTagline|agentSupport|MAKOTO AGENT|ARC TESTNET|star|icon/i);
   assert.match(en, /"agentDashboard\.title": "Makoto Agent"/);
   assert.match(en, /"agentDashboard\.tagline": "Your wallet copilot on Arc\."/);
   assert.match(en, /"agentDashboard\.support": "Check balances, activity, and network status\."/);
@@ -61,6 +62,17 @@ test("hero copy is localized in English and Vietnamese", () => {
   assert.match(vi, /"agentDashboard\.support": "Xem số dư, hoạt động và trạng thái mạng\."/);
   assert.match(en, /Ask Makoto Agent anything/);
   assert.match(vi, /Hỏi Makoto Agent bất cứ điều gì/);
+});
+
+test("hero title badge stays compact, top-left, responsive, and theme intentional", () => {
+  assert.match(css, /\.agentHeroCopy\{position:absolute;top:22px;left:22px;width:auto;max-width:calc\(100% - 44px\)/);
+  assert.match(css, /\.agentHeroCopy h1\{[^}]*display:inline-flex[^}]*min-height:68px[^}]*padding:15px 24px[^}]*border-radius:17px[^}]*font:750 30px\/1[^}]*white-space:nowrap/);
+  assert.match(css, /\.agentTitleMakoto\{color:#f8f5ff\}/);
+  assert.match(css, /\.agentTitleAgent\{color:#c9adff\}/);
+  assert.match(css, /@media\(max-width:767px\)[\s\S]*\.agentHeroCopy\{position:absolute;top:14px;left:14px;justify-self:auto[^}]*max-width:calc\(100% - 28px\)[^}]*\}[\s\S]*\.agentHeroCopy h1\{min-height:52px;max-width:none;padding:11px 17px;border-radius:15px;gap:6px;font-size:21px/);
+  assert.match(css, /html\[data-theme="light"\]\) \.agentHeroCopy h1\{border-color:rgba\(107,70,216,\.28\)[^}]*background:rgba\(255,255,255,\.84\)/);
+  assert.match(css, /html\[data-theme="light"\]\) \.agentTitleMakoto\{color:#241a3d\}/);
+  assert.match(css, /html\[data-theme="light"\]\) \.agentTitleAgent\{color:#7047d8\}/);
 });
 
 test("Agent character asset and animation are restrained with explicit reduced motion", () => {
