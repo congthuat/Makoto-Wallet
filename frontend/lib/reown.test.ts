@@ -6,8 +6,8 @@ test("Reown metadata uses the canonical Makoto production identity", () => {
   assert.deepEqual(REOWN_METADATA, {
     name: "Makoto Wallet",
     description: "A non-custodial wallet built for Arc.",
-    url: "https://makoto-wallet.vercel.app",
-    icons: ["https://makoto-wallet.vercel.app/makoto/logo-pro-v2.png"],
+    url: "https://makotowallet.xyz",
+    icons: ["https://makotowallet.xyz/makoto/logo-pro-v2.png"],
   });
 });
 
