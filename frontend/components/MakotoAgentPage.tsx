@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useConnection } from "wagmi";
+import { useConnection, usePublicClient } from "wagmi";
 import { AppHeader } from "./AppHeader";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
 import { usePreferences } from "@/hooks/usePreferences";
@@ -14,14 +14,18 @@ import { handoffUrl, prepareAgentActionHandoff, storeAgentHandoff, validateAgent
 import type { AgentActionDraft } from "@/lib/agent/types";
 import { summarizeSavingsJars } from "@/lib/savingsSummary";
 import { useMakotoAgent } from "@/hooks/useMakotoAgent";
+import { createAgentPlanningServices } from "@/lib/agent/planning";
+import { arcTestnet } from "viem/chains";
 import styles from "./MakotoAgentPage.module.css";
 
 export function MakotoAgentPage() {
   const { locale } = usePreferences(), vi = locale === "vi", connection = useConnection(), chain = useVerifiedWalletChain();
+  const publicClient = usePublicClient({ chainId: arcTestnet.id });
+  const planningServices = useMemo(() => createAgentPlanningServices(publicClient), [publicClient]);
   const canRead = connection.isConnected && chain.isArc, balances = useWalletBalances(connection.address, canRead), activity = useWalletActivity(connection.address, canRead, true), ownerJars = useOwnerJars(canRead ? connection.address : undefined), savings = summarizeSavingsJars(ownerJars.jars);
   const snapshot = useMemo(() => createAgentContextSnapshot({ connected: connection.isConnected, account: connection.address, walletType: connection.connector?.name, verifiedChainId: chain.providerChainId, isArc: chain.isArc, balances: { usdc: balances.usdc.data, eurc: balances.eurc.data }, activity: activity.data, activityPartial: activity.partial, activityUnavailable: activity.unavailable, vault: { available: canRead && !ownerJars.isLoading && !ownerJars.error, total: canRead ? savings.totalSaved : undefined, goalCount: canRead ? ownerJars.jars.length : undefined, activeCount: canRead ? savings.active : undefined } }), [activity.data, activity.partial, activity.unavailable, balances.eurc.data, balances.usdc.data, canRead, chain.isArc, chain.providerChainId, connection.address, connection.connector?.name, connection.isConnected, ownerJars.error, ownerJars.isLoading, ownerJars.jars.length, savings.active, savings.totalSaved]);
-  const { messages, setMessages, input, setInput, inputRef, ask, submit } = useMakotoAgent(snapshot, locale, connection.address);
-  const prompts = vi ? ["Số dư của mình bao nhiêu?", "Gửi 5 USDC cho 0x…", "Đổi 5 USDC sang EURC", "Trong Makoto Vault có gì?"] : ["What's my balance?", "Send 5 USDC to 0x…", "Swap 5 USDC to EURC", "What's in my Vault?"];
+  const { messages, setMessages, input, setInput, inputRef, ask, submit } = useMakotoAgent(snapshot, locale, connection.address, planningServices);
+  const prompts = vi ? ["Số dư của mình bao nhiêu?", "Gửi 5 USDC cho 0x…", "Đổi 5 USDC sang EURC", "Tôi có đang ở đúng mạng không?"] : ["What's my balance?", "Send 5 USDC to 0x…", "Swap 5 USDC to EURC", "Am I on the correct network?"];
   return <main className={styles.page}><div className={styles.shell}><AppHeader />
     <section className={styles.hero}><div><span>MAKOTO AGENT</span><h1>{vi ? "Makoto Agent — hành động an toàn" : "Makoto Agent — Safe Actions"}</h1><p>{vi ? "Hỏi về ví hoặc chuẩn bị giao dịch bằng tiếng Việt hay tiếng Anh." : "Ask about your wallet or prepare a transaction in English or Vietnamese."}</p></div><strong>{vi ? "Ví luôn xác nhận" : "Wallet confirmation required"}</strong></section>
     <section className={styles.disclosure} role="note">{vi ? "Agent có thể chuẩn bị hành động được hỗ trợ qua cùng quy trình kiểm tra an toàn của Makoto. Agent không thể ký, bỏ qua bước xem xét, tự xác nhận ví hoặc thực hiện yêu cầu thiếu/không rõ ràng. An toàn giao thức không được đảm bảo." : "The Agent can prepare supported actions through Makoto's shared transaction safety review. It cannot sign, bypass review, confirm the wallet, or execute missing or ambiguous requests. Protocol safety is not guaranteed."}</section>

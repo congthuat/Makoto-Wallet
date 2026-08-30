@@ -7,6 +7,8 @@ const AMOUNT = /(?:^|\s)(-?\d+(?:[.,]\d+)?|max|all|everything|entire balance)(?=
 export function parseAgentRequest(request: AgentRequest): AgentIntent {
   const raw = request.text.trim(), text = normalize(raw);
   const limit = Math.min(20, Math.max(1, Number(text.match(/\b(\d{1,2})\b/)?.[1] ?? 5)));
+  const planning = parsePlanningIntent(raw, text, request.locale);
+  if (planning) return planning;
   if (has(text, ["explain", "giải thích"]) && has(text, ["transaction", "activity", "swap", "bridge", "giao dịch", "hoán đổi", "chuyển chuỗi"])) return { kind: "activity-explanation", locale: request.locale, activityFilter: filterOf(text), limit: 1 };
   if (has(text, ["recent", "last", "history", "activity", "transaction", "gần đây", "gần nhất", "lịch sử", "giao dịch"])) return { kind: "recent-activity", locale: request.locale, activityFilter: filterOf(text), limit };
   const action = parseActionDraft(raw, text);
@@ -16,6 +18,36 @@ export function parseAgentRequest(request: AgentRequest): AgentIntent {
   if (has(text, ["network", "chain", "mạng nào", "mạng", "chuỗi nào"])) return { kind: "network-status", locale: request.locale };
   if (has(text, ["security", "safety", "protect", "bảo mật", "an toàn", "bảo vệ"])) return { kind: "safety-capabilities", locale: request.locale };
   return { kind: "unknown", locale: request.locale };
+}
+
+function parsePlanningIntent(raw: string, text: string, locale: AgentIntent["locale"]): AgentIntent | undefined {
+  if (has(text, ["what was my latest transaction", "what did i do last", "latest transaction", "giao dịch gần nhất"]) && !/\b(?:[2-9]|1\d|20)\b/.test(text)) return { kind: "latest-transaction", locale };
+  if (has(text, ["spend today", "spent today", "chi bao nhiêu", "đã chi bao nhiêu"])) return { kind: "today-spending", locale };
+  const blockingCode = blockingCodeOf(text);
+  if (blockingCode && has(text, ["why", "can't", "cannot", "blocked", "không thể", "tại sao"])) return { kind: "blocking-explanation", locale, blockingCode };
+  const sendQuestion = has(text, ["send", "gửi"]);
+  const amount = text.match(AMOUNT)?.[1]?.replace(",", ".");
+  const assetId = /\beurc\b/.test(text) ? "eurc" : "usdc";
+  const recipient = raw.match(ADDRESS)?.[0] as AgentIntent["recipient"] | undefined;
+  if (sendQuestion && has(text, ["how much will i have left", "how much would i have left", "what will remain", "còn bao nhiêu"])) return { kind: "send-remaining", locale, amount, assetId, recipient };
+  if (sendQuestion && has(text, ["can i afford", "do i have enough", "đủ để", "có đủ"])) return { kind: "send-affordability", locale, amount, assetId, recipient };
+  return undefined;
+}
+
+function blockingCodeOf(text: string): AgentIntent["blockingCode"] {
+  if (has(text, ["wrong network", "wrong chain", "sai mạng"])) return "wrong-network";
+  if (has(text, ["invalid recipient", "invalid address", "địa chỉ không hợp lệ"])) return "invalid-recipient";
+  if (has(text, ["insufficient gas", "network fee", "phí mạng"])) return "insufficient-gas-balance";
+  if (has(text, ["insufficient balance", "not enough balance", "không đủ số dư"])) return "insufficient-token-balance";
+  if (has(text, ["wallet rejected", "wallet rejection", "ví từ chối"])) return "wallet-rejection";
+  if (has(text, ["simulation reverted", "simulation failed", "mô phỏng thất bại"])) return "reverted-simulation";
+  if (has(text, ["confirmation unknown", "unknown confirmation", "chưa xác định xác nhận"])) return "unknown-confirmation";
+  if (has(text, ["allowance", "approval required", "cần phê duyệt"])) return "allowance-required";
+  if (has(text, ["quote expired", "stale quote", "báo giá hết hạn"])) return "stale-quote";
+  if (has(text, ["quote unavailable", "no quote", "không có báo giá"])) return "quote-unavailable";
+  if (has(text, ["gas estimate", "fee estimate", "ước tính phí"])) return "gas-estimate-unavailable";
+  if (has(text, ["bridge route", "route unavailable", "tuyến bridge"])) return "bridge-route-unavailable";
+  return undefined;
 }
 
 export function parseActionDraft(raw: string, text = normalize(raw)): AgentActionDraft | undefined {

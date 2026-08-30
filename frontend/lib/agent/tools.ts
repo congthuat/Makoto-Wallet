@@ -1,6 +1,7 @@
 import { arcTestnet } from "viem/chains";
 import type { WalletActivity } from "../wallet.ts";
 import type { AgentContextSnapshot, AgentIntent, AgentToolDefinition, AgentToolResult } from "./types.ts";
+import { confirmedSpendingToday, explainBlocking, latestConfirmedTransaction, planSend, type AgentPlanningResult } from "./planning.ts";
 
 export const READ_ONLY_AGENT_TOOLS: readonly AgentToolDefinition[] = Object.freeze([
   { name: "wallet_overview", run: (s) => unavailableWallet(s, "wallet_overview") ?? result("wallet_overview", { connected: true, account: s.account, network: s.verifiedChainId, usdc: s.balances.usdc, eurc: s.balances.eurc }) },
@@ -11,9 +12,19 @@ export const READ_ONLY_AGENT_TOOLS: readonly AgentToolDefinition[] = Object.free
   { name: "safety_capabilities", run: (s) => result("safety_capabilities", s.safetyCapabilities) },
 ]);
 
-export function runAgentTool(snapshot: AgentContextSnapshot, intent: AgentIntent): AgentToolResult | undefined {
+export function runAgentTool(snapshot: AgentContextSnapshot, intent: AgentIntent, planning?: AgentPlanningResult): AgentToolResult | undefined {
+  const planningResult = planning ?? defaultPlanning(snapshot, intent);
+  if (planningResult) return { tool: intent.kind.replaceAll("-", "_"), ok: planningResult.status !== "unavailable", data: planningResult, partial: planningResult.completeness !== "complete", ...(planningResult.status === "unavailable" ? { unavailable: "Required planning data is unavailable." } : {}) };
   const name = ({ "wallet-overview": "wallet_overview", "recent-activity": "recent_activity", "activity-explanation": "activity_explanation", "vault-summary": "vault_summary", "network-status": "network_status", "safety-capabilities": "safety_capabilities" } as Record<string, string>)[intent.kind];
   return READ_ONLY_AGENT_TOOLS.find((tool) => tool.name === name)?.run(snapshot, intent);
+}
+
+function defaultPlanning(snapshot: AgentContextSnapshot, intent: AgentIntent): AgentPlanningResult | undefined {
+  if (intent.kind === "latest-transaction") return latestConfirmedTransaction(snapshot);
+  if (intent.kind === "today-spending") return confirmedSpendingToday(snapshot, intent.timezoneOffsetMinutes);
+  if (intent.kind === "send-affordability" || intent.kind === "send-remaining") return planSend(snapshot, intent);
+  if (intent.kind === "blocking-explanation" && intent.blockingCode) return explainBlocking(intent.blockingCode, snapshot.timestamp);
+  return undefined;
 }
 
 function recentActivity(s: AgentContextSnapshot, intent: AgentIntent): AgentToolResult {

@@ -87,3 +87,10 @@ test("Agent shell follows the shared sidebar and mobile content geometry", () =>
   assert.match(css, /\.composer input\{[^}]*width:100%;min-width:0/);
   assert.doesNotMatch(css, /margin-left\s*:|translateX\(|100vw|width\s*:\s*calc\(/);
 });
+
+test("Agent quick prompts replace the legacy Vault surface with network intelligence", () => {
+  const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
+  assert.match(ui, /Am I on the correct network\?/);
+  assert.match(ui, /Tôi có đang ở đúng mạng không\?/);
+  assert.doesNotMatch(ui, /What's in my Vault\?|Trong Makoto Vault có gì\?/);
+});

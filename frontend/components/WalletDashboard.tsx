@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useConnection } from "wagmi";
+import { useConnection, usePublicClient } from "wagmi";
 import { zeroAddress } from "viem";
 import { arcTestnet } from "viem/chains";
 
@@ -34,6 +34,7 @@ import { deriveNetworkSafety, deriveOverallSecurityStatus, deriveSecurityAlerts,
 import { consumeAgentHandoff, storeAgentResult, type AgentActionHandoff } from "@/lib/agent/actions";
 import { canConsumeAgentHandoff, deriveFinancialDataState, deriveWalletUiState } from "@/lib/walletHydration";
 import { createAgentContextSnapshot } from "@/lib/agent/context";
+import { createAgentPlanningServices } from "@/lib/agent/planning";
 import { rankAgentSuggestions, readSuggestionUsage, recordSuggestionUsage, suggestionStorageKey } from "@/lib/agent/suggestions";
 import {
   appKitViewForPath,
@@ -73,6 +74,8 @@ export function WalletDashboard() {
 
   const hydrated = useHydrated();
   const connection = useConnection();
+  const publicClient = usePublicClient({ chainId: arcTestnet.id });
+  const agentPlanningServices = useMemo(() => createAgentPlanningServices(publicClient), [publicClient]);
   const chain = useVerifiedWalletChain();
   const walletState = deriveWalletUiState({ hydrated, connectionStatus: connection.status, isConnected: connection.isConnected, connectorChainId: chain.connectorChainId, providerChainId: chain.providerChainId, isArc: chain.isArc });
   const onArc = walletState === "arc";
@@ -176,7 +179,7 @@ export function WalletDashboard() {
     setInput: setAgentInput,
     ask: askAgent,
     submit: submitAgent,
-  } = useMakotoAgent(agentSnapshot, locale, connection.address);
+  } = useMakotoAgent(agentSnapshot, locale, connection.address, agentPlanningServices);
 
   const suggestionKey = suggestionStorageKey(connection.address, chain.providerChainId);
   const agentSuggestions = useMemo(() => rankAgentSuggestions({

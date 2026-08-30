@@ -4,11 +4,13 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { consumeAgentResult, type AgentActionResult } from "@/lib/agent/actions";
 import { answerAgentRequest } from "@/lib/agent/planner";
+import { resolveAgentPlanning, type AgentPlanningServices } from "@/lib/agent/planning";
+import { parseAgentRequest } from "@/lib/agent/parser";
 import type { AgentActionDraft, AgentContextSnapshot, AgentLocale, AgentResponse } from "@/lib/agent/types";
 
 export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft };
 
-export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string) {
+export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string, planningServices?: AgentPlanningServices) {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [input, setInput] = useState("");
   const nextId = useRef(0);
@@ -22,10 +24,13 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     return () => window.clearTimeout(timer);
   }, [account, locale]);
 
-  function ask(text: string) {
+  async function ask(text: string) {
     const value = text.trim();
     if (!value) return;
-    const response: AgentResponse = answerAgentRequest(snapshot, { text: value, locale });
+    const request = { text: value, locale } as const;
+    const intent = parseAgentRequest(request);
+    const planning = await resolveAgentPlanning(snapshot, intent, planningServices);
+    const response: AgentResponse = answerAgentRequest(snapshot, request, planning);
     setMessages((current) => [
       ...current,
       { id: nextId.current++, role: "user", text: value },
@@ -37,7 +42,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    ask(input);
+    void ask(input);
   }
 
   return { messages, setMessages, input, setInput, inputRef, ask, submit };

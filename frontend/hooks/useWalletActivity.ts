@@ -6,6 +6,7 @@ import type { Address } from "viem";
 import { arcTestnet } from "viem/chains";
 
 import { deserializeWalletActivityPage, normalizeWalletActivities } from "@/lib/onchainActivity";
+import { deriveActivityLoadState } from "@/lib/activityLoadState";
 import { loadWalletActivity, mergeWalletActivity, WALLET_ACTIVITY_UPDATED_EVENT } from "@/lib/walletActivity";
 
 export function useWalletActivity(address?: Address, enabled = false, panelOpen = false) {
@@ -50,6 +51,11 @@ export function useWalletActivity(address?: Address, enabled = false, panelOpen 
     const local = address ? loadWalletActivity(address, arcTestnet.id) : [];
     return mergeWalletActivity(onchain, local);
   }, [address, localRevision, query.data]);
+  const loadState = deriveActivityLoadState({
+    hasSuccessfulLoad: query.data !== undefined,
+    requestFailed: query.isError,
+    pagePartial: Boolean(query.data?.pages.some((page) => page.partial)),
+  });
 
   useEffect(() => {
     if (!panelOpen) return;
@@ -64,8 +70,8 @@ export function useWalletActivity(address?: Address, enabled = false, panelOpen 
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,
-    partial: query.isError || Boolean(query.data?.pages.some((page) => page.partial)),
-    unavailable: query.isError,
+    partial: loadState.partial,
+    unavailable: loadState.unavailable,
     refetch,
     hasNextPage: query.hasNextPage,
     loadMore: query.fetchNextPage,
