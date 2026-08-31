@@ -7,6 +7,7 @@ import { blockingExplanation, formatPlanningAmount, type AgentPlanningResult } f
 export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: AgentIntent, result?: AgentToolResult): AgentResponse {
   const vi = intent.locale === "vi";
   if (intent.kind === "action-draft" && intent.actionDraft) return { intent, actionDraft: intent.actionDraft, text: vi ? "Makoto Agent có thể chuẩn bị hành động này nhưng không thể ký hoặc xác nhận giao dịch. Luôn cần kiểm tra và xác nhận trong ví." : "Makoto Agent can prepare this action, but it cannot sign or confirm transactions. Review and wallet confirmation are always required." };
+  if (intent.kind === "clarification") return { intent, text: clarificationText(intent.clarification, intent.amount, vi) };
   if (intent.kind === "unknown") return { intent, text: vi ? "Mình có thể xem số dư, mạng, hoạt động gần đây, Makoto Vault, giải thích giao dịch và các biện pháp an toàn. Mình cũng có thể chuẩn bị hành động an toàn; bạn luôn kiểm tra và xác nhận trong ví." : "I can show balances, network status, recent activity, Makoto Vault, transaction explanations, and safety capabilities. I can also prepare safe actions; you always review and confirm them in your wallet." };
   if (isPlanningIntent(intent.kind)) return formatPlanningResponse(intent, result, vi);
   if (!result?.ok) return { intent, result, text: localUnavailable(result?.unavailable, vi) };
@@ -105,4 +106,10 @@ export function explain(item: WalletActivity, vi: boolean) {
 }
 function amount(value?: bigint) { return value === undefined ? "unavailable" : formatUnits(value, 6); }
 function localUnavailable(text: string | undefined, vi: boolean) { if (!vi) return text ?? "That information is unavailable."; if (text?.startsWith("Connect")) return "Kết nối ví để xem số dư và hoạt động."; if (text?.includes("partial")) return "Không có hoạt động phù hợp trong dữ liệu đã tải; lịch sử hiện chỉ có một phần."; return "Thông tin này hiện không khả dụng."; }
+function clarificationText(reason: AgentIntent["clarification"], amount: string | undefined, vi: boolean) {
+  if (reason === "approval-topic") return vi ? "Bạn đang hỏi về phê duyệt cho Swap hay một hành động khác?" : "Are you asking about approval for a Swap or another action?";
+  if (reason === "swap-or-bridge") return vi ? "Bạn muốn hỏi số tiền nhận được từ Swap hay Bridge?" : "Do you mean the amount received from a Swap or a Bridge?";
+  if (reason === "missing-details") return vi ? "Mình cần thêm chi tiết để chuẩn bị hành động này." : "I need more details before preparing that action.";
+  return vi ? `${amount ?? "Số tiền đó"} của tài sản nào, và đây là Gửi, Swap hay Bridge?` : `${amount ?? "That amount"} of which asset, and is this for Send, Swap, or Bridge?`;
+}
 function networkText(s: AgentContextSnapshot, vi: boolean) { if (!s.connected) return vi ? `Chưa kết nối ví. Makoto cần Arc Testnet (chain ID ${arcTestnet.id}) cho các thao tác Arc.` : `Wallet disconnected. Makoto requires Arc Testnet (chain ID ${arcTestnet.id}) for Arc actions.`; return s.isArc ? (vi ? `Ví đang ở Arc Testnet (chain ID ${arcTestnet.id}). Các thao tác phụ thuộc Arc hiện khả dụng.` : `Your wallet is on Arc Testnet (chain ID ${arcTestnet.id}). Arc-dependent actions are available.`) : (vi ? `Ví đang ở chain ID ${s.verifiedChainId ?? "không xác định"}; Makoto cần Arc Testnet (${arcTestnet.id}). Agent sẽ không tự chuyển mạng.` : `Your wallet is on chain ID ${s.verifiedChainId ?? "unknown"}; Makoto requires Arc Testnet (${arcTestnet.id}). The Agent will not switch networks.`); }

@@ -1,17 +1,18 @@
 import type { AgentActionDraft, AgentActivityFilter, AgentIntent, AgentRequest } from "./types.ts";
+import type { AgentSessionContext } from "./sessionContext.ts";
 
 const ADDRESS = /0x[a-fA-F0-9]{40}/;
 const ADDRESS_LIKE = /0x[^\s,;]+/i;
-const AMOUNT = /(?:^|\s)(-?\d+(?:[.,]\d+)?|max|all|everything|entire balance)(?=\s|$)/i;
+const AMOUNT = /(?:^|\s)(-?\d+(?:[.,]\d+)?|max|all|everything|entire balance)(?=\s|[?!.,]|$)/i;
 
 export function parseAgentRequest(request: AgentRequest): AgentIntent {
   const raw = request.text.trim(), text = normalize(raw);
   const limit = Math.min(20, Math.max(1, Number(text.match(/\b(\d{1,2})\b/)?.[1] ?? 5)));
-  const planning = parsePlanningIntent(raw, text, request.locale, request.previousIntent);
+  const planning = parsePlanningIntent(raw, text, request.locale, request.previousIntent, request.sessionContext);
   if (planning) return planning;
   if (has(text, ["explain", "giải thích"]) && has(text, ["transaction", "activity", "swap", "bridge", "giao dịch", "hoán đổi", "chuyển chuỗi"])) return { kind: "activity-explanation", locale: request.locale, activityFilter: filterOf(text), limit: 1 };
   if (has(text, ["recent", "last", "history", "activity", "transaction", "gần đây", "gần nhất", "lịch sử", "giao dịch"])) return { kind: "recent-activity", locale: request.locale, activityFilter: filterOf(text), limit };
-  const action = parseActionDraft(raw, text);
+  const action = resolveActionDraftFromContext(parseActionDraft(raw, text), request.sessionContext);
   if (action) return { kind: "action-draft", locale: request.locale, actionDraft: action };
   if (has(text, ["vault", "savings", "saving goal", "tiết kiệm", "mục tiêu"])) return { kind: "vault-summary", locale: request.locale };
   if (has(text, ["balance", "portfolio", "how much", "summarize my wallet", "wallet summary", "số dư", "còn bao nhiêu", "tài sản", "tóm tắt ví"])) return { kind: "wallet-overview", locale: request.locale };
@@ -20,7 +21,7 @@ export function parseAgentRequest(request: AgentRequest): AgentIntent {
   return { kind: "unknown", locale: request.locale };
 }
 
-function parsePlanningIntent(raw: string, text: string, locale: AgentIntent["locale"], previous?: AgentIntent): AgentIntent | undefined {
+function parsePlanningIntent(raw: string, text: string, locale: AgentIntent["locale"], previous?: AgentIntent, session?: AgentSessionContext): AgentIntent | undefined {
   if (has(text, ["what was my latest transaction", "what did i do last", "latest transaction", "giao dịch gần nhất"]) && !/\b(?:[2-9]|1\d|20)\b/.test(text)) return { kind: "latest-transaction", locale };
   if (has(text, ["spend today", "spent today", "chi bao nhiêu", "đã chi bao nhiêu"])) return { kind: "today-spending", locale };
   const blockingCode = blockingCodeOf(text);
@@ -29,12 +30,6 @@ function parsePlanningIntent(raw: string, text: string, locale: AgentIntent["loc
   const amount = text.match(AMOUNT)?.[1]?.replace(",", ".");
   const assetId = /\beurc\b/.test(text) ? "eurc" : "usdc";
   const recipient = raw.match(ADDRESS)?.[0] as AgentIntent["recipient"] | undefined;
-  const previousSwap = previous && ["swap-quote", "swap-allowance", "swap-affordability"].includes(previous.kind) ? previous : undefined;
-  const followUpAmount = amount ?? (text.match(AMOUNT)?.[1]?.replace(",", "."));
-  if (previousSwap && has(text, ["minimum", "tối thiểu"])) return { ...previousSwap, kind: "swap-quote", locale, amount: followUpAmount ?? previousSwap.amount };
-  if (previousSwap && has(text, ["do i need approval", "allowance", "cần approve", "cần phê duyệt"])) return { ...previousSwap, kind: "swap-allowance", locale, amount: followUpAmount ?? previousSwap.amount };
-  if (previousSwap && has(text, ["can i afford", "afford this swap", "có đủ", "đủ để swap"])) return { ...previousSwap, kind: "swap-affordability", locale, amount: followUpAmount ?? previousSwap.amount };
-  if (previousSwap && amount && has(text, ["what about", "còn", "thế còn"])) return { ...previousSwap, kind: "swap-quote", locale, amount };
   const swapQuestion = has(text, ["swap", "đổi", "hoán đổi"]);
   const assets = [...text.matchAll(/\b(usdc|eurc)\b/g)].map((match) => match[1] as "usdc" | "eurc");
   const swapInput = assets[0] ?? assetId;
@@ -50,8 +45,35 @@ function parsePlanningIntent(raw: string, text: string, locale: AgentIntent["loc
   if (bridgeQuestion && has(text, ["has my bridge completed", "bridge completed", "bridge complete", "đã bridge xong", "bridge hoàn tất"])) return { kind: "bridge-completion", locale, amount, assetId: "usdc", sourceChainId: inferredSource, destinationChainId: inferredDestination, recipient };
   if (bridgeQuestion && has(text, ["route available", "route", "can i bridge", "tuyến", "có hoạt động"])) return { kind: "bridge-route", locale, amount, assetId: "usdc", sourceChainId: inferredSource, destinationChainId: inferredDestination, recipient };
   if (bridgeQuestion && has(text, ["how much", "cost", "fee", "arrive", "receive", "tốn bao nhiêu", "phí", "nhận"])) return { kind: "bridge-estimate", locale, amount, assetId: "usdc", sourceChainId: inferredSource, destinationChainId: inferredDestination, recipient };
+  if (bridgeQuestion && isConditional(text)) return { kind: "bridge-estimate", locale, amount, assetId: "usdc", sourceChainId: inferredSource, destinationChainId: inferredDestination, recipient };
   if (sendQuestion && has(text, ["how much will i have left", "how much would i have left", "what will remain", "còn bao nhiêu"])) return { kind: "send-remaining", locale, amount, assetId, recipient };
   if (sendQuestion && has(text, ["can i afford", "do i have enough", "đủ để", "có đủ"])) return { kind: "send-affordability", locale, amount, assetId, recipient };
+
+  const previousSwap = session?.activeTopic === "swap" && session.swap
+    ? { assetId: session.swap.inputAsset, outputAssetId: session.swap.outputAsset, amount: session.swap.amount }
+    : previous && ["swap-quote", "swap-allowance", "swap-affordability"].includes(previous.kind)
+      ? previous
+      : undefined;
+  const previousBridge = session?.activeTopic === "bridge" ? session.bridge : undefined;
+  const amountFollowUp = amount && has(text, ["what about", "còn", "thế còn"]);
+  const minimumFollowUp = has(text, ["minimum", "minimum received", "tối thiểu"]);
+  const approvalFollowUp = has(text, ["do i need approval", "is my allowance enough", "allowance enough", "cần approve", "có cần approve", "cần phê duyệt"]);
+  const affordabilityFollowUp = has(text, ["can i afford", "can i afford it", "có đủ", "tôi có đủ", "mình có đủ"]);
+  const feeFollowUp = has(text, ["what is the fee", "what's the fee", "phí là bao nhiêu", "phí bao nhiêu"]);
+  const routeFollowUp = has(text, ["is that route available", "is the route available", "route available", "tuyến đó", "tuyến này"]);
+
+  if (previousSwap && minimumFollowUp) return { kind: "swap-quote", locale, amount: amount ?? previousSwap.amount, assetId: previousSwap.assetId, outputAssetId: previousSwap.outputAssetId };
+  if (previousSwap && approvalFollowUp) return { kind: "swap-allowance", locale, amount: amount ?? previousSwap.amount, assetId: previousSwap.assetId, outputAssetId: previousSwap.outputAssetId };
+  if (previousSwap && affordabilityFollowUp) return { kind: "swap-affordability", locale, amount: amount ?? previousSwap.amount, assetId: previousSwap.assetId, outputAssetId: previousSwap.outputAssetId };
+  if (previousSwap && amountFollowUp) return { kind: "swap-quote", locale, amount, assetId: previousSwap.assetId, outputAssetId: previousSwap.outputAssetId };
+
+  if (previousBridge && amountFollowUp) return { kind: "bridge-estimate", locale, amount, assetId: "usdc", sourceChainId: previousBridge.sourceChainId, destinationChainId: previousBridge.destinationChainId };
+  if (previousBridge && feeFollowUp) return { kind: "bridge-estimate", locale, amount: previousBridge.amount, assetId: "usdc", sourceChainId: previousBridge.sourceChainId, destinationChainId: previousBridge.destinationChainId };
+  if (previousBridge && routeFollowUp) return { kind: "bridge-route", locale, amount: previousBridge.amount, assetId: "usdc", sourceChainId: previousBridge.sourceChainId, destinationChainId: previousBridge.destinationChainId };
+
+  if (approvalFollowUp) return { kind: "clarification", locale, clarification: "approval-topic" };
+  if (amountFollowUp) return { kind: "clarification", locale, clarification: "missing-topic", amount };
+  if (has(text, ["how much will i get", "how much would i get", "tôi sẽ nhận được bao nhiêu", "mình nhận được bao nhiêu"])) return { kind: "clarification", locale, clarification: "swap-or-bridge" };
   return undefined;
 }
 
@@ -92,9 +114,30 @@ export function parseActionDraft(raw: string, text = normalize(raw)): AgentActio
   return Object.freeze({ kind, asset: assets[0] ?? "USDC", amount, recipient, sourceChain: titleChain(source) ?? "Arc Testnet", destinationChain: titleChain(destination), outputAsset: assets[1], rawUserText: raw, missingFields: Object.freeze(missingFields), executionEnabled: false });
 }
 
+function resolveActionDraftFromContext(draft: AgentActionDraft | undefined, context?: AgentSessionContext): AgentActionDraft | undefined {
+  if (!draft || !context || draft.kind !== context.activeTopic) return draft;
+  const swap = draft.kind === "swap" ? context.swap : undefined;
+  const bridge = draft.kind === "bridge" ? context.bridge : undefined;
+  const send = draft.kind === "send" ? context.send : undefined;
+  const amount = draft.amount ?? swap?.amount ?? bridge?.amount ?? send?.amount;
+  const explicitAssets = [...draft.rawUserText.toLowerCase().matchAll(/\b(usdc|eurc)\b/g)].map((match) => match[1]);
+  const compatibleSwap = swap && (explicitAssets.length === 0 || explicitAssets[0] === swap.inputAsset) ? swap : undefined;
+  const asset = explicitAssets.length ? draft.asset : compatibleSwap?.inputAsset.toUpperCase() ?? bridge?.asset.toUpperCase() ?? send?.asset.toUpperCase() ?? draft.asset;
+  const outputAsset = draft.outputAsset ?? compatibleSwap?.outputAsset.toUpperCase();
+  const sourceChain = draft.sourceChain ?? chainName(bridge?.sourceChainId);
+  const destinationChain = draft.destinationChain ?? chainName(bridge?.destinationChainId);
+  const missingFields: string[] = [];
+  if (!amount) missingFields.push("amount");
+  if (draft.kind === "send" && !draft.recipient) missingFields.push("recipient");
+  if (draft.kind === "swap" && !outputAsset) missingFields.push("outputAsset");
+  if (draft.kind === "bridge" && !destinationChain) missingFields.push("destinationChain");
+  return Object.freeze({ ...draft, asset, amount, outputAsset, sourceChain, destinationChain, missingFields: Object.freeze(missingFields) });
+}
+
 function filterOf(text: string): AgentActivityFilter { if (has(text, ["swap", "hoán đổi"])) return "swap"; if (has(text, ["bridge", "chuyển chuỗi"])) return "bridge"; if (has(text, ["vault", "tiết kiệm"])) return "vault"; if (has(text, ["receive", "nhận"])) return "receive"; if (has(text, ["send", "gửi"])) return "send"; return "all"; }
 function normalize(value: string) { return value.toLocaleLowerCase("vi-VN").normalize("NFC"); }
 function has(value: string, terms: string[]) { return terms.some((term) => value.includes(term)); }
 function titleChain(value?: string) { if (!value) return undefined; if (value === "arc") return "Arc Testnet"; if (value === "base") return "Base Sepolia"; return value.split(" ").map((part) => part[0].toUpperCase() + part.slice(1)).join(" "); }
 function chainId(value?: string) { if (!value) return undefined; return value.startsWith("arc") ? 5_042_002 : value.startsWith("base") ? 84_532 : undefined; }
-function isConditional(text: string) { return has(text, ["if i ", "what happens if", "nếu tôi", "nếu mình"]); }
+function chainName(value?: number) { return value === 5_042_002 ? "Arc Testnet" : value === 84_532 ? "Base Sepolia" : undefined; }
+function isConditional(text: string) { return has(text, ["if i ", "what if i ", "what happens if", "nếu tôi", "nếu mình", "nếu bridge"]); }

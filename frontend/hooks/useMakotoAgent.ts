@@ -1,21 +1,50 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { consumeAgentResult, type AgentActionResult } from "@/lib/agent/actions";
 import { answerAgentRequest } from "@/lib/agent/planner";
 import { resolveAgentPlanning, type AgentPlanningServices } from "@/lib/agent/planning";
 import { parseAgentRequest } from "@/lib/agent/parser";
 import type { AgentActionDraft, AgentContextSnapshot, AgentLocale, AgentResponse } from "@/lib/agent/types";
+import { clearAgentSessionContext, readAgentSessionContext, storeAgentSessionContext, updateAgentSessionContext, type AgentSessionContext } from "@/lib/agent/sessionContext";
 
 export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft };
 
 export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string, planningServices?: AgentPlanningServices) {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
+  const [hasSessionContext, setHasSessionContext] = useState(false);
   const [input, setInput] = useState("");
   const nextId = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const previousIntent = useRef<AgentResponse["intent"] | undefined>(undefined);
+  const sessionContext = useRef<AgentSessionContext | undefined>(undefined);
+  const previousBinding = useRef<string | undefined>(undefined);
+
+  const clearConversation = useCallback(() => {
+    setMessages([]);
+    previousIntent.current = undefined;
+    sessionContext.current = undefined;
+    setHasSessionContext(false);
+    clearAgentSessionContext(window.sessionStorage);
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const binding = snapshot.connected && snapshot.account && snapshot.verifiedChainId !== undefined
+      ? `${snapshot.account.toLowerCase()}:${snapshot.verifiedChainId}`
+      : undefined;
+    if (!binding || previousBinding.current && previousBinding.current !== binding) {
+      clearAgentSessionContext(window.sessionStorage);
+      sessionContext.current = undefined;
+      setHasSessionContext(false);
+      previousIntent.current = undefined;
+    } else {
+      sessionContext.current = readAgentSessionContext(window.sessionStorage, { account: snapshot.account, chainId: snapshot.verifiedChainId });
+      setHasSessionContext(Boolean(sessionContext.current));
+    }
+    previousBinding.current = binding;
+  }, [snapshot.account, snapshot.connected, snapshot.verifiedChainId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -28,11 +57,23 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   async function ask(text: string) {
     const value = text.trim();
     if (!value) return;
-    const request = { text: value, locale, previousIntent: previousIntent.current } as const;
+    const now = Date.now();
+    const binding = snapshot.connected && snapshot.account && snapshot.verifiedChainId !== undefined
+      ? { account: snapshot.account, chainId: snapshot.verifiedChainId }
+      : undefined;
+    const currentContext = binding ? readAgentSessionContext(window.sessionStorage, binding, now) : undefined;
+    sessionContext.current = currentContext;
+    const request = { text: value, locale, sessionContext: currentContext } as const;
     const intent = parseAgentRequest(request);
     const planning = await resolveAgentPlanning(snapshot, intent, planningServices);
     const response: AgentResponse = answerAgentRequest(snapshot, request, planning);
     if (response.intent.kind !== "unknown") previousIntent.current = response.intent;
+    if (binding && previousBinding.current === `${binding.account.toLowerCase()}:${binding.chainId}`) {
+      const updated = updateAgentSessionContext(currentContext, response.intent, binding, now);
+      sessionContext.current = updated;
+      setHasSessionContext(Boolean(updated));
+      if (updated) storeAgentSessionContext(window.sessionStorage, updated);
+    }
     setMessages((current) => [
       ...current,
       { id: nextId.current++, role: "user", text: value },
@@ -47,7 +88,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     void ask(input);
   }
 
-  return { messages, setMessages, input, setInput, inputRef, ask, submit };
+  return { messages, setMessages, hasSessionContext, clearConversation, input, setInput, inputRef, ask, submit };
 }
 
 function resultText(result: AgentActionResult, vi: boolean) {
