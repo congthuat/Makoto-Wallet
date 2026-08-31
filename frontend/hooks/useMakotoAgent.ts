@@ -15,6 +15,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   const [input, setInput] = useState("");
   const nextId = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const previousIntent = useRef<AgentResponse["intent"] | undefined>(undefined);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -27,10 +28,11 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   async function ask(text: string) {
     const value = text.trim();
     if (!value) return;
-    const request = { text: value, locale } as const;
+    const request = { text: value, locale, previousIntent: previousIntent.current } as const;
     const intent = parseAgentRequest(request);
     const planning = await resolveAgentPlanning(snapshot, intent, planningServices);
     const response: AgentResponse = answerAgentRequest(snapshot, request, planning);
+    if (response.intent.kind !== "unknown") previousIntent.current = response.intent;
     setMessages((current) => [
       ...current,
       { id: nextId.current++, role: "user", text: value },

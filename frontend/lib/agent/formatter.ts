@@ -40,6 +40,9 @@ function formatPlanningResponse(intent: AgentIntent, result: AgentToolResult | u
     const code = planning.blockingReasons[0];
     return { intent, result, planning, text: code ? blockingExplanation(code, vi) : (vi ? "Không có lý do chặn có cấu trúc." : "No structured blocking reason is available.") };
   }
+  if (planning.kind === "bridge-completion") return { intent, result, planning, text: vi ? "Hoàn tất bridge cần bằng chứng từ giao dịch ở mạng đích. Burn ở mạng nguồn không chứng minh bridge đã hoàn tất, và thời gian hoàn tất không được đảm bảo." : "Bridge completion requires destination-chain transaction evidence. A source-chain burn does not prove completion, and completion timing cannot be guaranteed." };
+  if (planning.swap) return formatSwapPlanning(intent, result, planning, vi);
+  if (planning.bridge) return formatBridgePlanning(intent, result, planning, vi);
   const assetId = planning.assetId ?? "usdc";
   const requested = formatPlanningAmount(planning.amount, assetId);
   const balance = formatPlanningAmount(planning.balance, assetId);
@@ -55,8 +58,42 @@ function formatPlanningResponse(intent: AgentIntent, result: AgentToolResult | u
   return { intent, result, planning, text: `${intro} ${vi ? "Yêu cầu" : "Requested"}: ${requested} ${assetId.toUpperCase()}; ${vi ? "phí mạng tối đa" : "maximum network fee"}: ${fee} USDC; ${vi ? "số dư thận trọng còn lại" : "conservative remaining balance"}: ${remaining} ${assetId.toUpperCase()}. ${vi ? "Dữ liệu lấy lúc" : "Data as of"} ${timestamp}; ${vi ? "làm mới sau" : "refresh after"} ${planning.expiresAt ? new Date(planning.expiresAt).toLocaleTimeString(vi ? "vi-VN" : "en-US") : vi ? "ngay bây giờ" : "now"}.` };
 }
 
-function isPlanningIntent(kind: AgentIntent["kind"]) { return kind === "latest-transaction" || kind === "today-spending" || kind === "send-affordability" || kind === "send-remaining" || kind === "blocking-explanation"; }
+function isPlanningIntent(kind: AgentIntent["kind"]) { return kind === "latest-transaction" || kind === "today-spending" || kind === "send-affordability" || kind === "send-remaining" || kind === "swap-quote" || kind === "swap-allowance" || kind === "swap-affordability" || kind === "bridge-estimate" || kind === "bridge-route" || kind === "bridge-completion" || kind === "blocking-explanation"; }
 function hasSpending(planning: AgentPlanningResult) { return Boolean(planning.spending?.usdc || planning.spending?.eurc); }
+
+function formatSwapPlanning(intent: AgentIntent, result: AgentToolResult | undefined, planning: AgentPlanningResult, vi: boolean): AgentResponse {
+  const swap = planning.swap!, input = `${formatUnits(swap.inputAmount, 6)} ${swap.inputAsset.toUpperCase()}`;
+  const estimateOnly = vi ? "Chỉ là ước tính. Chưa có giao dịch nào được chuẩn bị." : "Estimated only. No transaction has been prepared.";
+  if (swap.freshness === "STALE") return { intent, result, planning, text: `${blockingExplanation("stale-quote", vi)} ${estimateOnly}` };
+  if (swap.freshness === "UNAVAILABLE" || swap.expectedOutput === undefined) return { intent, result, planning, text: `${blockingExplanation("quote-unavailable", vi)} ${estimateOnly}` };
+  if (planning.kind === "swap-allowance") {
+    if (swap.allowanceState === "ALLOWANCE_UNAVAILABLE") return { intent, result, planning, text: `${blockingExplanation("allowance-unavailable", vi)} ${estimateOnly}` };
+    if (swap.allowanceState === "SUFFICIENT") return { intent, result, planning, text: vi ? `Allowance hiện tại đủ cho ${input}. Không cần approve thêm. ${estimateOnly}` : `Current allowance is sufficient for ${input}. No additional approval is needed. ${estimateOnly}` };
+    const required = swap.requiredFiniteApproval === undefined ? "unavailable" : formatUnits(swap.requiredFiniteApproval, 6);
+    return { intent, result, planning, text: vi ? `Cần finite approval ${required} ${swap.inputAsset.toUpperCase()}. Makoto không dùng unlimited approval và không kích hoạt approve. ${estimateOnly}` : `A finite approval of ${required} ${swap.inputAsset.toUpperCase()} is required. Makoto never uses unlimited approval and did not trigger approval. ${estimateOnly}` };
+  }
+  if (planning.kind === "swap-affordability") {
+    if (swap.affordability.affordable === true) return { intent, result, planning, text: vi ? `Số dư token và USDC gas hiện đủ cho ${input}; mô phỏng chỉ đọc đã đạt. ${estimateOnly}` : `Current token and USDC gas balances cover ${input}, and the read-only simulation passed. ${estimateOnly}` };
+    if (swap.affordability.affordable === false) return { intent, result, planning, text: `${swap.blockingReasons.map((code) => blockingExplanation(code as Parameters<typeof blockingExplanation>[0], vi)).join(" ")} ${estimateOnly}` };
+    return { intent, result, planning, text: vi ? `Chưa đủ dữ liệu gas hoặc mô phỏng để xác nhận khả năng chi trả cho ${input}. ${estimateOnly}` : `Gas or simulation evidence is incomplete, so full affordability for ${input} cannot be confirmed. ${estimateOnly}` };
+  }
+  const output = `${formatUnits(swap.expectedOutput, 6)} ${swap.outputAsset.toUpperCase()}`, minimum = swap.minimumReceived === undefined ? "unavailable" : `${formatUnits(swap.minimumReceived, 6)} ${swap.outputAsset.toUpperCase()}`;
+  const remaining = swap.expiresAt === undefined ? undefined : Math.max(0, Math.floor((swap.expiresAt - swap.dataTimestamp) / 1000));
+  const freshness = swap.freshness === "EXPIRING" ? (vi ? "sắp hết hạn" : "expiring") : (vi ? "mới" : "fresh");
+  return { intent, result, planning, text: `${input} → ${vi ? "ước tính" : "estimated"} ${output}\n${vi ? "Nhận tối thiểu" : "Minimum received"}: ${minimum}\n${vi ? "Trượt giá" : "Slippage"}: ${swap.slippageBps / 100}%\n${vi ? "Báo giá" : "Quote"}: ${freshness}${remaining === undefined ? "" : ` · ${remaining}s ${vi ? "còn lại" : "remaining"}`}\n${estimateOnly}` };
+}
+
+function formatBridgePlanning(intent: AgentIntent, result: AgentToolResult | undefined, planning: AgentPlanningResult, vi: boolean): AgentResponse {
+  const bridge = planning.bridge!, estimateOnly = vi ? "Chỉ là ước tính. Chưa có giao dịch nào được chuẩn bị." : "Estimated only. No transaction has been prepared.";
+  if (planning.kind === "bridge-route") {
+    const state = bridge.routeAvailable ? "AVAILABLE" : bridge.blockingReasons.includes("route-unavailable") ? "UNAVAILABLE" : "UNKNOWN";
+    return { intent, result, planning, text: `${state} — ${bridge.sourceChain ?? bridge.sourceChainId} → ${bridge.destinationChain ?? bridge.destinationChainId}. ${state === "AVAILABLE" ? (vi ? "Nhà cung cấp hiện báo cáo tuyến này được hỗ trợ." : "The provider currently reports this route as supported.") : blockingExplanation(bridge.blockingReasons.includes("unsupported-chain") ? "unsupported-chain" : "route-unavailable", vi)} ${estimateOnly}` };
+  }
+  if (bridge.sourceDebit === undefined) return { intent, result, planning, text: `${blockingExplanation(bridge.blockingReasons.includes("provider-unavailable") ? "provider-unavailable" : "fee-unavailable", vi)} ${vi ? "Thời gian chuyển không thể được đảm bảo." : "Transfer timing cannot be guaranteed."} ${estimateOnly}` };
+  const amount = `${formatUnits(bridge.amount, 6)} USDC`, receive = bridge.expectedReceive === undefined ? (vi ? "không khả dụng" : "unavailable") : `${formatUnits(bridge.expectedReceive, 6)} USDC`;
+  const fees = bridge.fees.length ? bridge.fees.map((fee) => `${fee.kind}: ${fee.amount === undefined ? (vi ? "không khả dụng" : "unavailable") : formatUnits(fee.amount, fee.token.toUpperCase() === "ETH" ? 18 : 6)} ${fee.token} · chain ${fee.chainId}`).join("\n") : (vi ? "Phí nhà cung cấp: không khả dụng" : "Provider fees: unavailable");
+  return { intent, result, planning, text: `${vi ? "Số tiền bridge" : "Bridge amount"}: ${amount}\n${fees}\n${vi ? "Dự kiến nhận" : "Expected receive"}: ${receive}\n${vi ? "Phí khác token/mạng luôn được giữ riêng. Thời gian chuyển không thể được đảm bảo." : "Different token/chain fee units remain separate. Transfer timing cannot be guaranteed."}\n${estimateOnly}` };
+}
 
 export function explain(item: WalletActivity, vi: boolean) {
   const sent = `${formatUnits(item.amount, item.decimals)} ${item.assetSymbol}`; const hash = ` (${item.hash.slice(0, 10)}…)`;

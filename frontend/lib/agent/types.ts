@@ -5,7 +5,7 @@ import type { AgentBlockingCode, AgentPlanningResult } from "./planning.ts";
 
 export type AgentLocale = "en" | "vi";
 export type AgentActivityFilter = "send" | "receive" | "swap" | "bridge" | "vault" | "all";
-export type AgentReadIntent = "wallet-overview" | "recent-activity" | "activity-explanation" | "latest-transaction" | "today-spending" | "send-affordability" | "send-remaining" | "blocking-explanation" | "vault-summary" | "network-status" | "safety-capabilities" | "unknown";
+export type AgentReadIntent = "wallet-overview" | "recent-activity" | "activity-explanation" | "latest-transaction" | "today-spending" | "send-affordability" | "send-remaining" | "swap-quote" | "swap-allowance" | "swap-affordability" | "bridge-estimate" | "bridge-route" | "bridge-completion" | "blocking-explanation" | "vault-summary" | "network-status" | "safety-capabilities" | "unknown";
 export type AgentActionKind = "send" | "swap" | "bridge" | "vault-deposit" | "vault-withdraw";
 
 export type AgentContextSnapshot = Readonly<{
@@ -44,13 +44,16 @@ export type AgentIntent = Readonly<{
   transactionHash?: string;
   amount?: string;
   assetId?: SupportedAssetId;
+  outputAssetId?: SupportedAssetId;
   recipient?: Address;
+  sourceChainId?: number;
+  destinationChainId?: number;
   timezoneOffsetMinutes?: number;
   blockingCode?: AgentBlockingCode;
   actionDraft?: AgentActionDraft;
 }>;
 
-export type AgentRequest = Readonly<{ text: string; locale: AgentLocale }>;
+export type AgentRequest = Readonly<{ text: string; locale: AgentLocale; previousIntent?: AgentIntent }>;
 export type AgentToolResult = Readonly<{ tool: string; ok: boolean; data?: unknown; unavailable?: string; partial?: boolean }>;
 export type AgentToolDefinition = Readonly<{ name: string; run(snapshot: AgentContextSnapshot, intent: AgentIntent): AgentToolResult }>;
 export type AgentResponse = Readonly<{ text: string; intent: AgentIntent; result?: AgentToolResult; planning?: AgentPlanningResult; actionDraft?: AgentActionDraft }>;
