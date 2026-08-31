@@ -7,7 +7,7 @@ import { answerAgentRequest } from "@/lib/agent/planner";
 import { resolveAgentPlanning, type AgentPlanningServices } from "@/lib/agent/planning";
 import { parseAgentRequest } from "@/lib/agent/parser";
 import type { AgentActionDraft, AgentContextSnapshot, AgentLocale, AgentResponse } from "@/lib/agent/types";
-import { clearAgentSessionContext, readAgentSessionContext, storeAgentSessionContext, updateAgentSessionContext, type AgentSessionContext } from "@/lib/agent/sessionContext";
+import { clearAgentSessionContext, createAgentRequestGeneration, readAgentSessionContext, storeAgentSessionContext, updateAgentSessionContext, type AgentSessionContext } from "@/lib/agent/sessionContext";
 
 export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft };
 
@@ -20,8 +20,11 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   const previousIntent = useRef<AgentResponse["intent"] | undefined>(undefined);
   const sessionContext = useRef<AgentSessionContext | undefined>(undefined);
   const previousBinding = useRef<string | undefined>(undefined);
+  const requestGeneration = useRef(createAgentRequestGeneration());
+  const latestBinding = useRef<string | undefined>(undefined);
 
   const clearConversation = useCallback(() => {
+    requestGeneration.current.invalidate();
     setMessages([]);
     previousIntent.current = undefined;
     sessionContext.current = undefined;
@@ -34,7 +37,9 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     const binding = snapshot.connected && snapshot.account && snapshot.verifiedChainId !== undefined
       ? `${snapshot.account.toLowerCase()}:${snapshot.verifiedChainId}`
       : undefined;
+    latestBinding.current = binding;
     if (!binding || previousBinding.current && previousBinding.current !== binding) {
+      requestGeneration.current.invalidate();
       clearAgentSessionContext(window.sessionStorage);
       sessionContext.current = undefined;
       setHasSessionContext(false);
@@ -57,6 +62,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   async function ask(text: string) {
     const value = text.trim();
     if (!value) return;
+    const generation = requestGeneration.current.capture();
     const now = Date.now();
     const binding = snapshot.connected && snapshot.account && snapshot.verifiedChainId !== undefined
       ? { account: snapshot.account, chainId: snapshot.verifiedChainId }
@@ -66,6 +72,8 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     const request = { text: value, locale, sessionContext: currentContext } as const;
     const intent = parseAgentRequest(request);
     const planning = await resolveAgentPlanning(snapshot, intent, planningServices);
+    const bindingKey = binding ? `${binding.account.toLowerCase()}:${binding.chainId}` : undefined;
+    if (!requestGeneration.current.isCurrent(generation) || latestBinding.current !== bindingKey) return;
     const response: AgentResponse = answerAgentRequest(snapshot, request, planning);
     if (response.intent.kind !== "unknown") previousIntent.current = response.intent;
     if (binding && previousBinding.current === `${binding.account.toLowerCase()}:${binding.chainId}`) {

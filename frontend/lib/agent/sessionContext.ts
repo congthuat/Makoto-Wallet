@@ -29,6 +29,21 @@ export type AgentSessionContext = Readonly<{
 export type AgentSessionBinding = Readonly<{ account?: string; chainId?: number }>;
 type SessionStore = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
+export type AgentRequestGeneration = Readonly<{
+  capture: () => number;
+  invalidate: () => void;
+  isCurrent: (generation: number) => boolean;
+}>;
+
+export function createAgentRequestGeneration(): AgentRequestGeneration {
+  let current = 0;
+  return Object.freeze({
+    capture: () => current,
+    invalidate: () => { current += 1; },
+    isCurrent: (generation: number) => generation === current,
+  });
+}
+
 const ADDRESS = /^0x[a-fA-F0-9]{40}$/;
 const AMOUNT = /^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/;
 const PLANNING_INTENTS: readonly AgentSessionPlanningIntent[] = [

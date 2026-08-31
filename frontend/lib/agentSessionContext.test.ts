@@ -9,6 +9,7 @@ import {
   AGENT_SESSION_CONTEXT_KEY,
   AGENT_SESSION_CONTEXT_TTL_MS,
   clearAgentSessionContext,
+  createAgentRequestGeneration,
   readAgentSessionContext,
   storeAgentSessionContext,
   updateAgentSessionContext,
@@ -28,6 +29,25 @@ class MemoryStore {
   getItem(key: string) { return this.values.get(key) ?? null; }
   setItem(key: string, value: string) { this.values.set(key, value); }
   removeItem(key: string) { this.values.delete(key); }
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
+type GuardedState = { messages: string[]; previousIntent?: string; context?: AgentSessionContext; draft?: string };
+
+async function guardedCompletion(
+  generation: ReturnType<typeof createAgentRequestGeneration>,
+  pending: Promise<GuardedState>,
+  commit: (result: GuardedState) => void,
+) {
+  const captured = generation.capture();
+  const result = await pending;
+  if (!generation.isCurrent(captured)) return;
+  commit(result);
 }
 
 function swapContext(updatedAt = now): AgentSessionContext {
@@ -79,6 +99,69 @@ test("chain binding and explicit clear remove the single tab-scoped context entr
   storeAgentSessionContext(store, swapContext());
   clearAgentSessionContext(store);
   assert.equal(store.getItem(AGENT_SESSION_CONTEXT_KEY), null);
+});
+
+test("request generation prevents clear from resurrecting messages, context, intent, or drafts", async () => {
+  const generation = createAgentRequestGeneration();
+  const pending = deferred<GuardedState>();
+  const store = new MemoryStore();
+  storeAgentSessionContext(store, swapContext());
+  const state: GuardedState = { messages: [] };
+  const request = guardedCompletion(generation, pending.promise, (result) => {
+    Object.assign(state, result);
+    if (result.context) storeAgentSessionContext(store, result.context);
+  });
+  generation.invalidate();
+  state.messages = [];
+  state.previousIntent = undefined;
+  state.context = undefined;
+  state.draft = undefined;
+  clearAgentSessionContext(store);
+  pending.resolve({ messages: ["stale answer"], previousIntent: "swap-quote", context: swapContext(), draft: "stale preparation" });
+  await request;
+  assert.deepEqual(state, { messages: [], previousIntent: undefined, context: undefined, draft: undefined });
+  assert.equal(store.getItem(AGENT_SESSION_CONTEXT_KEY), null);
+});
+
+test("a new request after clear wins even when the old request resolves last", async () => {
+  const generation = createAgentRequestGeneration();
+  const oldPending = deferred<GuardedState>();
+  const newPending = deferred<GuardedState>();
+  const state: GuardedState = { messages: [] };
+  const oldRequest = guardedCompletion(generation, oldPending.promise, (result) => Object.assign(state, result));
+  generation.invalidate();
+  const newRequest = guardedCompletion(generation, newPending.promise, (result) => Object.assign(state, result));
+  newPending.resolve({ messages: ["new answer"], context: bridgeContext(now + 1) });
+  await newRequest;
+  oldPending.resolve({ messages: ["old answer"], context: swapContext() });
+  await oldRequest;
+  assert.deepEqual(state.messages, ["new answer"]);
+  assert.equal(state.context?.activeTopic, "bridge");
+});
+
+test("disconnect, account change, and chain change invalidate pending completions", async () => {
+  for (const event of ["disconnect", "account-change", "chain-change"]) {
+    const generation = createAgentRequestGeneration();
+    const pending = deferred<GuardedState>();
+    const state: GuardedState = { messages: [] };
+    const request = guardedCompletion(generation, pending.promise, (result) => Object.assign(state, result));
+    generation.invalidate();
+    pending.resolve({ messages: [`stale ${event}`], context: swapContext(), draft: "stale preparation" });
+    await request;
+    assert.deepEqual(state, { messages: [] }, event);
+  }
+});
+
+test("current request generation completes normally", async () => {
+  const generation = createAgentRequestGeneration();
+  const pending = deferred<GuardedState>();
+  const state: GuardedState = { messages: [] };
+  const request = guardedCompletion(generation, pending.promise, (result) => Object.assign(state, result));
+  pending.resolve({ messages: ["current answer"], previousIntent: "swap-quote", context: swapContext() });
+  await request;
+  assert.deepEqual(state.messages, ["current answer"]);
+  assert.equal(state.previousIntent, "swap-quote");
+  assert.equal(state.context?.activeTopic, "swap");
 });
 
 test("Swap amount, minimum, allowance and affordability follow-ups reuse parameters only", () => {
