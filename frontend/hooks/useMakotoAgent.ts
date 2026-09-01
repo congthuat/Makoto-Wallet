@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 
 import { consumeAgentResult, type AgentActionResult } from "@/lib/agent/actions";
 import { answerAgentRequest } from "@/lib/agent/planner";
-import { resolveAgentPlanning, type AgentPlanningServices } from "@/lib/agent/planning";
+import type { AgentPlanningServices } from "@/lib/agent/planning";
 import { parseAgentRequest } from "@/lib/agent/parser";
+import { routeAgentRequest } from "@/lib/agent/orchestration";
+import { runAgentCapability, type AgentCapabilityOutput } from "@/lib/agent/tools";
 import type { AgentActionDraft, AgentContextSnapshot, AgentLocale, AgentResponse } from "@/lib/agent/types";
 import { clearAgentSessionContext, createAgentRequestGeneration, readAgentSessionContext, storeAgentSessionContext, updateAgentSessionContext, type AgentSessionContext } from "@/lib/agent/sessionContext";
 
@@ -71,10 +73,13 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     sessionContext.current = currentContext;
     const request = { text: value, locale, sessionContext: currentContext } as const;
     const intent = parseAgentRequest(request);
-    const planning = await resolveAgentPlanning(snapshot, intent, planningServices);
+    const decision = routeAgentRequest(intent);
+    const output: AgentCapabilityOutput = decision.mode === "clarification"
+      ? Object.freeze({})
+      : await runAgentCapability({ snapshot, planningServices, now, binding: { generation, account: binding?.account, chainId: binding?.chainId } }, intent, decision);
     const bindingKey = binding ? `${binding.account.toLowerCase()}:${binding.chainId}` : undefined;
     if (!requestGeneration.current.isCurrent(generation) || latestBinding.current !== bindingKey) return;
-    const response: AgentResponse = answerAgentRequest(snapshot, request, planning);
+    const response: AgentResponse = answerAgentRequest(snapshot, intent, decision, output);
     if (response.intent.kind !== "unknown") previousIntent.current = response.intent;
     if (binding && previousBinding.current === `${binding.account.toLowerCase()}:${binding.chainId}`) {
       const updated = updateAgentSessionContext(currentContext, response.intent, binding, now);

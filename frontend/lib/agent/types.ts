@@ -8,6 +8,8 @@ export type AgentLocale = "en" | "vi";
 export type AgentActivityFilter = "send" | "receive" | "swap" | "bridge" | "vault" | "all";
 export type AgentReadIntent = "wallet-overview" | "recent-activity" | "activity-explanation" | "latest-transaction" | "today-spending" | "send-affordability" | "send-remaining" | "swap-quote" | "swap-allowance" | "swap-affordability" | "bridge-estimate" | "bridge-route" | "bridge-completion" | "blocking-explanation" | "vault-summary" | "network-status" | "safety-capabilities" | "clarification" | "unknown";
 export type AgentActionKind = "send" | "swap" | "bridge" | "vault-deposit" | "vault-withdraw";
+export type AgentRequestMode = "informational" | "planning" | "preparation" | "clarification";
+export type AgentTopic = "wallet" | "activity" | "network" | "vault" | "send" | "swap" | "bridge" | "safety" | "unknown";
 
 export type AgentContextSnapshot = Readonly<{
   connected: boolean;
@@ -24,21 +26,33 @@ export type AgentContextSnapshot = Readonly<{
   timestamp: number;
 }>;
 
-export type AgentActionDraft = Readonly<{
-  kind: AgentActionKind;
-  asset?: string;
-  amount?: string;
-  recipient?: string;
-  sourceChain?: string;
-  destinationChain?: string;
-  outputAsset?: string;
+type AgentDraftBase = Readonly<{
+  version: 1;
+  mode: "prepare-only";
   rawUserText: string;
-  missingFields: readonly string[];
   executionEnabled: false;
 }>;
 
+export type SendActionDraft = AgentDraftBase & Readonly<{ kind: "send"; asset: "USDC" | "EURC"; amount: string; recipient: Address; sourceChain: "Arc Testnet" }>;
+export type SwapActionDraft = AgentDraftBase & Readonly<{ kind: "swap"; inputAsset: "USDC" | "EURC"; outputAsset: "USDC" | "EURC"; amount: string; slippage: 0.005; sourceChain: "Arc Testnet" }>;
+export type BridgeActionDraft = AgentDraftBase & Readonly<{ kind: "bridge"; asset: "USDC"; amount: string; sourceChain: "Arc Testnet" | "Base Sepolia"; destinationChain: "Arc Testnet" | "Base Sepolia"; recipient?: Address; routeMode: "cctp-direct-forwarding" | "circle-app-kit-cctp" }>;
+export type VaultActionDraft = AgentDraftBase & Readonly<{ kind: "vault-deposit" | "vault-withdraw"; asset: "USDC"; amount: string }>;
+export type AgentActionDraft = SendActionDraft | SwapActionDraft | BridgeActionDraft | VaultActionDraft;
+
+export type AgentPreparationInput = Readonly<{
+  kind: AgentActionKind;
+  assetId?: SupportedAssetId;
+  amount?: string;
+  recipient?: Address;
+  sourceChainId?: number;
+  destinationChainId?: number;
+  outputAssetId?: SupportedAssetId;
+  rawUserText: string;
+  invalidRecipient?: boolean;
+}>;
+
 export type AgentIntent = Readonly<{
-  kind: AgentReadIntent | "action-draft";
+  kind: AgentReadIntent | "prepare-action";
   locale: AgentLocale;
   activityFilter?: AgentActivityFilter;
   limit?: number;
@@ -52,10 +66,9 @@ export type AgentIntent = Readonly<{
   timezoneOffsetMinutes?: number;
   blockingCode?: AgentBlockingCode;
   clarification?: "missing-topic" | "swap-or-bridge" | "approval-topic" | "missing-details";
-  actionDraft?: AgentActionDraft;
+  preparation?: AgentPreparationInput;
 }>;
 
 export type AgentRequest = Readonly<{ text: string; locale: AgentLocale; previousIntent?: AgentIntent; sessionContext?: AgentSessionContext }>;
-export type AgentToolResult = Readonly<{ tool: string; ok: boolean; data?: unknown; unavailable?: string; partial?: boolean }>;
-export type AgentToolDefinition = Readonly<{ name: string; run(snapshot: AgentContextSnapshot, intent: AgentIntent): AgentToolResult }>;
+export type AgentToolResult<T = unknown> = Readonly<{ tool: string; ok: boolean; data?: T; unavailable?: string; partial?: boolean }>;
 export type AgentResponse = Readonly<{ text: string; intent: AgentIntent; result?: AgentToolResult; planning?: AgentPlanningResult; actionDraft?: AgentActionDraft }>;

@@ -5,7 +5,8 @@ import type { Address, Hash } from "viem";
 import { createAgentContextSnapshot } from "./agent/context.ts";
 import { answerAgentRequest } from "./agent/planner.ts";
 import { parseAgentRequest } from "./agent/parser.ts";
-import { runAgentTool } from "./agent/tools.ts";
+import { routeAgentRequest } from "./agent/orchestration.ts";
+import { runAgentCapability, runAgentTool } from "./agent/tools.ts";
 import type { AgentContextSnapshot, AgentRequest } from "./agent/types.ts";
 import type { WalletActivity } from "./wallet.ts";
 
@@ -15,6 +16,7 @@ const token = "0x3600000000000000000000000000000000000000" as Address;
 const activity = (kind: WalletActivity["kind"], direction: WalletActivity["direction"] = "send", index = 1): WalletActivity => ({ hash: `0x${String(index).padStart(64, "0")}` as Hash, logIndex: index, direction, kind, amount: 5_000_000n, counterparty, confirmedAt: 1000 + index, blockNumber: BigInt(index), assetId: "usdc", assetSymbol: "USDC", tokenAddress: token, decimals: 6, provider: "arcscan", source: "onchain", ...(kind === "swap" ? { swapReceive: { amount: 4_900_000n, assetId: "eurc" as const, assetSymbol: "EURC" as const, tokenAddress: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a" as Address, decimals: 6 as const, logIndex: index + 1 } } : {}) });
 const connected = (overrides: Partial<AgentContextSnapshot> = {}) => createAgentContextSnapshot({ connected: true, account, verifiedChainId: 5042002, isArc: true, balances: { usdc: 12_300_000n, eurc: 2_000_000n }, activity: [activity("swap", "send", 6), activity("bridge", "send", 5), activity("vault-deposit", "send", 4), activity("vault-withdraw", "receive", 3), activity("transfer", "send", 2), activity("transfer", "receive", 1)], activityPartial: false, activityUnavailable: false, vault: { available: true, total: 9_000_000n, goalCount: 2, activeCount: 1 }, ...overrides });
 const parse = (text: string, locale: AgentRequest["locale"] = "en") => parseAgentRequest({ text, locale });
+async function answer(snapshot: AgentContextSnapshot, request: AgentRequest) { const intent = parseAgentRequest(request), decision = routeAgentRequest(intent); const output = decision.mode === "clarification" ? {} : await runAgentCapability({ snapshot, now: snapshot.timestamp, binding: { generation: 0, account: snapshot.account, chainId: snapshot.verifiedChainId } }, intent, decision); return answerAgentRequest(snapshot, intent, decision, output); }
 
 test("AgentContextSnapshot is immutable, data-only, and represents connected/disconnected states", () => {
   const live = connected(); const offline = createAgentContextSnapshot({ connected: false, isArc: false, balances: {}, activity: [], activityPartial: false, activityUnavailable: false, vault: { available: false } });
@@ -22,10 +24,10 @@ test("AgentContextSnapshot is immutable, data-only, and represents connected/dis
   assert.equal("provider" in live, false); assert.equal("signer" in live, false); assert.equal("walletClient" in live, false); assert.equal("privateKey" in live, false);
 });
 
-test("wallet overview returns supplied values and preserves unavailable instead of zero", () => {
-  const full = runAgentTool(connected(), parse("balance")); assert.equal((full?.data as { usdc: bigint }).usdc, 12_300_000n);
-  const missing = answerAgentRequest(connected({ balances: {} }), { text: "balance", locale: "en" }); assert.match(missing.text, /unavailable/); assert.doesNotMatch(missing.text, /USDC: 0/);
-  assert.match(answerAgentRequest(createAgentContextSnapshot({ connected: false, isArc: false, balances: {}, activity: [], activityPartial: false, activityUnavailable: false, vault: { available: false } }), { text: "balance", locale: "en" }).text, /Connect your wallet/);
+test("wallet overview returns supplied values and preserves unavailable instead of zero", async () => {
+  const full = await runAgentTool(connected(), parse("balance")); assert.equal((full?.data as { usdc: bigint }).usdc, 12_300_000n);
+  const missing = await answer(connected({ balances: {} }), { text: "balance", locale: "en" }); assert.match(missing.text, /unavailable/); assert.doesNotMatch(missing.text, /USDC: 0/);
+  assert.match((await answer(createAgentContextSnapshot({ connected: false, isArc: false, balances: {}, activity: [], activityPartial: false, activityUnavailable: false, vault: { available: false } }), { text: "balance", locale: "en" })).text, /Connect your wallet/);
 });
 
 test("bounded parser recognizes English and Vietnamese read intents", () => {
@@ -42,32 +44,32 @@ test("bounded parser recognizes English and Vietnamese read intents", () => {
   assert.equal(parse("tell me a joke").kind, "unknown");
 });
 
-test("recent activity applies limit/filter and discloses partial history", () => {
-  const limited = runAgentTool(connected(), parse("last 2 transactions")); assert.equal((limited?.data as unknown[]).length, 2);
-  const swaps = runAgentTool(connected(), parse("recent swaps")); assert.deepEqual((swaps?.data as WalletActivity[]).map((x) => x.kind), ["swap"]);
-  const bridges = runAgentTool(connected(), parse("recent bridges")); assert.deepEqual((bridges?.data as WalletActivity[]).map((x) => x.kind), ["bridge"]);
-  const partial = answerAgentRequest(connected({ activityPartial: true }), { text: "recent transactions", locale: "en" }); assert.match(partial.text, /partial/);
+test("recent activity applies limit/filter and discloses partial history", async () => {
+  const limited = await runAgentTool(connected(), parse("last 2 transactions")); assert.equal((limited?.data as unknown[]).length, 2);
+  const swaps = await runAgentTool(connected(), parse("recent swaps")); assert.deepEqual((swaps?.data as WalletActivity[]).map((x) => x.kind), ["swap"]);
+  const bridges = await runAgentTool(connected(), parse("recent bridges")); assert.deepEqual((bridges?.data as WalletActivity[]).map((x) => x.kind), ["bridge"]);
+  const partial = await answer(connected({ activityPartial: true }), { text: "recent transactions", locale: "en" }); assert.match(partial.text, /partial/);
 });
 
-test("activity explanations are evidence-bound for supported kinds", () => {
+test("activity explanations are evidence-bound for supported kinds", async () => {
   const prompts = [["explain last swap", "swapped"], ["explain last bridge", "CCTP"], ["explain last transaction", "swapped"]] as const;
-  for (const [prompt, expected] of prompts) assert.match(answerAgentRequest(connected(), { text: prompt, locale: "en" }).text, new RegExp(expected));
+  for (const [prompt, expected] of prompts) assert.match((await answer(connected(), { text: prompt, locale: "en" })).text, new RegExp(expected));
   const kinds: Array<[WalletActivity["kind"], WalletActivity["direction"], RegExp]> = [["transfer", "send", /sent/], ["transfer", "receive", /received/], ["vault-deposit", "send", /deposited/], ["vault-withdraw", "receive", /withdrew/]];
-  for (const [kind, direction, expected] of kinds) assert.match(answerAgentRequest(connected({ activity: [activity(kind, direction)] }), { text: "explain last transaction", locale: "en" }).text, expected);
-  const unavailable = answerAgentRequest(connected({ activity: [], activityPartial: true }), { text: "explain last transaction", locale: "en" }); assert.match(unavailable.text, /partial/); assert.doesNotMatch(unavailable.text, /protocol|recipient|completed/i);
+  for (const [kind, direction, expected] of kinds) assert.match((await answer(connected({ activity: [activity(kind, direction)] }), { text: "explain last transaction", locale: "en" })).text, expected);
+  const unavailable = await answer(connected({ activity: [], activityPartial: true }), { text: "explain last transaction", locale: "en" }); assert.match(unavailable.text, /partial/); assert.doesNotMatch(unavailable.text, /protocol|recipient|completed/i);
 });
 
-test("action requests create non-executable English and Vietnamese drafts", () => {
+test("action requests are preparation inputs until fresh planning creates a draft", () => {
   const cases = ["send 5 USDC to 0x2222222222222222222222222222222222222222", "gửi 5 USDC cho 0x2222222222222222222222222222222222222222", "swap 5 USDC to EURC", "đổi 5 USDC sang EURC", "bridge 10 USDC to Base Sepolia"];
-  for (const text of cases) { const parsed = parse(text, /[ăâđêôơư]/i.test(text) ? "vi" : "en"); assert.equal(parsed.kind, "action-draft"); assert.equal(parsed.actionDraft?.executionEnabled, false); }
-  assert.deepEqual(parse("swap USDC to EURC").actionDraft?.missingFields, ["amount"]);
-  assert.deepEqual(parse("send 5 USDC").actionDraft?.missingFields, ["recipient"]);
+  for (const text of cases) { const parsed = parse(text, /[ăâđêôơư]/i.test(text) ? "vi" : "en"); assert.equal(parsed.kind, "prepare-action"); assert.equal(routeAgentRequest(parsed).mode, "preparation"); }
+  assert.equal(routeAgentRequest(parse("swap USDC to EURC")).mode, "clarification");
+  assert.equal(routeAgentRequest(parse("send 5 USDC")).mode, "clarification");
 });
 
-test("network status is explanatory and never switches a wallet", () => {
+test("network status is explanatory and never switches a wallet", async () => {
   const switchCalls = 0; const wrong = connected({ verifiedChainId: 84532, isArc: false });
-  assert.match(answerAgentRequest(wrong, { text: "network", locale: "en" }).text, /will not switch/); assert.equal(switchCalls, 0);
-  assert.equal((runAgentTool(wrong, parse("network"))?.data as { arcActionsAvailable: boolean }).arcActionsAvailable, false);
+  assert.match((await answer(wrong, { text: "network", locale: "en" })).text, /will not switch/); assert.equal(switchCalls, 0);
+  assert.equal(((await runAgentTool(wrong, parse("network")))?.data as { arcActionsAvailable: boolean }).arcActionsAvailable, false);
 });
 
 test("Agent source has no persistence or wallet-write execution surface", () => {

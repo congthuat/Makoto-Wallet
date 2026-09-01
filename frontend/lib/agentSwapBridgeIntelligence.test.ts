@@ -4,6 +4,7 @@ import test from "node:test";
 import { requestBridgePlanningData, type BridgePlanningDataSource } from "./circle/bridgePlanning.ts";
 import { parseAgentRequest } from "./agent/parser.ts";
 import { answerAgentRequest } from "./agent/planner.ts";
+import { createAgentActionDraft, routeAgentRequest } from "./agent/orchestration.ts";
 import { resolveAgentPlanning, type AgentPlanningServices } from "./agent/planning.ts";
 import type { AgentContextSnapshot, AgentIntent } from "./agent/types.ts";
 import { requestSwapPlanningData, type SwapPlanningDataSource } from "./swapPlanning.ts";
@@ -23,6 +24,11 @@ function services(swapOverrides: Partial<SwapPlanningDataSource> = {}, bridgeOve
   return { estimateSendMaximumFee: async () => undefined, planSwap: (request) => requestSwapPlanningData(request, swapSource(swapOverrides)), planBridge: (request) => requestBridgePlanningData(request, bridgeSource(bridgeOverrides)) };
 }
 function parse(text: string, locale: "en" | "vi" = "en", previousIntent?: AgentIntent) { return parseAgentRequest({ text, locale, previousIntent }); }
+function format(intent: AgentIntent, planning: Awaited<ReturnType<typeof resolveAgentPlanning>>) {
+  const decision = routeAgentRequest(intent);
+  const result = planning ? { tool: intent.kind.replaceAll("-", "_"), ok: planning.status !== "unavailable", data: planning, partial: planning.completeness !== "complete" } : undefined;
+  return answerAgentRequest(snapshot, intent, decision, { planning, result });
+}
 
 test("Swap quote questions are planning in English and Vietnamese", () => {
   assert.equal(parse("If I swap 20 USDC to EURC, how much will I receive?").kind, "swap-quote");
@@ -37,8 +43,11 @@ test("conditional and affordability Swap questions never create drafts", () => {
 test("explicit Swap and Bridge preparation remain data-only drafts", () => {
   const swap = parse("Prepare a swap of 20 USDC to EURC.");
   const bridge = parse("Set up a bridge of 10 USDC from Base to Arc.");
-  assert.equal(swap.kind, "action-draft"); assert.equal(swap.actionDraft?.kind, "swap"); assert.equal(swap.actionDraft?.executionEnabled, false);
-  assert.equal(bridge.kind, "action-draft"); assert.equal(bridge.actionDraft?.kind, "bridge"); assert.equal(bridge.actionDraft?.executionEnabled, false);
+  assert.equal(swap.kind, "prepare-action"); assert.equal(routeAgentRequest(swap).mode, "preparation");
+  assert.equal(bridge.kind, "prepare-action"); assert.equal(routeAgentRequest(bridge).mode, "preparation");
+  const fresh = { kind: "swap-affordability", status: "ready", dataTimestamp: now, expiresAt: now + 30_000, refreshRequired: false, completeness: "complete", blockingReasons: [] } as const;
+  assert.equal(createAgentActionDraft(swap, fresh)?.executionEnabled, false);
+  assert.equal(createAgentActionDraft(bridge, { ...fresh, kind: "bridge-estimate" })?.executionEnabled, false);
 });
 
 test("Bridge fee and route questions parse in English and Vietnamese", () => {
@@ -60,7 +69,7 @@ test("fresh Swap quote keeps expected and minimum output distinct", async () => 
   const planning = await resolveAgentPlanning(snapshot, intent, services());
   assert.equal(planning?.swap?.expectedOutput, 18_420_000n);
   assert.equal(planning?.swap?.minimumReceived, 18_327_900n);
-  const response = answerAgentRequest(snapshot, { text: "If I swap 20 USDC to EURC, how much will I receive?", locale: "en" }, planning);
+  const response = format(intent, planning);
   assert.match(response.text, /estimated 18\.42 EURC/); assert.match(response.text, /Minimum received: 18\.3279 EURC/); assert.match(response.text, /No transaction has been prepared/);
 });
 
@@ -69,9 +78,9 @@ test("expiring, stale, and unavailable Swap quotes are truthful", async () => {
   const expiring = await resolveAgentPlanning(snapshot, intent, services({ readQuote: async () => ({ amountOut: 1n, quotedAt: now - 40_000 }) }));
   assert.equal(expiring?.swap?.freshness, "EXPIRING");
   const stale = await resolveAgentPlanning(snapshot, intent, services({ readQuote: async () => ({ amountOut: 1n, quotedAt: now - 45_001 }) }));
-  assert.equal(stale?.swap?.freshness, "STALE"); assert.match(answerAgentRequest(snapshot, { text: "How much would I get if I swap 20 USDC to EURC?", locale: "en" }, stale).text, /quote expired/i);
+  assert.equal(stale?.swap?.freshness, "STALE"); assert.match(format(intent, stale).text, /quote expired/i);
   const unavailable = await resolveAgentPlanning(snapshot, intent, services({ readQuote: async () => undefined }));
-  assert.equal(unavailable?.swap?.expectedOutput, undefined); assert.match(answerAgentRequest(snapshot, { text: "How much would I get if I swap 20 USDC to EURC?", locale: "en" }, unavailable).text, /quote is unavailable/i);
+  assert.equal(unavailable?.swap?.expectedOutput, undefined); assert.match(format(intent, unavailable).text, /quote is unavailable/i);
 });
 
 test("Swap allowance reports sufficient, finite required, and unavailable without approving", async () => {
@@ -93,7 +102,7 @@ test("Bridge estimate preserves fees by token and chain", async () => {
   const planning = await resolveAgentPlanning(snapshot, intent, services());
   assert.equal(planning?.bridge?.expectedReceive, 10_000_000n);
   assert.deepEqual(planning?.bridge?.fees.map((fee) => [fee.token, fee.chainId]), [["USDC", 5_042_002], ["ETH", 84_532]]);
-  const response = answerAgentRequest(snapshot, { text: "How much will it cost to bridge 10 USDC from Arc to Base?", locale: "en" }, planning);
+  const response = format(intent, planning);
   assert.match(response.text, /forwarding: 0\.002 USDC · chain 5042002/); assert.match(response.text, /gas: 0\.0001 ETH · chain 84532/); assert.doesNotMatch(response.text, /total.*ETH.*USDC/i);
 });
 
@@ -108,7 +117,7 @@ test("Bridge route, provider, unsupported chain, and invalid recipient remain st
 
 test("bridge completion remains deferred and source burn is never completion", async () => {
   const text = "Has my bridge completed?", intent = parse(text), planning = await resolveAgentPlanning(snapshot, intent, services());
-  const response = answerAgentRequest(snapshot, { text, locale: "en" }, planning);
+  const response = format(intent, planning);
   assert.equal(intent.kind, "bridge-completion"); assert.match(response.text, /destination-chain transaction evidence/); assert.match(response.text, /does not prove completion/);
 });
 

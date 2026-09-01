@@ -4,10 +4,11 @@ import type { Address, Hash } from "viem";
 
 import { createAgentContextSnapshot } from "./agent/context.ts";
 import { deriveActivityLoadState } from "./activityLoadState.ts";
-import { answerAgentRequest } from "./agent/planner.ts";
+import { answerAgentRequest as formatAgentRequest } from "./agent/planner.ts";
 import { parseAgentRequest } from "./agent/parser.ts";
+import { createAgentActionDraft, routeAgentRequest } from "./agent/orchestration.ts";
 import { blockingExplanation, confirmedSpendingToday, explainBlocking, latestConfirmedTransaction, planSend, resolveAgentPlanning } from "./agent/planning.ts";
-import type { AgentContextSnapshot, AgentIntent } from "./agent/types.ts";
+import type { AgentContextSnapshot, AgentIntent, AgentRequest } from "./agent/types.ts";
 import { prepareAgentActionHandoff } from "./agent/actions/prepare.ts";
 import type { WalletActivity } from "./wallet.ts";
 
@@ -24,6 +25,7 @@ function snapshot(overrides: Partial<AgentContextSnapshot> = {}) {
   return createAgentContextSnapshot({ connected: true, account, verifiedChainId: 5042002, isArc: true, balances: { usdc: 10_000_000n, eurc: 5_000_000n }, activity: [activity(2), activity(1)], activityPartial: false, activityUnavailable: false, vault: { available: false }, timestamp: now, ...overrides });
 }
 function intent(kind: "send-affordability" | "send-remaining", amount = "9"): AgentIntent { return { kind, locale: "en", amount, assetId: "usdc", recipient }; }
+function answerAgentRequest(value: AgentContextSnapshot, request: AgentRequest, supplied?: ReturnType<typeof planSend>) { const parsed = parseAgentRequest(request), decision = routeAgentRequest(parsed); const planning = supplied ?? (parsed.kind === "latest-transaction" ? latestConfirmedTransaction(value) : parsed.kind === "today-spending" ? confirmedSpendingToday(value, parsed.timezoneOffsetMinutes) : parsed.kind === "send-affordability" || parsed.kind === "send-remaining" ? planSend(value, parsed) : undefined); const result = planning ? { tool: parsed.kind.replaceAll("-", "_"), ok: planning.status !== "unavailable", data: planning, partial: planning.completeness !== "complete" } : undefined; return formatAgentRequest(value, parsed, decision, { planning, result }); }
 
 test("latest transaction uses the newest confirmed loaded activity and preserves confirmation evidence", () => {
   const latest = latestConfirmedTransaction(snapshot({ activity: [activity(3), activity(1), activity(2)] }));
@@ -174,7 +176,8 @@ test("new planning intents are bounded and never become action drafts", () => {
 });
 
 test("Agent handoff remains exact and contains no execution authority", () => {
-  const draft = parseAgentRequest({ text: `send 1 USDC to ${recipient}`, locale: "en" }).actionDraft!;
+  const intent = parseAgentRequest({ text: `send 1 USDC to ${recipient}`, locale: "en" });
+  const draft = createAgentActionDraft(intent, { ...planSend(snapshot(), { kind: "send-affordability", locale: "en", amount: "1", assetId: "usdc", recipient }, 1_000_000_000_000_000n), refreshRequired: false, completeness: "complete", blockingReasons: [] })!;
   const prepared = prepareAgentActionHandoff(draft, account, now);
   assert.equal(prepared.handoff?.amount, "1");
   assert.equal(prepared.handoff?.recipient, recipient);

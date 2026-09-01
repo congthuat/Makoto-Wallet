@@ -1,4 +1,4 @@
-import type { AgentActionDraft, AgentActivityFilter, AgentIntent, AgentRequest } from "./types.ts";
+import type { AgentActivityFilter, AgentIntent, AgentPreparationInput, AgentRequest } from "./types.ts";
 import type { AgentSessionContext } from "./sessionContext.ts";
 
 const ADDRESS = /0x[a-fA-F0-9]{40}/;
@@ -12,8 +12,8 @@ export function parseAgentRequest(request: AgentRequest): AgentIntent {
   if (planning) return planning;
   if (has(text, ["explain", "giải thích"]) && has(text, ["transaction", "activity", "swap", "bridge", "giao dịch", "hoán đổi", "chuyển chuỗi"])) return { kind: "activity-explanation", locale: request.locale, activityFilter: filterOf(text), limit: 1 };
   if (has(text, ["recent", "last", "history", "activity", "transaction", "gần đây", "gần nhất", "lịch sử", "giao dịch"])) return { kind: "recent-activity", locale: request.locale, activityFilter: filterOf(text), limit };
-  const action = resolveActionDraftFromContext(parseActionDraft(raw, text), request.sessionContext);
-  if (action) return { kind: "action-draft", locale: request.locale, actionDraft: action };
+  const preparation = resolvePreparationFromContext(parseActionDraft(raw, text), request.sessionContext);
+  if (preparation) return { kind: "prepare-action", locale: request.locale, preparation };
   if (has(text, ["vault", "savings", "saving goal", "tiết kiệm", "mục tiêu"])) return { kind: "vault-summary", locale: request.locale };
   if (has(text, ["balance", "portfolio", "how much", "summarize my wallet", "wallet summary", "số dư", "còn bao nhiêu", "tài sản", "tóm tắt ví"])) return { kind: "wallet-overview", locale: request.locale };
   if (has(text, ["network", "chain", "mạng nào", "mạng", "chuỗi nào"])) return { kind: "network-status", locale: request.locale };
@@ -93,8 +93,8 @@ function blockingCodeOf(text: string): AgentIntent["blockingCode"] {
   return undefined;
 }
 
-export function parseActionDraft(raw: string, text = normalize(raw)): AgentActionDraft | undefined {
-  let kind: AgentActionDraft["kind"] | undefined;
+export function parseActionDraft(raw: string, text = normalize(raw)): AgentPreparationInput | undefined {
+  let kind: AgentPreparationInput["kind"] | undefined;
   if (text.includes("vault") && has(text, ["deposit", "nạp", "gửi"])) kind = "vault-deposit";
   else if (text.includes("vault") && has(text, ["withdraw", "rút"])) kind = "vault-withdraw";
   else if (has(text, ["send", "gửi"])) kind = "send";
@@ -102,42 +102,31 @@ export function parseActionDraft(raw: string, text = normalize(raw)): AgentActio
   else if (has(text, ["bridge", "chuyển chuỗi", "chuyển sang base"])) kind = "bridge";
   if (!kind) return undefined;
   const amount = text.match(AMOUNT)?.[1]?.replace(",", ".");
-  const assets = [...text.matchAll(/\b(usdc|eurc)\b/g)].map((match) => match[1].toUpperCase());
-  const recipient = raw.match(ADDRESS)?.[0] ?? raw.match(ADDRESS_LIKE)?.[0];
+  const assets = [...text.matchAll(/\b(usdc|eurc)\b/g)].map((match) => match[1] as "usdc" | "eurc");
+  const validRecipient = raw.match(ADDRESS)?.[0] as AgentIntent["recipient"] | undefined;
+  const addressLike = raw.match(ADDRESS_LIKE)?.[0];
   const source = text.match(/(?:from|từ)\s+(base sepolia|arc testnet|base|arc)/)?.[1];
   const destination = text.match(/(?:to|sang|đến)\s+(base sepolia|arc testnet|base|arc)/)?.[1];
-  const missingFields: string[] = [];
-  if (!amount) missingFields.push("amount");
-  if (kind === "send" && !recipient) missingFields.push("recipient");
-  if (kind === "swap" && assets.length < 2) missingFields.push("outputAsset");
-  if (kind === "bridge" && !destination) missingFields.push("destinationChain");
-  return Object.freeze({ kind, asset: assets[0] ?? "USDC", amount, recipient, sourceChain: titleChain(source) ?? "Arc Testnet", destinationChain: titleChain(destination), outputAsset: assets[1], rawUserText: raw, missingFields: Object.freeze(missingFields), executionEnabled: false });
+  return Object.freeze({ kind, assetId: assets[0] ?? "usdc", amount, recipient: validRecipient, sourceChainId: chainId(source) ?? 5_042_002, destinationChainId: chainId(destination), outputAssetId: assets[1], rawUserText: raw, invalidRecipient: Boolean(addressLike && !validRecipient) });
 }
 
-function resolveActionDraftFromContext(draft: AgentActionDraft | undefined, context?: AgentSessionContext): AgentActionDraft | undefined {
-  if (!draft || !context || draft.kind !== context.activeTopic) return draft;
-  const swap = draft.kind === "swap" ? context.swap : undefined;
-  const bridge = draft.kind === "bridge" ? context.bridge : undefined;
-  const send = draft.kind === "send" ? context.send : undefined;
-  const amount = draft.amount ?? swap?.amount ?? bridge?.amount ?? send?.amount;
-  const explicitAssets = [...draft.rawUserText.toLowerCase().matchAll(/\b(usdc|eurc)\b/g)].map((match) => match[1]);
+function resolvePreparationFromContext(input: AgentPreparationInput | undefined, context?: AgentSessionContext): AgentPreparationInput | undefined {
+  if (!input || !context || input.kind !== context.activeTopic) return input;
+  const swap = input.kind === "swap" ? context.swap : undefined;
+  const bridge = input.kind === "bridge" ? context.bridge : undefined;
+  const send = input.kind === "send" ? context.send : undefined;
+  const amount = input.amount ?? swap?.amount ?? bridge?.amount ?? send?.amount;
+  const explicitAssets = [...input.rawUserText.toLowerCase().matchAll(/\b(usdc|eurc)\b/g)].map((match) => match[1]);
   const compatibleSwap = swap && (explicitAssets.length === 0 || explicitAssets[0] === swap.inputAsset) ? swap : undefined;
-  const asset = explicitAssets.length ? draft.asset : compatibleSwap?.inputAsset.toUpperCase() ?? bridge?.asset.toUpperCase() ?? send?.asset.toUpperCase() ?? draft.asset;
-  const outputAsset = draft.outputAsset ?? compatibleSwap?.outputAsset.toUpperCase();
-  const sourceChain = draft.sourceChain ?? chainName(bridge?.sourceChainId);
-  const destinationChain = draft.destinationChain ?? chainName(bridge?.destinationChainId);
-  const missingFields: string[] = [];
-  if (!amount) missingFields.push("amount");
-  if (draft.kind === "send" && !draft.recipient) missingFields.push("recipient");
-  if (draft.kind === "swap" && !outputAsset) missingFields.push("outputAsset");
-  if (draft.kind === "bridge" && !destinationChain) missingFields.push("destinationChain");
-  return Object.freeze({ ...draft, asset, amount, outputAsset, sourceChain, destinationChain, missingFields: Object.freeze(missingFields) });
+  const assetId = explicitAssets.length ? input.assetId : compatibleSwap?.inputAsset ?? bridge?.asset ?? send?.asset ?? input.assetId;
+  const outputAssetId = input.outputAssetId ?? compatibleSwap?.outputAsset;
+  const sourceChainId = input.sourceChainId ?? bridge?.sourceChainId;
+  const destinationChainId = input.destinationChainId ?? bridge?.destinationChainId;
+  return Object.freeze({ ...input, assetId, amount, outputAssetId, sourceChainId, destinationChainId });
 }
 
 function filterOf(text: string): AgentActivityFilter { if (has(text, ["swap", "hoán đổi"])) return "swap"; if (has(text, ["bridge", "chuyển chuỗi"])) return "bridge"; if (has(text, ["vault", "tiết kiệm"])) return "vault"; if (has(text, ["receive", "nhận"])) return "receive"; if (has(text, ["send", "gửi"])) return "send"; return "all"; }
 function normalize(value: string) { return value.toLocaleLowerCase("vi-VN").normalize("NFC"); }
 function has(value: string, terms: string[]) { return terms.some((term) => value.includes(term)); }
-function titleChain(value?: string) { if (!value) return undefined; if (value === "arc") return "Arc Testnet"; if (value === "base") return "Base Sepolia"; return value.split(" ").map((part) => part[0].toUpperCase() + part.slice(1)).join(" "); }
 function chainId(value?: string) { if (!value) return undefined; return value.startsWith("arc") ? 5_042_002 : value.startsWith("base") ? 84_532 : undefined; }
-function chainName(value?: number) { return value === 5_042_002 ? "Arc Testnet" : value === 84_532 ? "Base Sepolia" : undefined; }
 function isConditional(text: string) { return has(text, ["if i ", "what if i ", "what happens if", "nếu tôi", "nếu mình", "nếu bridge"]); }

@@ -22,7 +22,8 @@ export function resetAgentHandoffGoal(handoff: AgentActionHandoff, now = Date.no
 }
 
 function handoffFor(draft: AgentActionDraft, account: string, now: number): AgentActionHandoff {
-  return Object.freeze({ id: createId(now), path: draft.kind === "vault-deposit" || draft.kind === "vault-withdraw" ? "/savings" : "/", action: draft.kind, account, createdAt: now, expiresAt: now + AGENT_HANDOFF_TTL_MS, amount: draft.amount!, asset: draft.asset!, sourceChain: draft.sourceChain, destinationChain: draft.destinationChain, outputAsset: draft.outputAsset, recipient: draft.recipient, source: "makoto-agent" });
+  const asset = draft.kind === "swap" ? draft.inputAsset : draft.asset;
+  return Object.freeze({ id: createId(now), path: draft.kind === "vault-deposit" || draft.kind === "vault-withdraw" ? "/savings" : "/", action: draft.kind, account, createdAt: now, expiresAt: now + AGENT_HANDOFF_TTL_MS, amount: draft.amount, asset, ...(draft.kind === "send" || draft.kind === "swap" || draft.kind === "bridge" ? { sourceChain: draft.sourceChain } : {}), ...(draft.kind === "bridge" ? { destinationChain: draft.destinationChain, recipient: draft.recipient } : {}), ...(draft.kind === "swap" ? { outputAsset: draft.outputAsset } : {}), ...(draft.kind === "send" ? { recipient: draft.recipient } : {}), source: "makoto-agent" });
 }
 
 function createId(now: number) { return `${now.toString(36)}-${Math.random().toString(36).slice(2, 10)}`; }

@@ -83,27 +83,27 @@ export function updateAgentSessionContext(
   const account = normalizeAccount(binding.account);
   if (!account || !validChainId(binding.chainId)) return undefined;
   const planningIntent = isSessionPlanningIntent(intent.kind) ? intent.kind : undefined;
-  const draft = intent.kind === "action-draft" ? intent.actionDraft : undefined;
-  const topic = planningTopic(intent) ?? draft?.kind;
+  const preparation = intent.kind === "prepare-action" ? intent.preparation : undefined;
+  const topic = planningTopic(intent) ?? preparation?.kind;
   if (topic !== "swap" && topic !== "bridge" && topic !== "send") return current;
 
   const base = { version: 1 as const, activeTopic: topic, updatedAt: now, account, chainId: binding.chainId };
   if (topic === "swap") {
     const prior = current?.activeTopic === "swap" ? current.swap : undefined;
-    const inputAsset = intent.assetId ?? assetId(draft?.asset) ?? prior?.inputAsset;
-    const outputAsset = intent.outputAssetId ?? assetId(draft?.outputAsset) ?? prior?.outputAsset;
+    const inputAsset = intent.assetId ?? preparation?.assetId ?? prior?.inputAsset;
+    const outputAsset = intent.outputAssetId ?? preparation?.outputAssetId ?? prior?.outputAsset;
     if (!inputAsset || !outputAsset || inputAsset === outputAsset) return undefined;
-    return freezeContext({ ...base, swap: { inputAsset, outputAsset, ...(validAmount(intent.amount ?? draft?.amount ?? prior?.amount) ? { amount: intent.amount ?? draft?.amount ?? prior?.amount } : {}), slippage: prior?.slippage ?? 0.005 }, ...(planningIntent ? { lastPlanningIntent: planningIntent, lastPlanningAt: now } : {}) });
+    return freezeContext({ ...base, swap: { inputAsset, outputAsset, ...(validAmount(intent.amount ?? preparation?.amount ?? prior?.amount) ? { amount: intent.amount ?? preparation?.amount ?? prior?.amount } : {}), slippage: prior?.slippage ?? 0.005 }, ...(planningIntent ? { lastPlanningIntent: planningIntent, lastPlanningAt: now } : {}) });
   }
   if (topic === "bridge") {
     const prior = current?.activeTopic === "bridge" ? current.bridge : undefined;
-    const sourceChainId = intent.sourceChainId ?? chainId(draft?.sourceChain) ?? prior?.sourceChainId;
-    const destinationChainId = intent.destinationChainId ?? chainId(draft?.destinationChain) ?? prior?.destinationChainId;
-    return freezeContext({ ...base, bridge: { asset: "usdc", ...(sourceChainId ? { sourceChainId } : {}), ...(destinationChainId ? { destinationChainId } : {}), ...(validAmount(intent.amount ?? draft?.amount ?? prior?.amount) ? { amount: intent.amount ?? draft?.amount ?? prior?.amount } : {}) }, ...(planningIntent ? { lastPlanningIntent: planningIntent, lastPlanningAt: now } : {}) });
+    const sourceChainId = intent.sourceChainId ?? preparation?.sourceChainId ?? prior?.sourceChainId;
+    const destinationChainId = intent.destinationChainId ?? preparation?.destinationChainId ?? prior?.destinationChainId;
+    return freezeContext({ ...base, bridge: { asset: "usdc", ...(sourceChainId ? { sourceChainId } : {}), ...(destinationChainId ? { destinationChainId } : {}), ...(validAmount(intent.amount ?? preparation?.amount ?? prior?.amount) ? { amount: intent.amount ?? preparation?.amount ?? prior?.amount } : {}) }, ...(planningIntent ? { lastPlanningIntent: planningIntent, lastPlanningAt: now } : {}) });
   }
   const prior = current?.activeTopic === "send" ? current.send : undefined;
-  const inputAsset = intent.assetId ?? assetId(draft?.asset) ?? prior?.asset ?? "usdc";
-  return freezeContext({ ...base, send: { asset: inputAsset, ...(validAmount(intent.amount ?? draft?.amount ?? prior?.amount) ? { amount: intent.amount ?? draft?.amount ?? prior?.amount } : {}) }, ...(planningIntent ? { lastPlanningIntent: planningIntent, lastPlanningAt: now } : {}) });
+  const inputAsset = intent.assetId ?? preparation?.assetId ?? prior?.asset ?? "usdc";
+  return freezeContext({ ...base, send: { asset: inputAsset, ...(validAmount(intent.amount ?? preparation?.amount ?? prior?.amount) ? { amount: intent.amount ?? preparation?.amount ?? prior?.amount } : {}) }, ...(planningIntent ? { lastPlanningIntent: planningIntent, lastPlanningAt: now } : {}) });
 }
 
 export function isAgentSessionContext(value: unknown, binding: AgentSessionBinding, now = Date.now()): value is AgentSessionContext {
@@ -132,7 +132,6 @@ function normalizeAccount(value: unknown) { return typeof value === "string" && 
 function validChainId(value: unknown): value is number { return Number.isSafeInteger(value) && Number(value) > 0; }
 function validAmount(value: unknown): value is string { return typeof value === "string" && AMOUNT.test(value) && Number(value) > 0; }
 function assetId(value: unknown) { const asset = typeof value === "string" ? value.toLowerCase() : ""; return asset === "usdc" || asset === "eurc" ? asset : undefined; }
-function chainId(value: unknown) { const chain = typeof value === "string" ? value.toLowerCase() : ""; return chain.startsWith("arc") ? 5_042_002 : chain.startsWith("base") ? 84_532 : undefined; }
 function record(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function validSwap(value: unknown) { return record(value) && onlyKeys(value, ["inputAsset", "outputAsset", "amount", "slippage"]) && assetId(value.inputAsset) !== undefined && assetId(value.outputAsset) !== undefined && value.inputAsset !== value.outputAsset && (value.amount === undefined || validAmount(value.amount)) && value.slippage === 0.005; }
 function validBridge(value: unknown) { return record(value) && onlyKeys(value, ["asset", "sourceChainId", "destinationChainId", "amount"]) && value.asset === "usdc" && (value.sourceChainId === undefined || validChainId(value.sourceChainId)) && (value.destinationChainId === undefined || validChainId(value.destinationChainId)) && (value.amount === undefined || validAmount(value.amount)); }

@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { parseAgentRequest } from "./agent/parser.ts";
 import { answerAgentRequest } from "./agent/planner.ts";
+import { routeAgentRequest } from "./agent/orchestration.ts";
 import { resolveAgentPlanning, type AgentPlanningServices } from "./agent/planning.ts";
 import {
   AGENT_SESSION_CONTEXT_KEY,
@@ -188,7 +189,7 @@ test("Bridge amount, fee and route follow-ups work across English and Vietnamese
 test("conditional Bridge questions remain planning while explicit setup remains a draft", () => {
   assert.equal(parse("What if I bridge 10 USDC from Arc to Base?").kind, "bridge-estimate");
   assert.equal(parse("Nếu tôi bridge 10 USDC từ Arc sang Base?", undefined, "vi").kind, "bridge-estimate");
-  assert.equal(parse("Set up a bridge of 10 USDC from Arc to Base.").kind, "action-draft");
+  assert.equal(parse("Set up a bridge of 10 USDC from Arc to Base.").kind, "prepare-action");
 });
 
 test("missing, expired and Send-incompatible context produce structured clarification", () => {
@@ -199,7 +200,8 @@ test("missing, expired and Send-incompatible context produce structured clarific
   const store = new MemoryStore();
   storeAgentSessionContext(store, swapContext(now - AGENT_SESSION_CONTEXT_TTL_MS));
   assert.equal(parse("What about 30?", readAgentSessionContext(store, binding, now)).kind, "clarification");
-  const response = answerAgentRequest({ connected: false, isArc: false, balances: {}, activity: [], activityPartial: false, activityUnavailable: false, vault: { available: false }, safetyCapabilities: [], timestamp: now }, { text: "What about 0.03?", locale: "en" });
+  const clarification = parse("What about 0.03?");
+  const response = answerAgentRequest({ connected: false, isArc: false, balances: {}, activity: [], activityPartial: false, activityUnavailable: false, vault: { available: false }, safetyCapabilities: [], timestamp: now }, clarification, routeAgentRequest(clarification), {});
   assert.match(response.text, /^0\.03 of which asset/);
 });
 
@@ -210,15 +212,17 @@ test("explicit incompatible topics replace context and conflicting Swap paramete
   assert.equal(next.swap, undefined);
   const reverse = Object.freeze({ ...swapContext(), swap: Object.freeze({ inputAsset: "eurc" as const, outputAsset: "usdc" as const, amount: "20", slippage: 0.005 }) });
   const draft = parse("Prepare a swap of 5 USDC.", reverse);
-  assert.equal(draft.actionDraft?.outputAsset, undefined);
-  assert.ok(draft.actionDraft?.missingFields.includes("outputAsset"));
+  assert.equal(draft.kind, "prepare-action");
+  assert.equal(draft.preparation?.outputAssetId, undefined);
+  assert.equal(routeAgentRequest(draft).mode, "clarification");
 });
 
-test("complete context may hydrate an explicit preparation draft without execution authority", () => {
-  const draft = parse("Prepare that swap.", swapContext());
-  assert.equal(draft.kind, "action-draft");
-  assert.deepEqual([draft.actionDraft?.amount, draft.actionDraft?.asset, draft.actionDraft?.outputAsset], ["20", "USDC", "EURC"]);
-  assert.equal(draft.actionDraft?.executionEnabled, false);
+test("complete context may hydrate explicit preparation parameters without dynamic planning truth", () => {
+  const intent = parse("Prepare that swap.", swapContext());
+  assert.equal(intent.kind, "prepare-action");
+  assert.deepEqual([intent.preparation?.amount, intent.preparation?.assetId, intent.preparation?.outputAssetId], ["20", "usdc", "eurc"]);
+  assert.equal("actionDraft" in intent, false);
+  assert.equal(routeAgentRequest(intent).freshDataRequired, true);
 });
 
 test("each dynamic Swap and Bridge follow-up invokes fresh planning services", async () => {

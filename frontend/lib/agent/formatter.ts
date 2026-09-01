@@ -3,10 +3,18 @@ import { arcTestnet } from "viem/chains";
 import type { WalletActivity } from "../wallet.ts";
 import type { AgentContextSnapshot, AgentIntent, AgentResponse, AgentToolResult } from "./types.ts";
 import { blockingExplanation, formatPlanningAmount, type AgentPlanningResult } from "./planning.ts";
+import { createAgentActionDraft, type AgentOrchestrationDecision } from "./orchestration.ts";
+import type { AgentCapabilityOutput, AgentOutcomeCategory } from "./tools.ts";
 
-export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: AgentIntent, result?: AgentToolResult): AgentResponse {
+export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: AgentIntent, decision: AgentOrchestrationDecision, output: AgentCapabilityOutput): AgentResponse {
   const vi = intent.locale === "vi";
-  if (intent.kind === "action-draft" && intent.actionDraft) return { intent, actionDraft: intent.actionDraft, text: vi ? "Makoto Agent có thể chuẩn bị hành động này nhưng không thể ký hoặc xác nhận giao dịch. Luôn cần kiểm tra và xác nhận trong ví." : "Makoto Agent can prepare this action, but it cannot sign or confirm transactions. Review and wallet confirmation are always required." };
+  const { result, planning, category } = output;
+  if (decision.mode === "preparation") {
+    const actionDraft = !category ? createAgentActionDraft(intent, planning) : undefined;
+    if (actionDraft) return { intent, result, planning, actionDraft, text: vi ? "Makoto Agent có thể chuẩn bị hành động này nhưng không thể ký hoặc xác nhận giao dịch. Luôn cần kiểm tra và xác nhận trong ví." : "Makoto Agent can prepare this action, but it cannot sign or confirm transactions. Review and wallet confirmation are always required." };
+    return { intent, result, planning, text: outcomeText(category ?? "PLANNING_FAILED", vi) };
+  }
+  if (decision.mode === "clarification") return { intent, text: clarificationText(decision.clarification ?? intent.clarification, intent.amount, vi) };
   if (intent.kind === "clarification") return { intent, text: clarificationText(intent.clarification, intent.amount, vi) };
   if (intent.kind === "unknown") return { intent, text: vi ? "Mình có thể xem số dư, mạng, hoạt động gần đây, Makoto Vault, giải thích giao dịch và các biện pháp an toàn. Mình cũng có thể chuẩn bị hành động an toàn; bạn luôn kiểm tra và xác nhận trong ví." : "I can show balances, network status, recent activity, Makoto Vault, transaction explanations, and safety capabilities. I can also prepare safe actions; you always review and confirm them in your wallet." };
   if (isPlanningIntent(intent.kind)) return formatPlanningResponse(intent, result, vi);
@@ -18,6 +26,13 @@ export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: Agen
   if (intent.kind === "activity-explanation") return { intent, result, text: explain(result.data as WalletActivity, vi) };
   const items = result.data as WalletActivity[]; const prefix = result.partial ? (vi ? "Lịch sử đang hiển thị một phần. " : "Activity history is partial. ") : "";
   return { intent, result, text: prefix + (items.length ? items.map((item) => explain(item, vi)).join("\n") : (vi ? "Không có hoạt động phù hợp trong lịch sử đã tải." : "No matching activity exists in the loaded history.")) };
+}
+
+function outcomeText(category: AgentOutcomeCategory, vi: boolean) {
+  const en: Record<AgentOutcomeCategory, string> = { NEEDS_CLARIFICATION: "I need more details before preparing that action.", WALLET_NOT_CONNECTED: "Connect the wallet that will review this action before preparing it.", WRONG_NETWORK: "Your wallet is on the wrong network. No action draft was created.", INSUFFICIENT_BALANCE: "Current balances do not cover this action and its required fees. No action draft was created.", QUOTE_UNAVAILABLE: "A current Swap quote is unavailable. No action draft was created.", ROUTE_UNAVAILABLE: "That Bridge route is currently unavailable. No action draft was created.", PROVIDER_UNAVAILABLE: "Current provider data is unavailable. No action draft was created.", STALE_DATA: "The planning data expired. Refresh and try again; no action draft was created.", PLANNING_FAILED: "Fresh planning could not be completed. No action draft was created." };
+  if (!vi) return en[category];
+  const translated: Partial<Record<AgentOutcomeCategory, string>> = { NEEDS_CLARIFICATION: "Mình cần thêm chi tiết trước khi chuẩn bị hành động này.", WALLET_NOT_CONNECTED: "Hãy kết nối ví sẽ kiểm tra hành động này trước khi chuẩn bị.", WRONG_NETWORK: "Ví đang ở sai mạng. Không có bản nháp nào được tạo." };
+  return translated[category] ?? en[category];
 }
 
 function formatPlanningResponse(intent: AgentIntent, result: AgentToolResult | undefined, vi: boolean): AgentResponse {

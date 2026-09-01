@@ -1,10 +1,8 @@
-import type { AgentContextSnapshot, AgentRequest, AgentResponse } from "./types.ts";
+import type { AgentContextSnapshot, AgentIntent, AgentResponse } from "./types.ts";
 import { formatAgentResponse } from "./formatter.ts";
-import { parseAgentRequest } from "./parser.ts";
-import { runAgentTool } from "./tools.ts";
-import type { AgentPlanningResult } from "./planning.ts";
+import type { AgentOrchestrationDecision } from "./orchestration.ts";
+import type { AgentCapabilityOutput } from "./tools.ts";
 
-export function answerAgentRequest(snapshot: AgentContextSnapshot, request: AgentRequest, planning?: AgentPlanningResult): AgentResponse {
-  const intent = parseAgentRequest(request);
-  return formatAgentResponse(snapshot, intent, runAgentTool(snapshot, intent, planning));
+export function answerAgentRequest(snapshot: AgentContextSnapshot, intent: AgentIntent, decision: AgentOrchestrationDecision, output: AgentCapabilityOutput): AgentResponse {
+  return formatAgentResponse(snapshot, intent, decision, output);
 }
