@@ -225,6 +225,47 @@ test("complete context may hydrate explicit preparation parameters without dynam
   assert.equal(routeAgentRequest(intent).freshDataRequired, true);
 });
 
+test("pending Send preparation accepts a recipient-only reply without guessing", () => {
+  const first = parse("Prepare a 10 USDC send");
+  const pending = updateAgentSessionContext(undefined, first, binding, now)!;
+  assert.deepEqual(pending.pendingPreparation, { version: 1, locale: "en", kind: "send", assetId: "usdc", amount: "10", sourceChainId: 5_042_002 });
+  const resumed = parse(other, pending);
+  assert.equal(resumed.kind, "prepare-action");
+  assert.deepEqual([resumed.preparation?.amount, resumed.preparation?.assetId, resumed.preparation?.recipient], ["10", "usdc", other]);
+  assert.equal(routeAgentRequest(resumed).freshDataRequired, true);
+  assert.equal(updateAgentSessionContext(pending, resumed, binding, now + 1)?.pendingPreparation, undefined);
+});
+
+test("pending Swap preparation accepts an output-only reply and rejects a conflict", () => {
+  const first = parse("Swap 10 USDC");
+  const pending = updateAgentSessionContext(undefined, first, binding, now)!;
+  const resumed = parse("EURC", pending);
+  assert.deepEqual([resumed.preparation?.assetId, resumed.preparation?.outputAssetId], ["usdc", "eurc"]);
+  assert.equal(routeAgentRequest(resumed).mode, "preparation");
+  const conflict = parse("USDC", pending);
+  assert.equal(routeAgentRequest(conflict).mode, "clarification");
+  assert.equal(updateAgentSessionContext(pending, conflict, binding, now + 1), undefined);
+});
+
+test("pending Bridge preparation accepts requested chain-only replies in sequence", () => {
+  const first = parse("Bridge 10 USDC");
+  const pending = updateAgentSessionContext(undefined, first, binding, now)!;
+  const withSource = parse("Arc", pending);
+  assert.deepEqual([withSource.preparation?.sourceChainId, withSource.preparation?.destinationChainId], [5_042_002, undefined]);
+  const next = updateAgentSessionContext(pending, withSource, binding, now + 1)!;
+  const resumed = parse("Base Sepolia", next);
+  assert.deepEqual([resumed.preparation?.sourceChainId, resumed.preparation?.destinationChainId], [5_042_002, 84_532]);
+  assert.equal(routeAgentRequest(resumed).freshDataRequired, true);
+});
+
+test("pending preparation expires and incompatible topics clear it", () => {
+  const pending = updateAgentSessionContext(undefined, parse("Prepare a 10 USDC send"), binding, now)!;
+  const store = new MemoryStore();
+  storeAgentSessionContext(store, pending);
+  assert.equal(readAgentSessionContext(store, binding, now + AGENT_SESSION_CONTEXT_TTL_MS), undefined);
+  assert.equal(updateAgentSessionContext(pending, parse("Show my balance"), binding, now + 1), undefined);
+});
+
 test("each dynamic Swap and Bridge follow-up invokes fresh planning services", async () => {
   let swapQuotes = 0, bridgeRoutes = 0, bridgeFees = 0;
   const services: AgentPlanningServices = {
@@ -262,7 +303,7 @@ test("session memory source is parameter-only, sessionStorage-only and has no ex
   const source = readFileSync(new URL("./agent/sessionContext.ts", import.meta.url), "utf8");
   for (const forbidden of ["localStorage", "indexedDB", "fetch(", "provider", "signer", "walletClient", "connector", "callback", "calldata", "sendTransaction", "private key", "seed phrase", "signature"]) assert.equal(source.toLowerCase().includes(forbidden.toLowerCase()), false, forbidden);
   const serialized = JSON.stringify(swapContext());
-  for (const forbidden of ["\"quote\":", "minimumReceived", "allowance", "balance", "gas", "fees", "recipient", "calldata", "transactionHash"]) assert.equal(serialized.toLowerCase().includes(forbidden.toLowerCase()), false, forbidden);
+  for (const forbidden of ["\"quote\":", "minimumReceived", "allowance", "balance", "gas", "fees", "calldata", "transactionHash"]) assert.equal(serialized.toLowerCase().includes(forbidden.toLowerCase()), false, forbidden);
 });
 
 test("Dashboard and Agent page share the same session-context hook while messages remain local", () => {

@@ -2,7 +2,7 @@
 @media(max-width:1120px){.shell{padding-left:252px}}
 @media(max-width:767px){.shell{width:100%;padding:92px 14px 110px}.hero{padding:20px;flex-direction:column}.hero>strong{white-space:normal}.chat>header{align-items:flex-start}.messages{min-height:320px;padding:14px}.messages article{max-width:91%}.prompts{padding-inline:14px}.composer{position:sticky;bottom:0;padding:13px 14px;background:var(--mw-surface)}.composer>div{grid-template-columns:minmax(0,1fr) 76px}.composer button{min-width:0}.draft dl div{grid-template-columns:75px minmax(0,1fr)}}
 @media(max-width:390px){.shell{padding-inline:8px}.hero{padding:17px}.chat>header{padding:14px}.chat>header button{max-width:132px}.messages article{max-width:96%}.composer{padding-inline:10px}}
-.longValue{font-family:monospace;word-break:break-all}.prepareButton{width:100%;padding:0 16px;color:#fff!important;background:#7250ff!important}.draft>small{display:block;margin-top:7px;color:var(--mw-text-muted);line-height:1.4}
+.longValue{font-family:monospace;word-break:break-all}.draft header{flex-wrap:wrap}.draft header span{white-space:normal}.prepareButton{width:100%;padding:0 16px;color:#fff!important;background:#7250ff!important}.draft>small{display:block;margin-top:7px;color:var(--mw-text-muted);line-height:1.4}
 
 /* Phase 12B.4 — Ledger Calm assistant workspace */
 .hero{padding:24px 26px;border-radius:12px;background:var(--mw-surface);box-shadow:none}.hero div>span{color:var(--accent-text);font-weight:750}.hero h1{font-size:clamp(28px,3vw,36px);font-weight:650;letter-spacing:-1px}.hero>strong{border-radius:7px;color:var(--accent-text);background:var(--accent-subtle)}

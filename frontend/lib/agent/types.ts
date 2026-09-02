@@ -8,6 +8,7 @@ export type AgentLocale = "en" | "vi";
 export type AgentActivityFilter = "send" | "receive" | "swap" | "bridge" | "vault" | "all";
 export type AgentReadIntent = "wallet-overview" | "recent-activity" | "activity-explanation" | "latest-transaction" | "today-spending" | "send-affordability" | "send-remaining" | "swap-quote" | "swap-allowance" | "swap-affordability" | "bridge-estimate" | "bridge-route" | "bridge-completion" | "blocking-explanation" | "vault-summary" | "network-status" | "safety-capabilities" | "clarification" | "unknown";
 export type AgentActionKind = "send" | "swap" | "bridge" | "vault-deposit" | "vault-withdraw";
+export type AgentPreparationField = "amount" | "asset" | "recipient" | "outputAsset" | "sourceChain" | "destinationChain";
 export type AgentRequestMode = "informational" | "planning" | "preparation" | "clarification";
 export type AgentTopic = "wallet" | "activity" | "network" | "vault" | "send" | "swap" | "bridge" | "safety" | "unknown";
 

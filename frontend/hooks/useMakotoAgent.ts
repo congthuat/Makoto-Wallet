@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
-import { consumeAgentResult, type AgentActionResult } from "@/lib/agent/actions";
+import { consumeAgentResult } from "@/lib/agent/actions";
+import { formatAgentActionResult } from "@/lib/agent/resultFormatter";
 import { answerAgentRequest } from "@/lib/agent/planner";
 import type { AgentPlanningServices } from "@/lib/agent/planning";
 import { parseAgentRequest } from "@/lib/agent/parser";
@@ -24,6 +25,11 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   const previousBinding = useRef<string | undefined>(undefined);
   const requestGeneration = useRef(createAgentRequestGeneration());
   const latestBinding = useRef<string | undefined>(undefined);
+  const latestLocale = useRef(locale);
+
+  useEffect(() => {
+    latestLocale.current = locale;
+  }, [locale]);
 
   const clearConversation = useCallback(() => {
     requestGeneration.current.invalidate();
@@ -56,7 +62,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const result = consumeAgentResult(window.sessionStorage, account);
-      if (result) setMessages([{ id: nextId.current++, role: "agent", text: resultText(result, locale === "vi") }]);
+      if (result) setMessages([{ id: nextId.current++, role: "agent", text: formatAgentActionResult(result, locale) }]);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [account, locale]);
@@ -71,7 +77,8 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
       : undefined;
     const currentContext = binding ? readAgentSessionContext(window.sessionStorage, binding, now) : undefined;
     sessionContext.current = currentContext;
-    const request = { text: value, locale, sessionContext: currentContext } as const;
+    const requestLocale = latestLocale.current;
+    const request = { text: value, locale: requestLocale, sessionContext: currentContext } as const;
     const intent = parseAgentRequest(request);
     const decision = routeAgentRequest(intent);
     const output: AgentCapabilityOutput = decision.mode === "clarification"
@@ -86,6 +93,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
       sessionContext.current = updated;
       setHasSessionContext(Boolean(updated));
       if (updated) storeAgentSessionContext(window.sessionStorage, updated);
+      else clearAgentSessionContext(window.sessionStorage);
     }
     setMessages((current) => [
       ...current,
@@ -102,13 +110,4 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   }
 
   return { messages, setMessages, hasSessionContext, clearConversation, input, setInput, inputRef, ask, submit };
-}
-
-function resultText(result: AgentActionResult, vi: boolean) {
-  if (result.status === "cancelled") return vi ? "Giao dịch đã bị hủy trong ví." : "Transaction cancelled in wallet.";
-  if (result.status === "failed") return vi ? "Giao dịch thất bại." : "Transaction failed.";
-  if (result.status === "unknown") return vi ? "Chưa xác định được trạng thái biên nhận." : "Transaction receipt status is unknown.";
-  const title = ({ send: vi ? "Gửi đã xác nhận." : "Send confirmed.", swap: vi ? "Hoán đổi đã xác nhận." : "Swap confirmed.", bridge: vi ? "Bridge đã xác nhận." : "Bridge confirmed.", "vault-deposit": vi ? "Nạp Vault đã xác nhận." : "Vault deposit confirmed.", "vault-withdraw": vi ? "Rút Vault đã xác nhận." : "Vault withdrawal confirmed." })[result.action];
-  const amount = result.amount && result.asset ? `\n${result.amount} ${result.asset}${result.outputAmount && result.outputAsset ? ` → ${result.outputAmount} ${result.outputAsset}` : ""}` : "";
-  return `${title}${amount}${result.transactionHash ? `\nTransaction: ${result.transactionHash}` : ""}`;
 }

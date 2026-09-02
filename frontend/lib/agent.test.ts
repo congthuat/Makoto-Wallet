@@ -60,7 +60,7 @@ test("activity explanations are evidence-bound for supported kinds", async () =>
 });
 
 test("action requests are preparation inputs until fresh planning creates a draft", () => {
-  const cases = ["send 5 USDC to 0x2222222222222222222222222222222222222222", "gửi 5 USDC cho 0x2222222222222222222222222222222222222222", "swap 5 USDC to EURC", "đổi 5 USDC sang EURC", "bridge 10 USDC to Base Sepolia"];
+  const cases = ["send 5 USDC to 0x2222222222222222222222222222222222222222", "gửi 5 USDC cho 0x2222222222222222222222222222222222222222", "swap 5 USDC to EURC", "đổi 5 USDC sang EURC", "bridge 10 USDC from Arc to Base Sepolia"];
   for (const text of cases) { const parsed = parse(text, /[ăâđêôơư]/i.test(text) ? "vi" : "en"); assert.equal(parsed.kind, "prepare-action"); assert.equal(routeAgentRequest(parsed).mode, "preparation"); }
   assert.equal(routeAgentRequest(parse("swap USDC to EURC")).mode, "clarification");
   assert.equal(routeAgentRequest(parse("send 5 USDC")).mode, "clarification");
@@ -76,7 +76,7 @@ test("Agent source has no persistence or wallet-write execution surface", () => 
   const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8"); const source = [ui, readFileSync(new URL("./agent/planner.ts", import.meta.url), "utf8"), readFileSync(new URL("./agent/tools.ts", import.meta.url), "utf8")].join("\n");
   for (const forbidden of ["localStorage", "document.cookie", "writeContract", "sendTransaction", "submitReviewedTransaction", "switchChain", "walletClient", "signMessage"]) assert.equal(source.includes(forbidden), false, forbidden);
   assert.match(ui, /storeAgentHandoff\(window\.sessionStorage/);
-  assert.match(ui, /onClick=\{clearConversation\}/); assert.match(ui, /aria-live="polite"/); assert.match(ui, /Safe Actions/); assert.match(ui, /Prepare safely/);
+  assert.match(ui, /onClick=\{clearConversation\}/); assert.match(ui, /aria-live="polite"/); assert.match(ui, /agent\.page\.title/); assert.match(ui, /agent\.draft\.review/);
 });
 
 test("Agent shell follows the shared sidebar and mobile content geometry", () => {
@@ -92,7 +92,6 @@ test("Agent shell follows the shared sidebar and mobile content geometry", () =>
 
 test("Agent quick prompts replace the legacy Vault surface with network intelligence", () => {
   const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
-  assert.match(ui, /Am I on the correct network\?/);
-  assert.match(ui, /Tôi có đang ở đúng mạng không\?/);
+  assert.match(ui, /agent\.prompt\.network/);
   assert.doesNotMatch(ui, /What's in my Vault\?|Trong Makoto Vault có gì\?/);
 });

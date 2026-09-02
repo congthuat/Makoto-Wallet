@@ -103,7 +103,7 @@ test("Bridge estimate preserves fees by token and chain", async () => {
   assert.equal(planning?.bridge?.expectedReceive, 10_000_000n);
   assert.deepEqual(planning?.bridge?.fees.map((fee) => [fee.token, fee.chainId]), [["USDC", 5_042_002], ["ETH", 84_532]]);
   const response = format(intent, planning);
-  assert.match(response.text, /forwarding: 0\.002 USDC · chain 5042002/); assert.match(response.text, /gas: 0\.0001 ETH · chain 84532/); assert.doesNotMatch(response.text, /total.*ETH.*USDC/i);
+  assert.match(response.text, /Forwarding fee: 0\.002 USDC .* network 5042002/); assert.match(response.text, /Network fee: 0\.0001 ETH .* network 84532/); assert.doesNotMatch(response.text, /total.*ETH.*USDC/i);
 });
 
 test("Bridge route, provider, unsupported chain, and invalid recipient remain structured", async () => {

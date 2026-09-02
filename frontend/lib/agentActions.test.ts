@@ -13,7 +13,7 @@ function draft(phrase: string) { const preparation = parseActionDraft(phrase)!; 
 for (const [label, phrase, kind] of [
   ["EN Send", `send 5 USDC to ${recipient}`, "send"], ["VI Send", `gửi 5 USDC cho ${recipient}`, "send"],
   ["EN Swap", "swap 5 USDC to EURC", "swap"], ["VI Swap", "đổi 5 USDC sang EURC", "swap"],
-  ["EN Bridge", "bridge 5 USDC to Base Sepolia", "bridge"], ["VI Bridge", "chuyển chuỗi 5 USDC sang Base Sepolia", "bridge"],
+  ["EN Bridge", "bridge 5 USDC from Arc to Base Sepolia", "bridge"], ["VI Bridge", "chuyển chuỗi 5 USDC từ Arc sang Base Sepolia", "bridge"],
   ["EN Vault deposit", "deposit 5 USDC into my Vault", "vault-deposit"], ["VI Vault deposit", "gửi 5 USDC vào Vault", "vault-deposit"],
   ["EN Vault withdraw", "withdraw 5 USDC from Vault", "vault-withdraw"], ["VI Vault withdraw", "rút 5 USDC khỏi Vault", "vault-withdraw"],
 ] as const) test(`${label} creates a data-only ${kind} draft`, () => { const value = draft(phrase); assert.equal(value.kind, kind); assert.equal(value.executionEnabled, false); assert.equal(value.mode, "prepare-only"); });
@@ -34,7 +34,7 @@ test("swap requires a distinct supported output asset", () => {
 
 test("bridge requires a distinct supported destination and defaults to Universal handoff", () => {
   assert.equal(routeAgentRequest({ kind: "prepare-action", locale: "en", preparation: parseActionDraft("bridge 5 USDC")! }).mode, "clarification");
-  const prepared = prepareAgentActionHandoff(draft("bridge 5 USDC to Base Sepolia"), recipient, 1_000);
+  const prepared = prepareAgentActionHandoff(draft("bridge 5 USDC from Arc to Base Sepolia"), recipient, 1_000);
   assert.equal(prepared.handoff?.path, "/");
   assert.equal(handoffUrl(prepared.handoff!).includes("cctp-direct"), false);
 });
@@ -68,7 +68,7 @@ test("Agent results are account-bound, factual data-only, and consumed once", ()
 test("Agent action source contains no wallet or network request", () => {
   const sources = ["../components/MakotoAgentPage.tsx", "./agent/actions/prepare.ts", "./agent/actions/validation.ts", "./agent/parser.ts"].map((path) => readFileSync(new URL(path, import.meta.url), "utf8")).join("\n");
   for (const forbidden of ["writeContract", "sendTransaction", "submitReviewedTransaction", "switchChain", "walletClient", "signMessage", "maxUint256"]) assert.equal(sources.includes(forbidden), false, forbidden);
-  assert.match(sources, /Prepare safely/);
+  assert.match(sources, /agent\.draft\.review/);
 });
 
 test("shared orchestrator retains expiry, final revalidation, and double-submit guard", () => {

@@ -1,8 +1,8 @@
-import { en } from "./en";
-import { vi } from "./vi";
-import type { Locale, TranslationKey } from "./types";
+import { en } from "./en.ts";
+import { vi } from "./vi.ts";
+import type { Locale, TranslationKey } from "./types.ts";
 
-export { type Locale, type ThemePreference, type TranslationKey } from "./types";
+export { type Locale, type ThemePreference, type TranslationKey } from "./types.ts";
 
 const dictionaries = { en, vi } as const;
 

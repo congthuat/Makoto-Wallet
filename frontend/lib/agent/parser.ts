@@ -7,6 +7,8 @@ const AMOUNT = /(?:^|\s)(-?\d+(?:[.,]\d+)?|max|all|everything|entire balance)(?=
 
 export function parseAgentRequest(request: AgentRequest): AgentIntent {
   const raw = request.text.trim(), text = normalize(raw);
+  const pendingFollowUp = parsePendingPreparationFollowUp(raw, text, request.locale, request.sessionContext);
+  if (pendingFollowUp) return { kind: "prepare-action", locale: request.locale, preparation: pendingFollowUp };
   const limit = Math.min(20, Math.max(1, Number(text.match(/\b(\d{1,2})\b/)?.[1] ?? 5)));
   const planning = parsePlanningIntent(raw, text, request.locale, request.previousIntent, request.sessionContext);
   if (planning) return planning;
@@ -19,6 +21,24 @@ export function parseAgentRequest(request: AgentRequest): AgentIntent {
   if (has(text, ["network", "chain", "mạng nào", "mạng", "chuỗi nào"])) return { kind: "network-status", locale: request.locale };
   if (has(text, ["security", "safety", "protect", "bảo mật", "an toàn", "bảo vệ"])) return { kind: "safety-capabilities", locale: request.locale };
   return { kind: "unknown", locale: request.locale };
+}
+
+function parsePendingPreparationFollowUp(raw: string, text: string, locale: AgentIntent["locale"], context?: AgentSessionContext): AgentPreparationInput | undefined {
+  const pending = context?.pendingPreparation;
+  if (!pending || has(text, ["send", "gửi", "swap", "đổi", "hoán đổi", "bridge", "chuyển chuỗi", "vault", "deposit", "withdraw", "nạp", "rút"])) return undefined;
+  const amount = text.match(AMOUNT)?.[1]?.replace(",", ".");
+  const recipient = raw.match(ADDRESS)?.[0] as AgentIntent["recipient"] | undefined;
+  const addressLike = raw.match(ADDRESS_LIKE)?.[0];
+  const asset = /^\s*(usdc|eurc)\s*[.!?]?\s*$/i.exec(raw)?.[1]?.toLowerCase() as "usdc" | "eurc" | undefined;
+  const chain = /^\s*(arc(?: testnet)?|base(?: sepolia)?)\s*[.!?]?\s*$/i.exec(text)?.[1];
+  if (!amount && !recipient && !addressLike && !asset && !chain) return undefined;
+  let sourceChainId = pending.sourceChainId, destinationChainId = pending.destinationChainId;
+  if (pending.kind === "bridge" && chain) {
+    const value = chainId(chain);
+    if (!sourceChainId) sourceChainId = value;
+    else if (!destinationChainId) destinationChainId = value;
+  }
+  return Object.freeze({ kind: pending.kind, assetId: pending.assetId, amount: amount ?? pending.amount, recipient: recipient ?? pending.recipient as AgentIntent["recipient"] | undefined, sourceChainId, destinationChainId, outputAssetId: pending.kind === "swap" && asset ? asset : pending.outputAssetId, rawUserText: raw, invalidRecipient: Boolean(addressLike && !recipient) });
 }
 
 function parsePlanningIntent(raw: string, text: string, locale: AgentIntent["locale"], previous?: AgentIntent, session?: AgentSessionContext): AgentIntent | undefined {
@@ -107,7 +127,9 @@ export function parseActionDraft(raw: string, text = normalize(raw)): AgentPrepa
   const addressLike = raw.match(ADDRESS_LIKE)?.[0];
   const source = text.match(/(?:from|từ)\s+(base sepolia|arc testnet|base|arc)/)?.[1];
   const destination = text.match(/(?:to|sang|đến)\s+(base sepolia|arc testnet|base|arc)/)?.[1];
-  return Object.freeze({ kind, assetId: assets[0] ?? "usdc", amount, recipient: validRecipient, sourceChainId: chainId(source) ?? 5_042_002, destinationChainId: chainId(destination), outputAssetId: assets[1], rawUserText: raw, invalidRecipient: Boolean(addressLike && !validRecipient) });
+  const fixedAsset = kind === "bridge" || kind === "vault-deposit" || kind === "vault-withdraw" ? "usdc" : assets[0];
+  const fixedSource = kind === "send" || kind === "swap" ? 5_042_002 : chainId(source);
+  return Object.freeze({ kind, assetId: fixedAsset, amount, recipient: validRecipient, sourceChainId: fixedSource, destinationChainId: chainId(destination), outputAssetId: assets[1], rawUserText: raw, invalidRecipient: Boolean(addressLike && !validRecipient) });
 }
 
 function resolvePreparationFromContext(input: AgentPreparationInput | undefined, context?: AgentSessionContext): AgentPreparationInput | undefined {

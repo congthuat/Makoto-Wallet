@@ -9,6 +9,7 @@ import { routeSupportedByAppKit } from "../circle/bridge.ts";
 import { unifiedChainById } from "../circle/chains.ts";
 import { addressToBytes32, BASE_SEPOLIA_CCTP_DOMAIN, calculateCctpForwardingAmounts, CCTP_FORWARDING_HOOK_DATA, CCTP_STANDARD_FINALITY, CCTP_TOKEN_MESSENGER_ABI, CCTP_TOKEN_MESSENGER_V2, type CctpForwardingFee } from "../cctp.ts";
 import { createSwapFeeEnvelope } from "../swapFeeEnvelope.ts";
+import { translate, type TranslationKey } from "../../i18n/index.ts";
 import { buildXyloSwapRequest, XYLO_ROUTER, xyloRouterAbi } from "../swap.ts";
 import { requestSwapPlanningData, type SwapPlanningData, type SwapPlanningRequest } from "../swapPlanning.ts";
 import type { WalletActivity } from "../wallet.ts";
@@ -255,60 +256,24 @@ function parseUsdcAmount(value: string): bigint | undefined {
 }
 
 export function blockingExplanation(code: AgentBlockingCode, vi: boolean) {
-  const en: Record<AgentBlockingCode, string> = {
-    "wrong-network": "Your wallet is not on Arc Testnet. No transaction was prepared.",
-    "invalid-recipient": "The recipient address is invalid. No transaction was prepared.",
-    "insufficient-token-balance": "Your token balance does not cover the requested amount.",
-    "insufficient-gas-balance": "Your balance covers the amount, but not the current maximum network fee.",
-    "wallet-rejection": "The wallet request was rejected. Nothing was submitted.",
-    "reverted-simulation": "The read-only simulation reverted. No transaction was prepared.",
-    "unknown-confirmation": "A transaction hash exists, but its confirmation state is still unknown.",
-    "allowance-required": "This action needs a finite token approval before it can proceed.",
-    "quote-unavailable": "A current quote is unavailable. No transaction was prepared.",
-    "stale-quote": "The quote expired. Request a fresh quote before reviewing.",
-    "gas-estimate-unavailable": "The network fee estimate is unavailable, so safe affordability cannot be confirmed.",
-    "bridge-route-unavailable": "The bridge route provider is unavailable; no transaction was prepared.",
-    "unsupported-chain": "That bridge chain pair is not supported.",
-    "route-unavailable": "The requested bridge route is currently unavailable.",
-    "quote-expiring": "The quote is about to expire; request a fresh quote before preparation.",
-    "fee-unavailable": "A current provider fee estimate is unavailable.",
-    "allowance-unavailable": "The current token allowance could not be read.",
-    "approval-gas-unavailable": "Approval gas is unavailable, so full affordability cannot be confirmed.",
-    "swap-gas-unavailable": "Swap gas is unavailable, so full affordability cannot be confirmed.",
-    "simulation-reverted": "The read-only swap simulation reverted.",
-    "burn-simulation-failed": "The read-only bridge burn simulation reverted.",
-    "provider-unavailable": "The current provider estimate is unavailable.",
+  const keys: Record<AgentBlockingCode, TranslationKey> = {
+    "wrong-network": "agent.blocker.wrongNetwork", "invalid-recipient": "agent.blocker.invalidRecipient",
+    "insufficient-token-balance": "agent.blocker.insufficientTokenBalance", "insufficient-gas-balance": "agent.blocker.insufficientGasBalance",
+    "wallet-rejection": "agent.blocker.walletRejection", "reverted-simulation": "agent.blocker.revertedSimulation",
+    "unknown-confirmation": "agent.blocker.unknownConfirmation", "allowance-required": "agent.blocker.allowanceRequired",
+    "quote-unavailable": "agent.blocker.quoteUnavailable", "stale-quote": "agent.blocker.staleQuote",
+    "gas-estimate-unavailable": "agent.blocker.gasEstimateUnavailable", "bridge-route-unavailable": "agent.blocker.bridgeRouteUnavailable",
+    "unsupported-chain": "agent.blocker.unsupportedChain", "route-unavailable": "agent.blocker.routeUnavailable",
+    "quote-expiring": "agent.blocker.quoteExpiring", "fee-unavailable": "agent.blocker.feeUnavailable",
+    "allowance-unavailable": "agent.blocker.allowanceUnavailable", "approval-gas-unavailable": "agent.blocker.approvalGasUnavailable",
+    "swap-gas-unavailable": "agent.blocker.swapGasUnavailable", "simulation-reverted": "agent.blocker.simulationReverted",
+    "burn-simulation-failed": "agent.blocker.burnSimulationFailed", "provider-unavailable": "agent.blocker.providerUnavailable",
   };
-  if (!vi) return en[code];
-  const translated: Record<AgentBlockingCode, string> = {
-    "wrong-network": "Ví của bạn không ở Arc Testnet. Chưa có giao dịch nào được chuẩn bị.",
-    "invalid-recipient": "Địa chỉ người nhận không hợp lệ. Chưa có giao dịch nào được chuẩn bị.",
-    "insufficient-token-balance": "Số dư token không đủ cho số tiền yêu cầu.",
-    "insufficient-gas-balance": "Số dư đủ cho số tiền gửi, nhưng không đủ cho phí mạng tối đa hiện tại.",
-    "wallet-rejection": "Yêu cầu đã bị từ chối trong ví. Không có giao dịch nào được gửi.",
-    "reverted-simulation": "Mô phỏng chỉ đọc đã thất bại. Chưa có giao dịch nào được chuẩn bị.",
-    "unknown-confirmation": "Đã có mã giao dịch, nhưng trạng thái xác nhận vẫn chưa xác định.",
-    "allowance-required": "Hành động này cần một quyền token giới hạn trước khi tiếp tục.",
-    "quote-unavailable": "Báo giá hiện tại không khả dụng. Chưa có giao dịch nào được chuẩn bị.",
-    "stale-quote": "Báo giá đã hết hạn. Hãy yêu cầu báo giá mới trước khi xem xét.",
-    "gas-estimate-unavailable": "Ước tính phí mạng không khả dụng nên chưa thể xác nhận khả năng chi trả an toàn.",
-    "bridge-route-unavailable": "Nhà cung cấp tuyến bridge không khả dụng; chưa có giao dịch nào được chuẩn bị.",
-    "unsupported-chain": "Cặp mạng bridge này chưa được hỗ trợ.",
-    "route-unavailable": "Tuyến bridge yêu cầu hiện không khả dụng.",
-    "quote-expiring": "Báo giá sắp hết hạn; hãy lấy báo giá mới trước khi chuẩn bị.",
-    "fee-unavailable": "Ước tính phí hiện tại từ nhà cung cấp không khả dụng.",
-    "allowance-unavailable": "Không đọc được allowance token hiện tại.",
-    "approval-gas-unavailable": "Không có gas approve nên chưa thể xác nhận đầy đủ khả năng chi trả.",
-    "swap-gas-unavailable": "Không có gas swap nên chưa thể xác nhận đầy đủ khả năng chi trả.",
-    "simulation-reverted": "Mô phỏng swap chỉ đọc đã thất bại.",
-    "burn-simulation-failed": "Mô phỏng burn bridge chỉ đọc đã thất bại.",
-    "provider-unavailable": "Ước tính hiện tại từ nhà cung cấp không khả dụng.",
-  };
-  return translated[code];
+  return translate(vi ? "vi" : "en", keys[code]);
 }
 
-export function formatPlanningAmount(value: bigint | undefined, assetId: SupportedAssetId) {
-  return value === undefined ? "unavailable" : formatUnits(value, getAssetById(assetId)!.decimals);
+export function formatPlanningAmount(value: bigint | undefined, assetId: SupportedAssetId, locale: "en" | "vi" = "en") {
+  return value === undefined ? translate(locale, "agent.value.unavailable") : formatUnits(value, getAssetById(assetId)!.decimals);
 }
 
 function unavailableSend(snapshot: AgentContextSnapshot, intent: AgentIntent, reasons: AgentBlockingCode[]): AgentPlanningResult {

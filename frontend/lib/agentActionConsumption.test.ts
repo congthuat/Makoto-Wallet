@@ -33,7 +33,7 @@ test("handoffs are minimal session-only, account-bound, expiring, and one-shot",
 
 test("Agent-origin outcomes are receipt-backed and cancellation is not success", () => {
   for (const name of ["SendFlow.tsx", "RealSwapFlow.tsx", "UniversalBridgeFlow.tsx", "OwnerDepositFlow.tsx", "OwnerWithdrawalFlow.tsx"]) assert.match(component(name), /storeAgentResult/);
-  const agentResultUi = `${component("MakotoAgentPage.tsx")}\n${hook("useMakotoAgent.ts")}`; assert.match(agentResultUi, /Transaction cancelled in wallet/); assert.match(agentResultUi, /Transaction receipt status is unknown/); assert.match(agentResultUi, /Transaction failed/);
+  const agentResultUi = `${component("MakotoAgentPage.tsx")}\n${hook("useMakotoAgent.ts")}\n${readFileSync(new URL("./agent/resultFormatter.ts", import.meta.url), "utf8")}`; assert.match(agentResultUi, /agent\.result\.cancelled/); assert.match(agentResultUi, /agent\.result\.unknown/); assert.match(agentResultUi, /agent\.result\.failed/);
   assert.match(component("SendFlow.tsx"), /status: failure === "rejected" \? "cancelled"/); assert.match(component("RealSwapFlow.tsx"), /status: kind === "rejected" \? "cancelled"/);
 });
 

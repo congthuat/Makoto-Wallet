@@ -1,5 +1,6 @@
 import { formatUnits } from "viem";
 import { arcTestnet } from "viem/chains";
+import { translate, type TranslationKey } from "../../i18n/index.ts";
 import type { WalletActivity } from "../wallet.ts";
 import type { AgentContextSnapshot, AgentIntent, AgentResponse, AgentToolResult } from "./types.ts";
 import { blockingExplanation, formatPlanningAmount, type AgentPlanningResult } from "./planning.ts";
@@ -11,28 +12,32 @@ export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: Agen
   const { result, planning, category } = output;
   if (decision.mode === "preparation") {
     const actionDraft = !category ? createAgentActionDraft(intent, planning) : undefined;
-    if (actionDraft) return { intent, result, planning, actionDraft, text: vi ? "Makoto Agent có thể chuẩn bị hành động này nhưng không thể ký hoặc xác nhận giao dịch. Luôn cần kiểm tra và xác nhận trong ví." : "Makoto Agent can prepare this action, but it cannot sign or confirm transactions. Review and wallet confirmation are always required." };
+    if (actionDraft) return { intent, result, planning, actionDraft, text: translate(intent.locale, "agent.response.draftReady") };
     return { intent, result, planning, text: outcomeText(category ?? "PLANNING_FAILED", vi) };
   }
-  if (decision.mode === "clarification") return { intent, text: clarificationText(decision.clarification ?? intent.clarification, intent.amount, vi) };
-  if (intent.kind === "clarification") return { intent, text: clarificationText(intent.clarification, intent.amount, vi) };
+  if (decision.mode === "clarification") return { intent, text: clarificationText(intent, decision) };
+  if (intent.kind === "clarification") return { intent, text: clarificationText(intent, decision) };
   if (intent.kind === "unknown") return { intent, text: vi ? "Mình có thể xem số dư, mạng, hoạt động gần đây, Makoto Vault, giải thích giao dịch và các biện pháp an toàn. Mình cũng có thể chuẩn bị hành động an toàn; bạn luôn kiểm tra và xác nhận trong ví." : "I can show balances, network status, recent activity, Makoto Vault, transaction explanations, and safety capabilities. I can also prepare safe actions; you always review and confirm them in your wallet." };
   if (isPlanningIntent(intent.kind)) return formatPlanningResponse(intent, result, vi);
   if (!result?.ok) return { intent, result, text: localUnavailable(result?.unavailable, vi) };
-  if (intent.kind === "wallet-overview") { const b = snapshot.balances; return { intent, result, text: vi ? `Số dư Arc Testnet — USDC: ${amount(b.usdc)}; EURC: ${amount(b.eurc)}.` : `Arc Testnet balances — USDC: ${amount(b.usdc)}; EURC: ${amount(b.eurc)}.` }; }
+  if (intent.kind === "wallet-overview") { const b = snapshot.balances; return { intent, result, text: vi ? `Số dư Arc Testnet — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}.` : `Arc Testnet balances — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}.` }; }
   if (intent.kind === "network-status") return { intent, result, text: networkText(snapshot, vi) };
-  if (intent.kind === "vault-summary") return { intent, result, text: vi ? `Makoto Vault: ${amount(snapshot.vault.total)} USDC trong ${snapshot.vault.goalCount ?? "không khả dụng"} mục tiêu; ${snapshot.vault.activeCount ?? "không khả dụng"} đang hoạt động.` : `Makoto Vault: ${amount(snapshot.vault.total)} USDC across ${snapshot.vault.goalCount ?? "unavailable"} goals; ${snapshot.vault.activeCount ?? "unavailable"} active.` };
-  if (intent.kind === "safety-capabilities") return { intent, result, text: vi ? `Makoto hỗ trợ: ${snapshot.safetyCapabilities.join(", ")}. Các biện pháp này không phải kiểm toán và không đảm bảo không có rủi ro.` : `Makoto supports: ${snapshot.safetyCapabilities.join(", ")}. These protections are not an audit and do not guarantee zero risk.` };
+  if (intent.kind === "vault-summary") return { intent, result, text: vi ? `Makoto Vault: ${amount(snapshot.vault.total, intent.locale)} USDC trong ${snapshot.vault.goalCount ?? "không khả dụng"} mục tiêu; ${snapshot.vault.activeCount ?? "không khả dụng"} đang hoạt động.` : `Makoto Vault: ${amount(snapshot.vault.total, intent.locale)} USDC across ${snapshot.vault.goalCount ?? "unavailable"} goals; ${snapshot.vault.activeCount ?? "unavailable"} active.` };
+  if (intent.kind === "safety-capabilities") { const labels = snapshot.safetyCapabilities.map((capability) => safetyCapabilityLabel(capability, intent.locale)); return { intent, result, text: vi ? `Makoto hỗ trợ: ${labels.join(", ")}. Các biện pháp này không phải kiểm toán và không đảm bảo không có rủi ro.` : `Makoto supports: ${labels.join(", ")}. These protections are not an audit and do not guarantee zero risk.` }; }
   if (intent.kind === "activity-explanation") return { intent, result, text: explain(result.data as WalletActivity, vi) };
   const items = result.data as WalletActivity[]; const prefix = result.partial ? (vi ? "Lịch sử đang hiển thị một phần. " : "Activity history is partial. ") : "";
   return { intent, result, text: prefix + (items.length ? items.map((item) => explain(item, vi)).join("\n") : (vi ? "Không có hoạt động phù hợp trong lịch sử đã tải." : "No matching activity exists in the loaded history.")) };
 }
 
 function outcomeText(category: AgentOutcomeCategory, vi: boolean) {
-  const en: Record<AgentOutcomeCategory, string> = { NEEDS_CLARIFICATION: "I need more details before preparing that action.", WALLET_NOT_CONNECTED: "Connect the wallet that will review this action before preparing it.", WRONG_NETWORK: "Your wallet is on the wrong network. No action draft was created.", INSUFFICIENT_BALANCE: "Current balances do not cover this action and its required fees. No action draft was created.", QUOTE_UNAVAILABLE: "A current Swap quote is unavailable. No action draft was created.", ROUTE_UNAVAILABLE: "That Bridge route is currently unavailable. No action draft was created.", PROVIDER_UNAVAILABLE: "Current provider data is unavailable. No action draft was created.", STALE_DATA: "The planning data expired. Refresh and try again; no action draft was created.", PLANNING_FAILED: "Fresh planning could not be completed. No action draft was created." };
-  if (!vi) return en[category];
-  const translated: Partial<Record<AgentOutcomeCategory, string>> = { NEEDS_CLARIFICATION: "Mình cần thêm chi tiết trước khi chuẩn bị hành động này.", WALLET_NOT_CONNECTED: "Hãy kết nối ví sẽ kiểm tra hành động này trước khi chuẩn bị.", WRONG_NETWORK: "Ví đang ở sai mạng. Không có bản nháp nào được tạo." };
-  return translated[category] ?? en[category];
+  const keys: Record<AgentOutcomeCategory, TranslationKey> = {
+    NEEDS_CLARIFICATION: "agent.outcome.NEEDS_CLARIFICATION", WALLET_NOT_CONNECTED: "agent.outcome.WALLET_NOT_CONNECTED",
+    WRONG_NETWORK: "agent.outcome.WRONG_NETWORK", INSUFFICIENT_BALANCE: "agent.outcome.INSUFFICIENT_BALANCE",
+    QUOTE_UNAVAILABLE: "agent.outcome.QUOTE_UNAVAILABLE", ROUTE_UNAVAILABLE: "agent.outcome.ROUTE_UNAVAILABLE",
+    PROVIDER_UNAVAILABLE: "agent.outcome.PROVIDER_UNAVAILABLE", STALE_DATA: "agent.outcome.STALE_DATA",
+    PLANNING_FAILED: "agent.outcome.PLANNING_FAILED",
+  };
+  return translate(vi ? "vi" : "en", keys[category]);
 }
 
 function formatPlanningResponse(intent: AgentIntent, result: AgentToolResult | undefined, vi: boolean): AgentResponse {
@@ -49,7 +54,7 @@ function formatPlanningResponse(intent: AgentIntent, result: AgentToolResult | u
   if (planning.kind === "today-spending") {
     if (planning.status === "unavailable") return { intent, result, planning, text: vi ? "Hoạt động hiện không khả dụng nên Makoto không thể tính chi tiêu hôm nay." : "Activity is unavailable, so Makoto cannot calculate today's spending." };
     if (!hasSpending(planning)) return { intent, result, planning, text: `${partial}${vi ? "Không có khoản chi đã xác nhận nào trong hoạt động hiện đang tải hôm nay." : "No confirmed outgoing spending is available in the currently loaded activity today."} ${vi ? "Dữ liệu lấy lúc" : "Data as of"} ${timestamp}.` };
-    const totals = (["usdc", "eurc"] as const).flatMap((id) => planning.spending?.[id] ? [`${formatPlanningAmount(planning.spending[id], id)} ${id.toUpperCase()}`] : []);
+    const totals = (["usdc", "eurc"] as const).flatMap((id) => planning.spending?.[id] ? [`${formatPlanningAmount(planning.spending[id], id, vi ? "vi" : "en")} ${id.toUpperCase()}`] : []);
     return { intent, result, planning, text: `${partial}${vi ? "Chi tiêu đã xác nhận hôm nay" : "Confirmed spending today"}: ${totals.length ? totals.join("; ") : vi ? "không có" : "none"}. ${vi ? "Dữ liệu lấy lúc" : "Data as of"} ${timestamp}.` };
   }
   if (planning.kind === "blocking-explanation") {
@@ -60,11 +65,12 @@ function formatPlanningResponse(intent: AgentIntent, result: AgentToolResult | u
   if (planning.swap) return formatSwapPlanning(intent, result, planning, vi);
   if (planning.bridge) return formatBridgePlanning(intent, result, planning, vi);
   const assetId = planning.assetId ?? "usdc";
-  const requested = formatPlanningAmount(planning.amount, assetId);
-  const balance = formatPlanningAmount(planning.balance, assetId);
-  const fee = formatPlanningAmount(planning.maximumFeeUsdc6, "usdc");
-  const remaining = formatPlanningAmount(planning.remaining, assetId);
-  const remainingBeforeFees = formatPlanningAmount(planning.remainingBeforeFees, assetId);
+  const locale = vi ? "vi" : "en";
+  const requested = formatPlanningAmount(planning.amount, assetId, locale);
+  const balance = formatPlanningAmount(planning.balance, assetId, locale);
+  const fee = formatPlanningAmount(planning.maximumFeeUsdc6, "usdc", locale);
+  const remaining = formatPlanningAmount(planning.remaining, assetId, locale);
+  const remainingBeforeFees = formatPlanningAmount(planning.remainingBeforeFees, assetId, locale);
   const intro = vi ? "Chỉ là ước tính; chưa có giao dịch nào được chuẩn bị." : "Estimated only. No transaction has been prepared.";
   if (planning.kind === "send-remaining" && planning.amount !== undefined && planning.balance !== undefined && planning.tokenBalanceCovers && planning.maximumFeeUsdc6 === undefined) return { intent, result, planning, text: vi ? `${intro} Số dư hiện tại của bạn là ${balance} ${assetId.toUpperCase()}. Sau khi trừ ${requested} ${assetId.toUpperCase()}, bạn sẽ còn ${remainingBeforeFees} ${assetId.toUpperCase()} trước phí mạng. Ước tính phí mạng hiện không khả dụng, nên chưa thể xác nhận số dư cuối cùng sau phí. Dữ liệu lấy lúc ${timestamp}.` : `${intro} Your current balance is ${balance} ${assetId.toUpperCase()}. After subtracting ${requested} ${assetId.toUpperCase()}, you would have ${remainingBeforeFees} ${assetId.toUpperCase()} before network fees. A current network fee estimate is unavailable, so I can't confirm the final fee-aware remainder yet. Data as of ${timestamp}.` };
   if (planning.amount === undefined || planning.balance === undefined) return { intent, result, planning, text: `${intro} ${vi ? "Số tiền hoặc số dư không khả dụng." : "The amount or token balance is unavailable."}` };
@@ -85,7 +91,7 @@ function formatSwapPlanning(intent: AgentIntent, result: AgentToolResult | undef
   if (planning.kind === "swap-allowance") {
     if (swap.allowanceState === "ALLOWANCE_UNAVAILABLE") return { intent, result, planning, text: `${blockingExplanation("allowance-unavailable", vi)} ${estimateOnly}` };
     if (swap.allowanceState === "SUFFICIENT") return { intent, result, planning, text: vi ? `Allowance hiện tại đủ cho ${input}. Không cần approve thêm. ${estimateOnly}` : `Current allowance is sufficient for ${input}. No additional approval is needed. ${estimateOnly}` };
-    const required = swap.requiredFiniteApproval === undefined ? "unavailable" : formatUnits(swap.requiredFiniteApproval, 6);
+    const required = swap.requiredFiniteApproval === undefined ? translate(vi ? "vi" : "en", "agent.value.unavailable") : formatUnits(swap.requiredFiniteApproval, 6);
     return { intent, result, planning, text: vi ? `Cần finite approval ${required} ${swap.inputAsset.toUpperCase()}. Makoto không dùng unlimited approval và không kích hoạt approve. ${estimateOnly}` : `A finite approval of ${required} ${swap.inputAsset.toUpperCase()} is required. Makoto never uses unlimited approval and did not trigger approval. ${estimateOnly}` };
   }
   if (planning.kind === "swap-affordability") {
@@ -93,7 +99,7 @@ function formatSwapPlanning(intent: AgentIntent, result: AgentToolResult | undef
     if (swap.affordability.affordable === false) return { intent, result, planning, text: `${swap.blockingReasons.map((code) => blockingExplanation(code as Parameters<typeof blockingExplanation>[0], vi)).join(" ")} ${estimateOnly}` };
     return { intent, result, planning, text: vi ? `Chưa đủ dữ liệu gas hoặc mô phỏng để xác nhận khả năng chi trả cho ${input}. ${estimateOnly}` : `Gas or simulation evidence is incomplete, so full affordability for ${input} cannot be confirmed. ${estimateOnly}` };
   }
-  const output = `${formatUnits(swap.expectedOutput, 6)} ${swap.outputAsset.toUpperCase()}`, minimum = swap.minimumReceived === undefined ? "unavailable" : `${formatUnits(swap.minimumReceived, 6)} ${swap.outputAsset.toUpperCase()}`;
+  const output = `${formatUnits(swap.expectedOutput, 6)} ${swap.outputAsset.toUpperCase()}`, minimum = swap.minimumReceived === undefined ? translate(vi ? "vi" : "en", "agent.value.unavailable") : `${formatUnits(swap.minimumReceived, 6)} ${swap.outputAsset.toUpperCase()}`;
   const remaining = swap.expiresAt === undefined ? undefined : Math.max(0, Math.floor((swap.expiresAt - swap.dataTimestamp) / 1000));
   const freshness = swap.freshness === "EXPIRING" ? (vi ? "sắp hết hạn" : "expiring") : (vi ? "mới" : "fresh");
   return { intent, result, planning, text: `${input} → ${vi ? "ước tính" : "estimated"} ${output}\n${vi ? "Nhận tối thiểu" : "Minimum received"}: ${minimum}\n${vi ? "Trượt giá" : "Slippage"}: ${swap.slippageBps / 100}%\n${vi ? "Báo giá" : "Quote"}: ${freshness}${remaining === undefined ? "" : ` · ${remaining}s ${vi ? "còn lại" : "remaining"}`}\n${estimateOnly}` };
@@ -103,11 +109,13 @@ function formatBridgePlanning(intent: AgentIntent, result: AgentToolResult | und
   const bridge = planning.bridge!, estimateOnly = vi ? "Chỉ là ước tính. Chưa có giao dịch nào được chuẩn bị." : "Estimated only. No transaction has been prepared.";
   if (planning.kind === "bridge-route") {
     const state = bridge.routeAvailable ? "AVAILABLE" : bridge.blockingReasons.includes("route-unavailable") ? "UNAVAILABLE" : "UNKNOWN";
-    return { intent, result, planning, text: `${state} — ${bridge.sourceChain ?? bridge.sourceChainId} → ${bridge.destinationChain ?? bridge.destinationChainId}. ${state === "AVAILABLE" ? (vi ? "Nhà cung cấp hiện báo cáo tuyến này được hỗ trợ." : "The provider currently reports this route as supported.") : blockingExplanation(bridge.blockingReasons.includes("unsupported-chain") ? "unsupported-chain" : "route-unavailable", vi)} ${estimateOnly}` };
+    const stateLabel = translate(vi ? "vi" : "en", state === "AVAILABLE" ? "agent.value.available" : state === "UNAVAILABLE" ? "agent.value.unavailable" : "agent.value.unknown");
+    return { intent, result, planning, text: `${stateLabel} — ${bridge.sourceChain ?? bridge.sourceChainId} → ${bridge.destinationChain ?? bridge.destinationChainId}. ${state === "AVAILABLE" ? (vi ? "Nhà cung cấp hiện báo cáo tuyến này được hỗ trợ." : "The provider currently reports this route as supported.") : blockingExplanation(bridge.blockingReasons.includes("unsupported-chain") ? "unsupported-chain" : "route-unavailable", vi)} ${estimateOnly}` };
   }
   if (bridge.sourceDebit === undefined) return { intent, result, planning, text: `${blockingExplanation(bridge.blockingReasons.includes("provider-unavailable") ? "provider-unavailable" : "fee-unavailable", vi)} ${vi ? "Thời gian chuyển không thể được đảm bảo." : "Transfer timing cannot be guaranteed."} ${estimateOnly}` };
-  const amount = `${formatUnits(bridge.amount, 6)} USDC`, receive = bridge.expectedReceive === undefined ? (vi ? "không khả dụng" : "unavailable") : `${formatUnits(bridge.expectedReceive, 6)} USDC`;
-  const fees = bridge.fees.length ? bridge.fees.map((fee) => `${fee.kind}: ${fee.amount === undefined ? (vi ? "không khả dụng" : "unavailable") : formatUnits(fee.amount, fee.token.toUpperCase() === "ETH" ? 18 : 6)} ${fee.token} · chain ${fee.chainId}`).join("\n") : (vi ? "Phí nhà cung cấp: không khả dụng" : "Provider fees: unavailable");
+  const amount = `${formatUnits(bridge.amount, 6)} USDC`, receive = bridge.expectedReceive === undefined ? translate(vi ? "vi" : "en", "agent.value.unavailable") : `${formatUnits(bridge.expectedReceive, 6)} USDC`;
+  const locale = vi ? "vi" : "en";
+  const fees = bridge.fees.length ? bridge.fees.map((fee) => `${feeKindLabel(fee.kind, locale)}: ${fee.amount === undefined ? translate(locale, "agent.value.unavailable") : formatUnits(fee.amount, fee.token.toUpperCase() === "ETH" ? 18 : 6)} ${fee.token} · ${translate(locale, "agent.value.chain")} ${fee.chainId}`).join("\n") : `${translate(locale, "agent.fee.provider")}: ${translate(locale, "agent.value.unavailable")}`;
   return { intent, result, planning, text: `${vi ? "Số tiền bridge" : "Bridge amount"}: ${amount}\n${fees}\n${vi ? "Dự kiến nhận" : "Expected receive"}: ${receive}\n${vi ? "Phí khác token/mạng luôn được giữ riêng. Thời gian chuyển không thể được đảm bảo." : "Different token/chain fee units remain separate. Transfer timing cannot be guaranteed."}\n${estimateOnly}` };
 }
 
@@ -119,12 +127,39 @@ export function explain(item: WalletActivity, vi: boolean) {
   if (item.kind === "vault-withdraw") return vi ? `Bạn đã rút ${sent} khỏi Makoto Vault.${hash}` : `You withdrew ${sent} from Makoto Vault.${hash}`;
   return item.direction === "receive" ? (vi ? `Bạn đã nhận ${sent} từ ${item.counterparty}.${hash}` : `You received ${sent} from ${item.counterparty}.${hash}`) : (vi ? `Bạn đã gửi ${sent} đến ${item.counterparty}.${hash}` : `You sent ${sent} to ${item.counterparty}.${hash}`);
 }
-function amount(value?: bigint) { return value === undefined ? "unavailable" : formatUnits(value, 6); }
-function localUnavailable(text: string | undefined, vi: boolean) { if (!vi) return text ?? "That information is unavailable."; if (text?.startsWith("Connect")) return "Kết nối ví để xem số dư và hoạt động."; if (text?.includes("partial")) return "Không có hoạt động phù hợp trong dữ liệu đã tải; lịch sử hiện chỉ có một phần."; return "Thông tin này hiện không khả dụng."; }
-function clarificationText(reason: AgentIntent["clarification"], amount: string | undefined, vi: boolean) {
-  if (reason === "approval-topic") return vi ? "Bạn đang hỏi về phê duyệt cho Swap hay một hành động khác?" : "Are you asking about approval for a Swap or another action?";
-  if (reason === "swap-or-bridge") return vi ? "Bạn muốn hỏi số tiền nhận được từ Swap hay Bridge?" : "Do you mean the amount received from a Swap or a Bridge?";
-  if (reason === "missing-details") return vi ? "Mình cần thêm chi tiết để chuẩn bị hành động này." : "I need more details before preparing that action.";
-  return vi ? `${amount ?? "Số tiền đó"} của tài sản nào, và đây là Gửi, Swap hay Bridge?` : `${amount ?? "That amount"} of which asset, and is this for Send, Swap, or Bridge?`;
+function amount(value: bigint | undefined, locale: AgentIntent["locale"]) { return value === undefined ? translate(locale, "agent.value.unavailable") : formatUnits(value, 6); }
+function localUnavailable(text: string | undefined, vi: boolean) { if (text?.startsWith("Connect")) return vi ? "Kết nối ví để xem số dư và hoạt động." : "Connect your wallet to view balances and activity."; if (text?.includes("partial")) return vi ? "Không có hoạt động phù hợp trong dữ liệu đã tải; lịch sử hiện chỉ có một phần." : "No matching activity is available in the loaded data; history is currently partial."; return vi ? "Thông tin này hiện không khả dụng." : "That information is currently unavailable."; }
+function clarificationText(intent: AgentIntent, decision: AgentOrchestrationDecision) {
+  const locale = intent.locale, preparation = intent.preparation, missing = decision.missingFields ?? [];
+  if (preparation && missing.length) {
+    const amount = preparation.amount ?? translate(locale, "agent.field.amount");
+    const asset = preparation.assetId?.toUpperCase() ?? translate(locale, "agent.field.asset");
+    if (preparation.kind === "send") {
+      if (missing.includes("asset")) return translate(locale, "agent.clarification.sendAsset");
+      if (missing.includes("amount")) return translate(locale, "agent.clarification.sendAmount", { asset });
+      if (missing.includes("recipient")) return translate(locale, "agent.clarification.sendRecipient", { amount, asset });
+    }
+    if (preparation.kind === "swap") {
+      if (missing.includes("asset")) return translate(locale, "agent.clarification.swapAsset");
+      if (missing.includes("amount")) return translate(locale, "agent.clarification.swapAmount", { asset });
+      if (missing.includes("outputAsset")) return translate(locale, "agent.clarification.swapOutput", { amount, asset });
+    }
+    if (preparation.kind === "bridge") {
+      const sourceMissing = missing.includes("sourceChain"), destinationMissing = missing.includes("destinationChain");
+      if (missing.includes("amount")) return translate(locale, "agent.clarification.bridgeAmount");
+      if (sourceMissing && destinationMissing) return translate(locale, "agent.clarification.bridgeChains", { amount });
+      if (sourceMissing) return translate(locale, "agent.clarification.bridgeSource", { amount, destination: chainDisplay(preparation.destinationChainId) });
+      if (destinationMissing) return translate(locale, "agent.clarification.bridgeDestination", { amount, source: chainDisplay(preparation.sourceChainId) });
+    }
+    if (preparation.kind.startsWith("vault-") && missing.includes("amount")) return translate(locale, "agent.clarification.vaultAmount");
+  }
+  const reason = decision.clarification ?? intent.clarification;
+  if (reason === "approval-topic") return translate(locale, "agent.clarification.approvalTopic");
+  if (reason === "swap-or-bridge") return translate(locale, "agent.clarification.swapOrBridge");
+  if (reason === "missing-details") return translate(locale, "agent.clarification.missingDetails");
+  return translate(locale, "agent.clarification.missingTopic", { amount: intent.amount ?? (locale === "vi" ? "Số tiền đó" : "That amount") });
 }
 function networkText(s: AgentContextSnapshot, vi: boolean) { if (!s.connected) return vi ? `Chưa kết nối ví. Makoto cần Arc Testnet (chain ID ${arcTestnet.id}) cho các thao tác Arc.` : `Wallet disconnected. Makoto requires Arc Testnet (chain ID ${arcTestnet.id}) for Arc actions.`; return s.isArc ? (vi ? `Ví đang ở Arc Testnet (chain ID ${arcTestnet.id}). Các thao tác phụ thuộc Arc hiện khả dụng.` : `Your wallet is on Arc Testnet (chain ID ${arcTestnet.id}). Arc-dependent actions are available.`) : (vi ? `Ví đang ở chain ID ${s.verifiedChainId ?? "không xác định"}; Makoto cần Arc Testnet (${arcTestnet.id}). Agent sẽ không tự chuyển mạng.` : `Your wallet is on chain ID ${s.verifiedChainId ?? "unknown"}; Makoto requires Arc Testnet (${arcTestnet.id}). The Agent will not switch networks.`); }
+function chainDisplay(chainId: number | undefined) { return chainId === 5_042_002 ? "Arc Testnet" : chainId === 84_532 ? "Base Sepolia" : String(chainId ?? "—"); }
+function feeKindLabel(kind: "protocol" | "forwarding" | "provider" | "gas", locale: AgentIntent["locale"]) { const keys: Record<typeof kind, TranslationKey> = { protocol: "agent.fee.protocol", forwarding: "agent.fee.forwarding", provider: "agent.fee.provider", gas: "agent.fee.gas" }; return translate(locale, keys[kind]); }
+function safetyCapabilityLabel(capability: string, locale: AgentIntent["locale"]) { const keys: Record<string, TranslationKey> = { "read-only simulation": "agent.safety.readOnlySimulation", "known-contract verification": "agent.safety.knownContractVerification", "finite approval enforcement": "agent.safety.finiteApprovalEnforcement", "request fingerprint": "agent.safety.requestFingerprint", "fee-envelope checks": "agent.safety.feeEnvelopeChecks", "review expiry": "agent.safety.reviewExpiry", "wallet confirmation": "agent.safety.walletConfirmation", "receipt confirmation": "agent.safety.receiptConfirmation" }; return keys[capability] ? translate(locale, keys[capability]) : capability; }
