@@ -10,6 +10,7 @@ import type { AgentCapabilityOutput, AgentOutcomeCategory } from "./tools.ts";
 export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: AgentIntent, decision: AgentOrchestrationDecision, output: AgentCapabilityOutput): AgentResponse {
   const vi = intent.locale === "vi";
   const { result, planning, category } = output;
+  if (output.intelligence) return { intent, result, intelligence: output.intelligence, text: intelligenceText(output.intelligence, intent.locale) };
   if (decision.mode === "preparation") {
     const actionDraft = !category ? createAgentActionDraft(intent, planning) : undefined;
     if (actionDraft) return { intent, result, planning, actionDraft, text: translate(intent.locale, "agent.response.draftReady") };
@@ -27,6 +28,23 @@ export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: Agen
   if (intent.kind === "activity-explanation") return { intent, result, text: explain(result.data as WalletActivity, vi) };
   const items = result.data as WalletActivity[]; const prefix = result.partial ? (vi ? "Lịch sử đang hiển thị một phần. " : "Activity history is partial. ") : "";
   return { intent, result, text: prefix + (items.length ? items.map((item) => explain(item, vi)).join("\n") : (vi ? "Không có hoạt động phù hợp trong lịch sử đã tải." : "No matching activity exists in the loaded history.")) };
+}
+
+function intelligenceText(value: NonNullable<AgentResponse["intelligence"]>, locale: AgentIntent["locale"]) {
+  const vi = locale === "vi";
+  if (value.limitations.includes("ARC_DATED_UPDATES_SOURCE_NOT_CONFIGURED")) return translate(locale, "agent.intelligence.arcRecentUnsupported");
+  if (value.status === "SOURCE_ERROR") return translate(locale, "agent.intelligence.sourceError", { publisher: value.sources[0]?.publisher ?? translate(locale, "agent.intelligence.officialSource") });
+  const facts = value.facts.map((fact) => {
+    if (fact.label === "addressType") return vi ? `Loại địa chỉ: ${fact.value === "CONTRACT" ? "hợp đồng" : fact.value === "EOA" ? "ví bên ngoài" : "chưa xác định"}.` : `Address type: ${fact.value === "CONTRACT" ? "contract" : fact.value === "EOA" ? "externally owned account" : "unknown"}.`;
+    if (fact.label === "activity") { const [incoming, outgoing, total] = fact.value.split(":"); return vi ? `Hoạt động đã tải: ${total}; nhận ${incoming}, gửi ${outgoing}.` : `Loaded activity: ${total}; ${incoming} incoming and ${outgoing} outgoing.`; }
+    if (fact.label === "providerStatus") return vi ? `Trạng thái chính thức: ${fact.value}.` : `Official status: ${fact.value}.`;
+    if (fact.label === "officialSummary") return fact.value;
+    const labels: Record<string, [string, string]> = { chain: ["Mạng", "Chain"], address: ["Địa chỉ", "Address"], balance: ["Số dư", "Balance"], counterparties: ["Đối tác gần đây", "Recent counterparties"], tokenName: ["Tên token", "Token name"], tokenSymbol: ["Ký hiệu", "Symbol"], tokenDecimals: ["Số thập phân", "Decimals"], tokenSupply: ["Tổng cung thô", "Raw total supply"], allowance: ["Allowance thô", "Raw allowance"], protocol: ["Danh tính đã xác minh", "Verified identity"] };
+    return `${labels[fact.label]?.[vi ? 0 : 1] ?? fact.label}: ${fact.value}.`;
+  });
+  const prefix = value.status === "PARTIAL" ? (vi ? "Kết quả một phần." : "Partial result.") : value.status === "AVAILABLE" ? (vi ? "Đã xác minh dữ liệu hiện có." : "Available evidence verified.") : (vi ? "Không thể xác minh đầy đủ." : "Could not fully verify this result.");
+  const statusBoundary = value.limitations.includes("STATUS_NOT_ROUTE_TRUTH") ? translate(locale, "agent.intelligence.statusNotRouteTruth") : undefined;
+  return [prefix, ...facts, statusBoundary].filter(Boolean).join("\n");
 }
 
 function outcomeText(category: AgentOutcomeCategory, vi: boolean) {
@@ -157,6 +175,8 @@ function clarificationText(intent: AgentIntent, decision: AgentOrchestrationDeci
   if (reason === "approval-topic") return translate(locale, "agent.clarification.approvalTopic");
   if (reason === "swap-or-bridge") return translate(locale, "agent.clarification.swapOrBridge");
   if (reason === "missing-details") return translate(locale, "agent.clarification.missingDetails");
+  if (reason === "missing-intelligence-target") return translate(locale, "agent.clarification.intelligenceTarget");
+  if (reason === "missing-token-address") return translate(locale, "agent.clarification.tokenAddress");
   return translate(locale, "agent.clarification.missingTopic", { amount: intent.amount ?? (locale === "vi" ? "Số tiền đó" : "That amount") });
 }
 function networkText(s: AgentContextSnapshot, vi: boolean) { if (!s.connected) return vi ? `Chưa kết nối ví. Makoto cần Arc Testnet (chain ID ${arcTestnet.id}) cho các thao tác Arc.` : `Wallet disconnected. Makoto requires Arc Testnet (chain ID ${arcTestnet.id}) for Arc actions.`; return s.isArc ? (vi ? `Ví đang ở Arc Testnet (chain ID ${arcTestnet.id}). Các thao tác phụ thuộc Arc hiện khả dụng.` : `Your wallet is on Arc Testnet (chain ID ${arcTestnet.id}). Arc-dependent actions are available.`) : (vi ? `Ví đang ở chain ID ${s.verifiedChainId ?? "không xác định"}; Makoto cần Arc Testnet (${arcTestnet.id}). Agent sẽ không tự chuyển mạng.` : `Your wallet is on chain ID ${s.verifiedChainId ?? "unknown"}; Makoto requires Arc Testnet (${arcTestnet.id}). The Agent will not switch networks.`); }

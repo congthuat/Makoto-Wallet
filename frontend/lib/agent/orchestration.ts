@@ -7,6 +7,7 @@ export type AgentCapabilityId =
   | "wallet_overview" | "recent_activity" | "activity_explanation" | "vault_summary" | "network_status" | "safety_capabilities"
   | "latest_transaction" | "today_spending" | "send_planning" | "swap_planning" | "bridge_planning" | "blocking_explanation"
   | "send_preparation" | "swap_preparation" | "bridge_preparation" | "vault_preparation"
+  | "onchain_intelligence" | "official_research"
   | "clarification" | "unknown";
 
 export type AgentOrchestrationDecision = Readonly<{
@@ -15,7 +16,7 @@ export type AgentOrchestrationDecision = Readonly<{
   capabilityId: AgentCapabilityId;
   freshDataRequired: boolean;
   draftAllowed: boolean;
-  clarification?: "missing-topic" | "swap-or-bridge" | "approval-topic" | "missing-details";
+  clarification?: "missing-topic" | "swap-or-bridge" | "approval-topic" | "missing-details" | "missing-intelligence-target" | "missing-token-address";
   missingFields?: readonly AgentPreparationField[];
 }>;
 
@@ -24,6 +25,8 @@ const PLANNING = new Set<AgentIntent["kind"]>(["latest-transaction", "today-spen
 export function routeAgentRequest(intent: AgentIntent): AgentOrchestrationDecision {
   if (intent.kind === "clarification") return decision(topicOf(intent), "clarification", "clarification", false, false, intent.clarification);
   if (intent.kind === "unknown") return decision("unknown", "clarification", "unknown", false, false);
+  if (intent.kind === "onchain-intelligence") return decision("intelligence", "informational", "onchain_intelligence", true, false);
+  if (intent.kind === "official-research") return decision("research", "informational", "official_research", true, false);
   if (intent.kind === "prepare-action") {
     const input = intent.preparation;
     const missingFields = input ? missingPreparation(input) : Object.freeze([]);
@@ -76,7 +79,7 @@ function assetName(value: AgentPreparationInput["assetId"]): "USDC" | "EURC" { r
 function actionTopic(kind: AgentPreparationInput["kind"]): AgentTopic { return kind.startsWith("vault-") ? "vault" : kind as AgentTopic; }
 function chainName(value: number | undefined): "Arc Testnet" | "Base Sepolia" | undefined { return value === 5_042_002 ? "Arc Testnet" : value === 84_532 ? "Base Sepolia" : undefined; }
 function decision(topic: AgentTopic, mode: AgentRequestMode, capabilityId: AgentCapabilityId, freshDataRequired: boolean, draftAllowed: boolean, clarification?: AgentOrchestrationDecision["clarification"], missingFields?: readonly AgentPreparationField[]): AgentOrchestrationDecision { return Object.freeze({ topic, mode, capabilityId, freshDataRequired, draftAllowed, ...(clarification ? { clarification } : {}), ...(missingFields?.length ? { missingFields: Object.freeze([...missingFields]) } : {}) }); }
-function topicOf(intent: AgentIntent): AgentTopic { if (intent.kind.includes("swap")) return "swap"; if (intent.kind.includes("bridge")) return "bridge"; if (intent.kind.includes("send")) return "send"; if (intent.kind.includes("activity") || intent.kind === "latest-transaction" || intent.kind === "today-spending") return "activity"; if (intent.kind.includes("network")) return "network"; if (intent.kind.includes("vault")) return "vault"; if (intent.kind.includes("safety") || intent.kind === "blocking-explanation") return "safety"; if (intent.kind === "wallet-overview") return "wallet"; return "unknown"; }
+function topicOf(intent: AgentIntent): AgentTopic { if (intent.kind === "onchain-intelligence") return "intelligence"; if (intent.kind === "official-research") return "research"; if (intent.kind.includes("swap")) return "swap"; if (intent.kind.includes("bridge")) return "bridge"; if (intent.kind.includes("send")) return "send"; if (intent.kind.includes("activity") || intent.kind === "latest-transaction" || intent.kind === "today-spending") return "activity"; if (intent.kind.includes("network")) return "network"; if (intent.kind.includes("vault")) return "vault"; if (intent.kind.includes("safety") || intent.kind === "blocking-explanation") return "safety"; if (intent.kind === "wallet-overview") return "wallet"; return "unknown"; }
 function planningCapability(intent: AgentIntent): AgentCapabilityId { if (intent.kind.startsWith("swap-")) return "swap_planning"; if (intent.kind.startsWith("bridge-")) return "bridge_planning"; if (intent.kind.startsWith("send-")) return "send_planning"; if (intent.kind === "latest-transaction") return "latest_transaction"; if (intent.kind === "today-spending") return "today_spending"; return "blocking_explanation"; }
 function informationalCapability(intent: AgentIntent): AgentCapabilityId { return ({ "wallet-overview": "wallet_overview", "recent-activity": "recent_activity", "activity-explanation": "activity_explanation", "vault-summary": "vault_summary", "network-status": "network_status", "safety-capabilities": "safety_capabilities" } as Partial<Record<AgentIntent["kind"], AgentCapabilityId>>)[intent.kind] ?? "unknown"; }
 

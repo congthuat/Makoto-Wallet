@@ -1,11 +1,13 @@
-import type { AgentContextSnapshot } from "./types.ts";
+import type { AgentActivityLoadState, AgentContextSnapshot } from "./types.ts";
 
 export const AGENT_SAFETY_CAPABILITIES = Object.freeze([
   "read-only simulation", "known-contract verification", "finite approval enforcement",
   "request fingerprint", "fee-envelope checks", "review expiry", "wallet confirmation", "receipt confirmation",
 ]);
 
-export function createAgentContextSnapshot(input: Omit<AgentContextSnapshot, "safetyCapabilities" | "timestamp"> & { timestamp?: number }): AgentContextSnapshot {
+type AgentContextSnapshotInput = Omit<AgentContextSnapshot, "safetyCapabilities" | "timestamp" | "activityLoadState" | "activityPartial" | "activityUnavailable"> & { timestamp?: number; activityLoadState?: AgentActivityLoadState; activityPartial?: boolean; activityUnavailable?: boolean };
+export function createAgentContextSnapshot(input: AgentContextSnapshotInput): AgentContextSnapshot {
+  const activityLoadState = input.activityLoadState ?? (input.activityUnavailable ? "unavailable" : input.activityPartial ? "partial" : "loaded");
   const snapshot: AgentContextSnapshot = {
     connected: input.connected,
     ...(input.account ? { account: input.account } : {}),
@@ -14,8 +16,9 @@ export function createAgentContextSnapshot(input: Omit<AgentContextSnapshot, "sa
     isArc: input.isArc,
     balances: Object.freeze({ ...input.balances }),
     activity: Object.freeze([...input.activity]),
-    activityPartial: input.activityPartial,
-    activityUnavailable: input.activityUnavailable,
+    activityLoadState,
+    activityPartial: activityLoadState === "partial",
+    activityUnavailable: activityLoadState === "unavailable",
     vault: Object.freeze({ ...input.vault }),
     safetyCapabilities: AGENT_SAFETY_CAPABILITIES,
     timestamp: input.timestamp ?? Date.now(),

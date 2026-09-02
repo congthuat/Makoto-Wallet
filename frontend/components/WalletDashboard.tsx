@@ -13,7 +13,7 @@ import { ReceivePanel } from "./ReceivePanel";
 import { SwapPanel } from "./SwapPanel";
 import { TransactionReceiptPanel } from "./TransactionReceiptPanel";
 import { ActivityHistoryPanel } from "./ActivityHistoryPanel";
-import { ActionDraftCard } from "./MakotoAgentPage";
+import { ActionDraftCard, EvidenceBlock } from "./MakotoAgentPage";
 
 import { useHydrated } from "@/hooks/useHydrated";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
@@ -35,6 +35,7 @@ import { consumeAgentHandoff, storeAgentResult, type AgentActionHandoff } from "
 import { canConsumeAgentHandoff, deriveFinancialDataState, deriveWalletUiState } from "@/lib/walletHydration";
 import { createAgentContextSnapshot } from "@/lib/agent/context";
 import { createAgentPlanningServices } from "@/lib/agent/planning";
+import { createOnchainIntelligenceServices } from "@/lib/agent/intelligence/onchain";
 import { rankAgentSuggestions, readSuggestionUsage, recordSuggestionUsage, suggestionStorageKey } from "@/lib/agent/suggestions";
 import {
   appKitViewForPath,
@@ -76,6 +77,7 @@ export function WalletDashboard() {
   const connection = useConnection();
   const publicClient = usePublicClient({ chainId: arcTestnet.id });
   const agentPlanningServices = useMemo(() => createAgentPlanningServices(publicClient), [publicClient]);
+  const onchainServices = useMemo(() => createOnchainIntelligenceServices(publicClient), [publicClient]);
   const chain = useVerifiedWalletChain();
   const walletState = deriveWalletUiState({ hydrated, connectionStatus: connection.status, isConnected: connection.isConnected, connectorChainId: chain.connectorChainId, providerChainId: chain.providerChainId, isArc: chain.isArc });
   const onArc = walletState === "arc";
@@ -168,10 +170,11 @@ export function WalletDashboard() {
     isArc: chain.isArc,
     balances: { usdc: balances.usdc.data, eurc: balances.eurc.data },
     activity: activities,
+    activityLoadState: activity.loadState,
     activityPartial: activity.partial,
     activityUnavailable: activity.unavailable,
     vault: { available: vaultDataState === "ready", total: vaultDataState === "ready" ? totals.totalSaved : undefined, goalCount: vaultDataState === "ready" ? jars.length : undefined, activeCount: vaultDataState === "ready" ? totals.active : undefined },
-  }), [activities, activity.partial, activity.unavailable, balances.eurc.data, balances.usdc.data, chain.isArc, chain.providerChainId, connection.address, connection.connector?.name, connection.isConnected, jars.length, totals.active, totals.totalSaved, vaultDataState]);
+  }), [activities, activity.loadState, activity.partial, activity.unavailable, balances.eurc.data, balances.usdc.data, chain.isArc, chain.providerChainId, connection.address, connection.connector?.name, connection.isConnected, jars.length, totals.active, totals.totalSaved, vaultDataState]);
   const {
     input: agentInput,
     inputRef: agentInputRef,
@@ -179,7 +182,7 @@ export function WalletDashboard() {
     setInput: setAgentInput,
     ask: askAgent,
     submit: submitAgent,
-  } = useMakotoAgent(agentSnapshot, locale, connection.address, agentPlanningServices);
+  } = useMakotoAgent(agentSnapshot, locale, connection.address, agentPlanningServices, onchainServices);
 
   const suggestionKey = suggestionStorageKey(connection.address, chain.providerChainId);
   const agentSuggestions = useMemo(() => rankAgentSuggestions({
@@ -339,6 +342,7 @@ export function WalletDashboard() {
                   {agentMessages.slice(-2).map((message) => <article key={message.id} className={message.role === "user" ? styles.agentUserMessage : styles.agentReply}>
                     <strong>{message.role === "user" ? t("agentDashboard.you") : "Makoto Agent"}</strong>
                     <p>{message.text}</p>
+                    {message.intelligence && <EvidenceBlock value={message.intelligence} locale={locale} />}
                     {message.draft && <div className={`${styles.agentDraft} ${agentStyles.chat}`}><ActionDraftCard draft={message.draft} vi={locale === "vi"} /></div>}
                   </article>)}
                 </div>}

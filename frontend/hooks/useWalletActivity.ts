@@ -72,6 +72,7 @@ export function useWalletActivity(address?: Address, enabled = false, panelOpen 
     isError: query.isError,
     partial: loadState.partial,
     unavailable: loadState.unavailable,
+    loadState: loadState.status,
     refetch,
     hasNextPage: query.hasNextPage,
     loadMore: query.fetchNextPage,

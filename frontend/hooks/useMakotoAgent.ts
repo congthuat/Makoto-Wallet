@@ -10,11 +10,14 @@ import { parseAgentRequest } from "@/lib/agent/parser";
 import { routeAgentRequest } from "@/lib/agent/orchestration";
 import { runAgentCapability, type AgentCapabilityOutput } from "@/lib/agent/tools";
 import type { AgentActionDraft, AgentContextSnapshot, AgentLocale, AgentResponse } from "@/lib/agent/types";
+import type { AgentIntelligenceResult } from "@/lib/agent/intelligence/types";
+import type { OnchainIntelligenceServices } from "@/lib/agent/intelligence/onchain";
+import { readOfficialResearchResponse } from "@/lib/agent/intelligence/officialSources";
 import { clearAgentSessionContext, createAgentRequestGeneration, readAgentSessionContext, storeAgentSessionContext, updateAgentSessionContext, type AgentSessionContext } from "@/lib/agent/sessionContext";
 
-export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft };
+export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft; intelligence?: AgentIntelligenceResult };
 
-export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string, planningServices?: AgentPlanningServices) {
+export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string, planningServices?: AgentPlanningServices, onchainServices?: OnchainIntelligenceServices) {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [hasSessionContext, setHasSessionContext] = useState(false);
   const [input, setInput] = useState("");
@@ -78,12 +81,12 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     const currentContext = binding ? readAgentSessionContext(window.sessionStorage, binding, now) : undefined;
     sessionContext.current = currentContext;
     const requestLocale = latestLocale.current;
-    const request = { text: value, locale: requestLocale, sessionContext: currentContext } as const;
+    const request = { text: value, locale: requestLocale, account: snapshot.account, sessionContext: currentContext } as const;
     const intent = parseAgentRequest(request);
     const decision = routeAgentRequest(intent);
     const output: AgentCapabilityOutput = decision.mode === "clarification"
       ? Object.freeze({})
-      : await runAgentCapability({ snapshot, planningServices, now, binding: { generation, account: binding?.account, chainId: binding?.chainId } }, intent, decision);
+      : await runAgentCapability({ snapshot, planningServices, onchainServices, research: fetchOfficialResearch, now, binding: { generation, account: binding?.account, chainId: binding?.chainId } }, intent, decision);
     const bindingKey = binding ? `${binding.account.toLowerCase()}:${binding.chainId}` : undefined;
     if (!requestGeneration.current.isCurrent(generation) || latestBinding.current !== bindingKey) return;
     const response: AgentResponse = answerAgentRequest(snapshot, intent, decision, output);
@@ -98,7 +101,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     setMessages((current) => [
       ...current,
       { id: nextId.current++, role: "user", text: value },
-      { id: nextId.current++, role: "agent", text: response.text, draft: response.actionDraft },
+      { id: nextId.current++, role: "agent", text: response.text, draft: response.actionDraft, intelligence: response.intelligence },
     ]);
     setInput("");
     window.requestAnimationFrame(() => inputRef.current?.focus());
@@ -110,4 +113,9 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   }
 
   return { messages, setMessages, hasSessionContext, clearConversation, input, setInput, inputRef, ask, submit };
+}
+
+async function fetchOfficialResearch(sourceId: string): Promise<AgentIntelligenceResult> {
+  const response = await fetch(`/api/agent-research?source=${encodeURIComponent(sourceId)}`, { cache: "no-store" });
+  return readOfficialResearchResponse(response);
 }
