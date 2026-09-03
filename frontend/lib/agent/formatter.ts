@@ -33,8 +33,22 @@ export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: Agen
 function intelligenceText(value: NonNullable<AgentResponse["intelligence"]>, locale: AgentIntent["locale"]) {
   const vi = locale === "vi";
   if (value.limitations.includes("ARC_DATED_UPDATES_SOURCE_NOT_CONFIGURED")) return translate(locale, "agent.intelligence.arcRecentUnsupported");
+  if (value.limitations.includes("ARC_TOPIC_NOT_FOUND")) return translate(locale, "agent.intelligence.arcTopicNotFound");
   if (value.status === "SOURCE_ERROR") return translate(locale, "agent.intelligence.sourceError", { publisher: value.sources[0]?.publisher ?? translate(locale, "agent.intelligence.officialSource") });
+  if (value.facts.some((fact) => fact.label.startsWith("cctp"))) {
+    const details = [
+      value.facts.some((fact) => fact.label === "cctpSupportedChains") ? translate(locale, "agent.intelligence.cctpSupportedChains") : undefined,
+      value.facts.some((fact) => fact.label === "cctpFees") ? translate(locale, "agent.intelligence.cctpFees") : undefined,
+      value.facts.some((fact) => fact.label === "cctpTransferModes") ? translate(locale, "agent.intelligence.cctpTransferModes") : undefined,
+      value.facts.some((fact) => fact.label === "cctpForwarding") ? translate(locale, "agent.intelligence.cctpForwarding") : undefined,
+    ].filter(Boolean).join(", ");
+    const purpose = value.facts.some((fact) => fact.label === "cctpPurpose") ? translate(locale, "agent.intelligence.cctpPurpose") : "";
+    return `${purpose}${details ? `${purpose ? " " : ""}${translate(locale, "agent.intelligence.cctpAlso", { details })}` : ""}`;
+  }
+  if (value.facts.some((fact) => fact.label === "arcBridging")) return translate(locale, "agent.intelligence.arcBridging");
+  const addressClassificationUnavailable = value.facts.some((fact) => fact.label === "addressType" && fact.value === "UNKNOWN") && value.limitations.includes("CODE_UNAVAILABLE");
   const facts = value.facts.map((fact) => {
+    if (fact.label === "addressType" && addressClassificationUnavailable) return translate(locale, "agent.intelligence.addressTypeUnavailable");
     if (fact.label === "addressType") return vi ? `Loại địa chỉ: ${fact.value === "CONTRACT" ? "hợp đồng" : fact.value === "EOA" ? "ví bên ngoài" : "chưa xác định"}.` : `Address type: ${fact.value === "CONTRACT" ? "contract" : fact.value === "EOA" ? "externally owned account" : "unknown"}.`;
     if (fact.label === "activity") { const [incoming, outgoing, total] = fact.value.split(":"); return vi ? `Hoạt động đã tải: ${total}; nhận ${incoming}, gửi ${outgoing}.` : `Loaded activity: ${total}; ${incoming} incoming and ${outgoing} outgoing.`; }
     if (fact.label === "providerStatus") return vi ? `Trạng thái chính thức: ${fact.value}.` : `Official status: ${fact.value}.`;
@@ -42,9 +56,10 @@ function intelligenceText(value: NonNullable<AgentResponse["intelligence"]>, loc
     const labels: Record<string, [string, string]> = { chain: ["Mạng", "Chain"], address: ["Địa chỉ", "Address"], balance: ["Số dư", "Balance"], counterparties: ["Đối tác gần đây", "Recent counterparties"], tokenName: ["Tên token", "Token name"], tokenSymbol: ["Ký hiệu", "Symbol"], tokenDecimals: ["Số thập phân", "Decimals"], tokenSupply: ["Tổng cung thô", "Raw total supply"], allowance: ["Allowance thô", "Raw allowance"], protocol: ["Danh tính đã xác minh", "Verified identity"] };
     return `${labels[fact.label]?.[vi ? 0 : 1] ?? fact.label}: ${fact.value}.`;
   });
-  const prefix = value.status === "PARTIAL" ? (vi ? "Kết quả một phần." : "Partial result.") : value.status === "AVAILABLE" ? (vi ? "Đã xác minh dữ liệu hiện có." : "Available evidence verified.") : (vi ? "Không thể xác minh đầy đủ." : "Could not fully verify this result.");
+  const prefix = addressClassificationUnavailable ? translate(locale, "agent.intelligence.addressPartial") : value.status === "PARTIAL" ? (vi ? "Kết quả một phần." : "Partial result.") : value.status === "AVAILABLE" ? (vi ? "Đã xác minh dữ liệu hiện có." : "Available evidence verified.") : (vi ? "Không thể xác minh đầy đủ." : "Could not fully verify this result.");
+  const addressLimitation = addressClassificationUnavailable ? translate(locale, "agent.intelligence.addressBytecodeUnavailable") : undefined;
   const statusBoundary = value.limitations.includes("STATUS_NOT_ROUTE_TRUTH") ? translate(locale, "agent.intelligence.statusNotRouteTruth") : undefined;
-  return [prefix, ...facts, statusBoundary].filter(Boolean).join("\n");
+  return [prefix, ...facts, addressLimitation, statusBoundary].filter(Boolean).join("\n");
 }
 
 function outcomeText(category: AgentOutcomeCategory, vi: boolean) {

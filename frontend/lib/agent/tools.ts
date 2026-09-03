@@ -10,7 +10,7 @@ import type { OnchainIntelligenceServices } from "./intelligence/onchain.ts";
 export type AgentCapabilityPermission = "READ_ONLY" | "PREPARE_ONLY";
 export const AGENT_EXECUTION_POLICY = "EXECUTION_FORBIDDEN" as const;
 export type AgentOutcomeCategory = "NEEDS_CLARIFICATION" | "WALLET_NOT_CONNECTED" | "WRONG_NETWORK" | "INSUFFICIENT_BALANCE" | "QUOTE_UNAVAILABLE" | "ROUTE_UNAVAILABLE" | "PROVIDER_UNAVAILABLE" | "STALE_DATA" | "PLANNING_FAILED";
-export type AgentCapabilityContext = Readonly<{ snapshot: AgentContextSnapshot; planningServices?: AgentPlanningServices; onchainServices?: OnchainIntelligenceServices; research?: (sourceId: string) => Promise<AgentIntelligenceResult>; now: number; binding: AgentBindingMetadata }>;
+export type AgentCapabilityContext = Readonly<{ snapshot: AgentContextSnapshot; planningServices?: AgentPlanningServices; onchainServices?: OnchainIntelligenceServices; research?: (sourceId: string, subject?: "bridging") => Promise<AgentIntelligenceResult>; now: number; binding: AgentBindingMetadata }>;
 export type AgentCapabilityOutput = Readonly<{ result?: AgentToolResult; planning?: AgentPlanningResult; intelligence?: AgentIntelligenceResult; category?: AgentOutcomeCategory }>;
 export type AgentCapabilityDefinition<I extends AgentIntent = AgentIntent, O extends AgentCapabilityOutput = AgentCapabilityOutput> = Readonly<{
   id: AgentCapabilityId; topic: AgentOrchestrationDecision["topic"]; mode: AgentOrchestrationDecision["mode"]; permission: AgentCapabilityPermission; execution: typeof AGENT_EXECUTION_POLICY; requiresWallet: boolean; requiresArc: boolean;
@@ -50,7 +50,7 @@ const onchainIntelligence: AgentCapabilityDefinition = Object.freeze({ id: "onch
 });
 const officialResearch: AgentCapabilityDefinition = Object.freeze({ id: "official_research", topic: "research", mode: "informational", permission: "READ_ONLY", execution: AGENT_EXECUTION_POLICY, requiresWallet: false, requiresArc: false,
   validateInput: (input, decision): input is AgentIntent => decision.capabilityId === "official_research" && input.kind === "official-research" && Boolean(input.researchTopic),
-  async run({ research }, input) { if (!research || !input.researchTopic) return Object.freeze({ category: "PROVIDER_UNAVAILABLE" }); const intelligence = await research(input.researchTopic); return Object.freeze({ intelligence, result: result("official_research", intelligence) }); },
+  async run({ research }, input) { if (!research || !input.researchTopic) return Object.freeze({ category: "PROVIDER_UNAVAILABLE" }); const intelligence = await research(input.researchTopic, input.researchSubject); return Object.freeze({ intelligence, result: result("official_research", intelligence) }); },
 });
 
 export const AGENT_CAPABILITIES: readonly AgentCapabilityDefinition[] = Object.freeze([

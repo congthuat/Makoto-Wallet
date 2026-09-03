@@ -15,7 +15,7 @@ export function isAllowedOfficialUrl(url: URL, source: OfficialSourceDefinition)
 export const OFFICIAL_SOURCE_MAX_BYTES = 256 * 1024;
 const SOURCE_TIMEOUT_MS = 8_000;
 
-export async function retrieveOfficialSource(source: OfficialSourceDefinition, fetcher: typeof fetch, now: number): Promise<AgentIntelligenceResult> {
+export async function retrieveOfficialSource(source: OfficialSourceDefinition, fetcher: typeof fetch, now: number, topic?: "bridging"): Promise<AgentIntelligenceResult> {
   const url = new URL(officialSourceUrl(source));
   if (!isAllowedOfficialUrl(url, source)) throw new Error("Source registry URL is not allowed.");
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), SOURCE_TIMEOUT_MS);
@@ -35,9 +35,9 @@ export async function retrieveOfficialSource(source: OfficialSourceDefinition, f
     if (declared > OFFICIAL_SOURCE_MAX_BYTES) throw new Error("Official source response is too large.");
     const raw = await response.text();
     if (new TextEncoder().encode(raw).byteLength > OFFICIAL_SOURCE_MAX_BYTES) throw new Error("Official source response is too large.");
-    const extracted = extractOfficialContent(source, raw);
-    const fact: AgentIntelligenceFact = { label: source.extractor === "circle-status" ? "providerStatus" : "officialSummary", value: extracted, sourceIds: [source.id] };
-    return Object.freeze({ kind: "official-research", status: "AVAILABLE", summary: "official", facts: Object.freeze([fact]), sources: Object.freeze([sourceMetadata(source, now)]), fetchedAt: now, expiresAt: now + source.ttlSeconds * 1000, limitations: Object.freeze(source.id === "circle-status" ? ["STATUS_NOT_ROUTE_TRUTH"] : ["OFFICIAL_SOURCE_NOT_TRANSACTION_TRUTH"]) });
+    const facts = extractOfficialFacts(source, raw, topic);
+    const noTopicMatch = source.id === "arc-docs" && topic === "bridging" && facts.length === 0;
+    return Object.freeze({ kind: "official-research", status: noTopicMatch ? "PARTIAL" : "AVAILABLE", summary: "official", facts: Object.freeze(facts), sources: Object.freeze([sourceMetadata(source, now)]), fetchedAt: now, expiresAt: now + source.ttlSeconds * 1000, limitations: Object.freeze(noTopicMatch ? ["ARC_TOPIC_NOT_FOUND", "OFFICIAL_SOURCE_NOT_TRANSACTION_TRUTH"] : source.id === "circle-status" ? ["STATUS_NOT_ROUTE_TRUTH"] : ["OFFICIAL_SOURCE_NOT_TRANSACTION_TRUTH"]) });
   } finally { clearTimeout(timer); }
 }
 
@@ -61,6 +61,27 @@ export function extractOfficialContent(source: OfficialSourceDefinition, raw: st
   return bounded(text, 600);
 }
 
+export function extractOfficialFacts(source: OfficialSourceDefinition, raw: string, topic?: "bridging"): AgentIntelligenceFact[] {
+  if (source.extractor === "circle-status") return [{ label: "providerStatus", value: extractOfficialContent(source, raw), sourceIds: [source.id] }];
+  const safe = stripInstructions(raw);
+  if (source.extractor === "circle-cctp-section") {
+    const section = extractOfficialContent(source, safe);
+    const facts: AgentIntelligenceFact[] = [];
+    if (/burn-and-mint|crosschain USDC|cross-chain USDC/i.test(section)) facts.push({ label: "cctpPurpose", value: "crosschain-usdc", sourceIds: [source.id] });
+    if (/supported chains and domains/i.test(section)) facts.push({ label: "cctpSupportedChains", value: "documented", sourceIds: [source.id] });
+    if (/\bfees\b/i.test(section)) facts.push({ label: "cctpFees", value: "documented", sourceIds: [source.id] });
+    if (/fast vs standard|fast transfer/i.test(section)) facts.push({ label: "cctpTransferModes", value: "documented", sourceIds: [source.id] });
+    if (/forwarding service/i.test(section)) facts.push({ label: "cctpForwarding", value: "documented", sourceIds: [source.id] });
+    if (!facts.length) throw new Error("Official CCTP section contained no recognized facts.");
+    return facts;
+  }
+  if (source.id === "arc-docs" && topic === "bridging") {
+    const relevant = safe.split(/\r?\n/).filter((line) => /\b(?:bridge|bridging|cross-chain|cctp)\b/i.test(line) && !/claude code|plugin|install(?:ing)? skills?/i.test(line)).map(cleanMarkdown).filter(Boolean).slice(0, 5);
+    return relevant.length ? [{ label: "arcBridging", value: bounded(relevant.join(" "), 500), sourceIds: [source.id] }] : [];
+  }
+  return [{ label: "officialSummary", value: extractOfficialContent(source, safe), sourceIds: [source.id] }];
+}
+
 export function sourceErrorResult(source: OfficialSourceDefinition, now: number): AgentIntelligenceResult {
   return Object.freeze({ kind: "official-research", status: "SOURCE_ERROR", summary: "official", facts: Object.freeze([]), sources: Object.freeze([sourceMetadata(source, now)]), fetchedAt: now, limitations: Object.freeze(["OFFICIAL_SOURCE_UNREACHABLE"]) });
 }
@@ -78,4 +99,5 @@ export async function readOfficialResearchResponse(response: Response): Promise<
 function sourceMetadata(source: OfficialSourceDefinition, fetchedAt: number) { return Object.freeze({ id: source.id, title: source.title, sourceType: source.sourceType, canonicalUrl: officialSourceUrl(source), publisher: source.publisher, fetchedAt }); }
 function isIntelligenceResult(value: unknown): value is AgentIntelligenceResult { if (!value || typeof value !== "object") return false; const candidate = value as Partial<AgentIntelligenceResult>; return candidate.kind === "official-research" && typeof candidate.status === "string" && Array.isArray(candidate.facts) && Array.isArray(candidate.sources) && typeof candidate.fetchedAt === "number" && Array.isArray(candidate.limitations); }
 function stripInstructions(value: string) { return value.replace(/ignore (?:all |any )?(?:previous|prior) instructions?/gi, "[instruction removed]").replace(/\b(?:sign|submit|approve) (?:this |the )?transaction\b/gi, "[transaction instruction removed]"); }
+function cleanMarkdown(value: string) { return value.replace(/^#+\s*/, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim(); }
 function bounded(value: string, limit: number) { return value.length <= limit ? value : `${value.slice(0, limit - 1).trimEnd()}…`; }

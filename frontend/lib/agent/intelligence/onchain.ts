@@ -32,6 +32,7 @@ export async function inspectOnchain(client: Pick<PublicClient, "getCode" | "rea
   }
   let code: string | undefined;
   try { code = await client.getCode({ address: target }); } catch { limitations.push("CODE_UNAVAILABLE"); }
+  if (code === undefined) limitations.push("CODE_UNAVAILABLE");
   facts.push({ label: "addressType", value: code && code !== "0x" ? "CONTRACT" : code === "0x" ? "EOA" : "UNKNOWN", sourceIds: [source.id] });
   limitations.push("ADDRESS_TYPE_NOT_SAFETY");
   if (input.operation === "address") {

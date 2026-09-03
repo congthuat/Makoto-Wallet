@@ -13,7 +13,7 @@ export function parseAgentRequest(request: AgentRequest): AgentIntent {
   if (has(text, ["what does circle say about cctp", "circle cctp", "circle documentation", "circle docs"])) return { kind: "official-research", locale: request.locale, researchTopic: "circle-cctp" };
   if (has(text, ["official issue", "provider status", "circle status", "bridge provider healthy", "bridge provider operational"])) return { kind: "official-research", locale: request.locale, researchTopic: "circle-status" };
   if (has(text, ["what changed on arc", "arc updates", "arc recently", "latest arc news", "new arc announcements"])) return { kind: "official-research", locale: request.locale, researchTopic: "arc-updates" };
-  if (has(text, ["what does arc documentation say", "arc docs say", "arc documentation about"])) return { kind: "official-research", locale: request.locale, researchTopic: "arc-docs" };
+  if (has(text, ["what does arc documentation say", "arc docs say", "arc documentation about"])) return { kind: "official-research", locale: request.locale, researchTopic: "arc-docs", ...(has(text, ["bridge", "bridging", "cross-chain", "cctp"]) ? { researchSubject: "bridging" as const } : {}) };
   const boundAccount = request.account ?? request.sessionContext?.account as AgentIntent["intelligenceAddress"] | undefined;
   const tokenQuestion = has(text, ["what is this token", "token contract", "token metadata", "token này", "hợp đồng token"]);
   if (tokenQuestion && addresses[0]) return { kind: "onchain-intelligence", locale: request.locale, intelligenceOperation: "token", intelligenceAddress: boundAccount ?? addresses[0], tokenAddress: addresses[0], spender: addresses[1] };

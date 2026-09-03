@@ -58,12 +58,26 @@ test("onchain EOA detection does not claim safety", async () => {
   const result = await inspectOnchain(client, { operation: "address", address: account }, [], "loaded", now);
   assert.equal(result.facts.find((fact) => fact.label === "addressType")?.value, "EOA");
   assert.ok(result.limitations.includes("ADDRESS_TYPE_NOT_SAFETY"));
+  assert.equal(result.status, "AVAILABLE");
+  for (const locale of ["en", "vi"] as const) { const intent = parseAgentRequest({ text: `Tell me about this address ${account}`, locale }); const text = formatAgentResponse(snapshot, intent, routeAgentRequest(intent), { intelligence: result }).text; assert.match(text, locale === "en" ? /Available evidence verified[\s\S]*externally owned account/ : /Đã xác minh dữ liệu hiện có[\s\S]*ví bên ngoài/); }
   assert.doesNotMatch(JSON.stringify(result), /safe contract|scam|malicious/i);
 });
 test("onchain contract detection remains neutral", async () => {
   const client = { getCode: async () => "0x1234", readContract: async () => 0n } as unknown as Pick<PublicClient, "getCode" | "readContract">;
   const result = await inspectOnchain(client, { operation: "address", address: account }, [], "loaded", now);
   assert.equal(result.facts.find((fact) => fact.label === "addressType")?.value, "CONTRACT");
+  assert.equal(result.status, "AVAILABLE");
+  for (const locale of ["en", "vi"] as const) { const intent = parseAgentRequest({ text: `Tell me about this address ${account}`, locale }); const text = formatAgentResponse(snapshot, intent, routeAgentRequest(intent), { intelligence: result }).text; assert.match(text, locale === "en" ? /Available evidence verified[\s\S]*Address type: contract/ : /Đã xác minh dữ liệu hiện có[\s\S]*Loại địa chỉ: hợp đồng/); }
+});
+test("unavailable getCode yields UNKNOWN and PARTIAL while successful balances remain usable", async () => {
+  const client = { getCode: async () => { throw new Error("RPC unavailable"); }, readContract: async () => 1_000_000n } as unknown as Pick<PublicClient, "getCode" | "readContract">;
+  const result = await inspectOnchain(client, { operation: "address", address: account }, [], "loaded", now);
+  assert.equal(result.facts.find((fact) => fact.label === "addressType")?.value, "UNKNOWN"); assert.equal(result.facts.filter((fact) => fact.label === "balance").length, 2); assert.equal(result.status, "PARTIAL"); assert.ok(result.limitations.includes("CODE_UNAVAILABLE")); assert.ok(result.limitations.includes("ADDRESS_TYPE_NOT_SAFETY"));
+  for (const locale of ["en", "vi"] as const) {
+    const intent = parseAgentRequest({ text: `Tell me about this address ${account}`, locale }), response = formatAgentResponse(snapshot, intent, routeAgentRequest(intent), { intelligence: result });
+    assert.match(response.text, locale === "en" ? /Available evidence is partially verified[\s\S]*Address type: could not be verified in this check[\s\S]*Balance: 1 USDC[\s\S]*Balance: 1 EURC[\s\S]*Address bytecode was unavailable/ : /Đã xác minh một phần dữ liệu hiện có[\s\S]*Loại địa chỉ: chưa thể xác minh trong lần kiểm tra này[\s\S]*Số dư: 1 USDC[\s\S]*Số dư: 1 EURC[\s\S]*Không lấy được bytecode/);
+    assert.equal(response.intelligence?.sources[0]?.canonicalUrl.endsWith(`/address/${account}`), true); assert.equal(response.actionDraft, undefined); assert.doesNotMatch(response.text, /CODE_UNAVAILABLE|PARTIAL|UNKNOWN/);
+  }
 });
 test("malformed or reverting token metadata yields PARTIAL", async () => {
   let call = 0; const client = { getCode: async () => "0x12", readContract: async () => { if (++call % 2) throw new Error("revert"); return 6; } } as unknown as Pick<PublicClient, "getCode" | "readContract">;
@@ -108,7 +122,15 @@ test("Circle llms extraction selects only the bounded CCTP section", async () =>
   assert.match(extracted, /Cross-Chain Transfer Protocol/); assert.match(extracted, /Supported chains and domains/);
   assert.doesNotMatch(extracted, /Wallets|Gateway material/); assert.match(extracted, /\[instruction removed\]/); assert.match(extracted, /\[transaction instruction removed\]/); assert.ok(extracted.length <= 600);
   const result = await retrieveOfficialSource(source, async () => new Response(cctpFixture, { status: 200, headers: { "content-type": "text/plain" } }), now);
-  assert.equal(result.status, "AVAILABLE"); assert.equal(result.sources[0]?.canonicalUrl, "https://developers.circle.com/llms.txt"); assert.equal(result.sources[0]?.sourceType, "OFFICIAL_DOCUMENTATION"); assert.equal(result.facts.length, 1);
+  assert.equal(result.status, "AVAILABLE"); assert.equal(result.sources[0]?.canonicalUrl, "https://developers.circle.com/llms.txt"); assert.equal(result.sources[0]?.sourceType, "OFFICIAL_DOCUMENTATION"); assert.deepEqual(result.facts.map((fact) => fact.label), ["cctpSupportedChains", "cctpFees"]);
+});
+
+test("CCTP Agent answers are concise localized prose backed by typed source facts", async () => {
+  const source = getOfficialSource("circle-cctp")!;
+  const fixture = cctpFixture.replace("CCTP is Circle's Cross-Chain Transfer Protocol.", "CCTP is Circle's burn-and-mint protocol for crosschain USDC.").replace("- [Fees](https://developers.circle.com/cctp/fees)", "- [Fees](https://developers.circle.com/cctp/fees): Fast vs Standard transfer fees\n- [Forwarding Service](https://developers.circle.com/cctp/forwarding-service)");
+  const result = await retrieveOfficialSource(source, async () => new Response(fixture, { status: 200, headers: { "content-type": "text/plain" } }), now);
+  assert.deepEqual(result.facts.map((fact) => fact.label), ["cctpPurpose", "cctpSupportedChains", "cctpFees", "cctpTransferModes", "cctpForwarding"]);
+  for (const locale of ["en", "vi"] as const) { const intent = parseAgentRequest({ text: "What does Circle say about CCTP?", locale }); const answer = formatAgentResponse(snapshot, intent, routeAgentRequest(intent), { intelligence: result }); assert.doesNotMatch(answer.text, /##|\[[^\]]+\]\(|https?:\/\/|Wallets|Gateway/); assert.equal(answer.actionDraft, undefined); assert.equal(answer.intelligence?.sources[0]?.canonicalUrl, "https://developers.circle.com/llms.txt"); }
 });
 
 test("oversized official source bodies remain rejected", async () => {
@@ -141,18 +163,21 @@ test("Arc recent requests are unsupported while current Arc documentation remain
   const recent = formatAgentResponse(snapshot, recentIntent, routeAgentRequest(recentIntent), { intelligence: await readOfficialResearchResponse(new Response(JSON.stringify(unsupported), { status: 422 })) });
   assert.equal(recent.intelligence?.status, "UNVERIFIED"); assert.match(recent.text, /verified dated Arc updates source/); assert.equal(recent.actionDraft, undefined);
   const docsIntent = parse("What does Arc documentation say about bridging?"), docsSource = getOfficialSource("arc-docs")!;
-  const docsResult = await retrieveOfficialSource(docsSource, async () => new Response("# Arc\nOfficial bridging documentation.", { status: 200, headers: { "content-type": "text/plain" } }), now);
+  const arcFixture = "# Arc\nArc is a programmable money chain.\n## Getting Started\nClaude Code plugin install instructions.\n## Bridge USDC\nUse CCTP for cross-chain USDC bridging.\n## Unrelated\nDeploy a generic contract.";
+  const docsResult = await retrieveOfficialSource(docsSource, async () => new Response(arcFixture, { status: 200, headers: { "content-type": "text/plain" } }), now, docsIntent.researchSubject);
   const docs = formatAgentResponse(snapshot, docsIntent, routeAgentRequest(docsIntent), { intelligence: docsResult });
-  assert.equal(docs.intelligence?.status, "AVAILABLE"); assert.match(docs.text, /Official bridging documentation/);
+  assert.equal(docs.intelligence?.status, "AVAILABLE"); assert.match(docs.text, /relevant to bridging/i); assert.doesNotMatch(docs.text, /Claude Code|plugin|Getting Started|generic contract|#/); assert.equal(docs.actionDraft, undefined);
+  const noMatch = await retrieveOfficialSource(docsSource, async () => new Response("# Arc\n## Setup\nClaude Code plugin install instructions.", { status: 200, headers: { "content-type": "text/plain" } }), now, "bridging");
+  for (const locale of ["en", "vi"] as const) { const intent = parseAgentRequest({ text: "What does Arc documentation say about bridging?", locale }); const answer = formatAgentResponse(snapshot, intent, routeAgentRequest(intent), { intelligence: noMatch }); assert.equal(noMatch.status, "PARTIAL"); assert.equal(noMatch.facts.length, 0); assert.match(answer.text, locale === "en" ? /couldn't isolate/ : /chưa thể tách/); assert.doesNotMatch(answer.text, /Claude Code|plugin/); }
 });
 
 test("real research prompts cross parse, route, mocked route response, capability, formatter, and evidence", async () => {
   const cases: readonly [string, string][] = [["What does Circle say about CCTP?", cctpFixture], ["Is there an official issue with the Bridge provider?", JSON.stringify({ status: { indicator: "none", description: "All Systems Operational" }, incidents: [] })]];
   for (const [text, raw] of cases) {
     const intent = parse(text), decision = routeAgentRequest(intent);
-    const output = await runAgentCapability({ snapshot, now, binding: { generation: 1, account, chainId: 5_042_002 }, research: async (sourceId) => {
+    const output = await runAgentCapability({ snapshot, now, binding: { generation: 1, account, chainId: 5_042_002 }, research: async (sourceId, subject) => {
       const source = getOfficialSource(sourceId)!;
-      const upstream = await retrieveOfficialSource(source, async () => new Response(raw, { status: 200, headers: { "content-type": source.format === "json" ? "application/json" : "text/plain" } }), now);
+      const upstream = await retrieveOfficialSource(source, async () => new Response(raw, { status: 200, headers: { "content-type": source.format === "json" ? "application/json" : "text/plain" } }), now, subject);
       return readOfficialResearchResponse(new Response(JSON.stringify(upstream), { status: 200, headers: { "content-type": "application/json" } }));
     } }, intent, decision);
     const response = formatAgentResponse(snapshot, intent, decision, output);
@@ -255,12 +280,16 @@ test("loading and loaded-empty produce different intelligence states", async () 
   assert.equal(empty.status, "AVAILABLE"); assert.equal(empty.facts.find((fact) => fact.label === "activity")?.value, "0:0:0");
 });
 test("connected wallet prompts complete the parse-route-capability-format pipeline", async () => {
-  const client = { getCode: async () => "0x", readContract: async () => 0n } as unknown as Pick<PublicClient, "getCode" | "readContract">;
+  const client = { getCode: async () => undefined, readContract: async () => 1_000_000n } as unknown as Pick<PublicClient, "getCode" | "readContract">;
   for (const text of ["What can you tell me about my wallet?", "What can you tell me about this address?"]) {
-    const intent = parse(text), decision = routeAgentRequest(intent);
-    const output = await runAgentCapability({ snapshot: { ...snapshot, activityLoadState: "loaded" }, now, binding: { generation: 1, account, chainId: 5_042_002 }, onchainServices: { inspect: (input, activity, state, at, owner) => inspectOnchain(client, input, activity, state, at, owner) } }, intent, decision);
-    const response = formatAgentResponse(snapshot, intent, decision, output);
-    assert.ok(response.intelligence); assert.notEqual(output.category, "PROVIDER_UNAVAILABLE"); assert.equal(response.actionDraft, undefined);
+    for (const locale of ["en", "vi"] as const) {
+      const intent = parseAgentRequest({ text, locale, account }), decision = routeAgentRequest(intent);
+      const output = await runAgentCapability({ snapshot: { ...snapshot, activityLoadState: "loaded" }, now, binding: { generation: 1, account, chainId: 5_042_002 }, onchainServices: { inspect: (input, activity, state, at, owner) => inspectOnchain(client, input, activity, state, at, owner) } }, intent, decision);
+      const response = formatAgentResponse(snapshot, intent, decision, output), intelligence = response.intelligence!;
+      assert.equal(intelligence.status, "PARTIAL"); assert.equal(intelligence.facts.find((fact) => fact.label === "addressType")?.value, "UNKNOWN"); assert.ok(intelligence.limitations.includes("CODE_UNAVAILABLE")); assert.equal(intelligence.facts.filter((fact) => fact.label === "balance").length, 2);
+      assert.match(response.text, locale === "en" ? /Available evidence is partially verified[\s\S]*Address type: could not be verified in this check[\s\S]*Balance: 1 USDC[\s\S]*Balance: 1 EURC[\s\S]*Address bytecode was unavailable/ : /Đã xác minh một phần dữ liệu hiện có[\s\S]*Loại địa chỉ: chưa thể xác minh trong lần kiểm tra này[\s\S]*Số dư: 1 USDC[\s\S]*Số dư: 1 EURC[\s\S]*Không lấy được bytecode/);
+      assert.notEqual(output.category, "PROVIDER_UNAVAILABLE"); assert.equal(response.actionDraft, undefined);
+    }
   }
 });
 test("connected activity completes the full pipeline without RPC address reads", async () => {

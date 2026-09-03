@@ -115,7 +115,9 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   return { messages, setMessages, hasSessionContext, clearConversation, input, setInput, inputRef, ask, submit };
 }
 
-async function fetchOfficialResearch(sourceId: string): Promise<AgentIntelligenceResult> {
-  const response = await fetch(`/api/agent-research?source=${encodeURIComponent(sourceId)}`, { cache: "no-store" });
+async function fetchOfficialResearch(sourceId: string, subject?: "bridging"): Promise<AgentIntelligenceResult> {
+  const query = new URLSearchParams({ source: sourceId });
+  if (subject) query.set("topic", subject);
+  const response = await fetch(`/api/agent-research?${query}`, { cache: "no-store" });
   return readOfficialResearchResponse(response);
 }

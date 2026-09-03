@@ -76,6 +76,7 @@ export type AgentIntent = Readonly<{
   tokenAddress?: Address;
   spender?: Address;
   researchTopic?: OfficialResearchTopic;
+  researchSubject?: "bridging";
 }>;
 
 export type AgentRequest = Readonly<{ text: string; locale: AgentLocale; account?: Address; previousIntent?: AgentIntent; sessionContext?: AgentSessionContext }>;
