@@ -5,7 +5,7 @@ import { arcTestnet, baseSepolia } from "viem/chains";
 import { useConnection, useSwitchChain } from "wagmi";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
 import { getCircleAppKit } from "@/lib/circle/appKit";
-import { createCircleBrowserAdapter, verifyProviderAccount, verifyProviderChain } from "@/lib/circle/browserAdapter";
+import { createCircleBrowserAdapter, runSingleFlight, verifyProviderAccount, verifyProviderReadyForEstimate } from "@/lib/circle/browserAdapter";
 import { BRIDGE_ESTIMATE_MAX_AGE_MS, bridgeDestination, bridgeEventStage, makeBridgeParams, normalizeBridgeEstimate, normalizeBridgeResult, normalizeRecipient, parseBridgeAmount, QA_BRIDGE_CHAINS, routeSupportedByAppKit, sanitizeBridgeError, supportsFastSource, type BridgeStage, type MakotoBridgeEstimate, type MakotoBridgeResult, type MakotoTransferSpeed } from "@/lib/circle/bridge";
 import { unifiedChainById } from "@/lib/circle/chains";
 import { bridgeIntent, managedRequest, prepareFlowReview } from "@/lib/transactionFlowReview";
@@ -60,10 +60,11 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
     [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>(),
     [result, setResult] = useState<MakotoBridgeResult>(),
     [error, setError] = useState<string>(),
-    [busy, setBusy] = useState<"idle" | "estimating" | "review" | "executing">("idle"),
+    [busy, setBusy] = useState<"idle" | "switching" | "estimating" | "review" | "executing">("idle"),
     [stages, setStages] = useState<BridgeStage[]>([]),
     [advanced, setAdvanced] = useState(false);
   const lock = useRef(false),
+    reviewInFlight = useRef(false),
     submissionGuard = useRef(new ReviewSubmissionGuard()),
     statusRef = useRef<HTMLDivElement>(null),
     handoffStarted = useRef(false);
@@ -121,12 +122,18 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
     if (!connection.address) throw new Error(vi ? "Kết nối ví để tiếp tục." : "Connect your wallet to continue.");
     return createCircleBrowserAdapter(connection.connector, connection.address);
   }
-  async function switchSource() {
+  async function switchSource(onSwitching: () => void = () => undefined, onReady: () => void = () => undefined) {
     const current = await active();
     if (estimate && estimate.raw.source.address.toLowerCase() !== connection.address!.toLowerCase()) throw new Error(vi ? "Tài khoản đã thay đổi. Vui lòng kiểm tra lại." : "Connected account changed. Review again.");
-    if (!(await verifyProviderChain(current.provider, source.id))) await switchChainAsync({ chainId: source.id as 5042002 });
-    if (!(await verifyProviderChain(current.provider, source.id))) throw new Error(vi ? `Ví vẫn chưa ở ${source.name}.` : `Wallet is still not on ${source.name}.`);
-    await verifyProviderAccount(current.provider, connection.address!);
+    await verifyProviderReadyForEstimate({
+      provider: current.provider,
+      expectedChainId: source.id,
+      expectedAccount: connection.address!,
+      switchChain: () => switchChainAsync({ chainId: source.id as 5042002 }),
+      onSwitching,
+      onReady,
+      wrongNetworkError: vi ? `Ví vẫn chưa ở ${source.name}.` : `Wallet is still not on ${source.name}.`,
+    });
     if (lock.current && estimate) {
       if (!reviewSnapshot) throw new Error("Review again.");
       const intent = intentFor(estimate);
@@ -141,39 +148,40 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
     return current;
   }
   async function review() {
-    const parsed = parseBridgeAmount(amount),
-      to = custom ? normalizeRecipient(recipient) : connection.address;
-    if (!parsed || !to) return setError(vi ? "Nhập số tiền và người nhận hợp lệ." : "Enter a valid amount and recipient.");
-    setBusy("estimating");
-    setError(undefined);
-    try {
-      const { adapter } = await switchSource();
-      const kit = await getCircleAppKit();
-      if (!routeSupportedByAppKit(kit.getSupportedChains("bridge"), source, destination)) throw new Error("Circle App Kit does not report this bridge route as supported.");
-      const fresh = await clients[source.id as keyof typeof clients].readContract({
-        address: source.usdc,
-        abi: erc20BalanceAbi,
-        functionName: "balanceOf",
-        args: [connection.address!],
-      });
-      setBalance(fresh);
-      if (parsed > fresh) throw new Error(vi ? "Số dư USDC nguồn không đủ." : "Source USDC balance is insufficient.");
-      const raw = await kit.estimateBridge(makeBridgeParams(adapter, source, destination, amount, getAddress(to), speed));
-      setEstimate(
-        normalizeBridgeEstimate(raw, {
-          quotedAt: Date.now(),
-          amount,
-          source,
-          destination,
-          recipient: getAddress(to),
-          speed,
-        })
-      );
-      setBusy("review");
-    } catch (e) {
-      setError(sanitizeBridgeError(e));
-      setBusy("idle");
-    }
+    await runSingleFlight(reviewInFlight, async () => {
+      const parsed = parseBridgeAmount(amount),
+        to = custom ? normalizeRecipient(recipient) : connection.address;
+      if (!parsed || !to) return setError(vi ? "Nhập số tiền và người nhận hợp lệ." : "Enter a valid amount and recipient.");
+      setError(undefined);
+      try {
+        const { adapter } = await switchSource(() => setBusy("switching"), () => setBusy("estimating"));
+        const kit = await getCircleAppKit();
+        if (!routeSupportedByAppKit(kit.getSupportedChains("bridge"), source, destination)) throw new Error("Circle App Kit does not report this bridge route as supported.");
+        const fresh = await clients[source.id as keyof typeof clients].readContract({
+          address: source.usdc,
+          abi: erc20BalanceAbi,
+          functionName: "balanceOf",
+          args: [connection.address!],
+        });
+        setBalance(fresh);
+        if (parsed > fresh) throw new Error(vi ? "Số dư USDC nguồn không đủ." : "Source USDC balance is insufficient.");
+        const raw = await kit.estimateBridge(makeBridgeParams(adapter, source, destination, amount, getAddress(to), speed));
+        setEstimate(
+          normalizeBridgeEstimate(raw, {
+            quotedAt: Date.now(),
+            amount,
+            source,
+            destination,
+            recipient: getAddress(to),
+            speed,
+          })
+        );
+        setBusy("review");
+      } catch (e) {
+        setError(sanitizeBridgeError(e));
+        setBusy("idle");
+      }
+    });
   }
   // The one-shot handoff intentionally captures the validated initial route only.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -558,8 +566,8 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
               {vi ? "CCTP Direct nâng cao" : "Advanced CCTP Direct"}
             </button>
           </details>
-          <button className="primary-action" disabled={busy === "estimating"}>
-            {busy === "estimating" ? (vi ? "Đang tải…" : "Loading…") : vi ? "Kiểm tra Bridge" : "Review Bridge"}
+          <button className="primary-action" disabled={busy === "switching" || busy === "estimating"}>
+            {busy === "switching" ? (vi ? "Đang chuyển mạng…" : "Switching network…") : busy === "estimating" ? (vi ? "Đang tải…" : "Loading…") : vi ? "Kiểm tra Bridge" : "Review Bridge"}
           </button>
         </form>
       )}

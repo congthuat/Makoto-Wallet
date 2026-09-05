@@ -42,3 +42,11 @@ test("transaction and quote implementations remain present", () => {
   assert.match(bridge, /submissionGuard\.current\.run/);
   assert.match(bridge, /kit\.bridge/);
 });
+
+test("Bridge wires verified readiness and a synchronous review guard", () => {
+  assert.match(bridge, /runSingleFlight\(reviewInFlight/);
+  assert.match(bridge, /verifyProviderReadyForEstimate/);
+  assert.match(bridge, /switchSource\(\(\) => setBusy\("switching"\), \(\) => setBusy\("estimating"\)\)/);
+  assert.match(bridge, /busy === "switching"[\s\S]*?Switching network…/);
+  assert.match(bridge, /catch \(e\)[\s\S]*?setError\(sanitizeBridgeError\(e\)\)[\s\S]*?setBusy\("idle"\)/);
+});
