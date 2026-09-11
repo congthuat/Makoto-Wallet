@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useConnection, usePublicClient } from "wagmi";
 import { zeroAddress } from "viem";
@@ -91,9 +92,7 @@ export function WalletDashboard() {
 
   const [action, setAction] = useState<Action>();
   const [agentHandoff, setAgentHandoff] = useState<AgentActionHandoff>();
-  const [agentHandoffRequestId, setAgentHandoffRequestId] = useState<string | undefined>(() =>
-    typeof window === "undefined" ? undefined : new URLSearchParams(window.location.search).get("agentHandoff") ?? undefined,
-  );
+  const agentHandoffRequestId = useSearchParams().get("agentHandoff") ?? undefined;
   const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
   const activity = useWalletActivity(connection.address, onArc, activityHistoryOpen);
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
@@ -111,7 +110,6 @@ export function WalletDashboard() {
     if (!agentHandoffRequestId || !connection.address || !canConsumeAgentHandoff(walletState, balancesSettled)) return;
     const timer = window.setTimeout(() => {
       const handoff = consumeAgentHandoff(window.sessionStorage, agentHandoffRequestId, connection.address);
-      setAgentHandoffRequestId(undefined);
       window.history.replaceState({}, "", window.location.pathname);
       if (!handoff || !["send", "swap", "bridge"].includes(handoff.action)) return;
       setAgentHandoff(handoff);

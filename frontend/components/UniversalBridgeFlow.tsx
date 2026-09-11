@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { createPublicClient, formatUnits, getAddress, http, parseUnits } from "viem";
+import { formatUnits, getAddress, parseUnits } from "viem";
 import { arcTestnet, baseSepolia } from "viem/chains";
-import { useConnection, useSwitchChain } from "wagmi";
+import { useConnection, usePublicClient, useSwitchChain } from "wagmi";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
 import { getCircleAppKit } from "@/lib/circle/appKit";
 import { createCircleBrowserAdapter, runSingleFlight, verifyProviderAccount, verifyProviderReadyForEstimate } from "@/lib/circle/browserAdapter";
@@ -15,13 +15,6 @@ import { CctpBridgeFlow } from "./CctpBridgeFlow";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import "./UniversalBridgeFlow.module.css";
 
-const clients = {
-  [arcTestnet.id]: createPublicClient({ chain: arcTestnet, transport: http() }),
-  [baseSepolia.id]: createPublicClient({
-    chain: baseSepolia,
-    transport: http(),
-  }),
-};
 type Props = {
   locale: "en" | "vi";
   initialValues?: {
@@ -49,6 +42,7 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
     connection = useConnection(),
     { switchChainAsync } = useSwitchChain();
   const [sourceId, setSourceId] = useState<number>(initialValues?.sourceChain === "Arc Testnet" || initialValues?.destinationChain === "Base Sepolia" ? arcTestnet.id : baseSepolia.id);
+  const client = usePublicClient({ chainId: sourceId });
   const source = unifiedChainById(sourceId)!,
     destination = bridgeDestination(sourceId)!;
   const [amount, setAmount] = useState(initialValues?.amount ?? "0.10"),
@@ -158,7 +152,8 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
         const { adapter } = await switchSource(() => setBusy("switching"), () => setBusy("estimating"));
         const kit = await getCircleAppKit();
         if (!routeSupportedByAppKit(kit.getSupportedChains("bridge"), source, destination)) throw new Error("Circle App Kit does not report this bridge route as supported.");
-        const fresh = await clients[source.id as keyof typeof clients].readContract({
+        if (!client) throw new Error(vi ? "Không thể đọc số dư mạng nguồn. Vui lòng thử lại." : "Source network balance read unavailable. Please try again.");
+        const fresh = await client.readContract({
           address: source.usdc,
           abi: erc20BalanceAbi,
           functionName: "balanceOf",

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useConnection, usePublicClient } from "wagmi";
 import { AppHeader } from "./AppHeader";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
@@ -48,7 +48,9 @@ export function ActionDraftCard({ draft, vi }: { draft: AgentActionDraft; vi: bo
   const locale: Locale = vi ? "vi" : "en";
   const connection = useConnection();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [preparing, setPreparing] = useState(false);
+  const [handoffRequestId, setHandoffRequestId] = useState<string>();
   const progressRef = useRef<HTMLParagraphElement>(null);
   const validation = validateAgentActionDraft(draft), labelKeys: Record<AgentActionDraft["kind"], TranslationKey> = { send: "agent.draft.send", swap: "agent.draft.swap", bridge: "agent.draft.bridge", "vault-deposit": "agent.draft.vaultDeposit", "vault-withdraw": "agent.draft.vaultWithdraw" };
   const asset = draft.kind === "swap" ? draft.inputAsset : draft.asset;
@@ -57,7 +59,10 @@ export function ActionDraftCard({ draft, vi }: { draft: AgentActionDraft; vi: bo
   const sourceChain = draft.kind === "send" || draft.kind === "swap" || draft.kind === "bridge" ? draft.sourceChain : "Arc Testnet";
   const destinationChain = draft.kind === "bridge" ? draft.destinationChain : undefined;
   const helpId = `agent-draft-help-${draft.rawUserText.length}`;
-  function prepare() { const prepared = prepareAgentActionHandoff(draft, connection.address); if (prepared.handoff) { setPreparing(true); storeAgentHandoff(window.sessionStorage, prepared.handoff); window.requestAnimationFrame(() => { progressRef.current?.focus(); router.push(handoffUrl(prepared.handoff!)); }); } }
+  // The URL query is the completion signal for same-path handoff navigation.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { if (preparing && handoffRequestId && searchParams.get("agentHandoff") === handoffRequestId) setPreparing(false); }, [handoffRequestId, preparing, searchParams]);
+  function prepare() { const prepared = prepareAgentActionHandoff(draft, connection.address); if (prepared.handoff) { setPreparing(true); setHandoffRequestId(prepared.handoff.id); storeAgentHandoff(window.sessionStorage, prepared.handoff); window.requestAnimationFrame(() => { progressRef.current?.focus(); router.push(handoffUrl(prepared.handoff!)); }); } }
   if (preparing) return <section className={styles.draft}><header><strong>{translate(locale, "agent.draft.preparing")}</strong><span>{translate(locale, "agent.draft.openingReview")}</span></header><p ref={progressRef} tabIndex={-1} role="status" aria-live="polite">{translate(locale, "agent.draft.openingReview")}</p></section>;
   const missingLabels = validation.missingFields.map((field) => validationFieldLabel(field, locale));
   const errorLabels = validation.errors.map((error) => error.startsWith("MAX") ? translate(locale, "agent.draft.maxBlocked") : validationFieldLabel(error, locale));
