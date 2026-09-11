@@ -1,6 +1,6 @@
 {
   "name": "makoto-wallet-contracts",
-  "version": "0.2.0-planning",
+  "version": "0.2.0-beta.2",
   "private": true,
   "description": "Makoto Wallet smart-contract workspace for Arc, including PenguJar V3 savings.",
   "scripts": {
