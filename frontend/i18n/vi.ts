@@ -491,6 +491,7 @@ export const vi = {
   "review.safetyChecks": "Kiểm tra an toàn",
   "review.walletConfirmation": "Xác nhận trong ví",
   "review.networkFee": "Phí mạng: do ví và mạng Arc xác định.",
+  "review.simulationNotPerformed": "Giao dịch cuối chưa được Makoto mô phỏng độc lập. Circle App Kit quản lý giao dịch cuối.",
   "review.back": "Quay lại",
   "review.continueWallet": "Tiếp tục đến ví",
   "review.verified": "Đã xác minh",

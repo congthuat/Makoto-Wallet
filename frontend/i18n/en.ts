@@ -489,6 +489,7 @@ export const en = {
   "review.safetyChecks": "Safety checks",
   "review.walletConfirmation": "Wallet confirmation",
   "review.networkFee": "Network fee: determined by the wallet and Arc network.",
+  "review.simulationNotPerformed": "Final transaction not independently simulated. Circle App Kit manages the final transaction.",
   "review.back": "Back",
   "review.continueWallet": "Continue to wallet",
   "review.verified": "Verified",

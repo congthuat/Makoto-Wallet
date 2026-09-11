@@ -12,6 +12,7 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
   const { t, locale } = usePreferences();
   const blocked = hasBlockingChecks(checks) || assessment?.status === "blocked" || assessment?.status === "unknown";
   const attentionChecks = checks.filter((check) => check.status === "attention" || check.status === "blocking");
+  const simulationNotPerformed = (assessment ?? review?.assessment)?.checks.some((check) => check.code === "request-simulation-not-performed") ?? false;
   const visibleDetails = compactDetails ?? details.filter((_, index) => !technicalDetailIndexes.includes(index));
   const collapsedDetails = [...details.filter((_, index) => technicalDetailIndexes.includes(index)), ...technicalDetails];
   if (compact)
@@ -34,6 +35,7 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
           </dl>
         </section>
         <CompactSafetySummary checks={checks} assessment={assessment ?? review?.assessment} />
+        {simulationNotPerformed && <p>{t("review.simulationNotPerformed")}</p>}
         {attentionChecks.length > 0 && (
           <div className="compact-safety-issues">
             <TransactionSafetyChecks checks={attentionChecks} />
@@ -94,6 +96,7 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
         </dl>
       </section>
       <TransactionSafetyChecks checks={checks} />
+      {simulationNotPerformed && <p>{t("review.simulationNotPerformed")}</p>}
       {review && (
         <p className="review-validity">
           {t("review.details")} · {new Date(review.expiresAt).toLocaleTimeString()}
