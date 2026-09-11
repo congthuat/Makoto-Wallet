@@ -20,7 +20,7 @@ import { WalletPanel } from "./WalletPanel";
 import { globalReviewChecks, hasBlockingChecks, sendRecipientChecks } from "@/lib/transactionReview";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { arcFeeMateriallyChanged, calculateArcFee, formatArcFeeEstimate, maxSendAmountAfterArcFee, sendCostWithArcFee } from "@/lib/arcFees";
-import { assessTransaction, type TransactionIntent } from "@/lib/transactionSafety";
+import { assessTransaction, transactionFingerprint, type TransactionIntent } from "@/lib/transactionSafety";
 import { prepareTransactionReview, revalidateTransactionReview, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 import { storeAgentResult } from "@/lib/agent/actions";
 
@@ -159,12 +159,13 @@ export function SendFlow({
     };
   }
   const safetyIntent = currentSafetyIntent();
+  const simulationPassed = Boolean(reviewSnapshot && safetyIntent && reviewSnapshot.fingerprint === transactionFingerprint(safetyIntent));
   const safetyAssessment = safetyIntent
     ? assessTransaction(safetyIntent, {
         connectedAccount: connection.address,
         connectedChainId: reviewNetworkVerified && chain.isArc ? arcTestnet.id : undefined,
         balances,
-        simulation: feeEstimate.status === "ready" ? "passed" : "unavailable",
+        simulation: simulationPassed ? "passed" : "unavailable",
         expectedTarget: safetyIntent.target,
         now: reviewPreparedAt,
       })
@@ -214,6 +215,11 @@ export function SendFlow({
     return calculateArcFee(gas, price).rawFee;
   }
 
+  async function simulateSendIntent(intent: TransactionIntent) {
+    if (!client) throw new Error("Transaction simulation is unavailable.");
+    await client.call({ account: intent.account, to: intent.target, data: intent.calldata, value: intent.value });
+  }
+
   function validationMessage(result = validated) {
     if (!("error" in result)) return undefined;
     if (result.error === "address") return copy.invalidAddress;
@@ -231,6 +237,7 @@ export function SendFlow({
     setReviewPreparedAt(preparedAt);
     setStage("idle");
     setFeeEstimate({ status: "loading" });
+    setReviewSnapshot(undefined);
     const networkVerified = await chain.verifyNow();
     setReviewNetworkVerified(networkVerified);
     setReviewing(true);
@@ -240,7 +247,8 @@ export function SendFlow({
         const rawFee = await estimateSendFee(validated.amount);
         setFeeEstimate(rawFee === undefined ? { status: "unavailable" } : { status: "ready", rawFee });
         const intent = currentSafetyIntent(preparedAt);
-        if (rawFee !== undefined && intent)
+        if (rawFee !== undefined && intent) {
+          await simulateSendIntent(intent);
           setReviewSnapshot(
             prepareTransactionReview({
               intent,
@@ -255,6 +263,7 @@ export function SendFlow({
               preparedAt,
             })
           );
+        }
       } catch {
         setFeeEstimate({ status: "unavailable" });
       }
@@ -442,6 +451,8 @@ export function SendFlow({
         submittingRef.current = false;
         return;
       }
+      const finalIntent = currentSafetyIntent(reviewSnapshot.intent.preparedAt);
+      if (!finalIntent) throw new Error(copy.detailsChanged);
       if (memoTransfer) {
         await client.simulateContract({
           address: ARC_MEMO_ADDRESS,
@@ -450,6 +461,13 @@ export function SendFlow({
           args: memoTransfer.args,
           account: connection.address,
         });
+        await simulateSendIntent(finalIntent);
+        const finalRevalidation = revalidateTransactionReview(reviewSnapshot, {
+          intent: finalIntent,
+          context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
+          now: nowMs(),
+        });
+        if (!finalRevalidation.valid) throw new Error(copy.detailsChanged);
         if (!(await chain.verifyNow())) throw new Error("Wrong network: Arc Testnet is required");
         submittedHash = await writer.writeContractAsync({
           address: ARC_MEMO_ADDRESS,
@@ -467,6 +485,13 @@ export function SendFlow({
           args: [validated.address, validated.amount],
           account: connection.address,
         });
+        await simulateSendIntent(finalIntent);
+        const finalRevalidation = revalidateTransactionReview(reviewSnapshot, {
+          intent: finalIntent,
+          context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
+          now: nowMs(),
+        });
+        if (!finalRevalidation.valid) throw new Error(copy.detailsChanged);
         if (!(await chain.verifyNow())) throw new Error("Wrong network: Arc Testnet is required");
         submittedHash = await writer.writeContractAsync({
           address: asset.address,

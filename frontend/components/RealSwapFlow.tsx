@@ -365,14 +365,6 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       if (currentAllowance < currentBalance) {
         const finiteApproval = currentBalance;
         const intent = approvalIntentFor(finiteApproval, reviewNow(), maxApproval.approvalFee)!;
-        const snapshot = prepareFlowReview(intent, {
-          connectedAccount: connection.address,
-          connectedChainId: arcTestnet.id,
-          balances: { [from.id]: currentBalance, usdc: usdcBalance },
-          allowance: currentAllowance,
-          simulation: "passed",
-          expectedTarget: from.address,
-        });
         setPending(vi ? "Đang chờ Approve cho MAX trong ví…" : "Waiting for Approve for MAX in your wallet…");
         await client.simulateContract({
           address: from.address,
@@ -381,6 +373,20 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           args: [XYLO_ROUTER, finiteApproval],
           account: connection.address,
         });
+        const snapshot = prepareFlowReview(intent, {
+          connectedAccount: connection.address,
+          connectedChainId: arcTestnet.id,
+          balances: { [from.id]: currentBalance, usdc: usdcBalance },
+          allowance: currentAllowance,
+          simulation: "passed",
+          expectedTarget: from.address,
+        });
+        const checked = revalidateTransactionReview(snapshot, {
+          intent,
+          context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { [from.id]: currentBalance, usdc: usdcBalance }, allowance: currentAllowance, simulation: "passed", expectedTarget: from.address },
+          now: reviewNow(),
+        });
+        if (!checked.valid) throw new Error("Review again.");
         const approvalHash = await submissionGuard.current.run(snapshot.fingerprint, () =>
           writer.writeContractAsync({
             address: from.address,
@@ -465,7 +471,14 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           setApprovalGasFee(fee);
           if (fee !== undefined) {
             const intent = approvalIntentFor(parsed, nextQuote.quotedAt, fee);
-            if (intent)
+            if (intent) {
+              await client.simulateContract({
+                address: from.address,
+                abi: erc20BalanceAbi,
+                functionName: "approve",
+                args: [XYLO_ROUTER, parsed],
+                account: connection.address,
+              });
               setApprovalReview(
                 prepareFlowReview(intent, {
                   connectedAccount: connection.address,
@@ -476,6 +489,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
                   expectedTarget: from.address,
                 })
               );
+            }
           }
         } else {
           const frozen = prepareXyloSwapRequest(nextQuote, slippage, connection.address);
@@ -497,7 +511,13 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           setSwapEnvelope(envelope);
           setSwapGasFee(envelope.rawMaxFee18);
           const intent = swapIntentFor(frozen, envelope);
-          if (intent)
+          if (intent) {
+            await client.simulateContract({
+              ...frozen.request,
+              gas: envelope.gasLimit,
+              maxFeePerGas: envelope.maxFeePerGas,
+              maxPriorityFeePerGas: envelope.maxPriorityFeePerGas,
+            });
             setSwapReview(
               prepareFlowReview(intent, {
                 connectedAccount: connection.address,
@@ -508,6 +528,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
                 expectedTarget: XYLO_ROUTER,
               })
             );
+          }
         }
       } catch {
         setGasUnavailable(true);
@@ -572,6 +593,19 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           args: [XYLO_ROUTER, approval],
           account: connection.address,
         });
+        const simulatedApproval = revalidateTransactionReview(approvalReview, {
+          intent,
+          context: {
+            connectedAccount: connection.address,
+            connectedChainId: arcTestnet.id,
+            balances: { [from.id]: freshBalance, usdc: usdcBalance },
+            allowance: currentAllowance,
+            simulation: "passed",
+            expectedTarget: from.address,
+          },
+          now: reviewNow(),
+        });
+        if (!simulatedApproval.valid) throw new Error("Review again.");
         const approvalHash = await submissionGuard.current.run(approvalReview.fingerprint, () =>
           writer.writeContractAsync({
             address: from.address,
@@ -766,7 +800,26 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       }
       setPending(vi ? "Đang chờ bạn xác nhận swap trong ví…" : "Waiting for swap confirmation in your wallet…");
       const simulation = await client.simulateContract(preparedRequest),
-        hash = await submissionGuard.current.run(swapReview.fingerprint, () => writer.writeContractAsync(simulation.request));
+        simulatedReview = revalidateTransactionReview(swapReview, {
+          intent: finalIntent,
+          context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { [from.id]: freshBalance, usdc: freshUsdcBalance }, allowance, simulation: "passed", expectedTarget: XYLO_ROUTER },
+          request: {
+            to: XYLO_ROUTER,
+            data: finalIntent.calldata,
+            value: 0n,
+            chainId: arcTestnet.id,
+            gas: swapEnvelope.gasLimit,
+            maxFeePerGas: swapEnvelope.maxFeePerGas,
+            maxPriorityFeePerGas: swapEnvelope.maxPriorityFeePerGas,
+          },
+          now: reviewNow(),
+        });
+      if (!simulatedReview.valid) {
+        setSwapReview(undefined);
+        setReviewStage(undefined);
+        return setError(vi ? "Báo giá, mức tối thiểu, tuyến hoặc chi tiết giao dịch đã thay đổi. Hãy kiểm tra lại." : "Quote, minimum receive, route, or transaction details changed. Review again.");
+      }
+      const hash = await submissionGuard.current.run(swapReview.fingerprint, () => writer.writeContractAsync(simulation.request));
       submitted = true;
       setPending(vi ? "Đã gửi. Đang chờ Arc xác nhận…" : "Submitted. Waiting for Arc confirmation…");
       const receipt = await client.waitForTransactionReceipt({ hash });

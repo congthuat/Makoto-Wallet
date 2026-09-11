@@ -18,6 +18,15 @@ test("prepares an immutable review with intent, assessment, fingerprint, timesta
 test("normalized request is JSON serializable and provider-free", () => { const request = normalizeTransactionRequest({ ...requestFromIntent(intent), gas: 21_000n }); assert.doesNotThrow(() => JSON.stringify(request)); assert.equal(request.gas, "21000"); assert.deepEqual(Object.keys(request).sort(), ["chainId", "data", "gas", "to", "value"]); });
 test("default review expiry is bounded", () => assert.equal(prepareTransactionReview({ intent, context }).expiresAt, 1_000 + DEFAULT_REVIEW_TTL_MS));
 test("unchanged review revalidates", () => assert.equal(revalidateTransactionReview(prepare(), { intent, context, now: 1_500 }).valid, true));
+test("required not-performed and unavailable simulations fail final revalidation", () => {
+  for (const nextContext of [
+    { ...context, simulation: "not-performed" } as unknown as SafetyContext,
+    { ...context, simulation: "unavailable" } as SafetyContext,
+  ]) {
+    const review = prepareTransactionReview({ intent, context: nextContext, preparedAt: 1_000, expiresAt: 2_000 });
+    assert.equal(revalidateTransactionReview(review, { intent, context: nextContext, now: 1_500 }).valid, false);
+  }
+});
 test("expiry invalidates review", () => assert.deepEqual(revalidateTransactionReview(prepare(), { intent, context, now: 2_001 }), { valid: false, reason: "expired" }));
 test("amount change is material", () => assert.equal(revalidateTransactionReview(prepare(), { intent: { ...intent, assetOut: { assetId: "usdc", amount: 2n } }, context, now: 1_500 }).valid, false));
 test("recipient change is material", () => assert.equal(revalidateTransactionReview(prepare(), { intent: { ...intent, recipient: account }, context, now: 1_500 }).valid, false));

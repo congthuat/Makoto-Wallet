@@ -103,7 +103,8 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
       connectedAccount: connection.address,
       connectedChainId: current.source.id,
       balances: { usdc: balance },
-      simulation: "passed" as const,
+      simulation: "not-performed" as const,
+      simulationPolicy: { requirement: "externally-managed", provider: "circle-app-kit" } as const,
       managedTarget: { label: "Circle App Kit", category: "circle" as const },
     };
   }

@@ -17,6 +17,7 @@ import { createAssetActivity, recordWalletActivity } from "@/lib/walletActivity"
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, bridgeIntent, prepareFlowReview } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import type { TransactionIntent } from "@/lib/transactionSafety";
 
 const FEE_MAX_AGE_MS = 45_000;
 type Props = { locale: "en" | "vi"; onBusyChange(busy: boolean): void };
@@ -46,6 +47,11 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
   const parsed = parseAssetAmount(amount, usdc);
   const amounts = useMemo(() => parsed && fee ? calculateCctpForwardingAmounts(parsed, fee) : undefined, [parsed, fee]);
 
+  async function simulateIntent(intent: Pick<TransactionIntent, "account" | "target" | "calldata" | "value" | "chainId">) {
+    if (!client) throw new Error("CCTP simulation unavailable.");
+    await client.call({ account: intent.account, to: intent.target, data: intent.calldata, value: intent.value });
+  }
+
   function reset() { setAmount(""); setFee(undefined); setReviewSnapshot(undefined); setReviewing(false); setError(undefined); setBurnHash(undefined); setForwardHash(undefined); }
 
   function currentIntent(currentFee: CctpForwardingFee, current: NonNullable<typeof amounts>) {
@@ -65,14 +71,16 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       if (next.totalAmount > (balances.usdc.data ?? 0n)) throw new Error(vi ? "Số dư USDC không đủ cho số tiền bridge cộng phí forwarding." : "USDC balance is too low for the bridge amount plus forwarding fee.");
       if (!client) throw new Error("CCTP route unavailable.");
       const allowance = await client.readContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "allowance", args: [connection.address, CCTP_TOKEN_MESSENGER_V2] });
-      const intent = currentIntent(payload, next); if (intent) setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: balances.usdc.data }, allowance, simulation: "passed", expectedTarget: CCTP_TOKEN_MESSENGER_V2 }));
+      const intent = currentIntent(payload, next);
+      if (intent && allowance >= next.totalAmount) { await simulateIntent(intent); setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: balances.usdc.data }, allowance, simulation: "passed", expectedTarget: CCTP_TOKEN_MESSENGER_V2 })); }
+      else setReviewSnapshot(undefined);
       setApprovalRequired(allowance < next.totalAmount); setReviewedAccount(connection.address); setFee(payload); setReviewing(true);
     } catch (caught) { setError(caught instanceof Error ? caught.message : (vi ? "Không lấy được phí CCTP." : "Could not load CCTP fees.")); }
     finally { setPending(undefined); }
   }
 
   async function execute() {
-    if (!connection.address || !client || !fee || !amounts || !reviewSnapshot || pending) return;
+    if (!connection.address || !client || !fee || !amounts || pending) return;
     if (!reviewedAccount || reviewedAccount.toLowerCase() !== connection.address.toLowerCase()) { setReviewing(false); return setError(vi ? "Chi tiết giao dịch đã thay đổi. Vui lòng kiểm tra lại." : "Transaction details changed. Please review again."); }
     if (Date.now() - fee.quotedAt > FEE_MAX_AGE_MS) { setFee(undefined); setReviewing(false); return setError(vi ? "Phí bridge đã cũ. Hãy kiểm tra lại." : "Bridge fee quote expired. Review again."); }
     let submitted = false; setError(undefined);
@@ -83,11 +91,12 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       const allowance = await client.readContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "allowance", args: [connection.address, CCTP_TOKEN_MESSENGER_V2] });
       if (allowance < amounts.totalAmount) {
         const approval = approvalIntent({ id: "cctp-approval", account: connection.address, target: usdc.address, token: usdc.address, spender: CCTP_TOKEN_MESSENGER_V2, amount: amounts.totalAmount, assetId: "usdc", calldata: "0x", preparedAt: fee.quotedAt, expiresAt: fee.quotedAt + FEE_MAX_AGE_MS });
+        await simulateIntent(approval);
         const approvalSnapshot = prepareFlowReview(approval, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance }, allowance, simulation: "passed", expectedTarget: usdc.address });
-        const approvalChecked = revalidateTransactionReview(approvalSnapshot, { intent: approval, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance }, allowance, simulation: "passed", expectedTarget: usdc.address }, now: Date.now() });
-        if (!approvalChecked.valid) throw new Error("Review again.");
         setPending(vi ? "Đang chờ approve USDC cho CCTP…" : "Waiting for USDC approval for CCTP…");
         await client.simulateContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "approve", args: [CCTP_TOKEN_MESSENGER_V2, amounts.totalAmount], account: connection.address });
+        const approvalChecked = revalidateTransactionReview(approvalSnapshot, { intent: approval, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance }, allowance, simulation: "passed", expectedTarget: usdc.address }, now: Date.now() });
+        if (!approvalChecked.valid) throw new Error("Review again.");
         const approvalHash = await submissionGuard.current.run(approvalSnapshot.fingerprint, () => writer.writeContractAsync({ address: usdc.address, abi: erc20BalanceAbi, functionName: "approve", args: [CCTP_TOKEN_MESSENGER_V2, amounts.totalAmount], account: connection.address, chainId: arcTestnet.id }));
         const receipt = await client.waitForTransactionReceipt({ hash: approvalHash });
         if (receipt.status !== "success") throw new Error("approve");
@@ -99,10 +108,11 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       if (amounts.totalAmount > submissionBalance) throw new Error("balance");
       const args = [amounts.totalAmount, BASE_SEPOLIA_CCTP_DOMAIN, addressToBytes32(connection.address), usdc.address, zeroHash, amounts.maxFee, CCTP_STANDARD_FINALITY, CCTP_FORWARDING_HOOK_DATA] as const;
       const intent = currentIntent(fee, amounts)!;
+      if (!reviewSnapshot) throw new Error("Review again.");
+      await simulateIntent(intent);
       const checked = revalidateTransactionReview(reviewSnapshot, { intent, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: submissionBalance }, allowance, simulation: "passed", expectedTarget: CCTP_TOKEN_MESSENGER_V2 }, now: Date.now() });
       if (!checked.valid) { setReviewing(false); setFee(undefined); setReviewSnapshot(undefined); return setError(vi ? "Phí hoặc chi tiết đã thay đổi. Hãy kiểm tra lại." : "Fees or transaction details changed. Review again."); }
       setPending(vi ? "Đang chờ bạn xác nhận CCTP bridge trong ví…" : "Waiting for CCTP bridge confirmation in your wallet…");
-      await client.simulateContract({ address: CCTP_TOKEN_MESSENGER_V2, abi: CCTP_TOKEN_MESSENGER_ABI, functionName: "depositForBurnWithHook", args, account: connection.address });
       const hash = await submissionGuard.current.run(reviewSnapshot.fingerprint, () => writer.writeContractAsync({ address: CCTP_TOKEN_MESSENGER_V2, abi: CCTP_TOKEN_MESSENGER_ABI, functionName: "depositForBurnWithHook", args, account: connection.address, chainId: arcTestnet.id }));
       submitted = true; setPending(vi ? "Đã burn trên Arc. Đang chờ xác nhận…" : "Burn submitted on Arc. Waiting for confirmation…");
       const receipt = await client.waitForTransactionReceipt({ hash });

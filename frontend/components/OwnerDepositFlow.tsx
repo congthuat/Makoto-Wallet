@@ -23,6 +23,7 @@ import { approvalIntent, prepareFlowReview, vaultIntent } from "@/lib/transactio
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 import { isWalletCancellation, storeAgentResult } from "@/lib/agent/actions";
 import { assertJarAcceptsDeposits, JarDepositEligibilityError } from "@/lib/jarDepositEligibility";
+import type { TransactionIntent } from "@/lib/transactionSafety";
 
 type Step = "form" | "review" | "checking" | "approval-required" | "approval-wallet" | "approval-submitted" | "approval-confirmed" | "ready" | "deposit-wallet" | "deposit-submitted" | "confirming" | "success" | "error";
 
@@ -54,16 +55,21 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onAgentGoal
   const handoffStarted = useRef(false);
   const amount = useMemo(() => { try { return parseDepositAmount(value); } catch { return undefined; } }, [value]);
 
+  async function simulateIntent(intent: Pick<TransactionIntent, "account" | "target" | "calldata" | "value">) {
+    if (!publicClient) throw new Error("Transaction simulation is unavailable.");
+    await publicClient.call({ account: intent.account, to: intent.target, data: intent.calldata, value: intent.value });
+  }
+
   function depositIntent(currentAmount: bigint, currentAllowance = allowance.data ?? 0n) { if (!connection.address || !contractAddress) return undefined; return vaultIntent({ id: "vault-deposit", kind: "vault-deposit", account: connection.address, target: contractAddress, calldata: encodeFunctionData({ abi: penguJarV3Abi, functionName: "depositToJar", args: [jar.id, currentAmount] }), preparedAt: Date.now(), assetId: "usdc", amount: currentAmount, jarId: jar.id, metadata: { allowance: currentAllowance.toString() } }); }
 
-  function review(event?: Pick<FormEvent, "preventDefault">) {
+  async function review(event?: Pick<FormEvent, "preventDefault">) {
     event?.preventDefault();
     try {
       const parsed = parseDepositAmount(value);
       if (balances.usdc.data !== undefined && parsed > balances.usdc.data) throw new Error("Deposit exceeds your available USDC balance.");
       setError(undefined);
       setReviewedAccount(connection.address);
-      const intent = depositIntent(parsed); if (intent) setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: verifiedChain.isArc ? arcTestnet.id : undefined, balances: { usdc: balances.usdc.data }, allowance: allowance.data, simulation: "passed", expectedTarget: contractAddress! }));
+      const intent = depositIntent(parsed); if (intent) { await simulateIntent(intent); setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: verifiedChain.isArc ? arcTestnet.id : undefined, balances: { usdc: balances.usdc.data }, allowance: allowance.data, simulation: "passed", expectedTarget: contractAddress! })); }
       setStep("review");
     } catch {
       setError(t("validation.amount"));
@@ -110,7 +116,10 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onAgentGoal
 
       setStep("approval-wallet");
       const approval = approvalIntent({ id: "vault-approval", account: connection.address, target: EXPECTED_USDC_ADDRESS, token: EXPECTED_USDC_ADDRESS, spender: contractAddress, amount, assetId: "usdc", calldata: "0x", preparedAt: Date.now() });
+      await simulateIntent(approval);
       const approvalSnapshot = prepareFlowReview(approval, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: freshAllowance.data, simulation: "passed", expectedTarget: EXPECTED_USDC_ADDRESS });
+      const approvalChecked = revalidateTransactionReview(approvalSnapshot, { intent: approval, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: freshAllowance.data, simulation: "passed", expectedTarget: EXPECTED_USDC_ADDRESS }, now: Date.now() });
+      if (!approvalChecked.valid) throw new Error("Review again.");
       const hash = await submissionGuard.current.run(approvalSnapshot.fingerprint, () => writeContractAsync({
         address: EXPECTED_USDC_ADDRESS,
         abi: erc20BalanceAbi,
@@ -131,7 +140,7 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onAgentGoal
       setStep("approval-confirmed");
       const confirmedAllowance = await allowance.refetch();
       if ((confirmedAllowance.data ?? 0n) < amount) throw new Error("The confirmed USDC allowance is still too low.");
-      const freshIntent = depositIntent(amount, confirmedAllowance.data ?? 0n); if (freshIntent) setReviewSnapshot(prepareFlowReview(freshIntent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: confirmedAllowance.data, simulation: "passed", expectedTarget: contractAddress }));
+      const freshIntent = depositIntent(amount, confirmedAllowance.data ?? 0n); if (freshIntent) { await simulateIntent(freshIntent); setReviewSnapshot(prepareFlowReview(freshIntent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: confirmedAllowance.data, simulation: "passed", expectedTarget: contractAddress })); }
     } catch (reason) {
       if (reason instanceof JarDepositEligibilityError && origin === "agent") { onAgentGoalIneligible?.(); return; }
       setError(transactionError(reason, t));
@@ -152,6 +161,7 @@ export function OwnerDepositFlow({ jar, open, initialAmount, origin, onAgentGoal
 
       if (!reviewSnapshot) throw new Error("Review again.");
       const intent = depositIntent(amount, freshAllowance.data ?? 0n)!;
+      await simulateIntent(intent);
       const checked = revalidateTransactionReview(reviewSnapshot, { intent: { ...intent, preparedAt: reviewSnapshot.intent.preparedAt }, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: freshBalance.data }, allowance: freshAllowance.data, simulation: "passed", expectedTarget: contractAddress }, now: Date.now() });
       if (!checked.valid) throw new Error("Review again.");
 

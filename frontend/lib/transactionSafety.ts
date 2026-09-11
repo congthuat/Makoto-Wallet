@@ -17,7 +17,13 @@ export type TransactionIntent = {
 export type SafetyFinding = { code: string; message: string };
 export type SafetyCheck = SafetyFinding & { status: "pass" | "warning" | "blocked" | "unknown" };
 export type TransactionSafetyAssessment = { status: "ready" | "review" | "blocked" | "unknown"; checks: SafetyCheck[]; blockers: SafetyFinding[]; warnings: SafetyFinding[]; info: SafetyFinding[]; reviewedFingerprint: Hex; simulatedAt: number; target?: { label: string; category: KnownContractCategory } };
-export type SafetyContext = { connectedAccount?: Address; connectedChainId?: number; balances?: Partial<Record<SupportedAssetId, bigint>>; allowance?: bigint; simulation: "passed" | "reverted" | "unavailable"; now?: number; expectedTarget?: Address; expectedCategory?: KnownContractCategory; managedTarget?: { label: string; category: KnownContractCategory } };
+export type SimulationEvidence = "passed" | "reverted" | "not-performed" | "unavailable";
+export type SimulationPolicy = { requirement: "required" } | { requirement: "externally-managed"; provider: "circle-app-kit" };
+type SafetyContextBase = { connectedAccount?: Address; connectedChainId?: number; balances?: Partial<Record<SupportedAssetId, bigint>>; allowance?: bigint; now?: number; expectedTarget?: Address; expectedCategory?: KnownContractCategory; managedTarget?: { label: string; category: KnownContractCategory } };
+export type SafetyContext = SafetyContextBase & (
+  | { simulation: Exclude<SimulationEvidence, "not-performed">; simulationPolicy?: { requirement: "required" } }
+  | { simulation: SimulationEvidence; simulationPolicy: { requirement: "externally-managed"; provider: "circle-app-kit" } }
+);
 export type ExpectedChange = { assetId: SupportedAssetId; direction: "decrease" | "increase"; amount: bigint; qualifier: "exact" | "estimated" | "minimum" | "maximum" };
 
 export function expectedTransactionChanges(intent: TransactionIntent): ExpectedChange[] {
@@ -54,12 +60,35 @@ export function assessTransaction(intent: TransactionIntent, context: SafetyCont
     if (context.allowance !== undefined) checks.push({ code: "allowance-sufficient", status: context.allowance >= intent.approval.amount ? "pass" : "warning", message: context.allowance >= intent.approval.amount ? "No approval required" : "Finite approval required" });
   }
   if (intent.quoteExpiresAt !== undefined) add(checks, intent.quoteExpiresAt >= now, "quote-current", "Quote current", "Quote expired");
-  checks.push(context.simulation === "passed" ? { code: "request-simulated", status: "pass", message: "Simulation passed" } : context.simulation === "reverted" ? { code: "request-simulated", status: "blocked", message: "Transaction simulation failed" } : { code: "request-simulated", status: "unknown", message: "Simulation unavailable" });
+  checks.push(simulationCheck(intent, context));
   const blockers = findings(checks, "blocked"), warnings = findings(checks, "warning"), unknown = findings(checks, "unknown");
   return { status: blockers.length ? "blocked" : unknown.length ? "unknown" : warnings.length ? "review" : "ready", checks, blockers, warnings, info: findings(checks, "pass"), reviewedFingerprint: transactionFingerprint(intent), simulatedAt: now, ...(known ? { target: { label: known.label, category: known.category } } : {}) };
 }
 
 export function assertReviewedRequest(intent: TransactionIntent, reviewedFingerprint: Hex) { if (transactionFingerprint(intent) !== reviewedFingerprint) throw new Error("Transaction details changed. Review again."); }
+function simulationCheck(intent: TransactionIntent, context: SafetyContext): SafetyCheck {
+  const evidence = context.simulation as unknown;
+  if (evidence === "reverted") return { code: "request-simulated", status: "blocked", message: "Transaction simulation failed" };
+  if (evidence === "unavailable") return { code: "request-simulated", status: "unknown", message: "Simulation unavailable" };
+  if (evidence !== "passed" && evidence !== "not-performed") return { code: "request-simulated", status: "unknown", message: "Simulation evidence unavailable" };
+  const policy = resolveSimulationPolicy(context.simulationPolicy);
+  const circleManaged = policy === "circle-app-kit-managed" && isCircleAppKitManagedFinalTransaction(intent, context);
+  if (policy === "invalid" || (policy === "circle-app-kit-managed" && !circleManaged)) return { code: "simulation-policy-invalid", status: "blocked", message: "Simulation policy does not match this transaction" };
+  if (evidence === "passed") return { code: "request-simulated", status: "pass", message: "Simulation passed" };
+  if (circleManaged) return { code: "request-simulation-not-performed", status: "warning", message: "Final transaction not independently simulated. Circle App Kit manages the final transaction." };
+  return { code: "request-simulation-required", status: "blocked", message: "Required transaction simulation was not performed" };
+}
+function resolveSimulationPolicy(value: unknown): "required" | "circle-app-kit-managed" | "invalid" {
+  if (value === undefined) return "required";
+  if (!value || typeof value !== "object") return "invalid";
+  const policy = value as { requirement?: unknown; provider?: unknown };
+  if (policy.requirement === "required" && policy.provider === undefined) return "required";
+  if (policy.requirement === "externally-managed" && policy.provider === "circle-app-kit") return "circle-app-kit-managed";
+  return "invalid";
+}
+function isCircleAppKitManagedFinalTransaction(intent: TransactionIntent, context: SafetyContext): boolean {
+  return intent.kind === "bridge" && intent.calldata === "0x" && intent.metadata?.finalTransaction === "managed-by-circle-app-kit" && intent.metadata?.route === "circle-app-kit-cctp" && context.managedTarget?.category === "circle";
+}
 function add(checks: SafetyCheck[], pass: boolean, code: string, passed: string, blocked: string) { checks.push({ code, status: pass ? "pass" : "blocked", message: pass ? passed : blocked }); }
 function findings(checks: SafetyCheck[], status: SafetyCheck["status"]): SafetyFinding[] { return checks.filter((check) => check.status === status).map(({ code, message }) => ({ code, message })); }
 function canonical(value: unknown): string { if (typeof value === "bigint") return JSON.stringify(value.toString()); if (value === null || typeof value !== "object") return JSON.stringify(value); if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`; return `{${Object.entries(value as Record<string, unknown>).filter(([, item]) => item !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${canonical(item)}`).join(",")}}`; }
