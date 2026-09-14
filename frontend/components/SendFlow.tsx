@@ -618,6 +618,9 @@ export function SendFlow({
               label: copy.network,
               value: reviewNetworkVerified ? "Arc Testnet" : copy.wrongNetwork,
             },
+            ...(memoNote.note ? [{ label: copy.onchainNote, value: memoNote.note }] : []),
+          ]}
+          costDetails={[
             {
               label: copy.estimatedFee,
               value: feeEstimate.status === "ready" ? formatArcFeeEstimate(feeEstimate.rawFee) : feeEstimate.status === "loading" ? copy.estimatingFee : copy.feeUnavailable,
@@ -626,7 +629,6 @@ export function SendFlow({
               label: copy.estimatedTotal,
               value: feeEstimate.status === "ready" && feeCost ? (assetId === "usdc" ? `${formatAssetAmount(feeCost.totalUsdc6, asset)} USDC` : `${formatAssetAmount(validated.amount, asset)} ${asset.symbol} + ${formatAssetAmount(feeCost.feeUsdc6, getAssetById("usdc")!)} USDC`) : copy.feeUnavailable,
             },
-            ...(memoNote.note ? [{ label: copy.onchainNote, value: memoNote.note }] : []),
           ]}
           technicalDetails={[
             {

@@ -1334,6 +1334,11 @@ footer {
 .transaction-safety-review header{padding-bottom:17px;border-bottom:1px solid var(--line)}
 .transaction-safety-review header .eyebrow{margin:0 0 7px;color:var(--purple);font-size:9px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}
 .transaction-safety-review header>p:last-child{max-width:54ch;margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.55}
+.transaction-safety-review .review-section{margin:0;padding:var(--lc-space-4) 0;border-top:1px solid var(--lc-separator)}
+.transaction-safety-review .review-section>h4,.transaction-safety-review .review-limitations>h4{margin:0 0 var(--lc-space-2);color:var(--lc-text-secondary);font:700 var(--lc-meta-size)/var(--lc-meta-line) var(--font-display);letter-spacing:.04em;text-transform:uppercase}
+.transaction-safety-review .review-section .wallet-review{margin:0}
+.transaction-safety-review .review-limitations{margin:0;padding:var(--lc-space-3) var(--lc-space-4);border:1px solid var(--lc-separator);border-left:3px solid var(--lc-attention);border-radius:var(--lc-radius-surface);background:var(--lc-attention-surface);color:var(--lc-text);font-size:var(--lc-support-size);line-height:var(--lc-support-line)}
+.transaction-safety-review .review-limitations p{margin:0}.transaction-safety-review .review-limitations p+p{margin-top:var(--lc-space-2)}
 .transaction-safety-review>section,
 .send-review-flow>section{margin-top:20px}
 .transaction-safety-review h4,
@@ -1357,6 +1362,8 @@ footer {
 .review-validity{margin:9px 0 0;color:var(--muted);font-size:9px;text-align:right}
 .wallet-confirmation{margin-top:20px;padding:15px 16px;border:1px solid color-mix(in srgb,var(--purple) 24%,var(--line));border-left:4px solid var(--purple);border-radius:10px;background:color-mix(in srgb,var(--purple) 5%,var(--white))}
 .wallet-confirmation strong{display:block;margin-bottom:5px;font-size:11px}.wallet-confirmation span,.wallet-confirmation small{display:block;color:var(--muted);font-size:10px;line-height:1.5}.wallet-confirmation small{margin-top:5px}
+.wallet-confirmation{border-color:color-mix(in srgb,var(--lc-action) 24%,var(--lc-separator));border-left-color:var(--lc-action);background:color-mix(in srgb,var(--lc-selected) 55%,var(--lc-surface))}
+.wallet-confirmation strong{color:var(--lc-text)}.wallet-confirmation span{color:var(--lc-text-secondary)}
 .transaction-safety-review>.modal-actions,
 .send-review-flow>.modal-actions{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
 
@@ -1439,8 +1446,10 @@ footer {
 .compact-review-details{margin-top:10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .compact-review-details>summary{min-height:44px;display:flex;align-items:center;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer}
 .compact-review-details-body{display:grid;gap:14px;padding:0 0 14px}.compact-review-details-body>section{margin:0}.compact-review-details-body .transaction-safety-engine details{margin-top:10px}
+.compact-transaction-review .review-section{margin:0}.compact-transaction-review .review-section>h4{margin:0 0 var(--lc-space-2);color:var(--lc-text-secondary);font:700 var(--lc-meta-size)/var(--lc-meta-line) var(--font-display);letter-spacing:.04em;text-transform:uppercase}.compact-transaction-review .review-section-compact>h4{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.compact-transaction-review .review-limitations{margin-top:var(--lc-space-2);padding:var(--lc-space-2) var(--lc-space-3);border-left:3px solid var(--lc-attention);border-radius:var(--lc-radius-control);background:var(--lc-attention-surface);color:var(--lc-text);font-size:var(--lc-meta-size);line-height:var(--lc-meta-line)}
+.compact-wallet-notice{display:grid;gap:var(--lc-space-1);margin:var(--lc-space-3) 0 0;padding:var(--lc-space-3);border-top:1px solid var(--lc-separator);color:var(--lc-text-secondary);font-size:var(--lc-meta-size);line-height:var(--lc-meta-line)}.compact-wallet-notice strong{color:var(--lc-text)}.compact-wallet-notice small{color:var(--lc-text-secondary)}
 .compact-transaction-review>details:not(.compact-review-details){display:none}
 .compact-route-details p{margin:4px 0;color:var(--muted);font-size:10px;line-height:1.45}
-.compact-wallet-notice{margin:10px 0 0;color:var(--muted);font-size:10px;line-height:1.45}
 .compact-transaction-review>.modal-actions{margin-top:12px;padding-top:12px}
 @media(max-width:600px){.compact-review-summary{grid-template-columns:1fr}.compact-review-summary>div:nth-child(odd){border-right:0}.compact-review-summary>div{grid-template-columns:minmax(90px,.75fr) minmax(0,1.25fr)!important;align-items:center!important}.compact-review-summary dt{margin:0}.compact-review-summary dd{text-align:right!important}.compact-safety-summary{grid-template-columns:20px 1fr}.compact-safety-summary>span:last-child{grid-column:2}.compact-transaction-review>.modal-actions{position:sticky;bottom:-1px;z-index:4;background:var(--white)}}
