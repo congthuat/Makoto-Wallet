@@ -8,7 +8,10 @@ import { useConnection, usePublicClient } from "wagmi";
 import { zeroAddress } from "viem";
 import { arcTestnet } from "viem/chains";
 
-import { AppHeader } from "./AppHeader";
+import { AppShell } from "./AppShell";
+import { CreateWalletGuide } from "./CreateWalletGuide";
+import shellStyles from "./AppShell.module.css";
+import foundation from "./OverviewFoundation.module.css";
 import { SendFlow } from "./SendFlow";
 import { ReceivePanel } from "./ReceivePanel";
 import { SwapPanel } from "./SwapPanel";
@@ -119,20 +122,6 @@ export function WalletDashboard() {
   }, [agentHandoffRequestId, balancesSettled, connection.address, walletState]);
 
   useEffect(() => {
-    if (!createGuideOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setCreateGuideOpen(false);
-    };
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [createGuideOpen]);
-
-  useEffect(() => {
     const settleDashboardFragment = () => {
       const id = decodeURIComponent(window.location.hash.slice(1));
       if (!(["assets", "activity"] as const).includes(id as "assets" | "activity")) return;
@@ -233,16 +222,14 @@ export function WalletDashboard() {
   const showWalletReady = shouldShowWalletReady(onboardingIntent, onArc, connection.connector?.id);
 
   return (
-    <main className={styles.page}>
-      <div className={styles.shell}>
-        <AppHeader guardianSetupJarId={guardianSetupJar?.id} />
-        <div className={`${styles.pageHeading} ${connected ? styles.pageHeadingSupporting : ""}`}>
+    <AppShell guardianSetupJarId={guardianSetupJar?.id} legacyClassName={connected ? styles.page : undefined}>
+        {connected && <div className={`${styles.pageHeading} ${styles.pageHeadingSupporting}`}>
           <h1>{t("walletHome.pageTitle")}</h1>
           <p>{t("walletHome.pageSubtitle")}</p>
-        </div>
+        </div>}
 
         {dashboardState === "hydrating" ? (
-          <section className={styles.disconnected} role="status" aria-live="polite" aria-busy="true">
+          <section className={foundation.disconnected} role="status" aria-live="polite" aria-busy="true">
             <div className={styles.disconnectedCopy}>
               <span className={styles.kicker}>MAKOTO WALLET{" · "}ARC TESTNET</span>
               <h1>{locale === "vi" ? "Đang khôi phục kết nối ví…" : "Restoring wallet connection…"}</h1>
@@ -251,15 +238,15 @@ export function WalletDashboard() {
           </section>
         ) : !connected ? (
           <>
-          <section className={styles.disconnected}>
-            <div className={styles.disconnectedCopy}>
+          <section className={foundation.disconnected}>
+            <div>
               <h1>{t("walletHome.connectTitle")}</h1>
               <p>{t("walletHome.connectCopy")}</p>
-              <div className={styles.onboardingPanel} aria-labelledby="onboarding-title">
+              <section className={foundation.onboarding} aria-labelledby="onboarding-title">
                 <h2 id="onboarding-title">{t("onboarding.title")}</h2>
                 <button
                   type="button"
-                  className={styles.createWalletButton}
+                  className={foundation.create}
                   onClick={() => setCreateGuideOpen(true)}
                   disabled={!isReownConfigured}
                 >
@@ -268,26 +255,15 @@ export function WalletDashboard() {
                 </button>
                 <button
                   type="button"
-                  className={styles.connectExistingButton}
                   onClick={() => void beginOnboarding("existing")}
                   disabled={!isReownConfigured}
                 >
                   <strong>{t("onboarding.connectExisting")}</strong>
                   <span>{t("onboarding.connectHelp")}</span>
                 </button>
-                <p className={styles.onboardingSafety}>{t("onboarding.noPrivateKeyStorage")}</p>
-                {!isReownConfigured && <p className={styles.onboardingUnavailable} role="status">{t("onboarding.unavailable")}</p>}
-              </div>
-            </div>
-            <div className={styles.disconnectedArt}>
-              <Image
-                src="/makoto/logo-pro-v2.png"
-                alt=""
-                width={120}
-                height={120}
-                priority
-                className={styles.disconnectedLogo}
-              />
+                <p>{t("onboarding.noPrivateKeyStorage")}</p>
+                {!isReownConfigured && <p role="status">{t("onboarding.unavailable")}</p>}
+              </section>
             </div>
           </section>
           </>
@@ -451,8 +427,7 @@ export function WalletDashboard() {
           </>
         )}
 
-        <footer className={styles.footer}>Makoto Wallet</footer>
-      </div>
+        <footer className={shellStyles.footer}>Makoto Wallet</footer>
 
       {action === "send" && (
         <SendFlow
@@ -497,17 +472,16 @@ export function WalletDashboard() {
         onRefresh={() => void activity.refetch()}
         onReceipt={(item) => setReceiptActivity(item)}
       />}
-      {createGuideOpen && <div className={styles.createGuideLayer}>
-        <button type="button" className={styles.createGuideBackdrop} onClick={() => setCreateGuideOpen(false)} aria-label={t("common.close")} />
-        <section className={styles.createGuide} role="dialog" aria-modal="true" aria-labelledby="create-guide-title">
+      {createGuideOpen && <CreateWalletGuide onClose={() => setCreateGuideOpen(false)}>
+        {(dismiss) => <>
           <header>
-            <div><span className={styles.kicker}>MAKOTO WALLET</span><h2 id="create-guide-title">{t("onboarding.createGuideTitle")}</h2></div>
-            <button type="button" className={styles.createGuideClose} onClick={() => setCreateGuideOpen(false)} aria-label={t("common.close")}>×</button>
+            <h2 id="create-guide-title">{t("onboarding.createGuideTitle")}</h2>
+            <button type="button" onClick={dismiss} aria-label={t("common.close")}>×</button>
           </header>
           <p>{t("onboarding.createGuideCopy")}</p>
-          <div className={styles.createGuideChoices}>
-            <article className={styles.emailChoice}>
-              <button type="button" onClick={() => void beginCreateWallet("email")} autoFocus>{t("onboarding.continueEmail")}</button>
+          <div className={foundation.choices}>
+            <article>
+              <button type="button" onClick={() => void beginCreateWallet("email")} autoFocus data-guide-initial-focus>{t("onboarding.continueEmail")}</button>
               <p>{t("onboarding.emailGuide")}</p>
               <ol>
                 <li>{t("onboarding.emailStep1")}</li>
@@ -515,15 +489,15 @@ export function WalletDashboard() {
                 <li>{t("onboarding.emailStep3")}</li>
               </ol>
             </article>
-            <article className={styles.googleChoice}>
+            <article>
               <button type="button" onClick={() => void beginCreateWallet("google")}>{t("onboarding.continueGoogle")}</button>
               <p>{t("onboarding.googleGuide")}</p>
             </article>
           </div>
-          <p className={styles.createGuideSafety}>{t("onboarding.noPrivateKeyStorage")}</p>
-        </section>
-      </div>}
-    </main>
+          <p>{t("onboarding.noPrivateKeyStorage")}</p>
+        </>}
+      </CreateWalletGuide>}
+    </AppShell>
   );
 }
 

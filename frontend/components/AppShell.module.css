@@ -1,0 +1,57 @@
+/* One owner for page geometry. Header/navigation remain in document flow. */
+.page {
+  min-height: 100dvh;
+  color: var(--lc-text);
+  background: var(--lc-canvas);
+  font-size: var(--lc-body-size);
+  line-height: var(--lc-body-line);
+}
+.content {
+  width: 100%;
+  max-width: calc(var(--lc-content-max) + 2 * var(--lc-gutter));
+  min-width: 0;
+  margin: 0 auto;
+  padding: var(--lc-section-gap) var(--lc-gutter) max(var(--lc-section-gap), env(safe-area-inset-bottom));
+}
+.content:focus { outline: none; }
+.heading { margin: 0 0 var(--lc-space-6); }
+.heading h1 {
+  margin: 0;
+  color: var(--lc-text);
+  font-size: var(--lc-title-size);
+  line-height: var(--lc-title-line);
+  font-weight: 600;
+  letter-spacing: normal;
+  overflow-wrap: anywhere;
+}
+.heading p, .heading > span {
+  display: block;
+  margin: var(--lc-space-2) 0 0;
+  color: var(--lc-text-secondary);
+  font-size: var(--lc-support-size);
+  line-height: var(--lc-support-line);
+}
+.skipLink {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 3000;
+  padding: 12px 16px;
+  border-radius: var(--lc-radius-control);
+  color: var(--lc-on-action);
+  background: var(--lc-action);
+  transform: translateY(-160%);
+}
+.skipLink:focus { transform: none; }
+.page :is(a,button,input,select,textarea,[tabindex]):focus-visible {
+  outline: 3px solid var(--lc-focus);
+  outline-offset: 3px;
+}
+.footer {
+  margin-top: var(--lc-section-gap);
+  padding-top: var(--lc-space-6);
+  border-top: 1px solid var(--lc-separator);
+  color: var(--lc-text-tertiary);
+  font-size: var(--lc-meta-size);
+  line-height: var(--lc-meta-line);
+}

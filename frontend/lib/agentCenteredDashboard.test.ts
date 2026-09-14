@@ -10,9 +10,9 @@ const css = readFileSync(new URL("../components/MakotoWallet.module.css", import
 const en = readFileSync(new URL("../i18n/en.ts", import.meta.url), "utf8");
 const vi = readFileSync(new URL("../i18n/vi.ts", import.meta.url), "utf8");
 
-test("dashboard preserves the production Makoto logo asset", () => {
-  assert.match(dashboard, /\/makoto\/logo-pro-v2\.png/);
-  assert.doesNotMatch(dashboard, /agent-logo|lettermark|new-logo/i);
+test("shared header preserves the production Makoto logo asset", () => {
+  assert.match(header, /\/makoto\/logo-pro-v2\.png/);
+  assert.doesNotMatch(header, /agent-logo|lettermark|new-logo/i);
 });
 
 test("Agent hero is the first connected dashboard section", () => {
@@ -110,13 +110,13 @@ test("Quick Actions are a distinct sibling section containing only the four core
   assert.doesNotMatch(dashboard, /styles\.agentSecondaryCommands/);
 });
 
-test("primary navigation contains only Dashboard and Wallet with Settings in utilities", () => {
+test("primary navigation presents localized Overview, Agent, Settings, and Help destinations", () => {
   const items = header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems")) + 2);
-  for (const label of ["Dashboard", "Wallet"]) assert.match(items, new RegExp(label));
-  for (const label of ["Security Center", "Tools", "Pay", "Makoto Vault", "Makoto Agent", "Activity", "Send", "Receive", "Swap", "Bridge"]) assert.doesNotMatch(items, new RegExp(label));
-  assert.match(header, /href="\/settings#security"[^>]*>[\s\S]*"Settings"/);
+  for (const label of ["Overview", "Agent", "Settings", "Help & Support"]) assert.match(items, new RegExp(label));
+  for (const label of ["Dashboard", "Wallet", "Tools", "Pay", "Makoto Vault", "Activity", "Send", "Receive", "Swap", "Bridge"]) assert.doesNotMatch(items, new RegExp(label));
+  assert.match(header, /href: "\/agent"/);
+  assert.match(header, /href="https:\/\/docs\.google\.com\/forms/);
   assert.match(header, /"Feedback"/);
-  assert.match(header, /"Help & Support"/);
 });
 
 test("Feedback opens the exact Makoto form safely in a new tab", () => {

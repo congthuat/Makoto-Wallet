@@ -44,12 +44,11 @@ test("Security stays compact and exposes only wallet, network, privacy, alerts a
 });
 
 test("Settings Security and Help fragment navigation expose active aria-current destinations", () => {
-  assert.match(header, /isActive\("\/settings#help"\) \? styles\.navActive/);
-  assert.match(header, /aria-current=\{isActive\("\/settings#help"\) \? "page" : undefined\}/);
-  assert.match(header, /href="\/settings#security"[^>]*aria-current=\{isActive\("\/settings#security"\) \? "page" : undefined\}/);
-  assert.match(header, /fragment \? hash === `#\$\{fragment\}` : !hash/);
+  assert.match(header, /href: "\/settings#security"/);
+  assert.match(header, /href: "\/settings#help"/);
+  assert.match(header, /aria-current=\{isActive\(item\.href\) \? "page" : undefined\}/);
+  assert.match(header, /fragment \? hash === `#\$\{fragment\}` \|\| \(href === "\/settings#security" && !hash\) : !hash/);
   assert.match(header, /onNavigate=\{\(\) => setHash\(item\.href\.includes\("#"\)/);
-  assert.match(header, /onNavigate=\{\(\) => setHash\("#help"\)\}/);
 });
 
 test("Phase 11 interactive accents use contrast-safe scoped colors", () => {
@@ -61,16 +60,18 @@ test("Phase 11 interactive accents use contrast-safe scoped colors", () => {
   assert.match(walletCss, /\.settingsHero>p,\.settingsSectionHeading>p\{color:#6841d8\}/);
   assert.match(walletCss, /@media\(max-width:767px\)\{\.nav a\{color:#b8c1d6\}\.nav a\.navActive\{color:#fff\}/);
   assert.match(languageMenu, /aria-label=\{`\$\{t\("preferences\.language"\)\} \(\$\{locale\.toUpperCase\(\)\}\)`\}/);
+  assert.match(languageMenu, /aria-pressed=\{selected\}/);
+  assert.match(languageMenu, /trigger\.current\?\.focus/);
 });
 
-test("narrow-phone navigation keeps Dashboard Wallet and Settings", () => {
-  assert.match(header, /mobileEn: "Home"[\s\S]*mobileEn: "Wallet"/);
-  assert.match(header, /href="\/settings#security"[\s\S]*"Cài đặt" : "Settings"/);
+test("narrow-phone navigation keeps all five foundation destinations labeled", () => {
+  // Deliberate presentation contract: wrapped links replace the fixed three-item bar.
+  const headerCss = read("../components/AppHeader.module.css");
+  assert.match(header, /<span>\{locale === "vi" \? item\.vi : item\.en\}<\/span>/);
+  assert.match(header, /href: "\/settings#security",[^\n]*en: "Settings", vi: "Cài đặt"/);
   assert.doesNotMatch(header, /mobileEn: "Security"|en: "Security Center"/);
-  assert.match(walletCss, /@media\(max-width:767px\)[\s\S]*\.nav\{grid-template-columns:repeat\(3,1fr\)\}/);
-  return;
-  assert.match(walletCss, /@media\(max-width:767px\)[\s\S]*?\.nav\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(header, /mobileEn: "Home"[\s\S]*mobileEn: "Tools"[\s\S]*mobileEn: "Pay"[\s\S]*mobileEn: "Vault"[\s\S]*mobileEn: "Security"/);
+  assert.match(headerCss, /@media\(max-width:767px\)[\s\S]*\.nav\{flex-wrap:wrap;overflow:visible/);
+  assert.match(headerCss, /\.navLink,\.feedbackLink\{min-height:44px/);
 });
 
 test("Mobile Top-Up phone field has a stable form identifier", () => {

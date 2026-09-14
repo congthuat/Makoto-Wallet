@@ -3,14 +3,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useConnection } from "wagmi";
 import { arcTestnet } from "viem/chains";
-import { AppHeader } from "./AppHeader";
+import { AppShell } from "./AppShell";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { shortAddress } from "@/lib/format";
 import { deriveNetworkSafety, deriveOverallSecurityStatus, deriveSecurityAlerts, summarizeJarProtection, type ProtectionLoadState, type SecurityAlert, type SecurityOverallStatus } from "@/lib/securityCenter";
-import styles from "./MakotoWallet.module.css";
+import styles from "./SettingsFoundation.module.css";
 
 export function SettingsPage() {
   const { locale, setLocale, theme, setTheme, resetPreferences } = usePreferences();
@@ -45,8 +45,7 @@ export function SettingsPage() {
     window.setTimeout(() => setCopied(false), 1600);
   }
 
-  return <main className={styles.page}><div className={styles.shell}>
-    <AppHeader />
+  return <AppShell>
     <div id="security" className={styles.hashDestination}>
       <section className={styles.settingsHero}><h1>{vi ? "Bảo mật" : "Security"}</h1><span>{vi ? "Trạng thái ví và mạng." : "Wallet and network status."}</span></section>
       <section className={`${styles.securityOverview} ${styles[`securityOverview_${overall}`]}`} aria-labelledby="security-status-title"><div><h2 id="security-status-title">{statusLabel(overall, vi)}</h2><p>{statusCopy(overall, vi)}</p></div><span className={styles.securityStatusDot} aria-hidden="true" /></section>
@@ -61,7 +60,7 @@ export function SettingsPage() {
       <SettingsCard title={vi ? "Ngôn ngữ" : "Language"}><ChoiceGroup label={vi ? "Ngôn ngữ" : "Language"} value={locale} onChange={setLocale} options={[["en", "English"], ["vi", "Tiếng Việt"]]} /></SettingsCard>
     </div>
     <div className={styles.settingsPreferenceReset}><button type="button" onClick={resetPreferences}>{vi ? "Đặt lại tùy chọn" : "Reset preferences"}</button></div>
-  </div></main>;
+  </AppShell>;
 }
 
 function statusLabel(status: SecurityOverallStatus, vi: boolean) { return ({ protected: vi ? "Được bảo vệ" : "Protected", review: vi ? "Cần kiểm tra" : "Review needed", disconnected: vi ? "Chưa kết nối" : "Disconnected", unknown: vi ? "Chưa xác định" : "Unknown" })[status]; }

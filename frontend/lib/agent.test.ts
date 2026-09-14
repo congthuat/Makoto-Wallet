@@ -79,11 +79,14 @@ test("Agent source has no persistence or wallet-write execution surface", () => 
   assert.match(ui, /onClick=\{clearConversation\}/); assert.match(ui, /aria-live="polite"/); assert.match(ui, /agent\.page\.title/); assert.match(ui, /agent\.draft\.review/);
 });
 
-test("Agent shell follows the shared sidebar and mobile content geometry", () => {
+test("Agent uses the common shell while preserving long-value containment", () => {
+  // Obsolete: route-local sidebar offsets. Contract: shared geometry and readable values.
+  const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
+  const shell = readFileSync(new URL("../components/AppShell.module.css", import.meta.url), "utf8");
   const css = readFileSync(new URL("../components/MakotoAgentPage.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.shell\{box-sizing:border-box;width:min\(100%,1840px\);min-width:0;min-height:100vh;margin:0 auto;padding:112px 32px 40px 272px\}/);
-  assert.match(css, /@media\(max-width:1120px\)\{\.shell\{padding-left:252px\}\}/);
-  assert.match(css, /@media\(max-width:767px\)\{\.shell\{width:100%;padding:92px 14px 110px\}/);
+  assert.match(ui, /return <AppShell>/);
+  assert.match(shell, /var\(--lc-gutter\)/);
+  assert.doesNotMatch(css, /\.shell\s*\{/);
   assert.match(css, /\.messages article>p\{[^}]*overflow-wrap:anywhere/);
   assert.match(css, /\.draft dd\{[^}]*overflow-wrap:anywhere/);
   assert.match(css, /\.composer input\{[^}]*width:100%;min-width:0/);
