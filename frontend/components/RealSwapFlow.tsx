@@ -652,7 +652,13 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       const envelope = await prepareSwapEnvelope(freshQuote, false, undefined, frozen);
       const cost = swapCostWithArcFee(freshQuote.amountIn, from.id, nextUsdcBalance, envelope.rawMaxFee18);
       const nextIntent = swapIntentFor(frozen, envelope);
-      if (nextIntent)
+      if (nextIntent) {
+        await client.simulateContract({
+          ...frozen.request,
+          gas: envelope.gasLimit,
+          maxFeePerGas: envelope.maxFeePerGas,
+          maxPriorityFeePerGas: envelope.maxPriorityFeePerGas,
+        });
         setSwapReview(
           prepareFlowReview(nextIntent, {
             connectedAccount: connection.address,
@@ -663,6 +669,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
             expectedTarget: XYLO_ROUTER,
           })
         );
+      }
       setApprovalReview(undefined);
       setQuote(freshQuote);
       setPreparedSwap(frozen);

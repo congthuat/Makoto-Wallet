@@ -8,11 +8,20 @@ import type { TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 
 export type ReviewDetail = { label: string; value: ReactNode };
 
+function effectiveReviewAssessment(assessment?: TransactionSafetyAssessment, snapshotAssessment?: TransactionSafetyAssessment) {
+  if (!assessment) return snapshotAssessment;
+  if (!snapshotAssessment) return assessment;
+  // Neither source may hide a more restrictive assessment from the other.
+  const priority = { ready: 0, review: 1, unknown: 2, blocked: 3 };
+  return priority[assessment.status] > priority[snapshotAssessment.status] ? assessment : snapshotAssessment;
+}
+
 export function TransactionSafetyReview({ title, summary, details, compactDetails, technicalDetails = [], technicalDetailIndexes = [], technicalContent, compact = false, checks, assessment, review, walletNotice, onBack, onContinue, continueDisabled = false, continueLabel, children }: { title: string; summary: string; details: readonly ReviewDetail[]; compactDetails?: readonly ReviewDetail[]; technicalDetails?: readonly ReviewDetail[]; technicalDetailIndexes?: readonly number[]; technicalContent?: ReactNode; compact?: boolean; checks: readonly SafetyCheck[]; assessment?: TransactionSafetyAssessment; review?: TransactionReviewSnapshot; walletNotice: string; onBack(): void; onContinue(): void; continueDisabled?: boolean; continueLabel?: string; children?: ReactNode }) {
   const { t, locale } = usePreferences();
-  const blocked = hasBlockingChecks(checks) || assessment?.status === "blocked" || assessment?.status === "unknown";
+  const effectiveAssessment = effectiveReviewAssessment(assessment, review?.assessment);
+  const blocked = hasBlockingChecks(checks) || effectiveAssessment?.status === "blocked" || effectiveAssessment?.status === "unknown";
   const attentionChecks = checks.filter((check) => check.status === "attention" || check.status === "blocking");
-  const simulationNotPerformed = (assessment ?? review?.assessment)?.checks.some((check) => check.code === "request-simulation-not-performed") ?? false;
+  const simulationNotPerformed = effectiveAssessment?.checks.some((check) => check.code === "request-simulation-not-performed") ?? false;
   const visibleDetails = compactDetails ?? details.filter((_, index) => !technicalDetailIndexes.includes(index));
   const collapsedDetails = [...details.filter((_, index) => technicalDetailIndexes.includes(index)), ...technicalDetails];
   if (compact)
@@ -34,7 +43,7 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
             ))}
           </dl>
         </section>
-        <CompactSafetySummary checks={checks} assessment={assessment ?? review?.assessment} />
+        <CompactSafetySummary checks={checks} assessment={effectiveAssessment} />
         {simulationNotPerformed && <p>{t("review.simulationNotPerformed")}</p>}
         {attentionChecks.length > 0 && (
           <div className="compact-safety-issues">
@@ -60,7 +69,7 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
                 {t("review.details")} · {new Date(review.expiresAt).toLocaleTimeString()}
               </p>
             )}
-            {(assessment || review) && <p className="review-validity">Simulation · {(assessment ?? review!.assessment).status}</p>}
+            {effectiveAssessment && <p className="review-validity">Simulation · {effectiveAssessment.status}</p>}
             {review && <TransactionExpectedChanges intent={review.intent} />}
             {technicalContent}
           </div>
@@ -102,7 +111,7 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
           {t("review.details")} · {new Date(review.expiresAt).toLocaleTimeString()}
         </p>
       )}
-      {(assessment || review) && <TransactionSafetyAssessmentView assessment={assessment ?? review!.assessment} />}
+      {effectiveAssessment && <TransactionSafetyAssessmentView assessment={effectiveAssessment} />}
       {review && <TransactionExpectedChanges intent={review.intent} />}
       {children}
       <div className="wallet-confirmation">
