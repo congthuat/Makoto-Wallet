@@ -84,7 +84,7 @@ function parseV3Record(value: unknown): WalletActivity | undefined {
     if (!receivedAsset || value.swapReceive.assetSymbol !== receivedAsset.symbol || value.swapReceive.tokenAddress !== receivedAsset.address || value.swapReceive.decimals !== receivedAsset.decimals) return undefined;
     swapReceive = { amount: BigInt(value.swapReceive.amount), assetId: receivedAsset.id, assetSymbol: receivedAsset.symbol, tokenAddress: receivedAsset.address, decimals: receivedAsset.decimals, logIndex: value.swapReceive.logIndex };
   }
-  if ((value.kind === "swap") !== Boolean(swapReceive)) return undefined;
+  if ((value.swapReceive !== undefined && !swapReceive) || (value.kind !== "swap" && swapReceive)) return undefined;
   return { hash: value.hash, logIndex: value.logIndex, direction: value.direction, kind: value.kind, amount: BigInt(value.amount), counterparty: getAddress(value.counterparty), confirmedAt: value.confirmedAt, blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals, source: "local", provider: "local-receipt", ...(swapReceive ? { swapReceive } : {}) };
 }
 

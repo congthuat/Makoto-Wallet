@@ -21,6 +21,7 @@ import { createSwapFeeEnvelope, isSwapFeeWithinEnvelope, type SwapFeeEnvelope } 
 import { globalReviewChecks } from "@/lib/transactionReview";
 import { classifyWalletFailure } from "@/lib/walletSafety";
 import { createAssetActivity, recordWalletActivity } from "@/lib/walletActivity";
+import { findUniqueSwapReceive } from "@/lib/transactionReceipt";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, prepareFlowReview, swapIntent } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
@@ -77,7 +78,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     [success, setSuccess] = useState<{
       hash: Hex;
       quote: SwapQuote;
-      received: bigint;
+      received?: bigint;
     }>();
   const [safeMax, setSafeMax] = useState<
     SafeSwapMaxResult & {
@@ -836,7 +837,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         receipt: Promise.resolve(receipt),
         onConfirmed: () => {
           const soldLog = receipt.logs.find((log) => log.address.toLowerCase() === from.address.toLowerCase()),
-            receivedLog = receipt.logs.find((log) => log.address.toLowerCase() === to.address.toLowerCase());
+            actualReceive = findUniqueSwapReceive(receipt, { token: to.address, recipient: connection.address!, transactionHash: hash });
           recordWalletActivity(
             connection.address!,
             arcTestnet.id,
@@ -849,14 +850,18 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
               counterparty: XYLO_ROUTER,
               confirmedAt: Number(block.timestamp) * 1000,
               blockNumber: receipt.blockNumber,
-              swapReceive: {
-                amount: freshOutput,
-                assetId: to.id,
-                assetSymbol: to.symbol,
-                tokenAddress: to.address,
-                decimals: to.decimals,
-                logIndex: receivedLog?.logIndex ?? 0,
-              },
+              ...(actualReceive
+                ? {
+                    swapReceive: {
+                      amount: actualReceive.amount,
+                      assetId: to.id,
+                      assetSymbol: to.symbol,
+                      tokenAddress: to.address,
+                      decimals: to.decimals,
+                      logIndex: actualReceive.logIndex,
+                    },
+                  }
+                : {}),
             })
           );
           if (initialValues?.origin === "agent")
@@ -868,14 +873,13 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
               createdAt: Date.now(),
               amount: formatAssetAmount(quote.amountIn, from),
               asset: from.symbol,
-              outputAmount: formatAssetAmount(freshOutput, to),
-              outputAsset: to.symbol,
+              ...(actualReceive ? { outputAmount: formatAssetAmount(actualReceive.amount, to), outputAsset: to.symbol } : {}),
               transactionHash: receipt.transactionHash,
             });
           setSuccess({
             hash: receipt.transactionHash,
             quote,
-            received: freshOutput,
+            ...(actualReceive ? { received: actualReceive.amount } : {}),
           });
           setReviewStage(undefined);
         },
@@ -920,7 +924,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         <span>✓</span>
         <h3>{vi ? "Hoán đổi thành công" : "Swap confirmed"}</h3>
         <p>
-          {formatAssetAmount(success.quote.amountIn, sold)} {sold.symbol} → ≈ {formatAssetAmount(success.received, bought)} {bought.symbol}
+          {formatAssetAmount(success.quote.amountIn, sold)} {sold.symbol} → {vi ? "dự kiến" : "expected"} ≈ {formatAssetAmount(success.quote.amountOut, bought)} {bought.symbol}
+          <br />
+          {vi ? "Thực nhận" : "Actual received"}: {success.received === undefined ? (vi ? "chưa xác định" : "unavailable") : `${formatAssetAmount(success.received, bought)} ${bought.symbol}`}
         </p>
         <a href={`${ARC_EXPLORER_URL}/tx/${success.hash}`} target="_blank" rel="noreferrer">
           ArcScan ↗

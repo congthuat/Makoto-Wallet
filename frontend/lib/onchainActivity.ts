@@ -52,7 +52,7 @@ export function deserializeWalletActivityPage(payload: unknown): WalletActivityP
     const asset = typeof value.tokenAddress === "string" ? getAssetByAddress(value.tokenAddress) : undefined;
     if (!asset || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeNonNegativeInteger(value.logIndex) || (value.direction !== "send" && value.direction !== "receive") || !isActivityKind(value.kind) || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeNonNegativeInteger(value.confirmedAt) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || value.assetId !== asset.id || value.assetSymbol !== asset.symbol || value.decimals !== asset.decimals) throw new Error("Invalid wallet activity record");
     const swapReceive = parseSwapReceive(value.swapReceive);
-    if ((value.kind === "swap") !== Boolean(swapReceive)) throw new Error("Invalid wallet activity record");
+    if ((value.swapReceive !== undefined && !swapReceive) || (value.kind !== "swap" && swapReceive)) throw new Error("Invalid wallet activity record");
     activities.push({ ...value, hash: value.hash, tokenAddress: asset.address, counterparty: getAddress(value.counterparty), amount: BigInt(value.amount), blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, decimals: asset.decimals, ...(swapReceive ? { swapReceive } : {}) } as WalletActivity);
   }
   const nextCursor = typeof payload.nextCursor === "string" && decodeArcScanCursor(payload.nextCursor) ? payload.nextCursor : undefined;

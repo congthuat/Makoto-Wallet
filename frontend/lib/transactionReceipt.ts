@@ -9,6 +9,7 @@ export const transferEventAbi = [{ type: "event", name: "Transfer", inputs: [{ n
 
 export type ReceiptLog = { address: Address | string; data: Hex; topics: readonly Hex[]; logIndex?: number | null; transactionHash?: Hash | null };
 export type MinimalTransactionReceipt = { status: "success" | "reverted"; transactionHash: Hash; blockNumber: bigint; logs: readonly ReceiptLog[] };
+export type SwapReceiveEvidence = Readonly<{ amount: bigint; logIndex: number }>;
 export type VerifiedMemo = { text?: string; data: Hex; memoId: Hex; memoIndex: bigint };
 export type ReceiptVerification = { verified: boolean; from: Address; to: Address; blockNumber: bigint; memo?: VerifiedMemo; reason?: "status" | "hash" | "block" | "transfer-missing" | "transfer-ambiguous" | "swap-sent" | "swap-receive" };
 
@@ -28,6 +29,28 @@ export function verifyTransactionReceipt(activity: WalletActivity, walletAddress
   }
   const memo = activity.kind === "transfer" ? findMatchingMemo(receipt.logs, { sender: from, token: activity.tokenAddress, recipient: to, amount: activity.amount }) : undefined;
   return { verified: true, from, to, blockNumber, ...(memo ? { memo } : {}) };
+}
+
+/**
+ * Derive a swap's actual output only from one unambiguous ERC-20 Transfer
+ * event in the submitted transaction. A quote, minimum, or arbitrary log
+ * position is never accepted as receipt evidence.
+ */
+export function findUniqueSwapReceive(receipt: MinimalTransactionReceipt, expected: { token: Address; recipient: Address; transactionHash: Hash }): SwapReceiveEvidence | undefined {
+  if (receipt.status !== "success" || receipt.transactionHash.toLowerCase() !== expected.transactionHash.toLowerCase()) return undefined;
+  const matches: SwapReceiveEvidence[] = [];
+  for (const log of receipt.logs) {
+    if (!isAddress(log.address) || getAddress(log.address) !== getAddress(expected.token)) continue;
+    if (log.transactionHash && log.transactionHash.toLowerCase() !== receipt.transactionHash.toLowerCase()) continue;
+    const logIndex = log.logIndex;
+    if (typeof logIndex !== "number" || !Number.isSafeInteger(logIndex) || logIndex < 0) continue;
+    try {
+      const decoded = decodeEventLog({ abi: transferEventAbi, eventName: "Transfer", data: log.data, topics: log.topics as [Hex, ...Hex[]] });
+      if (getAddress(decoded.args.to) !== getAddress(expected.recipient) || decoded.args.value <= 0n) continue;
+      matches.push({ amount: decoded.args.value, logIndex });
+    } catch { /* Malformed and unrelated logs are not receipt evidence. */ }
+  }
+  return matches.length === 1 ? matches[0] : undefined;
 }
 
 export function findMatchingMemo(logs: readonly ReceiptLog[], expected: { sender: Address; token: Address; recipient: Address; amount: bigint }): VerifiedMemo | undefined {
