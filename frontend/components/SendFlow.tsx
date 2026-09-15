@@ -678,10 +678,12 @@ export function SendFlow({
           review={reviewSnapshot}
           walletNotice=""
           onBack={() => {
+            if (pending) return;
             setReviewing(false);
             setStage("idle");
           }}
           onContinue={() => void submit()}
+          backDisabled={pending}
           continueLabel={stage === "awaiting" ? copy.awaitingShort : stage === "confirming" ? copy.confirmingShort : copy.confirm}
           continueDisabled={pending || feeEstimate.status === "loading" || safetyAssessment?.status !== "ready" || hasBlockingChecks(safetyChecks) || Boolean(memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)}
         >

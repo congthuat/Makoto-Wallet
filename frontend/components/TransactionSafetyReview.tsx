@@ -16,7 +16,7 @@ function effectiveReviewAssessment(assessment?: TransactionSafetyAssessment, sna
   return priority[assessment.status] > priority[snapshotAssessment.status] ? assessment : snapshotAssessment;
 }
 
-export function TransactionSafetyReview({ title, summary, details, costDetails = [], compactDetails, technicalDetails = [], technicalDetailIndexes = [], technicalContent, compact = false, checks, assessment, review, walletNotice, onBack, onContinue, continueDisabled = false, continueLabel, children }: { title: string; summary: string; details: readonly ReviewDetail[]; costDetails?: readonly ReviewDetail[]; compactDetails?: readonly ReviewDetail[]; technicalDetails?: readonly ReviewDetail[]; technicalDetailIndexes?: readonly number[]; technicalContent?: ReactNode; compact?: boolean; checks: readonly SafetyCheck[]; assessment?: TransactionSafetyAssessment; review?: TransactionReviewSnapshot; walletNotice: string; onBack(): void; onContinue(): void; continueDisabled?: boolean; continueLabel?: string; children?: ReactNode }) {
+export function TransactionSafetyReview({ title, summary, details, costDetails = [], compactDetails, technicalDetails = [], technicalDetailIndexes = [], technicalContent, compact = false, checks, assessment, review, walletNotice, onBack, onContinue, backDisabled = false, continueDisabled = false, continueLabel, children }: { title: string; summary: string; details: readonly ReviewDetail[]; costDetails?: readonly ReviewDetail[]; compactDetails?: readonly ReviewDetail[]; technicalDetails?: readonly ReviewDetail[]; technicalDetailIndexes?: readonly number[]; technicalContent?: ReactNode; compact?: boolean; checks: readonly SafetyCheck[]; assessment?: TransactionSafetyAssessment; review?: TransactionReviewSnapshot; walletNotice: string; onBack(): void; onContinue(): void; backDisabled?: boolean; continueDisabled?: boolean; continueLabel?: string; children?: ReactNode }) {
   const { t } = usePreferences();
   const effectiveAssessment = effectiveReviewAssessment(assessment, review?.assessment);
   const blocked = hasBlockingChecks(checks) || effectiveAssessment?.status === "blocked" || effectiveAssessment?.status === "unknown";
@@ -66,7 +66,7 @@ export function TransactionSafetyReview({ title, summary, details, costDetails =
         {children}
         <WalletHandoffNotice notice={walletNotice} compact />
         <div className="modal-actions">
-          <button type="button" className="secondary-action" onClick={onBack}>
+          <button type="button" className="secondary-action" onClick={onBack} disabled={backDisabled}>
             {t("review.back")}
           </button>
           <button type="button" className="primary-action" onClick={onContinue} disabled={blocked || continueDisabled}>
@@ -95,7 +95,7 @@ export function TransactionSafetyReview({ title, summary, details, costDetails =
       {children}
       <WalletHandoffNotice notice={walletNotice} />
       <div className="modal-actions">
-        <button type="button" className="secondary-action" onClick={onBack}>
+        <button type="button" className="secondary-action" onClick={onBack} disabled={backDisabled}>
           {t("review.back")}
         </button>
         <button type="button" className="primary-action" onClick={onContinue} disabled={blocked || continueDisabled}>
