@@ -5,6 +5,7 @@ import test from "node:test";
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const detail = read("../components/JarDetail.tsx");
 const dashboard = read("../components/WalletDashboard.tsx");
+const overview = read("../components/ConnectedOverview.tsx");
 const settings = read("../components/SettingsPage.tsx");
 const header = read("../components/AppHeader.tsx");
 const languageMenu = read("../components/LanguageMenu.tsx");
@@ -27,8 +28,9 @@ test("Vault shell clearance regressions remain intact", () => {
 });
 
 test("connected dashboard fragments remain while disconnected destinations stay removed", () => {
-  assert.match(dashboard, /id="assets"/);
-  assert.match(dashboard, /id="activity"/);
+  assert.match(overview, /id="assets"/);
+  assert.match(overview, /id="activity"/);
+  assert.match(dashboard, /<ConnectedOverview/);
   assert.doesNotMatch(header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems"))), /#apps|#activity/);
   assert.doesNotMatch(dashboard, /function DisconnectedDestinations|Connect to view assets|Connect to view activity/);
 });
