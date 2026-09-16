@@ -26,7 +26,7 @@ import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, prepareFlowReview, swapIntent } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 import { storeAgentResult } from "@/lib/agent/actions";
-import { classifySwapConfirmation, swapContinueAllowed, swapStatusAfterConfirmation, type SwapReceiptStatus, type SwapSubmissionStatus } from "@/lib/swapSubmissionState";
+import { classifySwapConfirmation, swapBackAllowed, swapContinueAllowed, swapModalBusy, swapStatusAfterConfirmation, type SwapReceiptStatus, type SwapSubmissionStatus } from "@/lib/swapSubmissionState";
 
 type Props = {
   locale: "en" | "vi";
@@ -96,7 +96,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   const [approvalReview, setApprovalReview] = useState<TransactionReviewSnapshot>(),
     [swapReview, setSwapReview] = useState<TransactionReviewSnapshot>();
   const submissionGuard = useRef(new ReviewSubmissionGuard());
-  useEffect(() => onBusyChange(Boolean(pending && (maxApproval || reviewStage))), [maxApproval, onBusyChange, pending, reviewStage]);
+  useEffect(() => onBusyChange(swapModalBusy(submissionStatus, Boolean(pending), Boolean(maxApproval), reviewStage)), [maxApproval, onBusyChange, pending, reviewStage, submissionStatus]);
   const from = getAssetById(fromId)!,
     to = getAssetById(oppositeAssetId(fromId))!,
     balance = balances.assets[fromId].data ?? 0n,
@@ -1200,7 +1200,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           },
         ]}
         walletNotice=""
+        backDisabled={submissionStatus === "submitted-pending"}
         onBack={() => {
+          if (!swapBackAllowed(submissionStatus)) return;
           setReviewStage(undefined);
           setQuote(undefined);
         }}
