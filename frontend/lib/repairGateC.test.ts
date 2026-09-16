@@ -53,12 +53,14 @@ test("Repair Gate C: wallet resolution paths remain unchanged", () => {
   for (const marker of ["setStage(\"awaiting\")", "setStage(\"confirming\")", "setStage(\"confirmed\")", "setStage(\"failed\")", "\"unknown\"", "writeContractAsync", "waitForTransactionReceipt"]) assert.ok(send.includes(marker), marker);
 });
 
-test("Repair Gate C: other Review callers retain default Back behavior", () => {
+test("Repair Gate C: non-pending Review callers retain default Back behavior", () => {
   assert.match(review, /backDisabled\?: boolean/);
-  for (const file of ["CctpBridgeFlow.tsx", "CreateJarFlow.tsx", "OwnerDepositFlow.tsx", "OwnerWithdrawalFlow.tsx", "RealSwapFlow.tsx", "UniversalBridgeFlow.tsx"]) {
+  for (const file of ["CctpBridgeFlow.tsx", "CreateJarFlow.tsx", "OwnerDepositFlow.tsx", "OwnerWithdrawalFlow.tsx", "RealSwapFlow.tsx"]) {
     const source = readFileSync(new URL(`../components/${file}`, import.meta.url), "utf8");
     assert.doesNotMatch(source, /backDisabled=/, file);
   }
+  const bridge = readFileSync(new URL("../components/UniversalBridgeFlow.tsx", import.meta.url), "utf8");
+  assert.match(bridge, /backDisabled=\{busy === "executing"\}/);
 });
 
 test("Repair Gate C: no new provider call or submission was added", () => {

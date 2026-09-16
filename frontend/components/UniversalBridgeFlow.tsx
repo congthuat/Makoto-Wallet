@@ -64,6 +64,7 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
     statusRef = useRef<HTMLDivElement>(null),
     handoffStarted = useRef(false);
   const invalidate = () => {
+    if (busy === "executing") return;
     setEstimate(undefined);
     setReviewSnapshot(undefined);
     setResult(undefined);
@@ -327,6 +328,7 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
         ]}
         review={reviewSnapshot}
         walletNotice=""
+        backDisabled={busy === "executing"}
         onBack={invalidate}
         onContinue={() => void execute()}
         continueDisabled={busy === "executing"}
