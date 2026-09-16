@@ -60,7 +60,7 @@ test("Repair Gate C: non-pending Review callers retain default Back behavior", (
     assert.doesNotMatch(source, /backDisabled=/, file);
   }
   const swap = readFileSync(new URL("../components/RealSwapFlow.tsx", import.meta.url), "utf8");
-  assert.match(swap, /backDisabled=\{submissionStatus === "submitted-pending"\}/);
+  assert.match(swap, /backDisabled=\{swapLocked\}/);
   const bridge = readFileSync(new URL("../components/UniversalBridgeFlow.tsx", import.meta.url), "utf8");
   assert.match(bridge, /backDisabled=\{busy === "executing"\}/);
 });

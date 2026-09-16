@@ -95,8 +95,12 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   const [maxApproval, setMaxApproval] = useState<MaxApprovalReview>();
   const [approvalReview, setApprovalReview] = useState<TransactionReviewSnapshot>(),
     [swapReview, setSwapReview] = useState<TransactionReviewSnapshot>();
-  const submissionGuard = useRef(new ReviewSubmissionGuard());
-  useEffect(() => onBusyChange(swapModalBusy(submissionStatus, Boolean(pending), Boolean(maxApproval), reviewStage)), [maxApproval, onBusyChange, pending, reviewStage, submissionStatus]);
+  const submissionGuard = useRef(new ReviewSubmissionGuard()),
+    executionInFlightRef = useRef(false);
+  const [executionInFlight, setExecutionInFlight] = useState(false);
+  const swapLocked = executionInFlight || submissionStatus === "submitted-pending";
+  const swapIsInFlight = () => executionInFlightRef.current || submissionStatus === "submitted-pending";
+  useEffect(() => onBusyChange(swapModalBusy(submissionStatus, Boolean(pending), Boolean(maxApproval), reviewStage, executionInFlight)), [executionInFlight, maxApproval, onBusyChange, pending, reviewStage, submissionStatus]);
   const from = getAssetById(fromId)!,
     to = getAssetById(oppositeAssetId(fromId))!,
     balance = balances.assets[fromId].data ?? 0n,
@@ -136,6 +140,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     return () => window.clearTimeout(timeout);
   }, [balance, chain.isArc, connection.address, from.id, maxApproval]);
   function invalidate() {
+    if (swapIsInFlight()) return;
     setQuote(undefined);
     setReviewStage(undefined);
     setApprovalReview(undefined);
@@ -205,10 +210,12 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   }
 
   function changeAmount(value: string) {
+    if (swapIsInFlight()) return;
     setAmount(value);
     invalidate();
   }
   function reset() {
+    if (swapIsInFlight()) return;
     setAmount("");
     invalidate();
     setSuccess(undefined);
@@ -304,6 +311,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     );
   }
   async function chooseQuickAmount(percent: SwapQuickPercent) {
+    if (swapIsInFlight()) return;
     let selected = swapAmountForPercent(balance, percent);
     let calculatedSafeMax: SafeSwapMaxResult | undefined;
     if (percent === 100 && from.id === "usdc" && selected > 0n && client && connection.address && (await chain.verifyNow())) {
@@ -447,6 +455,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     }
   }
   async function review() {
+    if (swapIsInFlight()) return;
     if (!connection.address || !client || !parsed) return setError(vi ? "Nhập số tiền hợp lệ." : "Enter a valid amount.");
     if (parsed > balance) return setError(vi ? "Số dư không đủ." : "Insufficient balance.");
     setPending(vi ? "Đang lấy báo giá trực tiếp từ XyloNet…" : "Loading a live XyloNet quote…");
@@ -839,6 +848,8 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         setReviewStage(undefined);
         return setError(vi ? "Báo giá, mức tối thiểu, tuyến hoặc chi tiết giao dịch đã thay đổi. Hãy kiểm tra lại." : "Quote, minimum receive, route, or transaction details changed. Review again.");
       }
+      executionInFlightRef.current = true;
+      setExecutionInFlight(true);
       const hash = await submissionGuard.current.run(swapReview.fingerprint, () => writer.writeContractAsync(simulation.request));
       submitted = true;
       submittedHashLocal = hash;
@@ -950,6 +961,8 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         )[kind]
       );
     } finally {
+      executionInFlightRef.current = false;
+      setExecutionInFlight(false);
       setPending(undefined);
     }
   }
@@ -1200,9 +1213,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           },
         ]}
         walletNotice=""
-        backDisabled={submissionStatus === "submitted-pending"}
+        backDisabled={swapLocked}
         onBack={() => {
-          if (!swapBackAllowed(submissionStatus)) return;
+          if (!swapBackAllowed(submissionStatus, executionInFlightRef.current)) return;
           setReviewStage(undefined);
           setQuote(undefined);
         }}
@@ -1240,7 +1253,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           <select
             className="asset-selector"
             value={fromId}
+            disabled={swapLocked}
             onChange={(event) => {
+              if (swapIsInFlight()) return;
               setFromId(event.target.value as SupportedAssetId);
               reset();
             }}
@@ -1269,13 +1284,13 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           </small>
         </span>
         <div className="wallet-field-with-action amount">
-          <input inputMode="decimal" value={amount} onChange={(event) => changeAmount(event.target.value)} placeholder="0.00" />
+          <input inputMode="decimal" value={amount} disabled={swapLocked} onChange={(event) => changeAmount(event.target.value)} placeholder="0.00" />
           <span>{from.symbol}</span>
         </div>
       </label>
       <div className="swap-quick-amounts" aria-label={vi ? "Chọn nhanh số lượng" : "Quick amount selection"}>
         {([25, 50, 75, 100] as const).map((percent) => (
-          <button key={percent} type="button" onClick={() => void chooseQuickAmount(percent)} disabled={balance <= 0n || Boolean(pending)}>
+          <button key={percent} type="button" onClick={() => void chooseQuickAmount(percent)} disabled={swapLocked || balance <= 0n || Boolean(pending)}>
             {percent === 100 ? "MAX" : `${percent}%`}
           </button>
         ))}
@@ -1298,7 +1313,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
             <input
               type="radio"
               checked={mode === "smart"}
+              disabled={swapLocked}
               onChange={() => {
+                if (swapIsInFlight()) return;
                 setMode("smart");
                 invalidate();
               }}
@@ -1309,7 +1326,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
             <input
               type="radio"
               checked={mode === "xylonet"}
+              disabled={swapLocked}
               onChange={() => {
+                if (swapIsInFlight()) return;
                 setMode("xylonet");
                 invalidate();
               }}
@@ -1322,7 +1341,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           <select
             className="asset-selector"
             value={slippage}
+            disabled={swapLocked}
             onChange={(event) => {
+              if (swapIsInFlight()) return;
               setSlippage(Number(event.target.value) as (typeof SWAP_SLIPPAGE_OPTIONS)[number]);
               invalidate();
             }}
@@ -1351,7 +1372,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       )}
       {!chain.isArc && <p className="field-error">{vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required."}</p>}
       <div className="modal-actions">
-        <button type="submit" className="primary-action" disabled={Boolean(pending) || !chain.isArc}>
+        <button type="submit" className="primary-action" disabled={swapLocked || Boolean(pending) || !chain.isArc}>
           {vi ? "Lấy báo giá" : "Get quote"}
         </button>
       </div>

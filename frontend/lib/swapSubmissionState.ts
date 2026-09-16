@@ -21,13 +21,13 @@ export function swapContinueAllowed(status: SwapSubmissionStatus, reviewStage: "
 }
 
 /** A submitted transaction keeps the wallet flow protected until it reaches a terminal state. */
-export function swapModalBusy(status: SwapSubmissionStatus, pending: boolean, hasApprovalReview: boolean, reviewStage: "approval" | "swap" | undefined) {
-  return status === "submitted-pending" || Boolean(pending && (hasApprovalReview || reviewStage));
+export function swapModalBusy(status: SwapSubmissionStatus, pending: boolean, hasApprovalReview: boolean, reviewStage: "approval" | "swap" | undefined, executionInFlight = false) {
+  return executionInFlight || status === "submitted-pending" || Boolean(pending && (hasApprovalReview || reviewStage));
 }
 
 /** Back is safe before submission and after a terminal result, but never during unresolved confirmation. */
-export function swapBackAllowed(status: SwapSubmissionStatus) {
-  return status !== "submitted-pending";
+export function swapBackAllowed(status: SwapSubmissionStatus, executionInFlight = false) {
+  return !executionInFlight && status !== "submitted-pending";
 }
 
 export function swapStatusAfterConfirmation(status: SwapSubmissionStatus, confirmation: "success" | "failure" | "unknown"): SwapSubmissionStatus {

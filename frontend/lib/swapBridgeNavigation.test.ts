@@ -16,7 +16,7 @@ test("modal contains no duplicate Swap or Bridge chooser", () => {
 });
 
 test("quote preparation does not lock mode navigation", () => {
-  assert.match(swap, /onBusyChange\(swapModalBusy\(submissionStatus, Boolean\(pending\), Boolean\(maxApproval\), reviewStage\)\)/);
+  assert.match(swap, /onBusyChange\(swapModalBusy\(submissionStatus, Boolean\(pending\), Boolean\(maxApproval\), reviewStage, executionInFlight\)\)/);
   assert.match(swap, /swapModalBusy/);
   assert.doesNotMatch(swap, /onBusyChange\(Boolean\(pending\)\)/);
 });

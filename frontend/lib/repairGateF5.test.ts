@@ -5,7 +5,7 @@ import { classifySwapConfirmation, swapBackAllowed, swapContinueAllowed, swapMod
 
 const source = readFileSync(new URL("../components/RealSwapFlow.tsx", import.meta.url), "utf8");
 const finalReview = source.slice(source.indexOf('walletNotice=""'), source.indexOf('className="create-form wallet-flow compact-swap-flow"'));
-const backMatch = finalReview.match(/backDisabled=\{submissionStatus === "submitted-pending"\}\s+onBack=\{\(\) => \{([\s\S]*?)\n\s*\}\}/);
+const backMatch = finalReview.match(/backDisabled=\{swapLocked\}\s+onBack=\{\(\) => \{([\s\S]*?)\n\s*\}\}/);
 assert.ok(backMatch, "Swap Review should expose the pending Back guard");
 const backBody = backMatch[1];
 
@@ -16,7 +16,7 @@ function invokeBack(status: SwapSubmissionStatus) {
     setReviewStage(value: "swap" | undefined) { reviewStage = value; },
     setQuote(value: unknown) { quote = value; },
   };
-  new Function(...Object.keys(setters), "submissionStatus", "swapBackAllowed", backBody)(...Object.values(setters), status, swapBackAllowed);
+  new Function(...Object.keys(setters), "submissionStatus", "swapBackAllowed", "executionInFlightRef", backBody)(...Object.values(setters), status, swapBackAllowed, { current: status === "submitted-pending" });
   return { reviewStage, quote };
 }
 
@@ -25,7 +25,7 @@ test("Repair Gate F5: pre-submit Swap Review Back remains available", () => {
   const state = invokeBack("not-submitted");
   assert.equal(state.reviewStage, undefined);
   assert.equal(state.quote, undefined);
-  assert.match(finalReview, /backDisabled=\{submissionStatus === "submitted-pending"\}/);
+  assert.match(finalReview, /backDisabled=\{swapLocked\}/);
 });
 
 test("Repair Gate F5: submitted-pending is authoritative modal protection", () => {
@@ -42,7 +42,7 @@ test("Repair Gate F5: pending Swap Back is disabled and defensively inert", () =
   const state = invokeBack("submitted-pending");
   assert.equal(state.reviewStage, "swap");
   assert.deepEqual(state.quote, { fixture: true });
-  assert.match(backBody, /if \(!swapBackAllowed\(submissionStatus\)\) return;/);
+  assert.match(backBody, /if \(!swapBackAllowed\(submissionStatus, executionInFlightRef\.current\)\) return;/);
 });
 
 test("Repair Gate F5: unresolved submission remains blocked from a second wallet write", () => {
