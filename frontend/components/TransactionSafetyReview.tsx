@@ -6,7 +6,7 @@ import { expectedTransactionChanges, type TransactionIntent } from "@/lib/transa
 import { formatAssetAmount, getAssetById } from "@/lib/assets";
 import type { TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 
-export type ReviewDetail = { label: string; value: ReactNode };
+export type ReviewDetail = { label: string; value: ReactNode; presentation?: "value" | "prose" };
 
 function effectiveReviewAssessment(assessment?: TransactionSafetyAssessment, snapshotAssessment?: TransactionSafetyAssessment) {
   if (!assessment) return snapshotAssessment;
@@ -47,7 +47,7 @@ export function TransactionSafetyReview({ title, summary, details, costDetails =
                 {collapsedDetails.map((detail) => (
                   <div key={detail.label}>
                     <dt>{detail.label}</dt>
-                    <dd>{detail.value}</dd>
+                    <dd className={detail.presentation === "prose" ? "review-detail-prose" : undefined}>{detail.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -111,7 +111,7 @@ function ReviewSection({ id, title, compact = false, children }: { id: string; t
 }
 
 function ReviewDetailList({ details, className = "" }: { details: readonly ReviewDetail[]; className?: string }) {
-  return <dl className={`wallet-review ${className}`.trim()}>{details.map((detail) => <div key={detail.label}><dt>{detail.label}</dt><dd>{detail.value}</dd></div>)}</dl>;
+  return <dl className={`wallet-review ${className}`.trim()}>{details.map((detail) => <div key={detail.label}><dt>{detail.label}</dt><dd className={detail.presentation === "prose" ? "review-detail-prose" : undefined}>{detail.value}</dd></div>)}</dl>;
 }
 
 function ReviewLimitations({ assessment, simulationNotPerformed }: { assessment?: TransactionSafetyAssessment; simulationNotPerformed: boolean }) {

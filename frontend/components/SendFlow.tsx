@@ -23,6 +23,7 @@ import { arcFeeMateriallyChanged, calculateArcFee, formatArcFeeEstimate, maxSend
 import { assessTransaction, transactionFingerprint, type TransactionIntent } from "@/lib/transactionSafety";
 import { prepareTransactionReview, revalidateTransactionReview, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 import { storeAgentResult } from "@/lib/agent/actions";
+import "./SendReceive.css";
 
 type TransactionStage = "idle" | "awaiting" | "confirming" | "confirmed" | "failed" | "unknown";
 type RecipientKind = "checking" | "wallet" | "contract" | "unknown";
@@ -600,6 +601,7 @@ export function SendFlow({
 
   return (
     <WalletPanel title={copy.title} onClose={onClose} closeDisabled={pending}>
+      <div className="ledger-send">
       {reviewing && !("error" in validated) ? (
         <TransactionSafetyReview
           compact
@@ -612,7 +614,7 @@ export function SendFlow({
             },
             {
               label: copy.destination,
-              value: matchedContact ? `${matchedContact.name} · ${shortAddress(validated.address)}` : shortAddress(validated.address),
+              value: <span className="full-address">{matchedContact && <span>{matchedContact.name} · </span>}{validated.address}</span>,
             },
             {
               label: copy.network,
@@ -623,10 +625,12 @@ export function SendFlow({
           costDetails={[
             {
               label: copy.estimatedFee,
+              presentation: feeEstimate.status === "ready" ? "value" : "prose",
               value: feeEstimate.status === "ready" ? formatArcFeeEstimate(feeEstimate.rawFee) : feeEstimate.status === "loading" ? copy.estimatingFee : copy.feeUnavailable,
             },
             {
               label: copy.estimatedTotal,
+              presentation: feeEstimate.status === "ready" && feeCost ? "value" : "prose",
               value: feeEstimate.status === "ready" && feeCost ? (assetId === "usdc" ? `${formatAssetAmount(feeCost.totalUsdc6, asset)} USDC` : `${formatAssetAmount(validated.amount, asset)} ${asset.symbol} + ${formatAssetAmount(feeCost.feeUsdc6, getAssetById("usdc")!)} USDC`) : copy.feeUnavailable,
             },
           ]}
@@ -771,6 +775,28 @@ export function SendFlow({
               ))}
             </select>
           </label>
+          <p className="send-available" id="send-available">{copy.available}: <strong>{formatAssetAmount(balance, asset)} {asset.symbol}</strong></p>
+          <label htmlFor="send-amount">
+            {copy.amount}
+            <div className="wallet-field-with-action amount">
+              <input
+                id="send-amount"
+                name="amount"
+                inputMode="decimal"
+                value={amount}
+                aria-describedby="send-available"
+                onChange={(event) => {
+                  setAmount(event.target.value);
+                  resetSafety();
+                }}
+                placeholder="0.00"
+              />
+              <span>{asset.symbol}</span>
+              <button type="button" onClick={() => void applySafeMax()}>
+                {copy.max}
+              </button>
+            </div>
+          </label>
           <label htmlFor="send-recipient">
             {copy.recipient}
             <div className="wallet-field-with-action">
@@ -778,6 +804,9 @@ export function SendFlow({
                 id="send-recipient"
                 name="recipient"
                 value={recipient}
+                autoCapitalize="none"
+                aria-invalid={Boolean(recipient.trim() && !normalizedRecipient)}
+                aria-describedby="send-recipient-context"
                 onChange={(event) => {
                   setRecipient(event.target.value);
                   setContactFormOpen(false);
@@ -792,6 +821,9 @@ export function SendFlow({
               </button>
             </div>
           </label>
+          <p id="send-recipient-context" className="send-recipient-context" role="status">
+            {!recipient.trim() ? copy.recipientHint : !normalizedRecipient ? copy.invalidAddress : normalizedRecipient.toLowerCase() === connection.address?.toLowerCase() ? copy.ownRecipient : copy.recipientFormat}
+          </p>
           {(contacts.length > 0 || recents.length > 0 || canSaveContact || matchedContact) && (
             <div className="recipient-helper">
               {contacts.length > 0 && (
@@ -882,29 +914,7 @@ export function SendFlow({
               )}
             </div>
           )}
-          <label htmlFor="send-amount">
-            {copy.amount}
-            <div className="wallet-field-with-action amount">
-              <input
-                id="send-amount"
-                name="amount"
-                inputMode="decimal"
-                value={amount}
-                onChange={(event) => {
-                  setAmount(event.target.value);
-                  resetSafety();
-                }}
-                placeholder="0.00"
-              />
-              <span>{asset.symbol}</span>
-              <button type="button" onClick={() => void applySafeMax()}>
-                {copy.max}
-              </button>
-            </div>
-            <small>
-              {copy.available}: {formatAssetAmount(balance, asset)} {asset.symbol}
-            </small>
-          </label>
+          <div className="send-network-context"><span>{copy.network}</span><strong>Arc Testnet</strong><p>{copy.inputHandoff}</p></div>
           <label htmlFor="send-note" className="send-note-field">
             {copy.noteOptional}
             <textarea
@@ -946,6 +956,7 @@ export function SendFlow({
           </div>
         </form>
       )}
+      </div>
     </WalletPanel>
   );
 }
@@ -953,6 +964,10 @@ export function SendFlow({
 function sendCopy(locale: "en" | "vi", t: ReturnType<typeof usePreferences>["t"]) {
   const vi = locale === "vi";
   return {
+    recipientHint: vi ? "Dán địa chỉ đầy đủ của người nhận trên Arc Testnet." : "Paste the recipient’s full address on Arc Testnet.",
+    recipientFormat: vi ? "Định dạng địa chỉ hợp lệ. Hãy xác nhận địa chỉ với người nhận." : "Valid address format. Confirm the address with the recipient.",
+    ownRecipient: vi ? "Đây là địa chỉ ví đang kết nối của bạn." : "This is your connected wallet’s address.",
+    inputHandoff: vi ? "Tiếp theo: kiểm tra số tiền và phí ước tính trong Makoto. Sau đó, bạn vẫn cần xác nhận trong ví." : "Next: review the amount and estimated fee in Makoto. Your wallet confirmation is still required afterwards.",
     estimatedFee: vi ? "Phí mạng ước tính" : "Estimated network fee",
     estimatedTotal: vi ? "Tổng ước tính" : "Estimated total",
     estimatingFee: vi ? "Đang ước tính phí…" : "Estimating fee…",

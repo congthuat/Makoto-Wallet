@@ -138,7 +138,16 @@ test("transaction modals stay above Makoto chrome and lock background scrolling"
   assert.match(panel, /document\.body\.style\.overflow\s*=\s*"hidden"/);
   assert.match(panel, /document\.body\.style\.overflow\s*=\s*previousBodyOverflow/);
 });
-test("shared transaction dialogs contain keyboard focus", () => { const panel = readFileSync(new URL("../components/WalletPanel.tsx", import.meta.url), "utf8"); assert.match(panel, /event\.key !== "Tab"/); assert.match(panel, /querySelectorAll<HTMLElement>/); assert.match(panel, /event\.shiftKey/); assert.match(panel, /last\.focus\(\)/); assert.match(panel, /first\.focus\(\)/); });
+test("shared transaction dialogs contain keyboard focus", () => {
+  const panel = readFileSync(new URL("../components/WalletPanel.tsx", import.meta.url), "utf8");
+  const focus = readFileSync(new URL("./modalFocus.ts", import.meta.url), "utf8");
+  assert.match(panel, /event\.key !== "Tab"/);
+  assert.match(panel, /modalWrapTarget\(modalTabStops\(panelRef\.current\), document\.activeElement, event\.shiftKey, panelRef\.current\)/);
+  assert.match(panel, /event\.preventDefault\(\); target\.focus\(\)/);
+  assert.match(focus, /querySelectorAll<HTMLElement>/);
+  assert.match(focus, /if \(backwards && active === stops\[0\]\) return stops\[stops\.length - 1\]/);
+  assert.match(focus, /if \(!backwards && active === stops\[stops\.length - 1\]\) return stops\[0\]/);
+});
 
 test("shared transaction dialogs reset scroll and keep their header sticky", () => { const panel = readFileSync(new URL("../components/WalletPanel.tsx", import.meta.url), "utf8"); assert.match(panel, /panelRef\.current\.scrollTop = 0/); assert.match(globals, /\.modal-header\s*\{[^}]*position:sticky[^}]*z-index:3[^}]*background:var\(--white\)/); });
 

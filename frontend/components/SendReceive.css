@@ -1,0 +1,68 @@
+/* Phase 7E: scoped to Send/Receive; shared Review and transaction logic stay owned by their components. */
+.wallet-action-modal:has(.ledger-send, .ledger-receive) {
+  width: min(640px, 100%);
+  color: var(--lc-text);
+  background: var(--lc-surface);
+  /* Keep keyboard targets and their rings clear of the sticky modal header. */
+  scroll-padding-block: 112px var(--lc-space-3);
+}
+.ledger-send :is(button, input, select, textarea, summary, a),
+.ledger-receive :is(button, input, select, textarea, summary, a) { scroll-margin-block: var(--lc-space-2); }
+.ledger-send .send-flow { gap: var(--lc-space-5); }
+.ledger-send .send-flow > label,
+.ledger-receive label { font-size: var(--lc-label-size); line-height: var(--lc-label-line); font-weight: 600; }
+.ledger-send .send-flow .asset-selector,
+.ledger-receive .asset-selector { min-height: 48px; font-size: 16px; color: var(--lc-text); background: var(--lc-surface); border-color: var(--lc-control-border); }
+.ledger-send .send-flow .wallet-field-with-action input,
+.ledger-receive .receive-amount input { min-height: 56px; font-size: 16px; color: var(--lc-text); background: var(--lc-surface); border-color: var(--lc-control-border); }
+.ledger-send .send-flow .wallet-field-with-action.amount input { font-size: 28px; font-variant-numeric: tabular-nums; }
+.ledger-send .send-available { margin: -8px 0 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; color: var(--lc-text-secondary); font-size: 14px; line-height: 21px; }
+.ledger-send .send-available strong { color: var(--lc-text); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.ledger-send .send-recipient-context { margin: -12px 0 0; color: var(--lc-text-secondary); font-size: 14px; line-height: 21px; }
+.ledger-send .send-network-context { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-block: 16px; border-block: 1px solid var(--lc-separator); font-size: 14px; }
+.ledger-send .send-network-context > span { color: var(--lc-text-secondary); }
+.ledger-send .send-network-context p { flex-basis: 100%; margin: 0; color: var(--lc-text-secondary); line-height: 21px; }
+.ledger-send .send-flow .send-note-field { border: 0; padding: 0; }
+.ledger-send .send-note-field textarea { font-size: 16px; color: var(--lc-text); }
+.ledger-send .send-flow > label > small { font-size: 12px; }
+.ledger-send .send-flow > .field-error { font-size: 14px; line-height: 21px; color: var(--lc-error); background: var(--lc-error-surface); border-color: var(--lc-error); }
+.ledger-send .send-flow .wallet-field-with-action > button { position: static; transform: none; min-height: 44px; padding: 8px 12px; font-size: 14px; color: var(--lc-action); }
+.ledger-send .send-flow .wallet-field-with-action { display: flex; align-items: center; gap: 8px; }
+.ledger-send .send-flow .wallet-field-with-action input { min-width: 0; flex: 1; width: 100%; padding-inline: 12px; }
+.ledger-send .send-flow .wallet-field-with-action > span { position: static; transform: none; font-size: 14px; color: var(--lc-text-secondary); }
+.ledger-send .send-flow input[aria-invalid="true"] { border-color: var(--lc-error); }
+.ledger-send .compact-review-summary .full-address { display: block; max-width: none; text-align: left; font-size: 14px; line-height: 21px; overflow-wrap: anywhere; white-space: normal; }
+.ledger-send .recipient-helper { padding: 12px 0; border-block: 1px solid var(--lc-separator); background: transparent; box-shadow: none; }
+.ledger-send .recipient-helper :is(small, span, p) { font-size: 12px; line-height: 18px; }
+.ledger-send .recipient-helper button { min-height: 44px; }
+.ledger-send .recipient-actions :is(button, a) { min-height: 44px; font-size: 14px; color: var(--lc-action); }
+.ledger-send :is(.wallet-warning, .large-send-warning) { font-size: 14px; line-height: 21px; background: var(--lc-attention-surface); border-color: var(--lc-attention); color: var(--lc-attention); }
+.ledger-receive .receive-network-context { margin: 0 0 16px; color: var(--lc-text-secondary); font-size: 14px; line-height: 21px; }
+.ledger-receive .receive-address { grid-template-columns: 1fr; gap: 8px; margin: 16px 0; padding: 0; border: 0; }
+.ledger-receive .receive-address p { font-size: 14px; }
+.ledger-receive .receive-address code { color: var(--lc-text); background: var(--lc-inset); font-size: 16px; line-height: 24px; white-space: normal; overflow-wrap: anywhere; user-select: all; }
+.ledger-receive .receive-address .secondary-button { width: 100%; min-height: 48px; border-color: var(--lc-action); color: var(--lc-action); font-size: 14px; }
+.ledger-receive .wallet-notice { margin: 0 0 20px; padding: 12px 16px; border-left: 3px solid var(--lc-attention); background: var(--lc-attention-surface); color: var(--lc-attention); font-size: 14px; line-height: 21px; }
+.ledger-receive .receive-compact-grid { grid-template-columns: 1fr; gap: 20px; }
+.ledger-receive .receive-qr-card { margin: 0 auto; border-radius: var(--lc-radius-surface); box-shadow: none; }
+.ledger-receive .receive-qr-card :is(strong, span) { color: #17202a; font-size: 14px; line-height: 21px; text-align: center; overflow-wrap: anywhere; }
+.ledger-receive .receive-request { min-width: 0; border-block: 1px solid var(--lc-separator); }
+.ledger-receive :is(.receive-request, .receive-details) > summary { min-height: 48px; padding-block: 12px; color: var(--lc-text); font-size: 14px; line-height: 21px; font-weight: 600; cursor: pointer; }
+.ledger-receive .receive-controls { padding-bottom: 16px; }
+.ledger-receive .receive-controls > p,
+.ledger-receive .receive-explanation { margin: 0; color: var(--lc-text-secondary); font-size: 14px; line-height: 21px; }
+.ledger-receive .receive-controls > label { font-size: 14px; }
+.ledger-receive .receive-controls textarea { font-size: 16px; }
+.ledger-receive .receive-details .receive-asset { font-size: 14px; }
+.ledger-receive .receive-actions .secondary-button { font-size: 14px; min-height: 48px; color: var(--lc-action); white-space: normal; }
+.ledger-receive .receive-explanation { margin-top: 16px; }
+.ledger-send :is(button, input, select, textarea):focus-visible,
+.ledger-send .send-flow .wallet-field-with-action input:focus-visible,
+.ledger-receive :is(button, input, select, textarea, summary):focus-visible { outline: 3px solid var(--lc-focus); outline-offset: 3px; }
+@media (min-width: 600px) {
+  .ledger-receive .receive-compact-grid { grid-template-columns: 236px minmax(0, 1fr); align-items: start; }
+}
+@media (max-width: 599px) {
+  .ledger-send .send-flow > .modal-actions { position: static; margin: 0; padding: 16px 0 0; }
+  .ledger-receive .receive-details .receive-actions { grid-template-columns: 1fr; }
+}
