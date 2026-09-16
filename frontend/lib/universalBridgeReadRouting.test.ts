@@ -136,6 +136,10 @@ function harness(mode: "success" | "fallback" | "failure", options: { arc?: bool
     "@/lib/circle/chains": bridgeChains,
     "@/lib/transactionFlowReview": flowReview,
     "@/lib/transactionOrchestrator": orchestrator,
+    "@/lib/bridgeTerminalState": {
+      bridgeReviewIsActionable: (result: unknown, estimate: unknown, review: unknown) => result === undefined && estimate !== undefined && review !== undefined,
+      bridgeContinueAllowed: (result: unknown, locked: boolean, estimate: unknown, review: unknown) => result === undefined && !locked && estimate !== undefined && review !== undefined,
+    },
     "@/lib/agent/actions": { storeAgentResult: () => assert.fail("Review must never persist a transaction result") },
     "./CctpBridgeFlow": {}, "./TransactionSafetyReview": { TransactionSafetyReview: Review },
     "./UniversalBridgeFlow.module.css": {},

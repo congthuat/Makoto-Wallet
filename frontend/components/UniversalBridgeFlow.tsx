@@ -10,6 +10,7 @@ import { BRIDGE_ESTIMATE_MAX_AGE_MS, bridgeDestination, bridgeEventStage, makeBr
 import { unifiedChainById } from "@/lib/circle/chains";
 import { bridgeIntent, managedRequest, prepareFlowReview } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import { bridgeContinueAllowed, bridgeReviewIsActionable } from "@/lib/bridgeTerminalState";
 import { isWalletCancellation, storeAgentResult } from "@/lib/agent/actions";
 import { CctpBridgeFlow } from "./CctpBridgeFlow";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
@@ -188,7 +189,8 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
     return () => window.clearTimeout(timeout);
   }, [connection.address, initialValues?.origin]);
   async function execute() {
-    if (lock.current || !estimate || !reviewSnapshot) return;
+    if (!bridgeContinueAllowed(result, lock.current, estimate, reviewSnapshot)) return;
+    if (!estimate || !reviewSnapshot) return;
     const intent = intentFor(estimate),
       checked = revalidateTransactionReview(reviewSnapshot, {
         intent,
@@ -263,7 +265,7 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
     ["mint", vi ? "Mint / chuyển tiếp" : "Mint / forwarding"],
     ["completed", vi ? "Hoàn tất" : "Completed"],
   ];
-  if (estimate && reviewSnapshot)
+  if (bridgeReviewIsActionable(result, estimate, reviewSnapshot) && estimate && reviewSnapshot)
     return (
       <TransactionSafetyReview
         compact
