@@ -26,7 +26,7 @@ import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, prepareFlowReview, swapIntent } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 import { storeAgentResult } from "@/lib/agent/actions";
-import { swapContinueAllowed, swapStatusAfterConfirmation, type SwapSubmissionStatus } from "@/lib/swapSubmissionState";
+import { classifySwapConfirmation, swapContinueAllowed, swapStatusAfterConfirmation, type SwapReceiptStatus, type SwapSubmissionStatus } from "@/lib/swapSubmissionState";
 
 type Props = {
   locale: "en" | "vi";
@@ -83,7 +83,8 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     }>(),
     [submittedHash, setSubmittedHash] = useState<Hex>(),
     [submissionStatus, setSubmissionStatus] = useState<SwapSubmissionStatus>("not-submitted"),
-    [unknown, setUnknown] = useState<{ hash: Hex; quote: SwapQuote }>();
+    [unknown, setUnknown] = useState<{ hash: Hex; quote: SwapQuote }>(),
+    [failure, setFailure] = useState<{ hash: Hex; quote: SwapQuote }>();
   const [safeMax, setSafeMax] = useState<
     SafeSwapMaxResult & {
       balance: bigint;
@@ -214,6 +215,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     setSubmittedHash(undefined);
     setSubmissionStatus("not-submitted");
     setUnknown(undefined);
+    setFailure(undefined);
   }
   async function gasPrice() {
     if (!client) return undefined;
@@ -712,6 +714,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     }
     if (gasUnavailable || !gasCost?.sufficientGasBalance) return setError(vi ? "Không đủ số dư USDC đã tính cả phí Arc, hoặc chưa thể ước tính phí an toàn." : "USDC balance including Arc gas is insufficient, or a safe fee estimate is unavailable.");
     let submitted = false;
+    let receiptStatus: SwapReceiptStatus | undefined;
     let submittedHashLocal: Hex | undefined;
     setError(undefined);
     try {
@@ -843,6 +846,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       setSubmissionStatus("submitted-pending");
       setPending(vi ? "Đã gửi. Đang chờ Arc xác nhận…" : "Submitted. Waiting for Arc confirmation…");
       const receipt = await client.waitForTransactionReceipt({ hash });
+      receiptStatus = receipt.status;
       if (receipt.status !== "success") throw new Error("revert");
       const block = await client.getBlock({ blockNumber: receipt.blockNumber });
       await confirmThenRefresh({
@@ -904,7 +908,8 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     } catch (caught) {
       if (caught instanceof Error && caught.message === "arc") return setError(vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.");
       if (caught instanceof Error && caught.message === "balance") return setError(vi ? "Số dư vừa thay đổi và không còn đủ." : "Your balance changed and is no longer sufficient.");
-      const kind = classifyWalletFailure(caught, submitted);
+      const confirmationOutcome = classifySwapConfirmation({ submitted, receiptStatus });
+      const kind = confirmationOutcome === "confirmed-failure" ? "reverted" : classifyWalletFailure(caught, submitted);
       if (initialValues?.origin === "agent" && connection.address)
         storeAgentResult(window.sessionStorage, {
           id: `swap-${Date.now()}`,
@@ -921,7 +926,12 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
             : {}),
           transactionHash: submittedHashLocal,
         });
-      if (kind === "confirmation-unknown" && submittedHashLocal) {
+      if (confirmationOutcome === "confirmed-failure" && submittedHashLocal) {
+        setSubmissionStatus(swapStatusAfterConfirmation("submitted-pending", "failure"));
+        setFailure({ hash: submittedHashLocal, quote });
+        setReviewStage(undefined);
+        setSwapReview(undefined);
+      } else if (kind === "confirmation-unknown" && submittedHashLocal) {
         setSubmissionStatus(swapStatusAfterConfirmation("submitted-pending", "unknown"));
         setUnknown({ hash: submittedHashLocal, quote });
         setReviewStage(undefined);
@@ -980,6 +990,28 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         </a>
         <button type="button" className="standalone-action" onClick={reset}>
           {vi ? "Hoán đổi tiếp" : "Swap again"}
+        </button>
+      </div>
+    );
+  }
+  if (failure) {
+    const sold = getAssetById(failure.quote.fromAssetId)!,
+      bought = getAssetById(failure.quote.toAssetId)!;
+    return (
+      <div className="transaction-state transaction-failed" data-status="confirmed-failure">
+        <span>!</span>
+        <h3>{vi ? "Hoán đổi thất bại" : "Swap failed"}</h3>
+        <p>{error ?? (vi ? "Arc đã xác nhận giao dịch bị revert." : "Arc confirmed that the submitted transaction reverted.")}</p>
+        <p>
+          {formatAssetAmount(failure.quote.amountIn, sold)} {sold.symbol} → {vi ? "dự kiến" : "expected"} ≈ {formatAssetAmount(failure.quote.amountOut, bought)} {bought.symbol}
+        </p>
+        <p>{vi ? "Mạng" : "Network"}: Arc Testnet</p>
+        <code>{failure.hash}</code>
+        <a href={`${ARC_EXPLORER_URL}/tx/${failure.hash}`} target="_blank" rel="noreferrer">
+          ArcScan ↗
+        </a>
+        <button type="button" className="standalone-action" onClick={reset}>
+          {vi ? "Thử hoán đổi lại" : "Try swap again"}
         </button>
       </div>
     );
