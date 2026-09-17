@@ -12,6 +12,15 @@ export type MinimalTransactionReceipt = { status: "success" | "reverted"; transa
 export type SwapReceiveEvidence = Readonly<{ amount: bigint; logIndex: number }>;
 export type VerifiedMemo = { text?: string; data: Hex; memoId: Hex; memoIndex: bigint };
 export type ReceiptVerification = { verified: boolean; from: Address; to: Address; blockNumber: bigint; memo?: VerifiedMemo; reason?: "status" | "hash" | "block" | "transfer-missing" | "transfer-ambiguous" | "swap-sent" | "swap-receive" };
+export type ReceiptConfirmationStatus = "not-submitted" | "submitted-unknown" | "confirmed-success" | "confirmed-failure";
+
+/** Classify receipt evidence before it is presented or exported. */
+export function classifyReceiptConfirmation(verification: ReceiptVerification | undefined, submitted = true): ReceiptConfirmationStatus {
+  if (!submitted) return "not-submitted";
+  if (!verification) return "submitted-unknown";
+  if (verification.verified) return "confirmed-success";
+  return verification.reason === "status" ? "confirmed-failure" : "submitted-unknown";
+}
 
 export function verifyTransactionReceipt(activity: WalletActivity, walletAddress: Address, receipt: MinimalTransactionReceipt): ReceiptVerification {
   const wallet = getAddress(walletAddress);
@@ -79,9 +88,13 @@ export function buildCanonicalReceiptText(activity: WalletActivity, verification
   const vi = locale === "vi";
   const asset = getAssetById(activity.assetId)!;
   const type = activity.kind === "swap" ? (vi ? "Hoán đổi" : "Swap") : activity.kind === "bridge" ? (vi ? "Bridge" : "Bridge") : activity.direction === "send" ? (vi ? "Gửi" : "Send") : (vi ? "Nhận" : "Receive");
-  const lines = [vi ? "Makoto Wallet — Biên nhận giao dịch" : "Makoto Wallet — Transaction Receipt", `${vi ? "Trạng thái" : "Status"}: ${vi ? "Đã xác nhận" : "Confirmed"}`, `${vi ? "Loại" : "Type"}: ${type}`];
-  if (activity.kind === "swap" && activity.swapReceive) lines.push(`${vi ? "Đã gửi" : "Sent"}: ${formatAssetAmount(activity.amount, asset)} ${activity.assetSymbol}`, `${vi ? "Đã nhận" : "Received"}: ${formatAssetAmount(activity.swapReceive.amount, getAssetById(activity.swapReceive.assetId)!)} ${activity.swapReceive.assetSymbol}`);
-  else lines.push(`${vi ? "Số tiền" : "Amount"}: ${formatAssetAmount(activity.amount, asset)} ${activity.assetSymbol}`);
+  const status = classifyReceiptConfirmation(verification);
+  const statusLabel = status === "confirmed-success" ? (vi ? "Đã xác nhận" : "Confirmed") : status === "confirmed-failure" ? (vi ? "Xác nhận thất bại" : "Confirmed failure") : (vi ? "Đã gửi — chưa rõ trạng thái xác nhận" : "Submitted — confirmation status unknown");
+  const lines = [vi ? "Makoto Wallet — Biên nhận giao dịch" : "Makoto Wallet — Transaction Receipt", `${vi ? "Trạng thái" : "Status"}: ${statusLabel}`, `${vi ? "Loại" : "Type"}: ${type}`];
+  if (activity.kind === "swap") {
+    lines.push(`${vi ? "Đã gửi" : "Sent"}: ${formatAssetAmount(activity.amount, asset)} ${activity.assetSymbol}`);
+    if (status === "confirmed-success" && activity.swapReceive) lines.push(`${vi ? "Đã nhận" : "Received"}: ${formatAssetAmount(activity.swapReceive.amount, getAssetById(activity.swapReceive.assetId)!)} ${activity.swapReceive.assetSymbol}`);
+  } else lines.push(`${vi ? "Số tiền" : "Amount"}: ${formatAssetAmount(activity.amount, asset)} ${activity.assetSymbol}`);
   lines.push(`${vi ? "Từ" : "From"}: ${verification.from}`, `${vi ? "Đến" : "To"}: ${verification.to}`, `${vi ? "Mạng" : "Network"}: Arc Testnet`, `${vi ? "Khối" : "Block"}: ${verification.blockNumber}`, `${vi ? "Giao dịch" : "Transaction"}: ${activity.hash}`);
   if (verification.verified && verification.memo?.text) lines.push(`${vi ? "Ghi chú" : "Note"}: ${verification.memo.text}`);
   lines.push(`ArcScan: ${arcScanTransactionUrl(activity.hash)}`);
