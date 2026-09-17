@@ -28,16 +28,6 @@ type Props = {
   onBusyChange(busy: boolean): void;
 };
 
-function compactBridgeFeeSummary(fees: MakotoBridgeEstimate["fees"], vi: boolean) {
-  const primary = fees.find((fee) => fee.type !== "gas" && fee.amount) ?? fees.find((fee) => fee.amount);
-  if (!primary?.amount) return vi ? "Không khả dụng" : "Unavailable";
-  const [whole, fraction] = primary.amount.split(".");
-  const compactAmount = fraction ? `${whole}.${fraction.slice(0, 6).replace(/0+$/, "") || "0"}` : whole;
-  const hasGas = primary.type !== "gas" && fees.some((fee) => fee.type === "gas" && fee.amount);
-  const hasOtherFees = fees.some((fee) => fee !== primary && fee.type !== "gas" && fee.amount);
-  const suffix = hasGas ? (vi ? " + gas" : " + gas") : hasOtherFees ? (vi ? " + phí khác" : " + other fees") : "";
-  return `≈ ${compactAmount} ${primary.token}${suffix}`;
-}
 export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Props) {
   const vi = locale === "vi",
     connection = useConnection(),
@@ -261,24 +251,16 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
   const timeline: [BridgeStage, string][] = [
     ["preparing", vi ? "Chuẩn bị" : "Preparing"],
     ["approval", vi ? "Phê duyệt" : "Approval"],
-    ["burn", "Burn"],
-    ["attestation", "Attestation"],
-    ["mint", vi ? "Mint / chuyển tiếp" : "Mint / forwarding"],
+    ["burn", vi ? "Gửi USDC từ mạng nguồn" : "Send USDC from source"],
+    ["attestation", vi ? "Chờ chứng thực Circle" : "Wait for Circle attestation"],
+    ["mint", vi ? "Nhận / chuyển tiếp ở mạng đích" : "Receive / forward at destination"],
     ["completed", vi ? "Hoàn tất" : "Completed"],
   ];
   if (bridgeReviewIsActionable(result, estimate, reviewSnapshot) && estimate && reviewSnapshot)
     return (
       <TransactionSafetyReview
         compact
-        technicalDetailIndexes={[0, 1, 2, 3, 4, 5, 6, 7]}
-        compactDetails={[
-          { label: "From", value: estimate.source.name },
-          { label: "To", value: estimate.destination.name },
-          { label: "Amount", value: `${estimate.amount} USDC` },
-          { label: "Expected receive", value: estimate.expectedReceive ? `${estimate.expectedReceive} USDC` : "Unavailable" },
-          { label: "Recipient", value: `${estimate.recipient.slice(0, 6)}...${estimate.recipient.slice(-4)}` },
-          { label: vi ? "Phí" : "Fees", value: compactBridgeFeeSummary(estimate.fees, vi) },
-        ]}
+        technicalDetailIndexes={[]}
         title={vi ? "Kiểm tra Bridge" : "Review Bridge"}
         summary={vi ? "Kiểm tra ước tính Circle và toàn bộ chi tiết trước khi mở ví." : "Review the Circle estimate and all material details before opening your wallet."}
         details={[
@@ -298,27 +280,28 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
             label: vi ? "Số tiền" : "Amount",
             value: `${estimate.amount} USDC`,
           },
-          { label: vi ? "Tốc độ" : "Transfer speed", value: estimate.speed },
+          { label: vi ? "Tốc độ" : "Transfer speed", value: estimate.speed === "STANDARD" ? (vi ? "Tiêu chuẩn" : "Standard") : vi ? "Nhanh" : "Fast" },
           { label: vi ? "Tuyến" : "Route", value: "Circle App Kit · CCTP" },
+          { label: vi ? "Tài sản đích" : "Destination asset", value: "USDC" },
           {
             label: vi ? "Ước tính nhận" : "Expected receive",
             value: estimate.expectedReceive ? `${estimate.expectedReceive} USDC` : vi ? "Không khả dụng" : "Unavailable",
           },
-          {
-            label: vi ? "Phí" : "Fees",
-            value: estimate.fees.map((f) => `${f.label}: ${f.amount ?? "Unavailable"} ${f.amount ? f.token : ""}`).join(" · "),
-          },
         ]}
+        costDetails={estimate.fees.map((fee) => ({
+          label: vi ? (fee.type === "forwarding" ? "Phí chuyển tiếp" : fee.type === "protocol" ? "Phí giao thức CCTP" : `Phí mạng · ${fee.label}`) : fee.label,
+          value: fee.amount === undefined ? (vi ? "Không khả dụng" : "Unavailable") : `${fee.amount} ${fee.token}`,
+        }))}
         checks={[
           {
             code: "wallet",
             status: connection.isConnected ? "verified" : "blocking",
-            label: connection.isConnected ? "Wallet connected" : "Wallet disconnected",
+            label: connection.isConnected ? (vi ? "Ví đã kết nối" : "Wallet connected") : (vi ? "Ví chưa kết nối" : "Wallet disconnected"),
           },
           {
             code: "account",
             status: connection.address?.toLowerCase() === estimate.raw.source.address.toLowerCase() ? "verified" : "blocking",
-            label: connection.address?.toLowerCase() === estimate.raw.source.address.toLowerCase() ? "Account matches review" : "Account changed",
+            label: connection.address?.toLowerCase() === estimate.raw.source.address.toLowerCase() ? (vi ? "Tài khoản khớp với bản kiểm tra" : "Account matches review") : (vi ? "Tài khoản đã thay đổi" : "Account changed"),
           },
           {
             code: "source-network",
@@ -333,11 +316,13 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
         onContinue={() => void execute()}
         continueDisabled={busy === "executing"}
       >
+        <p className="exchange-context">{vi ? "Circle App Kit quản lý giao dịch cuối cùng. Ước tính nhận không phải số thực nhận." : "Circle App Kit manages the final transaction. Estimated receive is not actual received."}</p>
+        {busy === "executing" && <p className="transaction-progress" role="status">{vi ? "Đang xử lý Bridge qua Circle. Theo dõi yêu cầu trong ví và các bước bên dưới." : "Bridge execution is in progress through Circle. Follow wallet requests and the stages below."}</p>}
         {stages.length > 0 && (
-          <ol className="bridge-timeline">
+          <ol className="bridge-timeline" aria-label={vi ? "Các bước Bridge đã ghi nhận" : "Observed bridge stages"}>
             {timeline.map(([id, label]) => (
               <li key={id} data-active={stages.includes(id)}>
-                {label}
+                {label}{stages.includes(id) && <span className="exchange-stage-note"> · {vi ? "Đã ghi nhận" : "Observed"}</span>}
               </li>
             ))}
           </ol>
@@ -366,12 +351,14 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
         </p>
       )}
       {result ? (
-        <section className="bridge-complete">
-          <h3>✓ {vi ? "Đã hoàn tất" : "Completed"}</h3>
-          <p>
-            {result.amount} USDC · {result.sourceChain.name} → {result.destinationChain.name}
-          </p>
-          <p className="full-address">{result.recipient}</p>
+        <section className="bridge-complete" data-status="completed">
+          <h3><span aria-hidden="true">✓ </span>{vi ? "Đã hoàn tất" : "Completed"}</h3>
+          <dl className="exchange-result-rows">
+            <div><dt>{vi ? "Số tiền Bridge" : "Bridge amount"}</dt><dd>{result.amount} USDC</dd></div>
+            <div><dt>{vi ? "Mạng nguồn" : "From network"}</dt><dd>{result.sourceChain.name}</dd></div>
+            <div><dt>{vi ? "Mạng đích" : "To network"}</dt><dd>{result.destinationChain.name}</dd></div>
+            <div><dt>{vi ? "Người nhận" : "Recipient"}</dt><dd className="full-address">{result.recipient}</dd></div>
+          </dl>
           {result.sourceExplorerUrl && (
             <a href={result.sourceExplorerUrl} target="_blank" rel="noreferrer">
               {vi ? "Giao dịch nguồn" : "Source transaction"} ↗
@@ -430,7 +417,7 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
             </button>
           </div>
           {stages.length > 0 && (
-            <ol className="bridge-timeline">
+            <ol className="bridge-timeline" aria-label={vi ? "Các bước Bridge đã ghi nhận" : "Observed bridge stages"}>
               {timeline.map(([id, label]) => (
                 <li key={id} data-active={stages.includes(id)}>
                   {label}
@@ -463,16 +450,9 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
                 ))}
               </select>
             </label>
-            <button type="button" className="bridge-reverse" onClick={reverse} aria-label={vi ? "Đảo chiều" : "Reverse direction"}>
-              ⇅
-            </button>
-            <label>
-              {vi ? "Mạng đích" : "To network"}
-              <input value={destination.name} readOnly />
-            </label>
           </div>
           <label>
-            {vi ? "Tài sản" : "Asset"}
+            {vi ? "Tài sản nguồn" : "Source asset"}
             <input value="USDC · USD Coin" readOnly />
           </label>
           <label>
@@ -491,6 +471,17 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
               </small>
             )}
           </label>
+          <div className="bridge-destination">
+            <button type="button" className="bridge-reverse" onClick={reverse} aria-label={vi ? "Đảo chiều" : "Reverse direction"}>
+              ⇅
+            </button>
+            <label>
+              {vi ? "Mạng đích" : "To network"}
+              <input value={destination.name} readOnly />
+            </label>
+            <p className="exchange-context">{vi ? "Tài sản đích" : "Destination asset"}: USDC · {destination.name}</p>
+          </div>
+          <p className="exchange-context">{vi ? "Circle App Kit · CCTP. Báo giá và phí sẽ được hiển thị khi kiểm tra. Thời gian hoàn tất tùy thuộc vào mạng và chứng thực Circle." : "Circle App Kit · CCTP. A quote and costs appear in Review. Completion time depends on the networks and Circle attestation."}</p>
           {!custom ? (
             <div className="bridge-recipient-summary">
               <span>

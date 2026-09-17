@@ -993,7 +993,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       bought = getAssetById(unknown.quote.toAssetId)!;
     return (
       <div className="transaction-state transaction-unknown" data-status="submitted-unknown">
-        <span>!</span>
+        <span aria-hidden="true">!</span>
         <h3>{vi ? "Đã gửi — trạng thái xác nhận chưa rõ" : "Submitted — confirmation status unknown"}</h3>
         <p>{error ?? (vi ? "Chưa thể xác nhận giao dịch trên Arc." : "The transaction could not be confirmed on Arc yet.")}</p>
         <p>
@@ -1002,7 +1002,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         <p>{vi ? "Mạng" : "Network"}: Arc Testnet</p>
         <code>{unknown.hash}</code>
         <a href={`${ARC_EXPLORER_URL}/tx/${unknown.hash}`} target="_blank" rel="noreferrer">
-          ArcScan ↗
+          {vi ? "Xem giao dịch hoán đổi trên ArcScan" : "View swap transaction on ArcScan"} ↗
         </a>
         <p className="wallet-notice">{vi ? "Hãy kiểm tra giao dịch đã gửi trên ArcScan trước khi bắt đầu một swap khác." : "Check the submitted transaction on ArcScan before starting another swap."}</p>
       </div>
@@ -1012,16 +1012,19 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     const sold = getAssetById(success.quote.fromAssetId)!,
       bought = getAssetById(success.quote.toAssetId)!;
     return (
-      <div className="transaction-state">
-        <span>✓</span>
+      <div className="transaction-state" data-status="confirmed-success">
+        <span aria-hidden="true">✓</span>
         <h3>{vi ? "Hoán đổi thành công" : "Swap confirmed"}</h3>
-        <p>
-          {formatAssetAmount(success.quote.amountIn, sold)} {sold.symbol} → {vi ? "dự kiến" : "expected"} ≈ {formatAssetAmount(success.quote.amountOut, bought)} {bought.symbol}
-          <br />
-          {vi ? "Thực nhận" : "Actual received"}: {success.received === undefined ? (vi ? "chưa xác định" : "unavailable") : `${formatAssetAmount(success.received, bought)} ${bought.symbol}`}
-        </p>
+        <dl className="exchange-result-rows">
+          <div><dt>{vi ? "Đã trả" : "Paid"}</dt><dd>{formatAssetAmount(success.quote.amountIn, sold)} {sold.symbol}</dd></div>
+          <div data-qualifier="expected"><dt>{vi ? "Dự kiến nhận · báo giá" : "Expected receive · quote"}</dt><dd>≈ {formatAssetAmount(success.quote.amountOut, bought)} {bought.symbol}</dd></div>
+          <div className="exchange-actual"><dt>{vi ? "Thực nhận" : "Actual received"}</dt><dd>{success.received === undefined ? (vi ? "chưa xác định" : "unavailable") : `${formatAssetAmount(success.received, bought)} ${bought.symbol}`}</dd></div>
+        </dl>
+        <p className="exchange-context">{vi ? "Số thực nhận chỉ hiển thị khi có bằng chứng từ biên nhận giao dịch." : "Actual received is shown only when supported by transaction receipt evidence."}</p>
+        <p>{vi ? "Mạng" : "Network"}: Arc Testnet</p>
+        <code>{success.hash}</code>
         <a href={`${ARC_EXPLORER_URL}/tx/${success.hash}`} target="_blank" rel="noreferrer">
-          ArcScan ↗
+          {vi ? "Xem giao dịch hoán đổi trên ArcScan" : "View swap transaction on ArcScan"} ↗
         </a>
         <button type="button" className="standalone-action" onClick={reset}>
           {vi ? "Hoán đổi tiếp" : "Swap again"}
@@ -1034,7 +1037,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       bought = getAssetById(failure.quote.toAssetId)!;
     return (
       <div className="transaction-state transaction-failed" data-status="confirmed-failure">
-        <span>!</span>
+        <span aria-hidden="true">!</span>
         <h3>{vi ? "Hoán đổi thất bại" : "Swap failed"}</h3>
         <p>{error ?? (vi ? "Arc đã xác nhận giao dịch bị revert." : "Arc confirmed that the submitted transaction reverted.")}</p>
         <p>
@@ -1043,7 +1046,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         <p>{vi ? "Mạng" : "Network"}: Arc Testnet</p>
         <code>{failure.hash}</code>
         <a href={`${ARC_EXPLORER_URL}/tx/${failure.hash}`} target="_blank" rel="noreferrer">
-          ArcScan ↗
+          {vi ? "Xem giao dịch hoán đổi trên ArcScan" : "View swap transaction on ArcScan"} ↗
         </a>
         <button type="button" className="standalone-action" onClick={reset}>
           {vi ? "Thử hoán đổi lại" : "Try swap again"}
@@ -1181,7 +1184,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     return (
       <TransactionSafetyReview
         compact
-        technicalDetailIndexes={[3, 5, 6]}
+        technicalDetailIndexes={[]}
         technicalContent={<div className="compact-route-details"><p>XyloNet StableSwap · {vi ? "khả dụng trong ví" : "wallet-executable"}</p><p>Circle App Kit Swap · {vi ? "không khả dụng trên trình duyệt" : CIRCLE_BROWSER_SWAP_STATUS.reason}</p></div>}
         title={vi ? "Kiểm tra hoán đổi" : "Review Swap"}
         summary={vi ? "Kiểm tra báo giá mới, tuyến đã chọn, phí swap và mức tối thiểu trước khi ký." : "Review the fresh quote, selected route, swap fee, and guaranteed minimum before signing."}
@@ -1191,11 +1194,11 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
             value: `${formatAssetAmount(quote.amountIn, from)} ${from.symbol}`,
           },
           {
-            label: vi ? "Bạn nhận" : "You receive",
+            label: vi ? "Dự kiến nhận · báo giá" : "Expected receive · quote",
             value: `≈ ${formatAssetAmount(quote.amountOut, to)} ${to.symbol}`,
           },
           {
-            label: vi ? "Tối thiểu nhận" : "Minimum received",
+            label: vi ? "Tối thiểu nhận · bảo vệ thực thi" : "Minimum receive · execution protection",
             value: `${formatAssetAmount(minimumSwapOutput(quote.amountOut, slippage), to)} ${to.symbol}`,
           },
           {
@@ -1203,10 +1206,10 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
             value: swapRouteLabel(route.provider),
           },
           {
-            label: vi ? "Phí" : "Fee",
+            label: vi ? "Phí mạng ước tính" : "Estimated network fee",
             value: swapGasFee === undefined ? (vi ? "Không khả dụng" : "Unavailable") : formatArcFeeEstimate(swapGasFee),
           },
-          { label: "Slippage", value: `${(slippage * 100).toFixed(1)}%` },
+          { label: vi ? "Trượt giá" : "Slippage", value: `${(slippage * 100).toFixed(1)}%` },
           { label: vi ? "Mạng" : "Network", value: "Arc Testnet · 5042002" },
         ]}
         checks={[
@@ -1254,11 +1257,6 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
             {error}
           </p>
         )}
-        <details>
-          <summary>{vi ? "So sánh tuyến nâng cao" : "Advanced route comparison"}</summary>
-          <p>XyloNet StableSwap · {vi ? "khả dụng trong ví" : "wallet-executable"}</p>
-          <p>Circle App Kit Swap · {vi ? "không khả dụng trên trình duyệt: cần Kit Key bí mật phía máy chủ" : CIRCLE_BROWSER_SWAP_STATUS.reason}</p>
-        </details>
       </TransactionSafetyReview>
     );
   return (
@@ -1271,7 +1269,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     >
       <div className="swap-asset-grid">
         <label>
-          {vi ? "Tài sản bán" : "Sell asset"}
+          {vi ? "Từ tài sản" : "From asset"}
           <select
             className="asset-selector"
             value={fromId}
@@ -1289,24 +1287,16 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
             ))}
           </select>
         </label>
-        <label>
-          {vi ? "Tài sản nhận" : "Buy asset"}
-          <select className="asset-selector" value={to.id} disabled>
-            <option>
-              {to.symbol} · {to.name}
-            </option>
-          </select>
-        </label>
       </div>
       <label>
         <span className="swap-amount-heading">
           <span>{vi ? "Số lượng" : "Amount"}</span>
-          <small>
+          <small id="swap-available">
             {vi ? "Khả dụng" : "Available"}: {formatAssetAmount(balance, from)} {from.symbol}
           </small>
         </span>
         <div className="wallet-field-with-action amount">
-          <input inputMode="decimal" value={amount} disabled={swapLocked} onChange={(event) => changeAmount(event.target.value)} placeholder="0.00" />
+          <input aria-describedby="swap-available" inputMode="decimal" value={amount} disabled={swapLocked} onChange={(event) => changeAmount(event.target.value)} placeholder="0.00" />
           <span>{from.symbol}</span>
         </div>
       </label>
@@ -1327,6 +1317,15 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           {vi ? "Đã chừa cho phí gas Arc" : "Reserved for Arc gas"}: {formatAssetAmount(safeMax.feeUsdc6, getAssetById("usdc")!)} USDC
         </p>
       )}
+      <label>
+        {vi ? "Sang tài sản" : "To asset"}
+        <select className="asset-selector" value={to.id} disabled>
+          <option value={to.id}>
+            {to.symbol} · {to.name}
+          </option>
+        </select>
+      </label>
+      <p className="exchange-context">{vi ? "Báo giá sẽ hiển thị số dự kiến nhận, mức tối thiểu và phí trước khi bạn xác nhận trong ví." : "Your quote will show expected receive, minimum receive, and costs before wallet confirmation."}</p>
       <details className="swap-advanced">
         <summary>{vi ? "Nâng cao" : "Advanced"}</summary>
         <fieldset>
@@ -1359,7 +1358,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           </label>
         </fieldset>
         <label>
-          Slippage
+          {vi ? "Trượt giá" : "Slippage"}
           <select
             className="asset-selector"
             value={slippage}

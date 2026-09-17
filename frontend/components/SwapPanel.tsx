@@ -5,6 +5,7 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { WalletPanel } from "./WalletPanel";
 import { RealSwapFlow } from "./RealSwapFlow";
 import { UniversalBridgeFlow } from "./UniversalBridgeFlow";
+import "./SwapBridge.css";
 
 type Mode = "swap" | "bridge";
 
@@ -14,7 +15,9 @@ export function SwapPanel({ initialValues, initialMode = "swap", onClose, onConf
 
   return (
     <WalletPanel title={initialMode === "bridge" ? "Bridge" : locale === "vi" ? "Hoán đổi" : "Swap"} onClose={onClose} closeDisabled={busy}>
-      {initialMode === "swap" ? <RealSwapFlow locale={locale} initialValues={initialValues} onBusyChange={setBusy} onConfirmed={onConfirmed} /> : <UniversalBridgeFlow locale={locale} initialValues={initialValues} onBusyChange={setBusy} />}
+      <div className="ledger-exchange">
+        {initialMode === "swap" ? <RealSwapFlow locale={locale} initialValues={initialValues} onBusyChange={setBusy} onConfirmed={onConfirmed} /> : <UniversalBridgeFlow locale={locale} initialValues={initialValues} onBusyChange={setBusy} />}
+      </div>
     </WalletPanel>
   );
 }
