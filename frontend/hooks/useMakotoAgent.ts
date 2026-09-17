@@ -15,7 +15,7 @@ import type { OnchainIntelligenceServices } from "@/lib/agent/intelligence/oncha
 import { readOfficialResearchResponse } from "@/lib/agent/intelligence/officialSources";
 import { clearAgentSessionContext, createAgentRequestGeneration, readAgentSessionContext, storeAgentSessionContext, updateAgentSessionContext, type AgentSessionContext } from "@/lib/agent/sessionContext";
 
-export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft; draftContext?: AgentDraftContext; intelligence?: AgentIntelligenceResult };
+export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft; draftContext?: AgentDraftContext; intelligence?: AgentIntelligenceResult; presentation?: Readonly<{ request?: string; intent?: AgentResponse["intent"]; planning?: AgentResponse["planning"]; context?: AgentDraftContext; observedAt?: number; result?: true }> };
 
 export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string, planningServices?: AgentPlanningServices, onchainServices?: OnchainIntelligenceServices) {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -65,7 +65,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const result = consumeAgentResult(window.sessionStorage, account);
-      if (result) setMessages([{ id: nextId.current++, role: "agent", text: formatAgentActionResult(result, locale) }]);
+      if (result) setMessages([{ id: nextId.current++, role: "agent", text: formatAgentActionResult(result, locale), presentation: { result: true, observedAt: result.createdAt, context: { account: result.account as AgentDraftContext["account"] } } }]);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [account, locale]);
@@ -101,7 +101,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     setMessages((current) => [
       ...current,
       { id: nextId.current++, role: "user", text: value },
-      { id: nextId.current++, role: "agent", text: response.text, draft: response.actionDraft, draftContext: response.actionDraft && binding ? { account: binding.account, chainId: binding.chainId } : undefined, intelligence: response.intelligence },
+      { id: nextId.current++, role: "agent", text: response.text, draft: response.actionDraft, draftContext: response.actionDraft && binding ? { account: binding.account, chainId: binding.chainId } : undefined, intelligence: response.intelligence, presentation: { request: value, intent: response.intent, planning: response.planning, context: binding, observedAt: now } },
     ]);
     setInput("");
     window.requestAnimationFrame(() => inputRef.current?.focus());

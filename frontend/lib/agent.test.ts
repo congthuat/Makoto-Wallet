@@ -76,7 +76,7 @@ test("Agent source has no persistence or wallet-write execution surface", () => 
   const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8"); const source = [ui, readFileSync(new URL("./agent/planner.ts", import.meta.url), "utf8"), readFileSync(new URL("./agent/tools.ts", import.meta.url), "utf8")].join("\n");
   for (const forbidden of ["localStorage", "document.cookie", "writeContract", "sendTransaction", "submitReviewedTransaction", "switchChain", "walletClient", "signMessage"]) assert.equal(source.includes(forbidden), false, forbidden);
   assert.match(ui, /storeAgentHandoff\(window\.sessionStorage/);
-  assert.match(ui, /onClick=\{clearConversation\}/); assert.match(ui, /aria-live="polite"/); assert.match(ui, /agent\.page\.title/); assert.match(ui, /agent\.draft\.review/);
+  assert.match(ui, /onClick=\{clearConversation\}/); assert.match(ui, /aria-live="polite"/); assert.match(ui, /<h1>\{t\("agent\.workspace\.title"\)\}/); assert.match(ui, /agent\.draft\.review/);
 });
 
 test("Agent uses the common shell while preserving long-value containment", () => {
@@ -87,9 +87,10 @@ test("Agent uses the common shell while preserving long-value containment", () =
   assert.match(ui, /return <AppShell>/);
   assert.match(shell, /var\(--lc-gutter\)/);
   assert.doesNotMatch(css, /\.shell\s*\{/);
-  assert.match(css, /\.messages article>p\{[^}]*overflow-wrap:anywhere/);
-  assert.match(css, /\.draft dd\{[^}]*overflow-wrap:anywhere/);
-  assert.match(css, /\.composer input\{[^}]*width:100%;min-width:0/);
+  // Phase 7G replaces chat bubbles with operations; retain the same containment contract.
+  assert.match(css, /\.workspace p\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  assert.match(css, /\.draft dd\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  assert.match(css, /\.composer input\s*\{[^}]*min-width:\s*0;[^}]*width:\s*100%/);
   assert.doesNotMatch(css, /margin-left\s*:|translateX\(|100vw|width\s*:\s*calc\(/);
 });
 
