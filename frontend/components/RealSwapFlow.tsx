@@ -96,7 +96,13 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   const [approvalReview, setApprovalReview] = useState<TransactionReviewSnapshot>(),
     [swapReview, setSwapReview] = useState<TransactionReviewSnapshot>();
   const submissionGuard = useRef(new ReviewSubmissionGuard()),
-    executionInFlightRef = useRef(false);
+    executionInFlightRef = useRef(false),
+    executionAttemptRef = useRef(0);
+  useEffect(() => () => {
+    // Unmount invalidates pre-wallet continuations without cancelling a submitted transaction.
+    executionAttemptRef.current += 1;
+    executionInFlightRef.current = false;
+  }, []);
   const [executionInFlight, setExecutionInFlight] = useState(false);
   const swapLocked = executionInFlight || submissionStatus === "submitted-pending";
   const swapIsInFlight = () => executionInFlightRef.current || submissionStatus === "submitted-pending";
@@ -710,6 +716,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     }
   }
   async function execute() {
+    if (executionInFlightRef.current) return;
     if (submittedHash || !swapContinueAllowed(submissionStatus, reviewStage, Boolean(pending))) return;
     if (!connection.address || !client || !quote || !route || !swapReview || !swapEnvelope || !preparedSwap || reviewStage !== "swap" || pending) return;
     if (!reviewedAccount || connection.address.toLowerCase() !== reviewedAccount.toLowerCase()) {
@@ -725,15 +732,21 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     let submitted = false;
     let receiptStatus: SwapReceiptStatus | undefined;
     let submittedHashLocal: Hex | undefined;
+    const attemptId = ++executionAttemptRef.current;
+    const ownsExecution = () => executionInFlightRef.current && executionAttemptRef.current === attemptId;
+    executionInFlightRef.current = true;
+    setExecutionInFlight(true);
     setError(undefined);
     try {
       if (!(await chain.verifyNow())) throw new Error("arc");
+      if (!ownsExecution()) return;
       let freshBalance = await client.readContract({
         address: from.address,
         abi: erc20BalanceAbi,
         functionName: "balanceOf",
         args: [connection.address],
       });
+      if (!ownsExecution()) return;
       if (quote.amountIn > freshBalance) throw new Error("balance");
       const allowance = await client.readContract({
         address: from.address,
@@ -741,17 +754,20 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         functionName: "allowance",
         args: [connection.address, XYLO_ROUTER],
       });
+      if (!ownsExecution()) return;
       if (allowance < quote.amountIn) {
         setReviewStage(undefined);
         return setError(vi ? "Allowance đã thay đổi. Vui lòng kiểm tra lại." : "Allowance changed. Please review again.");
       }
       if (!(await chain.verifyNow())) throw new Error("arc");
+      if (!ownsExecution()) return;
       freshBalance = await client.readContract({
         address: from.address,
         abi: erc20BalanceAbi,
         functionName: "balanceOf",
         args: [connection.address],
       });
+      if (!ownsExecution()) return;
       if (quote.amountIn > freshBalance) throw new Error("balance");
       const [freshOutput, freshUsdcBalance] = await Promise.all([
         client.readContract({
@@ -767,6 +783,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           args: [connection.address],
         }),
       ]);
+      if (!ownsExecution()) return;
       const liveCheck = validatePreparedXyloSwap(preparedSwap, freshOutput, reviewNow());
       if (!liveCheck.valid) {
         setSwapReview(undefined);
@@ -774,8 +791,10 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         return setError(liveCheck.reason === "output-below-minimum" ? (vi ? "Sản lượng thị trường đã thấp hơn mức tối thiểu bạn kiểm tra. Hãy lấy báo giá mới." : "Market output moved below your reviewed minimum. Get a fresh quote.") : vi ? "Bản kiểm tra swap đã hết hạn. Hãy lấy báo giá mới." : "Swap review expired. Get a fresh quote.");
       }
       const freshEnvelope = await prepareSwapEnvelope(quote, false, undefined, preparedSwap);
+      if (!ownsExecution()) return;
       if (safeMax && quote.amountIn === safeMax.amount && quote.amountIn + freshEnvelope.feeUsdc6 > freshBalance) {
         const recalculated = await solveSafeMax(freshBalance, allowance);
+        if (!ownsExecution()) return;
         setAmount(formatAssetAmount(recalculated.amount, from));
         setSafeMax({
           ...recalculated,
@@ -828,8 +847,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         return setError(vi ? "Báo giá, mức tối thiểu, tuyến hoặc chi tiết giao dịch đã thay đổi. Hãy kiểm tra lại." : "Quote, minimum receive, route, or transaction details changed. Review again.");
       }
       setPending(vi ? "Đang chờ bạn xác nhận swap trong ví…" : "Waiting for swap confirmation in your wallet…");
-      const simulation = await client.simulateContract(preparedRequest),
-        simulatedReview = revalidateTransactionReview(swapReview, {
+      const simulation = await client.simulateContract(preparedRequest);
+      if (!ownsExecution()) return;
+      const simulatedReview = revalidateTransactionReview(swapReview, {
           intent: finalIntent,
           context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { [from.id]: freshBalance, usdc: freshUsdcBalance }, allowance, simulation: "passed", expectedTarget: XYLO_ROUTER },
           request: {
@@ -848,8 +868,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         setReviewStage(undefined);
         return setError(vi ? "Báo giá, mức tối thiểu, tuyến hoặc chi tiết giao dịch đã thay đổi. Hãy kiểm tra lại." : "Quote, minimum receive, route, or transaction details changed. Review again.");
       }
-      executionInFlightRef.current = true;
-      setExecutionInFlight(true);
+      if (!ownsExecution()) return;
       const hash = await submissionGuard.current.run(swapReview.fingerprint, () => writer.writeContractAsync(simulation.request));
       submitted = true;
       submittedHashLocal = hash;
@@ -917,6 +936,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         },
       });
     } catch (caught) {
+      if (!submitted && !ownsExecution()) return;
       if (caught instanceof Error && caught.message === "arc") return setError(vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.");
       if (caught instanceof Error && caught.message === "balance") return setError(vi ? "Số dư vừa thay đổi và không còn đủ." : "Your balance changed and is no longer sufficient.");
       const confirmationOutcome = classifySwapConfirmation({ submitted, receiptStatus });
@@ -961,9 +981,11 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         )[kind]
       );
     } finally {
-      executionInFlightRef.current = false;
-      setExecutionInFlight(false);
-      setPending(undefined);
+      if (executionAttemptRef.current === attemptId) {
+        executionInFlightRef.current = false;
+        setExecutionInFlight(false);
+        setPending(undefined);
+      }
     }
   }
   if (unknown) {
@@ -1220,7 +1242,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           setQuote(undefined);
         }}
         onContinue={() => void execute()}
-        continueDisabled={Boolean(pending) || gasUnavailable || !gasCost?.sufficientGasBalance}
+        continueDisabled={swapLocked || Boolean(pending) || gasUnavailable || !gasCost?.sufficientGasBalance}
       >
         {pending && (
           <p className="transaction-progress" role="status">
