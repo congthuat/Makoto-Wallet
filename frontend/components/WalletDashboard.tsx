@@ -275,7 +275,7 @@ export function WalletDashboard() {
                   <strong>{message.role === "user" ? t("agentDashboard.you") : "Makoto Agent"}</strong>
                   <p>{message.text}</p>
                   {message.intelligence && <EvidenceBlock value={message.intelligence} locale={locale} />}
-                  {message.draft && <div className={`${styles.agentDraft} ${agentStyles.chat}`}><ActionDraftCard draft={message.draft} vi={locale === "vi"} /></div>}
+                  {message.draft && <div className={`${styles.agentDraft} ${agentStyles.chat}`}><ActionDraftCard draft={message.draft} draftContext={message.draftContext} vi={locale === "vi"} /></div>}
                 </article>)}
               </div>}
               <form className={overviewStyles.composer} onSubmit={submitAgent}>

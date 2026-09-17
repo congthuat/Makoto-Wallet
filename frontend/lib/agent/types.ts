@@ -6,6 +6,8 @@ import type { AgentSessionContext } from "./sessionContext.ts";
 import type { AgentIntelligenceResult, OfficialResearchTopic, OnchainIntelligenceOperation } from "./intelligence/types.ts";
 
 export type AgentLocale = "en" | "vi";
+/** Wallet binding captured when an Agent action draft was produced. */
+export type AgentDraftContext = Readonly<{ account?: Address; chainId?: number }>;
 export type AgentActivityFilter = "send" | "receive" | "swap" | "bridge" | "vault" | "all";
 export type AgentReadIntent = "wallet-overview" | "recent-activity" | "activity-explanation" | "onchain-intelligence" | "official-research" | "latest-transaction" | "today-spending" | "send-affordability" | "send-remaining" | "swap-quote" | "swap-allowance" | "swap-affordability" | "bridge-estimate" | "bridge-route" | "bridge-completion" | "blocking-explanation" | "vault-summary" | "network-status" | "safety-capabilities" | "clarification" | "unknown";
 export type AgentActionKind = "send" | "swap" | "bridge" | "vault-deposit" | "vault-withdraw";

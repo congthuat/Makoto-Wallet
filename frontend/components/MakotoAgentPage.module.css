@@ -14,3 +14,5 @@
 .evidence li { margin: 6px 0; }
 .evidence li small { display: block; opacity: .72; }
 .evidence p { margin: 8px 0 0; font-size: .82rem; }
+.historicalStatus{color:var(--lc-attention)!important;background:var(--lc-attention-surface)!important;border-color:var(--lc-separator)!important}
+.historicalContext{margin:8px 0 0;padding:9px 10px;border:1px solid var(--lc-separator);border-radius:6px;color:var(--lc-text-secondary);background:var(--lc-attention-surface);font-size:11px;line-height:1.45}
