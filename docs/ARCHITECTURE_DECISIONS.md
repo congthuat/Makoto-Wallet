@@ -44,3 +44,21 @@ FLOP/Technocore remains planned Phase 17 integration. It is not required for cor
 5. legacy docs for history/component-specific context
 
 If these conflict, surface the conflict instead of inventing behavior.
+
+## ADR-013 - Provider SDKs stay behind Makoto boundaries
+Circle App Kit, Gateway, CCTP, Xylo, marketplace services, and future providers are implementation adapters. They do not become the Agent's direct authority. Canonical Makoto READ/QUOTE/PREPARE tools and deterministic policy remain the stable boundary.
+
+## ADR-014 - Existing integration before replacement
+Before adopting a new SDK or Arc App Kit path, audit the current Makoto implementation. Prefer reuse or a second provider adapter when the existing flow already has stronger transaction-review, simulation, truthfulness, or recovery semantics.
+
+## ADR-015 - Installed dependency is not implemented capability
+A package present in package.json (including x402) is not evidence of runtime integration. Capability status must be established from executable code, wiring, tests, and verified behavior.
+
+## ADR-016 - Arc Studio is a development specialist, not runtime architecture
+Arc Studio may be used for isolated prototypes, Arc/Circle reference implementations, or developer experiments. Its generated output must be reviewed and tested before integration. Arc Studio does not directly control Makoto runtime, signing, policy, or production architecture.
+
+## ADR-017 - External data and marketplace services are untrusted inputs
+External intelligence and Circle Agent Marketplace services may inform plans or provide capabilities, but their outputs are not transaction authority. Action-critical data must carry provenance/freshness and pass Makoto policy, simulation/revalidation, and user approval.
+
+## ADR-018 - Phase 17 remains FLOP / Technocore
+FLOP/Technocore remains the planned Phase 17 optional ecosystem integration. x402, Agent Marketplace, Onramp, Earn, or other new Arc/Circle references do not rename, replace, or silently expand Phase 17.

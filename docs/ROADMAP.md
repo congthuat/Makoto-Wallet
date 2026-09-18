@@ -1,4 +1,4 @@
-﻿# Makoto Wallet — Canonical Roadmap
+# Makoto Wallet — Canonical Roadmap
 
 This is the canonical roadmap for Makoto Wallet / Makoto Agent.
 
@@ -23,6 +23,23 @@ Exit: `7H -> 7I -> 7J -> Phase 7 complete -> 8A`
 - **8E** schemas + validation
 - **8F** agent integration
 - **8G** regression + closeout
+
+### 8A audit detail - current providers and capabilities
+
+Treat 8A as an inventory/reuse audit before adding new code:
+
+- **Makoto Send:** existing custom flow with simulation, review, revalidation, fee/account/network checks. Do not replace by default with a provider SDK.
+- **Circle App Kit Bridge:** already integrated. Preserve quote expiry, fee breakdown, transfer lifecycle, receipt evidence, and current safety semantics.
+- **Circle Unified Balance / Gateway spend:** already integrated. Preserve confirmed/pending truth, allocation review, fee fingerprinting, and pre-submit revalidation.
+- **Xylo Swap:** existing custom provider/browser execution path.
+- **Circle App Kit Swap:** candidate additional provider only. Evaluate behind a provider adapter; do not replace Xylo automatically.
+- **x402 packages:** installed dependency is not proof of active runtime capability. Verify real use before planning integration work.
+- **Makoto Agent / planner / orchestration / indexer:** identify and reuse stable existing boundaries instead of rebuilding them.
+
+8A classification vocabulary:
+existing / partial / candidate / inactive dependency.
+
+Provider-specific SDKs must sit behind Makoto's canonical tool boundary. The Agent must not call raw provider SDKs directly once the canonical tool layer exists.
 
 ## Phase 9 — Policy & Risk Engine
 - **9A** threat model + policy inventory
@@ -107,6 +124,19 @@ Optional ecosystem integration after Agent Core is stable. It does not change Ma
 - **17E** agent orchestration integration
 - **17F** end-to-end tests/failure isolation
 - **17G** release handoff
+
+## Future integration backlog (not active phases)
+
+These items are references/backlog only. They must not change the current execution pointer or silently create new numbered phases.
+
+- **Arc Studio:** development specialist/subagent for isolated Arc/Circle prototypes, contract patterns, App Kit/Gateway/CCTP experiments, and test/reference implementations. Generated code must be reviewed and tested before entering Makoto.
+- **Circle Onramp Kit:** candidate future fiat -> USDC funding path after Agent Core is stable.
+- **Circle Earn Kit / external earn providers:** candidate future adapter behind Makoto Tool Layer + Policy/Risk Engine. Do not replace Makoto Vault merely because an external earn provider exists.
+- **Circle Agent Marketplace:** discovery surface for external services. Marketplace listing is not a trust decision; services must enter through adapters and Makoto policy.
+- **External onchain intelligence:** optional providers such as Alchemy/Allium/Arkham/CoinGecko-class data sources may enrich Phase 15 intelligence, but cannot authorize transactions.
+- **x402 / paid agent services:** keep as future research for bounded service payments. It does not replace Phase 17 FLOP/Technocore and must not grant uncontrolled access to the user's primary wallet.
+
+Important: **Phase 17 remains FLOP / Technocore Integration.** This backlog does not rename or remove it.
 
 ## Architecture direction
 `User Intent -> Agent -> Planner -> Tool Layer -> Policy/Risk Engine -> Simulation -> Review -> User Wallet Signature -> Blockchain -> Receipt -> Re-read State -> Next Step/Done`
