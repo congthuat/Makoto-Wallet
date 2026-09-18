@@ -8,7 +8,7 @@ import { arcScanTransactionUrl, type WalletActivity } from "./wallet.ts";
 export const transferEventAbi = [{ type: "event", name: "Transfer", inputs: [{ name: "from", type: "address", indexed: true }, { name: "to", type: "address", indexed: true }, { name: "value", type: "uint256", indexed: false }] }] as const;
 
 export type ReceiptLog = { address: Address | string; data: Hex; topics: readonly Hex[]; logIndex?: number | null; transactionHash?: Hash | null };
-export type MinimalTransactionReceipt = { status: "success" | "reverted"; transactionHash: Hash; blockNumber: bigint; logs: readonly ReceiptLog[] };
+export type MinimalTransactionReceipt = { status: "success" | "reverted"; transactionHash?: Hash | null; blockNumber: bigint; logs: readonly ReceiptLog[] };
 export type SwapReceiveEvidence = Readonly<{ amount: bigint; logIndex: number }>;
 export type VerifiedMemo = { text?: string; data: Hex; memoId: Hex; memoIndex: bigint };
 export type ReceiptVerification = { verified: boolean; from: Address; to: Address; blockNumber: bigint; memo?: VerifiedMemo; reason?: "status" | "hash" | "block" | "transfer-missing" | "transfer-ambiguous" | "swap-sent" | "swap-receive" };
@@ -27,14 +27,15 @@ export function verifyTransactionReceipt(activity: WalletActivity, walletAddress
   const from = activity.direction === "send" ? wallet : activity.counterparty;
   const to = activity.direction === "send" ? activity.counterparty : wallet;
   const blockNumber = receipt.blockNumber;
+  const receiptHash = receipt.transactionHash;
+  if (!receiptHash || receiptHash.toLowerCase() !== activity.hash.toLowerCase()) return { verified: false, from, to, blockNumber, reason: "hash" };
   if (receipt.status !== "success") return { verified: false, from, to, blockNumber, reason: "status" };
-  if (receipt.transactionHash.toLowerCase() !== activity.hash.toLowerCase()) return { verified: false, from, to, blockNumber, reason: "hash" };
   if (activity.blockNumber > 0n && receipt.blockNumber !== activity.blockNumber) return { verified: false, from, to, blockNumber, reason: "block" };
-  const sent = findTransfer(receipt.logs, { token: activity.tokenAddress, from, to, value: activity.amount, logIndex: activity.logIndex, transactionHash: receipt.transactionHash });
+  const sent = findTransfer(receipt.logs, { token: activity.tokenAddress, from, to, value: activity.amount, logIndex: activity.logIndex, transactionHash: receiptHash });
   if (sent !== "matched") return { verified: false, from, to, blockNumber, reason: activity.kind === "swap" ? "swap-sent" : sent === "ambiguous" ? "transfer-ambiguous" : "transfer-missing" };
   if (activity.kind === "swap") {
     const receive = activity.swapReceive;
-    if (!receive || findTransfer(receipt.logs, { token: receive.tokenAddress, to: wallet, value: receive.amount, logIndex: receive.logIndex, transactionHash: receipt.transactionHash }) !== "matched") return { verified: false, from, to, blockNumber, reason: "swap-receive" };
+    if (!receive || findTransfer(receipt.logs, { token: receive.tokenAddress, to: wallet, value: receive.amount, logIndex: receive.logIndex, transactionHash: receiptHash }) !== "matched") return { verified: false, from, to, blockNumber, reason: "swap-receive" };
   }
   const memo = activity.kind === "transfer" ? findMatchingMemo(receipt.logs, { sender: from, token: activity.tokenAddress, recipient: to, amount: activity.amount }) : undefined;
   return { verified: true, from, to, blockNumber, ...(memo ? { memo } : {}) };
@@ -46,11 +47,13 @@ export function verifyTransactionReceipt(activity: WalletActivity, walletAddress
  * position is never accepted as receipt evidence.
  */
 export function findUniqueSwapReceive(receipt: MinimalTransactionReceipt, expected: { token: Address; recipient: Address; transactionHash: Hash }): SwapReceiveEvidence | undefined {
-  if (receipt.status !== "success" || receipt.transactionHash.toLowerCase() !== expected.transactionHash.toLowerCase()) return undefined;
+  const receiptHash = receipt.transactionHash;
+  if (!receiptHash || receiptHash.toLowerCase() !== expected.transactionHash.toLowerCase()) return undefined;
+  if (receipt.status !== "success") return undefined;
   const matches: SwapReceiveEvidence[] = [];
   for (const log of receipt.logs) {
     if (!isAddress(log.address) || getAddress(log.address) !== getAddress(expected.token)) continue;
-    if (log.transactionHash && log.transactionHash.toLowerCase() !== receipt.transactionHash.toLowerCase()) continue;
+    if (log.transactionHash && log.transactionHash.toLowerCase() !== receiptHash.toLowerCase()) continue;
     const logIndex = log.logIndex;
     if (typeof logIndex !== "number" || !Number.isSafeInteger(logIndex) || logIndex < 0) continue;
     try {
