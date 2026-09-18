@@ -39,7 +39,7 @@ if (process.argv.includes("--serve")) {
   try {
     run("open", base); run("wait", "--fn", "!!window.fixtureVersion");
     evaluate(`Object.defineProperty(navigator,'share',{value:async(payload)=>{window.__sharedPayload=payload},configurable:true});Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{}},configurable:true});true`);
-    const scenarios = ["not-submitted", "result-unknown", "confirmed", "failed", "unknown", "unavailable", "swap-success", "swap-unknown"];
+    const scenarios = ["not-submitted", "result-unknown", "confirmed", "failed", "failed-memo-mismatch", "unknown", "unavailable", "swap-success", "swap-unknown", "memo-success", "memo-mismatch", "memo-missing-identity", "memo-normalized"];
     for (const width of [390, 900, 1440]) for (const locale of ["en", "vi"]) for (const theme of ["light", "dark"]) {
       run("set", "viewport", String(width), width === 390 ? "844" : "1000");
       evaluate(`document.documentElement.lang=${JSON.stringify(locale)};document.documentElement.dataset.theme=${JSON.stringify(theme)};document.documentElement.style.colorScheme=${JSON.stringify(theme)};true`);
@@ -48,7 +48,7 @@ if (process.argv.includes("--serve")) {
         const label = `${scenario} ${width}-${locale}-${theme}`;
         const value = evaluate(`(()=>{const root=document.querySelector('#fixture');const status=root?.querySelector('[data-receipt-status]')?.dataset.receiptStatus;return {status,text:root?.innerText??'',buttons:[...root.querySelectorAll('button')].map((button)=>({text:button.innerText,disabled:button.disabled})),page:document.documentElement.scrollWidth,width:innerWidth,overflow:[...root.querySelectorAll('*')].filter(e=>e.getClientRects().length&&e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).display!=='inline').map(e=>e.className)}})()`);
         check(`status semantics ${label}`, () => {
-          assert.equal(value.status, scenario === "not-submitted" ? "not-submitted" : scenario === "result-unknown" || scenario === "unknown" || scenario === "swap-unknown" || scenario === "unavailable" ? "submitted-unknown" : scenario === "failed" ? "confirmed-failure" : "confirmed-success");
+          assert.equal(value.status, scenario === "not-submitted" ? "not-submitted" : scenario === "result-unknown" || scenario === "unknown" || scenario === "swap-unknown" || scenario === "unavailable" ? "submitted-unknown" : ["failed", "failed-memo-mismatch"].includes(scenario) ? "confirmed-failure" : "confirmed-success");
           if (scenario === "not-submitted") assert.doesNotMatch(value.text, /Submitted|Confirmed/);
           if (scenario === "result-unknown") { assert.match(value.text, locale === "vi" ? /chưa xác định|không rõ/i : /unknown/i); assert.doesNotMatch(value.text, /confirmed/i); }
           if (scenario === "confirmed" || scenario === "swap-success") assert.match(value.text, locale === "vi" ? /Đã xác nhận/ : /Confirmed/);
@@ -56,6 +56,10 @@ if (process.argv.includes("--serve")) {
           if (["unknown", "swap-unknown", "unavailable"].includes(scenario)) { assert.doesNotMatch(value.text, locale === "vi" ? /Đã xác nhận/ : /Confirmed/); }
           if (scenario === "swap-success") assert.match(value.text, /4\.99 EURC/);
           if (scenario === "swap-unknown") assert.doesNotMatch(value.text, /4\.99 EURC/);
+          if (scenario === "failed-memo-mismatch") assert.match(value.text, locale === "vi" ? /thất bại/ : /failure|failed/i);
+          if (scenario === "memo-success") assert.match(value.text, /NOTE FROM TRANSACTION A/);
+          if (scenario === "memo-normalized") assert.match(value.text, /CASE NORMALIZED MEMO/);
+          if (["memo-mismatch", "memo-missing-identity", "failed-memo-mismatch"].includes(scenario)) assert.doesNotMatch(value.text, /NOTE FROM TRANSACTION B|MISSING TRANSACTION IDENTITY/);
         });
         if (!["not-submitted", "result-unknown"].includes(scenario)) check(`export controls ${label}`, () => {
           const copy = value.buttons.find((button) => /copy|sao chép/i.test(button.text));
@@ -65,7 +69,7 @@ if (process.argv.includes("--serve")) {
           assert.ok(share);
           assert.equal(share.disabled, scenario === "unavailable");
         });
-        if (["confirmed", "failed", "unknown", "swap-success", "swap-unknown"].includes(scenario)) check(`share payload ${label}`, () => {
+        if (["confirmed", "failed", "failed-memo-mismatch", "unknown", "swap-success", "swap-unknown", "memo-success", "memo-mismatch", "memo-missing-identity", "memo-normalized"].includes(scenario)) check(`share payload ${label}`, () => {
           evaluate(`(()=>{const button=[...document.querySelectorAll('button')].find((item)=>/share|chia sẻ/i.test(item.innerText));button?.click();return true})()`);
           const payload = evaluate("window.__sharedPayload");
           assert.ok(payload?.text);
@@ -73,6 +77,10 @@ if (process.argv.includes("--serve")) {
           if (scenario === "failed") assert.match(payload.text, locale === "vi" ? /Trạng thái: Xác nhận thất bại/ : /Status: Confirmed failure/);
           if (["unknown", "swap-unknown"].includes(scenario)) { assert.match(payload.text, locale === "vi" ? /Đã gửi/ : /Submitted — confirmation status unknown/); assert.doesNotMatch(payload.text, /Status: Confirmed(?:\n|$)/); }
           if (scenario === "swap-unknown") assert.doesNotMatch(payload.text, /4\.99 EURC/);
+          if (scenario === "failed-memo-mismatch") assert.match(payload.text, locale === "vi" ? /Ghi chú:|Trạng thái: Xác nhận thất bại/ : /Status: Confirmed failure/);
+          if (scenario === "memo-success") assert.match(payload.text, locale === "vi" ? /Ghi chú: NOTE FROM TRANSACTION A/ : /Note: NOTE FROM TRANSACTION A/);
+          if (scenario === "memo-normalized") assert.match(payload.text, locale === "vi" ? /Ghi chú: CASE NORMALIZED MEMO/ : /Note: CASE NORMALIZED MEMO/);
+          if (["memo-mismatch", "memo-missing-identity", "failed-memo-mismatch"].includes(scenario)) assert.doesNotMatch(payload.text, /NOTE FROM TRANSACTION B|MISSING TRANSACTION IDENTITY/);
         });
         check(`responsive ${label}`, () => { assert.ok(value.page <= value.width, JSON.stringify(value)); assert.deepEqual(value.overflow, []); });
         if (!["not-submitted", "result-unknown"].includes(scenario)) check(`accessibility ${label}`, () => { const result = run("a11y", "--selector", ".receipt-card"); assert.equal(result.counts.violations, 0, JSON.stringify(result.violations)); });

@@ -37,7 +37,7 @@ export function verifyTransactionReceipt(activity: WalletActivity, walletAddress
     const receive = activity.swapReceive;
     if (!receive || findTransfer(receipt.logs, { token: receive.tokenAddress, to: wallet, value: receive.amount, logIndex: receive.logIndex, transactionHash: receiptHash }) !== "matched") return { verified: false, from, to, blockNumber, reason: "swap-receive" };
   }
-  const memo = activity.kind === "transfer" ? findMatchingMemo(receipt.logs, { sender: from, token: activity.tokenAddress, recipient: to, amount: activity.amount }) : undefined;
+  const memo = activity.kind === "transfer" ? findMatchingMemo(receipt.logs, { sender: from, token: activity.tokenAddress, recipient: to, amount: activity.amount, transactionHash: receiptHash }) : undefined;
   return { verified: true, from, to, blockNumber, ...(memo ? { memo } : {}) };
 }
 
@@ -65,11 +65,12 @@ export function findUniqueSwapReceive(receipt: MinimalTransactionReceipt, expect
   return matches.length === 1 ? matches[0] : undefined;
 }
 
-export function findMatchingMemo(logs: readonly ReceiptLog[], expected: { sender: Address; token: Address; recipient: Address; amount: bigint }): VerifiedMemo | undefined {
+export function findMatchingMemo(logs: readonly ReceiptLog[], expected: { sender: Address; token: Address; recipient: Address; amount: bigint; transactionHash: Hash }): VerifiedMemo | undefined {
   const innerData = encodeFunctionData({ abi: erc20BalanceAbi, functionName: "transfer", args: [expected.recipient, expected.amount] });
   const expectedHash = keccak256(innerData);
   for (const log of logs) {
     if (!isAddress(log.address) || getAddress(log.address) !== ARC_MEMO_ADDRESS) continue;
+    if (!log.transactionHash || log.transactionHash.toLowerCase() !== expected.transactionHash.toLowerCase()) continue;
     try {
       const decoded = decodeEventLog({ abi: arcMemoAbi, eventName: "Memo", data: log.data, topics: log.topics as [Hex, ...Hex[]] });
       const args = decoded.args;

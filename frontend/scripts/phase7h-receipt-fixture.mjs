@@ -17,21 +17,35 @@ const component = readFileSync(path.join(root, "components/TransactionReceiptPan
 export const fixtureSource = `
 import * as React from "react";
 import { TransactionReceiptPanel } from "@/components/TransactionReceiptPanel";
+import { encodeAbiParameters, encodeEventTopics, encodeFunctionData, keccak256, parseAbiParameters, stringToHex } from "viem";
+import { ARC_MEMO_ADDRESS, arcMemoAbi } from "@/lib/arcMemo";
+import { erc20BalanceAbi } from "@/lib/abi/erc20";
 import { encodeTransferLog } from "@/lib/transactionReceipt";
 import { SUPPORTED_ASSETS } from "@/lib/assets";
 import { formatAgentActionResult } from "@/lib/agent/resultFormatter";
-const wallet = ${JSON.stringify(wallet)}, other = ${JSON.stringify(other)}, hash = ${JSON.stringify(hash)};
+const wallet = ${JSON.stringify(wallet)}, other = ${JSON.stringify(other)}, hash = ${JSON.stringify(hash)}, hashB = "0x" + "cd".repeat(32);
 const usdc = SUPPORTED_ASSETS[0], eurc = SUPPORTED_ASSETS[1];
 const directActivity = {hash,logIndex:4,direction:"send",kind:"transfer",amount:5000000n,counterparty:other,confirmedAt:1766000000000,blockNumber:123n,assetId:usdc.id,assetSymbol:usdc.symbol,tokenAddress:usdc.address,decimals:usdc.decimals};
 const swapActivity = {...directActivity,kind:"swap",swapReceive:{amount:4990000n,assetId:eurc.id,assetSymbol:eurc.symbol,tokenAddress:eurc.address,decimals:6,logIndex:8}};
 const directTransfer = encodeTransferLog({token:usdc.address,from:wallet,to:other,value:5000000n,logIndex:4,transactionHash:hash});
 const swapReceive = encodeTransferLog({token:eurc.address,from:other,to:wallet,value:4990000n,logIndex:8,transactionHash:hash});
+function memoLog(note, transactionHash, logIndex = 5) {
+  const callDataHash = keccak256(encodeFunctionData({abi:erc20BalanceAbi,functionName:"transfer",args:[other,5000000n]}));
+  const memoId = "0x" + logIndex.toString(16).padStart(64, "0");
+  return {address:ARC_MEMO_ADDRESS,...(transactionHash === undefined ? {} : {transactionHash}),logIndex,topics:encodeEventTopics({abi:arcMemoAbi,eventName:"Memo",args:{sender:wallet,target:usdc.address,memoId}}),data:encodeAbiParameters(parseAbiParameters("bytes32 callDataHash, bytes memo, uint256 memoIndex"),[callDataHash,stringToHex(note),BigInt(logIndex)])};
+}
+const normalizedHash = hash.toUpperCase();
 function receiptFor(scenario) {
   if (scenario === "unavailable") return undefined;
   if (scenario === "failed") return {status:"reverted",transactionHash:hash,blockNumber:123n,logs:[directTransfer]};
+  if (scenario === "failed-memo-mismatch") return {status:"reverted",transactionHash:hash,blockNumber:123n,logs:[directTransfer,memoLog("NOTE FROM TRANSACTION B",hashB)]};
   if (scenario === "unknown") return {status:"success",transactionHash:hash,blockNumber:123n,logs:[]};
   if (scenario === "swap-success") return {status:"success",transactionHash:hash,blockNumber:123n,logs:[directTransfer,swapReceive]};
   if (scenario === "swap-unknown") return {status:"success",transactionHash:hash,blockNumber:123n,logs:[directTransfer]};
+  if (scenario === "memo-success") return {status:"success",transactionHash:hash,blockNumber:123n,logs:[directTransfer,memoLog("NOTE FROM TRANSACTION A",hash)]};
+  if (scenario === "memo-mismatch") return {status:"success",transactionHash:hash,blockNumber:123n,logs:[directTransfer,memoLog("NOTE FROM TRANSACTION B",hashB)]};
+  if (scenario === "memo-missing-identity") return {status:"success",transactionHash:hash,blockNumber:123n,logs:[directTransfer,memoLog("MISSING TRANSACTION IDENTITY")]};
+  if (scenario === "memo-normalized") return {status:"success",transactionHash:normalizedHash,blockNumber:123n,logs:[encodeTransferLog({token:usdc.address,from:wallet,to:other,value:5000000n,logIndex:4,transactionHash:normalizedHash}),memoLog("CASE NORMALIZED MEMO",normalizedHash)]};
   return {status:"success",transactionHash:hash,blockNumber:123n,logs:[directTransfer]};
 }
 export function Fixture({options = {}}) {
