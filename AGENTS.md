@@ -1,4 +1,65 @@
-# PenguJar — Codex Working Agreement
+<!-- MAKOTO_CANONICAL_CONTEXT_START -->
+# Makoto Wallet — Canonical Agent Context
+
+## Mandatory startup
+Before implementation:
+1. Read `docs/PROJECT_STATE.md`.
+2. Read `docs/ROADMAP.md`.
+3. Read `docs/ARCHITECTURE_DECISIONS.md`.
+4. Inspect git status, branch, and HEAD.
+5. Inspect existing implementation/tests for the active sub-phase.
+6. Work ONLY on the active sub-phase unless the user explicitly changes scope.
+
+`PROJECT_STATE.md` is the current pointer.
+`ROADMAP.md` is approved forward scope.
+`ARCHITECTURE_DECISIONS.md` contains durable constraints.
+
+If docs and code/history conflict, surface the conflict. Do not silently invent scope.
+
+## Roadmap discipline
+- Current user-confirmed sub-phase at setup: **7H**.
+- Sequence: **7H -> 7I -> 7J -> Phase 7 complete -> 8A**.
+- Do not pull Phase 8+ into Phase 7H–7J.
+- Do not invent 7K or redefine 7H/7I/7J.
+- New ideas go to backlog unless the user explicitly promotes them.
+
+## Core safety invariants
+- Non-custodial.
+- Never expose/store/log/request seed phrases or private keys.
+- LLM does not sign transactions.
+- User wallet is final signing authority.
+- Deterministic policy/risk code controls execution safety.
+- Dependent writes run one step at a time.
+- Re-read/revalidate after confirmed receipts.
+- Never report success before verified receipt/state evidence.
+- Memory is context, not blockchain truth.
+
+## Working style
+- Inspect before editing.
+- Keep diffs minimal.
+- Do not rewrite unrelated code.
+- Do not install dependencies without a concrete reason.
+- Prefer official primary sources for Arc/Circle.
+- Never claim tests/checks passed unless actually run.
+- Report exact results and unresolved risks.
+- Do not auto-spawn additional agents/workers unless explicitly requested.
+- Respect the current user request over speculative future work.
+
+## End-of-sub-phase handoff
+When a sub-phase is actually complete:
+1. run required verification;
+2. record exact results;
+3. commit scoped work;
+4. update `docs/PROJECT_STATE.md` with completed phase, branch, commit SHA, verification, risks, and next approved sub-phase;
+5. do not alter future roadmap scope without user approval.
+
+## Legacy docs
+Older PenguJar/early Makoto docs remain historical/component references. They do not override the canonical current pointer or explicitly promoted Makoto Wallet scope.
+<!-- MAKOTO_CANONICAL_CONTEXT_END -->
+
+---
+
+# PenguJar â€” Codex Working Agreement
 
 ## Mission
 Build PenguJar as a small, trustworthy Arc-native savings dApp, not as a generic DeFi demo.
@@ -117,10 +178,10 @@ Flag as BLOCKING if a change:
 - uses a stale/unverified Arc address
 - adds roadmap features without scope approval
 
-## Makoto Wallet promoted scope — 2026-08-17
+## Makoto Wallet promoted scope â€” 2026-08-17
 
 The user explicitly promoted the following roadmap items into Makoto Wallet scope:
-- Phase 3: real Arc Testnet USDC ↔ EURC swap with live quotes and wallet-signed execution.
+- Phase 3: real Arc Testnet USDC â†” EURC swap with live quotes and wallet-signed execution.
 - Phase 6: Arc-native USDC crosschain integration using Circle CCTP V2 Forwarding Service.
 
 The older PenguJar MVP guardrails above remain historical constraints for the PenguJar MVP itself; they do not prohibit these explicitly promoted Makoto Wallet features.
