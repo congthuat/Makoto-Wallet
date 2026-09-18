@@ -19,7 +19,11 @@ export function TransactionReceiptPanel({ activity, walletAddress, onClose }: { 
   const { locale } = usePreferences();
   const vi = locale === "vi";
   const client = usePublicClient({ chainId: arcTestnet.id });
-  const [state, setState] = useState<ReceiptState>({ status: "loading" });
+  // Match the complete verification context, including same-hash activity changes.
+  const owner = useMemo(() => ({ activity, walletAddress, client }), [activity, walletAddress, client]);
+  const [ownedState, setState] = useState<ReceiptState & { owner: typeof owner }>({ owner, status: "loading" });
+  // Effects run after render: never expose another selection's evidence meanwhile.
+  const state: ReceiptState = ownedState.owner === owner ? ownedState : { status: "loading" };
   const [copied, setCopied] = useState(false);
   const [shareAvailable, setShareAvailable] = useState(false);
   const contacts = useMemo(() => loadContacts(walletAddress, arcTestnet.id), [walletAddress]);
@@ -27,14 +31,14 @@ export function TransactionReceiptPanel({ activity, walletAddress, onClose }: { 
   useEffect(() => { queueMicrotask(() => setShareAvailable(typeof navigator.share === "function")); }, []);
   useEffect(() => {
     let active = true;
-    queueMicrotask(() => { if (active) setState({ status: "loading" }); });
-    if (!client) { queueMicrotask(() => { if (active) setState({ status: "unavailable" }); }); return () => { active = false; }; }
+    queueMicrotask(() => { if (active) setState({ owner, status: "loading" }); });
+    if (!client) { queueMicrotask(() => { if (active) setState({ owner, status: "unavailable" }); }); return () => { active = false; }; }
     void client.getTransactionReceipt({ hash: activity.hash }).then((receipt) => {
       if (!active) return;
-      setState({ status: "ready", verification: verifyTransactionReceipt(activity, walletAddress, receipt) });
-    }).catch(() => { if (active) setState({ status: "unavailable" }); });
+      setState({ owner, status: "ready", verification: verifyTransactionReceipt(activity, walletAddress, receipt) });
+    }).catch(() => { if (active) setState({ owner, status: "unavailable" }); });
     return () => { active = false; };
-  }, [activity, client, walletAddress]);
+  }, [activity, client, walletAddress, owner]);
 
   const verification = state.status === "ready" ? state.verification : undefined;
   const confirmationStatus: ReceiptConfirmationStatus = state.status === "ready" ? classifyReceiptConfirmation(verification) : "submitted-unknown";
