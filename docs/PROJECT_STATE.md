@@ -4,13 +4,13 @@
 
 ## Current
 - **Major phase:** Phase 7 — Ledger Calm
-- **Sub-phase:** 7I
+- **Sub-phase:** 7J
 - **Status:** ACTIVE
-- **Next:** 7J
+- **Next:** 8A
 - **After Phase 7:** 8A
 - **Branch captured at setup:** phase7-astra-ledger-calm
 - **HEAD captured at setup:** `4fad37b6f479c20a306741e4b08a0cb29a13a8f4`
-- **Last refresh:** 2026-09-19 13:26:26 +07:00
+- **Last refresh:** 2026-09-19 19:15:33 +07:00
 
 ## Authority note
 Sub-phase 7I is user-confirmed. Branch/HEAD captured at setup above remain historical setup values, not the live HEAD.
@@ -39,4 +39,8 @@ Never claim tests passed if they were not run.
 - Completed validation: frontend 1082/1082 PASS; contracts 19/19 PASS; typecheck PASS; production build PASS; git diff --check PASS; lint: 0 errors, 7 existing warnings.
 - Activity accessibility/responsive validation PASS; Pay accessibility/responsive validation PASS. Chrome was used for browser QA because the previously documented headless runner could not launch.
 - Connected Unified Balance state: environment-blocked / uncertified. Connected Vault state: environment-blocked / uncertified. These connected states were not tested.
-- Next approved sub-phase: **7I — Robustness Audit**.
+- **Phase 7I COMPLETE** — branch `phase7-astra-ledger-calm`; implementation commit `b2fa432dd575b800f4eecff334f0a7b41c7224cf` (`fix: complete Phase 7I robustness audit`).
+- Completed validation: frontend tests 1086/1086 PASS; repair gates 24/24 PASS; contract tests 19/19 PASS; contract compile PASS; frontend typecheck PASS; production build PASS; git diff --check PASS; lint: 0 errors, 7 existing warnings; no stale `.network` RPC references remain.
+- Phase 7I robustness scope completed: preserved partial activity truthfulness; standardized the Arc RPC endpoint to `.io`; added stale async/account guards to Universal Bridge, Send, Swap, and CCTP; protected pending review/approval states from Back/reset races; added `phase7iRobustness.test.ts`.
+- Remaining disclosed gaps: live connected-wallet/funded Arc Testnet browser QA remains environment-dependent; 7 baseline lint warnings remain; `frontend/next-env.d.ts` is a pre-existing unrelated unstaged modification and remains untouched.
+- Next approved sub-phase: **7J — Final Visual Regression + Release Handoff**.
