@@ -64,7 +64,12 @@ function compile(source, filename) {
   const mod = { exports: {} };
   new Function("require", "module", "exports", code)((id) => {
     if (id === "wagmi") return { usePublicClient: () => globalThis.__fixtureClient };
-    if (id === "@/hooks/usePreferences") return { usePreferences: () => ({ locale: globalThis.__fixtureLocale ?? "en", t: (key) => key === "common.close" ? "Close" : key }) };
+    if (id === "@/hooks/usePreferences") {
+      const target = path.join(root, "i18n", "index.ts");
+      if (!cache.has(target)) cache.set(target, compile(readFileSync(target, "utf8"), target));
+      const { translate } = cache.get(target);
+      return { usePreferences: () => ({ locale: globalThis.__fixtureLocale ?? "en", t: (key, values) => translate(globalThis.__fixtureLocale ?? "en", key, values) }) };
+    }
     if (id.startsWith("@/") || id.startsWith(".")) {
       let target = id.startsWith("@/") ? path.join(root, id.slice(2)) : path.resolve(path.dirname(filename), id);
       if (!path.extname(target)) target = existsSync(target + ".ts") ? target + ".ts" : existsSync(target + ".tsx") ? target + ".tsx" : path.join(target, "index.ts");

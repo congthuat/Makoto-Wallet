@@ -78,3 +78,30 @@ test("30 contact display name is not leaked into canonical share text", () => as
 test("31 note included only when verified", () => assert.match(buildCanonicalReceiptText(activity(), verifyTransactionReceipt(activity(), wallet, receipt([transfer(), memoLog("Dinner")])), "en"), /Note: Dinner/));
 test("32 no note line when absent", () => assert.doesNotMatch(buildCanonicalReceiptText(activity(), verifyTransactionReceipt(activity(), wallet, receipt([transfer()])), "en"), /^Note:/m));
 test("33 deterministic receipt text", () => { const verified = verifyTransactionReceipt(activity(), wallet, receipt([transfer()])); assert.equal(buildCanonicalReceiptText(activity(), verified, "vi"), buildCanonicalReceiptText(activity(), verified, "vi")); });
+
+for (const locale of ["en", "vi"] as const) {
+  for (const outcome of ["success", "reverted", "unresolved"] as const) {
+    test(`Phase 7H swap export/share input wording: ${outcome} ${locale}`, () => {
+      const a = swapActivity();
+      const evidence = outcome === "success" ? receipt([transfer(), swapReceive()]) : receipt([], { status: outcome === "reverted" ? "reverted" : "success" });
+      const verification = verifyTransactionReceipt(a, wallet, evidence);
+      const text = buildCanonicalReceiptText(a, verification, locale);
+      const lines = text.split("\n");
+      const vi = locale === "vi";
+      if (outcome === "success") {
+        assert.equal(lines[1], vi ? "Trạng thái: Đã xác nhận" : "Status: Confirmed");
+        assert.equal(lines[3], vi ? "Đã gửi: 5 USDC" : "Sent: 5 USDC");
+        assert.equal(lines[4], vi ? "Đã nhận: 4.99 EURC" : "Received: 4.99 EURC");
+      } else {
+        assert.equal(lines[1], outcome === "reverted" ? (vi ? "Trạng thái: Xác nhận thất bại" : "Status: Confirmed failure") : (vi ? "Trạng thái: Đã gửi — chưa rõ trạng thái xác nhận" : "Status: Submitted — confirmation status unknown"));
+        assert.equal(lines[3], vi ? "Số tiền dự định gửi: 5 USDC" : "Intended amount: 5 USDC");
+        // The existing VI status describes submission, not a completed asset transfer.
+        assert.doesNotMatch(text, /^(?:Sent|Đã gửi):/m);
+        assert.doesNotMatch(text, /^(?:Received|Đã nhận):/m);
+        assert.doesNotMatch(text, /4\.99/);
+      }
+      assert.equal(a.amount, 5_000_000n);
+      assert.equal(a.swapReceive?.amount, 4_990_000n);
+    });
+  }
+}

@@ -11,6 +11,8 @@
   --lc-separator: light-dark(#DCE1E4, #303844);
   --lc-control-border: light-dark(#7D8995, #718091);
   --lc-action: light-dark(#5940C8, #B9ADFF);
+  --lc-activity-action-text: light-dark(#6043C4, #C6B9FF);
+  --lc-activity-action-hover-text: light-dark(#4F32AD, #DED7FF);
   --lc-on-action: light-dark(#FFFFFF, #191429);
   --lc-selected: light-dark(#EFEDFB, #2A2640);
   --lc-success: light-dark(#176B4B, #7BD9B0);

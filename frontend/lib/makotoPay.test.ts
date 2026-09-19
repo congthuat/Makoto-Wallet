@@ -14,6 +14,26 @@ const dashboard = readFileSync(new URL("../components/WalletDashboard.tsx", impo
 const homePay = readFileSync(new URL("../components/MakotoPayHomeSection.tsx", import.meta.url), "utf8");
 const catalogData = readFileSync(new URL("./makotoPayCatalog.ts", import.meta.url), "utf8");
 
+test("Pay descriptions retain contrast headroom on demo and planned light surfaces without changing dark color", () => {
+  const rule = [...styles.matchAll(/\.serviceText small\s*\{([^}]+)\}/g)].at(-1)?.[1] ?? "";
+  const foreground = rule.match(/color:\s*light-dark\((#[\da-f]{6}),\s*var\(--mw-text-muted\)\)/i)?.[1];
+  assert.ok(foreground, "description override must preserve the existing dark-theme token");
+  const tokens = readFileSync(new URL("../app/ledger-calm.css", import.meta.url), "utf8");
+  const luminance = (hex: string) => {
+    const channels = hex.slice(1).match(/../g)!.map(value => {
+      const channel = parseInt(value, 16) / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  };
+  for (const token of ["--lc-success-surface", "--lc-inset", "--lc-surface"]) {
+    const background = tokens.match(new RegExp(`${token}:\\s*light-dark\\((#[\\da-f]{6})`, "i"))?.[1];
+    assert.ok(background, `${token} has a light surface`);
+    const ratio = (luminance(background) + 0.05) / (luminance(foreground) + 0.05);
+    assert.ok(ratio >= 4.7, `${token}: ${ratio.toFixed(4)}:1 must retain headroom above 4.5:1`);
+  }
+});
+
 test("Pay navigation exists and remains active on nested Pay routes", () => {
   assert.doesNotMatch(header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems"))), /href: "\/pay"/);
   assert.match(catalog, /MakotoPay/);

@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync, openSync, closeSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { root, fixtureSource, wallet, arc } from "./phase7h-receipt-fixture.mjs";
+import { root, fixtureSource, wallet, arc, hash } from "./phase7h-receipt-fixture.mjs";
 
 const require = createRequire(import.meta.url);
 const output = path.resolve(process.env.PHASE7H_OUTPUT ?? path.join(tmpdir(), "makoto-phase7h-receipt-qa"));
@@ -18,7 +18,7 @@ if (process.argv.includes("--serve")) {
   writeFileSync(path.join(output, "ReceiptFixture.tsx"), fixtureSource);
   writeFileSync(path.join(output, "entry.tsx"), `import * as React from "react"; import {createRoot} from "react-dom/client"; import {Fixture} from "./ReceiptFixture"; const root=createRoot(document.querySelector('#fixture')); let revision=0; function Mounted({options,version}){React.useEffect(()=>{window.fixtureVersion=version;},[version]);return <Fixture options={options}/>;} window.mountReceipt=(o={})=>{window.__fixtureLocale=o.locale??'en';const version=++revision;root.render(<Mounted key={version} options={o} version={version}/>);return version;}; window.mountReceipt();`);
   writeFileSync(path.join(output, "wagmiMock.ts"), `export const usePublicClient=()=>globalThis.__fixtureClient;`);
-  writeFileSync(path.join(output, "preferencesMock.ts"), `export const usePreferences=()=>({locale:globalThis.__fixtureLocale??'en',t:(key)=>key==='common.close'?'Close':key});`);
+  writeFileSync(path.join(output, "preferencesMock.ts"), `import { translate } from ${JSON.stringify(path.join(root, "i18n", "index.ts"))}; export const usePreferences=()=>({locale:globalThis.__fixtureLocale??'en',t:(key,values)=>translate(globalThis.__fixtureLocale??'en',key,values)});`);
   writeFileSync(path.join(output, "loader.cjs"), `const ts=require(${JSON.stringify(require.resolve("typescript"))});module.exports=function(source){if(this.resourcePath.endsWith('.css'))return '';return ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;};`);
   const { webpack } = require("next/dist/compiled/webpack/webpack");
   await new Promise((resolve, reject) => {
@@ -46,7 +46,7 @@ if (process.argv.includes("--serve")) {
       for (const scenario of scenarios) {
         mount({ scenario, locale });
         const label = `${scenario} ${width}-${locale}-${theme}`;
-        const value = evaluate(`(()=>{const root=document.querySelector('#fixture');const status=root?.querySelector('[data-receipt-status]')?.dataset.receiptStatus;return {status,text:root?.innerText??'',buttons:[...root.querySelectorAll('button')].map((button)=>({text:button.innerText,disabled:button.disabled})),page:document.documentElement.scrollWidth,width:innerWidth,overflow:[...root.querySelectorAll('*')].filter(e=>e.getClientRects().length&&e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).display!=='inline').map(e=>e.className)}})()`);
+        const value = evaluate(`(()=>{const root=document.querySelector('#fixture');const status=root?.querySelector('[data-receipt-status]')?.dataset.receiptStatus;const recovery=root?.querySelector('.receipt-recovery');return {status,text:root?.innerText??'',recovery:recovery?.innerText??'',actual:root?.querySelector('[data-actual-received]')?.dataset.actualReceived,buttons:[...root.querySelectorAll('button')].map((button)=>({text:button.innerText,disabled:button.disabled})),page:document.documentElement.scrollWidth,width:innerWidth,overflow:[...root.querySelectorAll('*')].filter(e=>e.getClientRects().length&&e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).display!=='inline').map(e=>e.className)}})()`);
         check(`status semantics ${label}`, () => {
           assert.equal(value.status, scenario === "not-submitted" ? "not-submitted" : scenario === "result-unknown" || scenario === "unknown" || scenario === "swap-unknown" || scenario === "unavailable" ? "submitted-unknown" : ["failed", "failed-memo-mismatch"].includes(scenario) ? "confirmed-failure" : "confirmed-success");
           if (scenario === "not-submitted") assert.doesNotMatch(value.text, /Submitted|Confirmed/);
@@ -56,6 +56,13 @@ if (process.argv.includes("--serve")) {
           if (["unknown", "swap-unknown", "unavailable"].includes(scenario)) { assert.doesNotMatch(value.text, locale === "vi" ? /Đã xác nhận/ : /Confirmed/); }
           if (scenario === "swap-success") assert.match(value.text, /4\.99 EURC/);
           if (scenario === "swap-unknown") assert.doesNotMatch(value.text, /4\.99 EURC/);
+          if (scenario === "swap-success") assert.equal(value.actual, "evidenced");
+          if (scenario === "swap-unknown") assert.equal(value.actual, "unknown");
+          if (["unknown", "swap-unknown", "unavailable"].includes(scenario)) {
+            assert.match(value.recovery, new RegExp(hash));
+            assert.match(value.recovery, locale === "vi" ? /xác nhận vẫn chưa rõ/i : /Confirmation is still unknown/i);
+            assert.match(value.recovery, locale === "vi" ? /ArcScan/i : /ArcScan/i);
+          } else assert.equal(value.recovery, "");
           if (scenario === "failed-memo-mismatch") assert.match(value.text, locale === "vi" ? /thất bại/ : /failure|failed/i);
           if (scenario === "memo-success") assert.match(value.text, /NOTE FROM TRANSACTION A/);
           if (scenario === "memo-normalized") assert.match(value.text, /CASE NORMALIZED MEMO/);

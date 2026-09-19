@@ -10,6 +10,7 @@ import { ARC_MEMO_ADDRESS, arcMemoAbi } from "./arcMemo.ts";
 import { erc20BalanceAbi } from "./abi/erc20.ts";
 import { SUPPORTED_ASSETS } from "./assets.ts";
 import { encodeTransferLog } from "./transactionReceipt.ts";
+import { translate, type Locale, type TranslationKey } from "../i18n/index.ts";
 
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../components/TransactionReceiptPanel.tsx", import.meta.url), "utf8");
@@ -35,7 +36,7 @@ function nodes(value: any): any[] { return Array.isArray(value) ? value.flatMap(
 function text(value: any): string { return Array.isArray(value) ? value.map(text).join(" ") : value && typeof value === "object" ? text(value.props?.children) : typeof value === "string" ? value : ""; }
 // Execute the production React component with retained hook slots. Effects are
 // explicitly deferred so assertions observe the first render, not a reset render.
-function harness() {
+function harness(locale: Locale = "en") {
   const slots: any[] = [], pending: (() => void)[] = [], requests: any[] = [];
   let cursor = 0;
   const client = { getTransactionReceipt: ({ hash }: any) => new Promise((resolve, reject) => requests.push({ hash, resolve, reject })) };
@@ -48,7 +49,7 @@ function harness() {
       useEffect: (fn: () => any, deps: any[]) => { const i = cursor++; if (!same(deps, slots[i]?.deps)) { const prev = slots[i]; slots[i] = { deps }; pending.push(() => { prev?.cleanup?.(); slots[i].cleanup = fn(); }); } },
     },
     wagmi: { usePublicClient: () => env.client },
-    "@/hooks/usePreferences": { usePreferences: () => ({ locale: "en" }) },
+    "@/hooks/usePreferences": { usePreferences: () => ({ locale, t: (key: TranslationKey) => translate(locale, key) }) },
     "@/lib/contacts": { loadContacts: () => [] },
     "./WalletPanel": { WalletPanel: "wallet-panel" },
   };
@@ -76,3 +77,35 @@ test("H4 same hash account change invalidates evidence immediately", async () =>
 test("H4 same hash activity evidence change invalidates immediately", async () => { const { h, a } = await ready(); safe(h.render({ ...a, amount: 6_000_000n })); });
 test("H4 Arc client context change invalidates immediately", async () => { const { h, a } = await ready(); h.env.client = undefined; safe(h.render(a)); await h.effects(); assert.equal(status(h.render(a)), "submitted-unknown"); });
 test("H4 late rejected A request cannot remove B verification", async () => { const h = harness(), a = activity("ab"), b = activity("cd"); h.render(a); await h.effects(); h.render(b); await h.effects(); await h.resolve(1, receipt(b)); h.requests[0].reject(new Error("offline")); await tick(); assert.equal(status(h.render(b)), "confirmed-success"); });
+
+for (const locale of ["en", "vi"] as const) {
+  for (const kind of ["transfer", "swap", "bridge"] as const) {
+    for (const outcome of ["success", "failed", "unresolved", "unavailable", "mismatched-success", "mismatched-failure"] as const) {
+      test(`Phase 7H outgoing amount wording: ${kind} ${outcome} ${locale}`, async () => {
+        const h = harness(locale), a = { ...activity("ab", kind === "swap"), kind };
+        h.render(a);
+        await h.effects();
+        if (outcome === "unavailable") {
+          h.requests[0].reject(new Error("synthetic unavailable"));
+          await tick();
+        } else {
+          const result = receipt(a, outcome === "failed" || outcome === "mismatched-failure");
+          if (outcome === "unresolved") result.logs = [];
+          if (outcome.startsWith("mismatched-")) result.transactionHash = activity("cd").hash;
+          await h.resolve(0, result);
+        }
+        const tree = h.render(a);
+        assert.equal(status(tree), outcome === "success" ? "confirmed-success" : outcome === "failed" ? "confirmed-failure" : "submitted-unknown");
+        const amounts = nodes(tree).find(n => n.props?.className === "receipt-amounts");
+        const label = nodes(amounts).find(n => n.type === "dt");
+        const amount = nodes(amounts).find(n => n.type === "dd");
+        assert.equal(text(label), outcome === "success" ? (locale === "en" ? "Sent" : "Đã gửi") : (locale === "en" ? "Intended amount" : "Số tiền dự định gửi"));
+        assert.equal(text(amount).replace(/\s+/g, " ").trim(), "5 USDC");
+        if (kind === "swap") {
+          assert.equal(nodes(amounts).find(n => n.props?.["data-actual-received"])?.props["data-actual-received"], outcome === "success" ? "evidenced" : "unknown");
+          if (outcome !== "success") assert.doesNotMatch(text(amounts), /4\.99/);
+        }
+      });
+    }
+  }
+}
