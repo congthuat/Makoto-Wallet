@@ -27,14 +27,14 @@ test("responsive CSS fixes overflow sources instead of masking the page", () => 
 
 test("foundation shell preserves connected dashboard section order and artwork exclusions", () => {
   // Phase 7D owns composition inside the existing shared shell.
-  assert.match(dashboard, /<AppShell guardianSetupJarId=/);
+  assert.match(dashboard, /<AppShell>/);
   assert.match(overview, /holdings-title[\s\S]*id="assets"[\s\S]*id="activity"[\s\S]*dashboard-agent-title/);
   assert.doesNotMatch(dashboard, /styles\.companionCard|companion-art\.jpg|MakotoPayHomeSection/);
 });
 
-test("header keeps five localized destinations named at the 900px navigation width", () => {
-  for (const label of ["Overview", "Agent", "Settings", "Help & Support", "Feedback"]) assert.match(header, new RegExp(label));
-  assert.doesNotMatch(header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems"))), /Activity/);
+test("header keeps six localized destinations named at the 900px navigation width", () => {
+  for (const label of ["Overview", "Activity", "Agent", "Settings", "Help & Support", "Feedback"]) assert.match(header, new RegExp(label));
+  assert.match(header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems"))), /href: "\/\#activity"/);
   assert.match(header, /href: "\/settings#security"/);
   assert.match(headerCss, /@media\(max-width:1120px\)/);
   assert.doesNotMatch(headerCss, /\.navLink[^\{]*\{[^}]*display:none/);
@@ -44,7 +44,7 @@ test("shared shell provides a localized keyboard skip destination and stable hea
   // Replaces obsolete fixed-sidebar labels with the common shell's accessibility contract.
   assert.match(appShell, /href="#main-content"[^\n]*Đến nội dung chính[^\n]*Skip to main content/);
   assert.match(appShell, /<main id="main-content"[^>]*tabIndex=\{-1\}/);
-  assert.match(appShell, /<AppHeader guardianSetupJarId=\{guardianSetupJarId\}/);
+  assert.match(appShell, /<AppHeader \/>/);
   assert.match(header, /aria-label=\{locale === "vi" \? "Điều hướng chính" : "Primary navigation"\}/);
   assert.match(header, /aria-current=\{isActive\(item\.href\) \? "page" : undefined\}/);
 });
@@ -70,13 +70,13 @@ test("Makoto Vault mobile hero starts below the shared header", () => {
 test("Dashboard heading is route-local and Settings fragments retain exact selection", () => {
   assert.doesNotMatch(header, /styles\.pageHeading/);
   assert.match(overview, /<h1>\{t\("overview.title"\)\}/);
-  assert.match(header, /fragment \? hash === `#\$\{fragment\}` \|\| \(href === "\/settings#security" && !hash\) : !hash/);
-  assert.match(header, /if \(href === "\/"\) return pathname === "\/"/);
+  assert.match(header, /if \(!fragment\) return pathname === route && !hash/);
 });
 
 test("foundation navigation uses existing absolute routes and preserves asset fragments", () => {
   assert.match(header, /href: "\/"[^\n]*en: "Overview"/);
   assert.match(header, /href: "\/agent"[^\n]*en: "Agent"/);
+  assert.match(header, /href: "\/\#activity"[^\n]*en: "Activity"/);
   assert.match(header, /href: "\/settings#security"[^\n]*en: "Settings"/);
   assert.match(header, /href: "\/settings#help"[^\n]*en: "Help & Support"/);
   assert.match(overview, /id="assets"/);
@@ -99,14 +99,11 @@ test("mobile dashboard stacks Assets, Wallet Status, and Activity without fixed-
   assert.match(shellCss, /env\(safe-area-inset-bottom\)/);
 });
 
-test("contextual Guardian recommendation is real-state gated and hidden from mobile navigation", () => {
-  assert.match(dashboard, /guardianSetupJar = jars\.find\(\(jar\) => !jar\.closed && Number\(jar\.mode\) === 1 && jar\.guardian === zeroAddress\)/);
-  assert.match(dashboard, /<AppShell guardianSetupJarId=\{guardianSetupJar\?\.id\}/);
-  assert.match(appShell, /<AppHeader guardianSetupJarId=\{guardianSetupJarId\}/);
-  assert.match(header, /guardianSetupJarId !== undefined/);
-  assert.match(header, /href="\/savings"/);
+test("current shell leaves legacy Vault UI unlinked while preserving internal routes", () => {
+  assert.doesNotMatch(dashboard, /guardianSetupJar|zeroAddress/);
+  assert.doesNotMatch(appShell, /guardianSetupJarId/);
+  assert.doesNotMatch(header, /guardianSetupJarId|guardianContextCard|href="\/savings"/);
   assert.doesNotMatch(header, /recover your wallet|lose access/i);
-  assert.match(headerCss, /@media\(max-width:767px\)[\s\S]*\.guardianContextCard\{display:none\}/);
 });
 
 test("wallet balances avoid the obsolete native query and aggressive background refresh", () => {

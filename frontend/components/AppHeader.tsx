@@ -12,6 +12,7 @@ import styles from "./AppHeader.module.css";
 type HeaderIconName = "wallet" | "activity" | "settings" | "network" | "language" | "theme" | "sun" | "address";
 const navItems: ReadonlyArray<{ href: string; icon: HeaderIconName; en: string; vi: string }> = [
   { href: "/", icon: "wallet", en: "Overview", vi: "Tổng quan" },
+  { href: "/#activity", icon: "activity", en: "Activity", vi: "Hoạt động" },
   { href: "/agent", icon: "activity", en: "Agent", vi: "Trợ lý" },
   { href: "/settings#security", icon: "settings", en: "Settings", vi: "Cài đặt" },
   { href: "/settings#help", icon: "activity", en: "Help & Support", vi: "Trợ giúp" },
@@ -31,12 +32,12 @@ function HeaderIcon({ name, className }: { name: HeaderIconName; className: stri
   return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{glyphs[name]}</svg>;
 }
 
-export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint } = {}) {
+export function AppHeader() {
   const { locale, theme, setTheme, t } = usePreferences();
   const pathname = usePathname();
   const [hash, setHash] = useState("");
   useEffect(() => { const updateHash = () => setHash(window.location.hash); updateHash(); window.addEventListener("hashchange", updateHash); return () => window.removeEventListener("hashchange", updateHash); }, [pathname]);
-  function isActive(href: string) { if (href === "/") return pathname === "/"; const [route, fragment] = href.split("#"); return pathname === route && (fragment ? hash === `#${fragment}` || (href === "/settings#security" && !hash) : !hash); }
+  function isActive(href: string) { const [route, fragment] = href.split("#"); if (!fragment) return pathname === route && !hash; return pathname === route && (hash === `#${fragment}` || (href === "/settings#security" && !hash)); }
   function toggleTheme() { if (theme === "light") return setTheme("dark"); if (theme === "dark") return setTheme("light"); setTheme(window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark"); }
   const toggleLabel = theme === "light" ? t("preferences.switchDark") : theme === "dark" ? t("preferences.switchLight") : t("preferences.systemMode");
 
@@ -53,7 +54,6 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
     <nav className={styles.nav} aria-label={locale === "vi" ? "Điều hướng chính" : "Primary navigation"}>
       {navItems.map((item) => <Link key={item.en} className={`${styles.navLink} ${isActive(item.href) ? styles.navActive : ""}`.trim()} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} onNavigate={() => setHash(item.href.includes("#") ? `#${item.href.split("#")[1]}` : "")}><HeaderIcon name={item.icon} className={styles.headerGlyph} /><span>{locale === "vi" ? item.vi : item.en}</span></Link>)}
       <a className={styles.feedbackLink} href="https://docs.google.com/forms/d/e/1FAIpQLSfH_cQv0Gkxy604YcpVHpitSfoWbF5_ud3f5WG_Jc4d7A6nVg/viewform" target="_blank" rel="noopener noreferrer"><HeaderIcon name="activity" className={styles.headerGlyph} /><span>{locale === "vi" ? "Phản hồi" : "Feedback"}</span></a>
-      {guardianSetupJarId !== undefined && <aside className={styles.guardianContextCard} aria-label={locale === "vi" ? "Khuyến nghị Guardian" : "Guardian recommendation"}><HeaderIcon name="settings" className={styles.guardianContextIcon} /><strong>{locale === "vi" ? "Bảo vệ khoản tiết kiệm" : "Protect your savings"}</strong><p>{locale === "vi" ? "Sử dụng Guardian khi tạo mục tiêu SHIELDED được bảo vệ để hỗ trợ khôi phục quyền kiểm soát mục tiêu." : "Use a Guardian when creating a protected SHIELDED savings goal to support recovery of goal control."}</p><Link href="/savings">{locale === "vi" ? "Tạo mục tiêu được bảo vệ" : "Create protected goal"}</Link></aside>}
     </nav>
   </header>;
 }

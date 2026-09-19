@@ -3,7 +3,6 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useConnection, usePublicClient } from "wagmi";
-import { zeroAddress } from "viem";
 import { arcTestnet } from "viem/chains";
 
 import { AppShell } from "./AppShell";
@@ -154,8 +153,6 @@ export function WalletDashboard() {
     askAgent(prompt);
   }
 
-  const guardianSetupJar = jars.find((jar) => !jar.closed && Number(jar.mode) === 1 && jar.guardian === zeroAddress);
-
   async function showMoreActivity() {
     if (activityHistoryLimit < activities.length) {
       setActivityHistoryLimit((current) => current + 20);
@@ -192,7 +189,7 @@ export function WalletDashboard() {
   const showWalletReady = shouldShowWalletReady(onboardingIntent, onArc, connection.connector?.id);
 
   return (
-    <AppShell guardianSetupJarId={guardianSetupJar?.id}>
+    <AppShell>
         {dashboardState === "hydrating" ? (
           <section className={foundation.disconnected} role="status" aria-live="polite" aria-busy="true">
             <div className={styles.disconnectedCopy}>

@@ -84,10 +84,10 @@ test("7D primary actions are separate from the optional Agent and secondary tool
   assert.ok(start < overview.indexOf("className={styles.agent}"));
 });
 
-test("primary navigation presents localized Overview, Agent, Settings, and Help destinations", () => {
+test("primary navigation presents localized Overview, Activity, Agent, Settings, and Help destinations", () => {
   const items = header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems")) + 2);
-  for (const label of ["Overview", "Agent", "Settings", "Help & Support"]) assert.match(items, new RegExp(label));
-  for (const label of ["Dashboard", "Wallet", "Tools", "Pay", "Makoto Vault", "Activity", "Send", "Receive", "Swap", "Bridge"]) assert.doesNotMatch(items, new RegExp(label));
+  for (const label of ["Overview", "Activity", "Agent", "Settings", "Help & Support"]) assert.match(items, new RegExp(label));
+  for (const label of ["Dashboard", "Wallet", "Tools", "Pay", "Makoto Vault", "Send", "Receive", "Swap", "Bridge"]) assert.doesNotMatch(items, new RegExp(label));
   assert.match(header, /href: "\/agent"/);
   assert.match(header, /href="https:\/\/docs\.google\.com\/forms/);
   assert.match(header, /"Feedback"/);

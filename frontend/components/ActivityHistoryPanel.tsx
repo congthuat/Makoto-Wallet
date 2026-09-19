@@ -28,7 +28,7 @@ type Props = {
 
 type Copy = (key: TranslationKey) => string;
 
-const FILTERS: ActivityFilter[] = ["all", "send", "receive", "swap", "bridge", "vault"];
+const FILTERS: ActivityFilter[] = ["all", "send", "receive", "swap", "bridge"];
 const FILTER_KEYS: Record<ActivityFilter, TranslationKey> = {
   all: "activityHistory.filter.all",
   send: "activityHistory.filter.send",

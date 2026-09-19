@@ -17,8 +17,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = resolvePreference(store.get(MAKOTO_LOCALE_COOKIE)?.value, store.get(LEGACY_LOCALE_COOKIE)?.value, ["en", "vi"] as const, "en");
   const title = locale === "vi" ? "Makoto Wallet — Ví mini cho Arc" : "Makoto Wallet — Mini wallet for Arc";
   const description = locale === "vi"
-    ? "Gửi và nhận tài sản được hỗ trợ trên Arc Testnet, theo dõi hoạt động và tiết kiệm USDC với Makoto Vault."
-    : "Send and receive supported assets on Arc Testnet, track Makoto activity, and save USDC with Makoto Vault.";
+    ? "Ví không lưu ký trên Arc Testnet cho USDC và EURC, với Gửi, Nhận, Hoán đổi, Chuyển chuỗi và chuẩn bị thao tác có Makoto Agent."
+    : "A non-custodial Arc Testnet wallet for USDC and EURC with Send, Receive, Swap, Bridge, and Makoto Agent preparation.";
   return {
     metadataBase: new URL("https://makoto-wallet.vercel.app"), title, description,
     alternates: { canonical: "/" },

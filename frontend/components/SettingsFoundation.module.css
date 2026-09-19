@@ -64,6 +64,13 @@
 .settingsDisclosure { max-width: 700px; margin: 0; padding-left: 20px; color: var(--lc-text-secondary); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
 .settingsDisclosure li + li { margin-top: var(--lc-space-2); }
 
+.helpLinks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--lc-space-3); margin-top: var(--lc-space-4); }
+.helpLink { min-width: 0; min-height: 72px; padding: var(--lc-space-3); border: 1px solid var(--lc-control-border); border-radius: var(--lc-radius-control); color: var(--lc-text); background: var(--lc-surface); text-decoration: none; }
+.helpLink:hover { background: var(--lc-inset); }
+.helpLink strong, .helpLink span { display: block; }
+.helpLink strong { color: var(--lc-action); font-size: var(--lc-label-size); line-height: var(--lc-label-line); font-weight: 600; }
+.helpLink span { margin-top: var(--lc-space-1); color: var(--lc-text-secondary); font-size: var(--lc-meta-size); line-height: var(--lc-meta-line); }
+
 .settingsChoices { display: flex; flex-wrap: wrap; gap: var(--lc-space-2); margin: 0; padding: 0; border: 0; }
 .settingsChoices legend { margin-bottom: var(--lc-space-3); color: var(--lc-text-secondary); font-size: var(--lc-label-size); line-height: var(--lc-label-line); }
 .settingsChoices label { display: inline-flex; align-items: center; gap: var(--lc-space-2); min-height: 44px; padding: 8px 12px; border: 1px solid var(--lc-control-border); border-radius: var(--lc-radius-control); color: var(--lc-text); font-size: var(--lc-label-size); line-height: var(--lc-label-line); cursor: pointer; }
@@ -84,4 +91,5 @@
   .securityOverview { align-items: flex-start; }
   .settingsInfo strong { max-width: 64%; }
   .settingsPreferenceReset { margin-top: var(--lc-space-4); padding-top: var(--lc-space-4); }
+  .helpLinks { grid-template-columns: minmax(0, 1fr); }
 }
