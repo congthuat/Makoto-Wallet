@@ -257,7 +257,7 @@ export function WalletDashboard() {
             activities={activities}
             activityLoading={activity.isLoading}
             activityPartial={activity.partial}
-            activityUnavailable={activity.unavailable || activity.isError}
+            activityUnavailable={activity.unavailable}
             onAction={setAction}
             onHistory={() => { setActivityHistoryLimit(20); setActivityHistoryOpen(true); }}
             onRefresh={() => void activity.refetch()}

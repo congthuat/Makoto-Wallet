@@ -81,10 +81,13 @@ export function SendFlow({
   const chain = useVerifiedWalletChain();
   const writer = useWriteContract();
   const client = usePublicClient({ chainId: arcTestnet.id });
+  const reviewAttempt = useRef(0),
+    reviewInFlight = useRef(false),
+    currentAccount = useRef(connection.address);
   const asset = getAssetById(assetId)!;
   const balance = balances[assetId];
   const validated = validateAssetSend(recipient, amount, balance, asset, connection.address);
-  const pending = stage === "awaiting" || stage === "confirming";
+  const pending = stage === "awaiting" || stage === "confirming" || feeEstimate.status === "loading" || recipientKind === "checking" || memoCompatibility === "checking";
   const large = !("error" in validated) && isLargeSend(validated.amount, balance);
   const contacts = useMemo(() => {
     void contactsRevision;
@@ -173,6 +176,10 @@ export function SendFlow({
     : undefined;
 
   useEffect(() => {
+    currentAccount.current = connection.address;
+  }, [connection.address]);
+
+  useEffect(() => {
     if (!reviewing) return;
     const wrongChain = (chain.connectorChainId !== undefined && chain.connectorChainId !== arcTestnet.id) || (chain.providerChainId !== undefined && chain.providerChainId !== arcTestnet.id);
     const wrongAccount = Boolean(reviewedAccount && connection.address?.toLowerCase() !== reviewedAccount.toLowerCase());
@@ -229,9 +236,14 @@ export function SendFlow({
   }
 
   async function review() {
+    if (reviewInFlight.current) return;
     const message = validationMessage();
     if (message) return setError(message);
     if (memoNote.error) return setError(copy.memoInvalid);
+    const attempt = ++reviewAttempt.current,
+      requestedAccount = connection.address;
+    const isCurrent = () => attempt === reviewAttempt.current && currentAccount.current?.toLowerCase() === requestedAccount?.toLowerCase();
+    reviewInFlight.current = true;
     const preparedAt = nowMs();
     setError(undefined);
     setReviewedAccount(connection.address);
@@ -239,17 +251,30 @@ export function SendFlow({
     setStage("idle");
     setFeeEstimate({ status: "loading" });
     setReviewSnapshot(undefined);
-    const networkVerified = await chain.verifyNow();
-    setReviewNetworkVerified(networkVerified);
-    setReviewing(true);
-    if ("error" in validated || !client) return;
-    if (networkVerified) {
+    try {
+      const networkVerified = await chain.verifyNow();
+      if (!isCurrent()) return;
+      setReviewNetworkVerified(networkVerified);
+      setReviewing(true);
+      if ("error" in validated || !client) {
+        setFeeEstimate({ status: "unavailable" });
+        return;
+      }
+      if (networkVerified) {
       try {
         const rawFee = await estimateSendFee(validated.amount);
+        if (!isCurrent()) {
+          reviewInFlight.current = false;
+          return;
+        }
         setFeeEstimate(rawFee === undefined ? { status: "unavailable" } : { status: "ready", rawFee });
         const intent = currentSafetyIntent(preparedAt);
         if (rawFee !== undefined && intent) {
           await simulateSendIntent(intent);
+          if (!isCurrent()) {
+            reviewInFlight.current = false;
+            return;
+          }
           setReviewSnapshot(
             prepareTransactionReview({
               intent,
@@ -266,27 +291,37 @@ export function SendFlow({
           );
         }
       } catch {
-        setFeeEstimate({ status: "unavailable" });
+        if (isCurrent()) setFeeEstimate({ status: "unavailable" });
       }
-    } else setFeeEstimate({ status: "unavailable" });
-    setRecipientKind("checking");
-    setMemoCompatibility(memoNote.note ? "checking" : "none");
-    try {
-      if (!memoNote.note || !connection.address) {
-        const code = await client.getBytecode({ address: validated.address });
-        setRecipientKind(code && code !== "0x" ? "contract" : "wallet");
-        return;
+      } else if (isCurrent()) setFeeEstimate({ status: "unavailable" });
+      if (!isCurrent()) return;
+      setRecipientKind("checking");
+      setMemoCompatibility(memoNote.note ? "checking" : "none");
+      try {
+        if (!memoNote.note || !connection.address) {
+          const code = await client.getBytecode({ address: validated.address });
+          if (!isCurrent()) return;
+          setRecipientKind(code && code !== "0x" ? "contract" : "wallet");
+          return;
+        }
+        const [recipientCode, senderCode, memoCode] = await Promise.all([client.getBytecode({ address: validated.address }), client.getBytecode({ address: connection.address }), client.getBytecode({ address: ARC_MEMO_ADDRESS })]);
+        if (!isCurrent()) return;
+        setRecipientKind(recipientCode && recipientCode !== "0x" ? "contract" : "wallet");
+        setMemoCompatibility(senderCode && senderCode !== "0x" ? "contract-wallet" : memoCode && memoCode !== "0x" ? "compatible" : "unavailable");
+      } catch {
+        if (!isCurrent()) return;
+        setRecipientKind("unknown");
+        if (memoNote.note) setMemoCompatibility("unavailable");
       }
-      const [recipientCode, senderCode, memoCode] = await Promise.all([client.getBytecode({ address: validated.address }), client.getBytecode({ address: connection.address }), client.getBytecode({ address: ARC_MEMO_ADDRESS })]);
-      setRecipientKind(recipientCode && recipientCode !== "0x" ? "contract" : "wallet");
-      setMemoCompatibility(senderCode && senderCode !== "0x" ? "contract-wallet" : memoCode && memoCode !== "0x" ? "compatible" : "unavailable");
     } catch {
-      setRecipientKind("unknown");
-      if (memoNote.note) setMemoCompatibility("unavailable");
+      if (isCurrent()) setFeeEstimate({ status: "unavailable" });
+    } finally {
+      if (attempt === reviewAttempt.current) reviewInFlight.current = false;
     }
   }
 
   function resetSafety() {
+    reviewAttempt.current += 1;
     setLargeAcknowledged(false);
     setRecipientKind("unknown");
     setMemoCompatibility("none");
@@ -683,6 +718,7 @@ export function SendFlow({
           walletNotice=""
           onBack={() => {
             if (pending) return;
+            if (typeof reviewInFlight !== "undefined" && reviewInFlight.current) return;
             setReviewing(false);
             setStage("idle");
           }}

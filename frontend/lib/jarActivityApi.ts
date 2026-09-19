@@ -8,7 +8,7 @@ export const JAR_ACTIVITY_DEPLOYMENT_BLOCK = 56_927_475n;
 export const JAR_ACTIVITY_RPC_ENDPOINTS = [
   { url: "https://rpc.blockdaemon.testnet.arc.io", maxBlocks: 100_001n },
   { url: "https://rpc.drpc.testnet.arc.io", maxBlocks: 10_000n },
-  { url: "https://rpc.testnet.arc.network", maxBlocks: 10_000n },
+  { url: "https://rpc.testnet.arc.io", maxBlocks: 10_000n },
   { url: "https://rpc.quicknode.testnet.arc.io", maxBlocks: 2_000n },
 ] as const;
 const eventNames = ["JarCreated", "JarDeposited", "JarContributed", "JarWithdrawn"] as const;

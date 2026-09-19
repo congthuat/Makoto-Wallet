@@ -52,9 +52,15 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
     reviewInFlight = useRef(false),
     submissionGuard = useRef(new ReviewSubmissionGuard()),
     statusRef = useRef<HTMLDivElement>(null),
-    handoffStarted = useRef(false);
+    handoffStarted = useRef(false),
+    reviewAttempt = useRef(0),
+    currentAccount = useRef(connection.address);
+  useEffect(() => {
+    currentAccount.current = connection.address;
+  }, [connection.address]);
   const invalidate = () => {
     if (busy === "executing") return;
+    if (typeof reviewAttempt !== "undefined") reviewAttempt.current += 1;
     setEstimate(undefined);
     setReviewSnapshot(undefined);
     setResult(undefined);
@@ -136,6 +142,20 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
   }
   async function review() {
     await runSingleFlight(reviewInFlight, async () => {
+      const attempt = ++reviewAttempt.current,
+        requestedAccount = connection.address;
+      const isCurrent = () => attempt === reviewAttempt.current && currentAccount.current?.toLowerCase() === requestedAccount?.toLowerCase();
+      const abandonIfStale = () => {
+        if (isCurrent()) return false;
+        if (attempt === reviewAttempt.current) {
+          reviewAttempt.current += 1;
+          setEstimate(undefined);
+          setReviewSnapshot(undefined);
+          setBusy("idle");
+          setError(vi ? "Tài khoản hoặc chi tiết đã thay đổi. Vui lòng kiểm tra lại." : "The wallet or bridge details changed. Review again.");
+        }
+        return true;
+      };
       const parsed = parseBridgeAmount(amount),
         to = custom ? normalizeRecipient(recipient) : connection.address;
       if (!parsed || !to) return setError(vi ? "Nhập số tiền và người nhận hợp lệ." : "Enter a valid amount and recipient.");
@@ -151,9 +171,11 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
           functionName: "balanceOf",
           args: [connection.address!],
         });
+        if (abandonIfStale()) return;
         setBalance(fresh);
         if (parsed > fresh) throw new Error(vi ? "Số dư USDC nguồn không đủ." : "Source USDC balance is insufficient.");
         const raw = await kit.estimateBridge(makeBridgeParams(adapter, source, destination, amount, getAddress(to), speed));
+        if (abandonIfStale()) return;
         setEstimate(
           normalizeBridgeEstimate(raw, {
             quotedAt: Date.now(),
@@ -166,6 +188,7 @@ export function UniversalBridgeFlow({ locale, initialValues, onBusyChange }: Pro
         );
         setBusy("review");
       } catch (e) {
+        if (abandonIfStale()) return;
         setError(sanitizeBridgeError(e));
         setBusy("idle");
       }

@@ -41,7 +41,12 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
   const [reviewedAccount, setReviewedAccount] = useState<`0x${string}`>();
   const [approvalRequired, setApprovalRequired] = useState(false);
   const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
-  const submissionGuard = useRef(new ReviewSubmissionGuard());
+  const submissionGuard = useRef(new ReviewSubmissionGuard()),
+    reviewAttempt = useRef(0),
+    currentAccount = useRef(connection.address);
+  useEffect(() => {
+    currentAccount.current = connection.address;
+  }, [connection.address]);
   useEffect(() => onBusyChange(Boolean(pending)), [onBusyChange, pending]);
 
   const parsed = parseAssetAmount(amount, usdc);
@@ -52,7 +57,16 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
     await client.call({ account: intent.account, to: intent.target, data: intent.calldata, value: intent.value });
   }
 
-  function reset() { setAmount(""); setFee(undefined); setReviewSnapshot(undefined); setReviewing(false); setError(undefined); setBurnHash(undefined); setForwardHash(undefined); }
+  function invalidateReview() {
+    reviewAttempt.current += 1;
+    setFee(undefined);
+    setReviewSnapshot(undefined);
+    setReviewing(false);
+    setError(undefined);
+    setPending(undefined);
+  }
+
+  function reset() { invalidateReview(); setAmount(""); setBurnHash(undefined); setForwardHash(undefined); }
 
   function currentIntent(currentFee: CctpForwardingFee, current: NonNullable<typeof amounts>) {
     if (!connection.address) return undefined;
@@ -62,21 +76,33 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
 
   async function review() {
     if (!connection.address || !parsed) return setError(vi ? "Nhập số USDC hợp lệ." : "Enter a valid USDC amount.");
+    const attempt = ++reviewAttempt.current,
+      requestedAccount = connection.address;
+    const isCurrent = () => attempt === reviewAttempt.current && currentAccount.current?.toLowerCase() === requestedAccount.toLowerCase();
     setPending(vi ? "Đang lấy phí CCTP hiện tại…" : "Loading current CCTP fees…"); setError(undefined); setFee(undefined);
     try {
       const response = await fetch("/api/cctp-fees", { cache: "no-store" });
       const payload = await response.json().catch(() => ({})) as CctpForwardingFee | { error?: string };
+      if (!isCurrent()) return;
       if (!response.ok || !("forwardFeeMed" in payload)) throw new Error("error" in payload && payload.error ? payload.error : "CCTP fee unavailable.");
       const next = calculateCctpForwardingAmounts(parsed, payload);
       if (next.totalAmount > (balances.usdc.data ?? 0n)) throw new Error(vi ? "Số dư USDC không đủ cho số tiền bridge cộng phí forwarding." : "USDC balance is too low for the bridge amount plus forwarding fee.");
       if (!client) throw new Error("CCTP route unavailable.");
       const allowance = await client.readContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "allowance", args: [connection.address, CCTP_TOKEN_MESSENGER_V2] });
+      if (!isCurrent()) return;
       const intent = currentIntent(payload, next);
-      if (intent && allowance >= next.totalAmount) { await simulateIntent(intent); setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: balances.usdc.data }, allowance, simulation: "passed", expectedTarget: CCTP_TOKEN_MESSENGER_V2 })); }
-      else setReviewSnapshot(undefined);
+      if (intent && allowance >= next.totalAmount) {
+        await simulateIntent(intent);
+        if (!isCurrent()) return;
+        setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { usdc: balances.usdc.data }, allowance, simulation: "passed", expectedTarget: CCTP_TOKEN_MESSENGER_V2 }));
+      }
+      if (!isCurrent()) return;
+      if (!(intent && allowance >= next.totalAmount)) setReviewSnapshot(undefined);
       setApprovalRequired(allowance < next.totalAmount); setReviewedAccount(connection.address); setFee(payload); setReviewing(true);
-    } catch (caught) { setError(caught instanceof Error ? caught.message : (vi ? "Không lấy được phí CCTP." : "Could not load CCTP fees.")); }
-    finally { setPending(undefined); }
+    } catch (caught) {
+      if (!isCurrent()) return;
+      setError(caught instanceof Error ? caught.message : (vi ? "Không lấy được phí CCTP." : "Could not load CCTP fees."));
+    } finally { if (attempt === reviewAttempt.current) setPending(undefined); }
   }
 
   async function execute() {
@@ -141,8 +167,8 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
 
   if (burnHash) return <div className="transaction-state"><span>✓</span><h3>{vi ? "Bridge đã được gửi" : "Bridge submitted"}</h3><p>{vi ? "Burn trên Arc đã xác nhận. Circle Forwarding Service sẽ hoàn tất mint USDC sang cùng địa chỉ ví trên Base Sepolia." : "The Arc burn is confirmed. Circle Forwarding Service will mint USDC to the same wallet address on Base Sepolia."}</p><div className="transaction-links"><a href={`${ARC_EXPLORER_URL}/tx/${burnHash}`} target="_blank" rel="noreferrer">ArcScan ↗</a>{forwardHash && <a href={`${BASE_SEPOLIA_EXPLORER_URL}/tx/${forwardHash}`} target="_blank" rel="noreferrer">BaseScan ↗</a>}</div>{error && <p className="field-error" role="status">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-action" onClick={() => void checkDestination()} disabled={checking || Boolean(forwardHash)}>{forwardHash ? (vi ? "Đã thấy giao dịch đích" : "Destination confirmed") : checking ? (vi ? "Đang kiểm tra…" : "Checking…") : (vi ? "Kiểm tra Base Sepolia" : "Check Base Sepolia")}</button><button type="button" className="primary-action" onClick={reset}>{vi ? "Bridge tiếp" : "Bridge again"}</button></div></div>;
 
-  if (reviewing && fee && amounts && parsed) return <TransactionSafetyReview title={vi ? "Kiểm tra Bridge" : "Review Bridge"} summary={vi ? "Bridge USDC từ Arc Testnet đến cùng địa chỉ ví trên Base Sepolia." : "Bridge USDC from Arc Testnet to the same wallet address on Base Sepolia."} details={[{ label: vi ? "Mạng nguồn" : "Source network", value: "Arc Testnet · 5042002" }, { label: vi ? "Mạng đích" : "Destination network", value: "Base Sepolia" }, { label: vi ? "Tuyến / nhà cung cấp" : "Route / provider", value: "Circle CCTP V2 Forwarding Service" }, { label: vi ? "Ví nguồn" : "Source wallet", value: <span className="full-address">{connection.address}</span> }, { label: vi ? "Đích: cùng địa chỉ ví" : "Destination: same wallet address", value: <span className="full-address">{connection.address}</span> }, { label: vi ? "Nhận" : "Amount", value: `${formatUnits(parsed, 6)} USDC` }, { label: vi ? "Phí forwarding" : "Forwarding fee", value: `${formatUnits(amounts.forwardingFee, 6)} USDC` }, { label: vi ? "Phí CCTP" : "CCTP fee", value: `${formatUnits(amounts.protocolFee, 6)} USDC` }, { label: vi ? "Tổng burn" : "Total burn", value: `${formatUnits(amounts.totalAmount, 6)} USDC` }]} checks={[...globalReviewChecks({ connected: connection.isConnected, account: connection.address, reviewedAccount, isArc: chain.isArc, amount: amounts.totalAmount, balance: balances.usdc.data }), { code: "route", status: "verified", label: "Arc Testnet → Base Sepolia · Circle CCTP V2" }, { code: "approval", status: "info", label: approvalRequired ? (vi ? "Có thể cần hai xác nhận ví: approve đúng số lượng, sau đó bridge" : "Two wallet confirmations may be required: exact approval, then bridge") : (vi ? "Allowance hiện tại đủ" : "Current allowance is sufficient") }]} walletNotice={vi ? "Makoto xác nhận giao dịch bridge ở phía Arc. Mint/hoàn tất ở mạng đích là bước riêng và chỉ hoàn tất khi có dữ liệu đích xác nhận." : "Makoto confirms the Arc-side bridge transaction. Destination mint/finalization is separate and is not complete until destination data confirms it."} onBack={() => { setReviewing(false); setFee(undefined); setError(undefined); }} onContinue={() => void execute()} continueDisabled={Boolean(pending)}>{pending && <p className="transaction-progress" role="status">{pending}</p>}{error && <p className="field-error" role="alert">{error}</p>}</TransactionSafetyReview>;
+  if (reviewing && fee && amounts && parsed) return <TransactionSafetyReview title={vi ? "Kiểm tra Bridge" : "Review Bridge"} summary={vi ? "Bridge USDC từ Arc Testnet đến cùng địa chỉ ví trên Base Sepolia." : "Bridge USDC from Arc Testnet to the same wallet address on Base Sepolia."} details={[{ label: vi ? "Mạng nguồn" : "Source network", value: "Arc Testnet · 5042002" }, { label: vi ? "Mạng đích" : "Destination network", value: "Base Sepolia" }, { label: vi ? "Tuyến / nhà cung cấp" : "Route / provider", value: "Circle CCTP V2 Forwarding Service" }, { label: vi ? "Ví nguồn" : "Source wallet", value: <span className="full-address">{connection.address}</span> }, { label: vi ? "Đích: cùng địa chỉ ví" : "Destination: same wallet address", value: <span className="full-address">{connection.address}</span> }, { label: vi ? "Nhận" : "Amount", value: `${formatUnits(parsed, 6)} USDC` }, { label: vi ? "Phí forwarding" : "Forwarding fee", value: `${formatUnits(amounts.forwardingFee, 6)} USDC` }, { label: vi ? "Phí CCTP" : "CCTP fee", value: `${formatUnits(amounts.protocolFee, 6)} USDC` }, { label: vi ? "Tổng burn" : "Total burn", value: `${formatUnits(amounts.totalAmount, 6)} USDC` }]} checks={[...globalReviewChecks({ connected: connection.isConnected, account: connection.address, reviewedAccount, isArc: chain.isArc, amount: amounts.totalAmount, balance: balances.usdc.data }), { code: "route", status: "verified", label: "Arc Testnet → Base Sepolia · Circle CCTP V2" }, { code: "approval", status: "info", label: approvalRequired ? (vi ? "Có thể cần hai xác nhận ví: approve đúng số lượng, sau đó bridge" : "Two wallet confirmations may be required: exact approval, then bridge") : (vi ? "Allowance hiện tại đủ" : "Current allowance is sufficient") }]} walletNotice={vi ? "Makoto xác nhận giao dịch bridge ở phía Arc. Mint/hoàn tất ở mạng đích là bước riêng và chỉ hoàn tất khi có dữ liệu đích xác nhận." : "Makoto confirms the Arc-side bridge transaction. Destination mint/finalization is separate and only completes when destination data confirms it."} onBack={() => { if (pending) return; invalidateReview(); }} onContinue={() => void execute()} continueDisabled={Boolean(pending)}>{pending && <p className="transaction-progress" role="status">{pending}</p>}{error && <p className="field-error" role="alert">{error}</p>}</TransactionSafetyReview>;
 
   const balance = balances.usdc.data ?? 0n;
-  return <form className="create-form wallet-flow" onSubmit={(event) => { event.preventDefault(); void review(); }}><label>{vi ? "Số USDC muốn nhận trên Base Sepolia" : "USDC to receive on Base Sepolia"}<div className="wallet-field-with-action amount"><input inputMode="decimal" value={amount} onChange={(event) => { setAmount(event.target.value); setFee(undefined); setError(undefined); }} placeholder="0.00" /><span>USDC</span><button type="button" onClick={() => setAmount(formatAssetAmount(balance, usdc))}>MAX</button></div><small>{vi ? "Khả dụng trên Arc" : "Available on Arc"}: {formatAssetAmount(balance, usdc)} USDC</small></label><p className="wallet-notice">{vi ? "Bridge testnet thật: Arc Testnet → Base Sepolia bằng Circle CCTP V2. Phí forwarding được tải lại trước khi bạn ký." : "Real testnet bridge: Arc Testnet → Base Sepolia with Circle CCTP V2. Forwarding fees are refreshed before you sign."}</p>{pending && <p className="transaction-progress" role="status">{pending}</p>}{error && <p className="field-error" role="alert">{error}</p>}{!chain.isArc && <p className="field-error">{vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required."}</p>}<div className="modal-actions"><button type="submit" className="primary-action" disabled={Boolean(pending) || !chain.isArc}>{vi ? "Kiểm tra phí" : "Review fees"}</button></div></form>;
+  return <form className="create-form wallet-flow" onSubmit={(event) => { event.preventDefault(); void review(); }}><label>{vi ? "Số USDC muốn nhận trên Base Sepolia" : "USDC to receive on Base Sepolia"}<div className="wallet-field-with-action amount"><input inputMode="decimal" value={amount} disabled={Boolean(pending)} onChange={(event) => { setAmount(event.target.value); invalidateReview(); }} placeholder="0.00" /><span>USDC</span><button type="button" disabled={Boolean(pending)} onClick={() => { setAmount(formatAssetAmount(balance, usdc)); invalidateReview(); }}>MAX</button></div><small>{vi ? "Khả dụng trên Arc" : "Available on Arc"}: {formatAssetAmount(balance, usdc)} USDC</small></label><p className="wallet-notice">{vi ? "Bridge testnet thật: Arc Testnet → Base Sepolia bằng Circle CCTP V2. Phí forwarding được tải lại trước khi bạn ký." : "Real testnet bridge: Arc Testnet → Base Sepolia with Circle CCTP V2. Forwarding fees are refreshed before you sign."}</p>{pending && <p className="transaction-progress" role="status">{pending}</p>}{error && <p className="field-error" role="alert">{error}</p>}{!chain.isArc && <p className="field-error">{vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required."}</p>}<div className="modal-actions"><button type="submit" className="primary-action" disabled={Boolean(pending) || !chain.isArc}>{vi ? "Kiểm tra phí" : "Review fees"}</button></div></form>;
 }

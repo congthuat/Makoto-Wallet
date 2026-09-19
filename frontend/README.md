@@ -8,7 +8,7 @@ Copy `.env.example` to `.env.local` only when overriding checked-in public defau
 
 ```dotenv
 NEXT_PUBLIC_PENGUJAR_ADDRESS=0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a
-NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.network
+NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.io
 ```
 
 Never place `PRIVATE_KEY`, wallet secrets, or authenticated RPC credentials in this directory or in a `NEXT_PUBLIC_*` variable.

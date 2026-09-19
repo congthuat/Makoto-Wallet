@@ -97,15 +97,20 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     [swapReview, setSwapReview] = useState<TransactionReviewSnapshot>();
   const submissionGuard = useRef(new ReviewSubmissionGuard()),
     executionInFlightRef = useRef(false),
-    executionAttemptRef = useRef(0);
+    executionAttemptRef = useRef(0),
+    reviewAttempt = useRef(0),
+    currentAccount = useRef(connection.address);
   useEffect(() => () => {
     // Unmount invalidates pre-wallet continuations without cancelling a submitted transaction.
     executionAttemptRef.current += 1;
     executionInFlightRef.current = false;
   }, []);
+  useEffect(() => {
+    currentAccount.current = connection.address;
+  }, [connection.address]);
   const [executionInFlight, setExecutionInFlight] = useState(false);
-  const swapLocked = executionInFlight || submissionStatus === "submitted-pending";
-  const swapIsInFlight = () => executionInFlightRef.current || submissionStatus === "submitted-pending";
+  const swapLocked = executionInFlight || submissionStatus === "submitted-pending" || Boolean(pending);
+  const swapIsInFlight = () => executionInFlightRef.current || submissionStatus === "submitted-pending" || Boolean(pending);
   useEffect(() => onBusyChange(swapModalBusy(submissionStatus, Boolean(pending), Boolean(maxApproval), reviewStage, executionInFlight)), [executionInFlight, maxApproval, onBusyChange, pending, reviewStage, submissionStatus]);
   const from = getAssetById(fromId)!,
     to = getAssetById(oppositeAssetId(fromId))!,
@@ -147,6 +152,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   }, [balance, chain.isArc, connection.address, from.id, maxApproval]);
   function invalidate() {
     if (swapIsInFlight()) return;
+    reviewAttempt.current += 1;
     setQuote(undefined);
     setReviewStage(undefined);
     setApprovalReview(undefined);
@@ -464,6 +470,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     if (swapIsInFlight()) return;
     if (!connection.address || !client || !parsed) return setError(vi ? "Nhập số tiền hợp lệ." : "Enter a valid amount.");
     if (parsed > balance) return setError(vi ? "Số dư không đủ." : "Insufficient balance.");
+    const attempt = ++reviewAttempt.current,
+      requestedAccount = connection.address;
+    const isCurrent = () => attempt === reviewAttempt.current && currentAccount.current?.toLowerCase() === requestedAccount.toLowerCase();
     setPending(vi ? "Đang lấy báo giá trực tiếp từ XyloNet…" : "Loading a live XyloNet quote…");
     setError(undefined);
     setQuote(undefined);
@@ -486,6 +495,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           args: [connection.address, XYLO_ROUTER],
         }),
       ]);
+      if (!isCurrent()) return;
       const nextQuote = createXyloQuote(from.id, to.id, parsed, output),
         plan = planSwapReview(allowance, parsed),
         needsApproval = plan.stage === "approval";
@@ -493,6 +503,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       try {
         if (needsApproval) {
           const fee = await estimateApprovalFee(parsed);
+          if (!isCurrent()) return;
           setApprovalGasFee(fee);
           if (fee !== undefined) {
             const intent = approvalIntentFor(parsed, nextQuote.quotedAt, fee);
@@ -504,6 +515,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
                 args: [XYLO_ROUTER, parsed],
                 account: connection.address,
               });
+              if (!isCurrent()) return;
               setApprovalReview(
                 prepareFlowReview(intent, {
                   connectedAccount: connection.address,
@@ -519,8 +531,10 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         } else {
           const frozen = prepareXyloSwapRequest(nextQuote, slippage, connection.address);
           const envelope = await prepareSwapEnvelope(nextQuote, false, undefined, frozen);
+          if (!isCurrent()) return;
           if (safeMax && parsed === safeMax.amount && parsed + envelope.feeUsdc6 > balance) {
             const recalculated = await solveSafeMax(balance, allowance);
+            if (!isCurrent()) return;
             setAmount(formatAssetAmount(recalculated.amount, from));
             setSafeMax({
               ...recalculated,
@@ -543,6 +557,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
               maxFeePerGas: envelope.maxFeePerGas,
               maxPriorityFeePerGas: envelope.maxPriorityFeePerGas,
             });
+            if (!isCurrent()) return;
             setSwapReview(
               prepareFlowReview(intent, {
                 connectedAccount: connection.address,
@@ -556,14 +571,17 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           }
         }
       } catch {
+        if (!isCurrent()) return;
         setGasUnavailable(true);
       }
+      if (!isCurrent()) return;
       setReviewedAccount(connection.address);
       setReviewStage(needsApproval ? "approval" : "swap");
     } catch (caught) {
+      if (!isCurrent()) return;
       setError(caught instanceof Error && caught.message === "arc" ? (vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.") : vi ? "Không lấy được báo giá XyloNet." : "Could not load a XyloNet quote.");
     } finally {
-      setPending(undefined);
+      if (attempt === reviewAttempt.current) setPending(undefined);
     }
   }
   async function approveThenReview() {
@@ -1093,7 +1111,8 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           },
         ]}
         walletNotice={vi ? "Chỉ approval hữu hạn được gửi. Sau khi xác nhận, Makoto sẽ tự điền SAFE MAX nhưng không tự swap." : "Only a finite approval is submitted. After confirmation, Makoto auto-fills SAFE MAX but never swaps automatically."}
-        onBack={() => setMaxApproval(undefined)}
+        backDisabled={Boolean(pending)}
+        onBack={() => { if (pending) return; setMaxApproval(undefined); }}
         onContinue={() => void approveForMax()}
         continueLabel={vi ? "Approve cho MAX" : "Approve for MAX"}
         continueDisabled={Boolean(pending) || !maxApprovalGasCovered}
@@ -1160,7 +1179,10 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           },
         ]}
         walletNotice={vi ? "Chỉ approval đúng số lượng được gửi ở bước này. Swap sẽ không tự động chạy." : "Only the exact approval is submitted at this step. The swap will not run automatically."}
+        backDisabled={Boolean(pending)}
         onBack={() => {
+          if (pending) return;
+          if (typeof reviewAttempt !== "undefined") reviewAttempt.current += 1;
           setReviewStage(undefined);
           setQuote(undefined);
         }}
@@ -1240,7 +1262,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         walletNotice=""
         backDisabled={swapLocked}
         onBack={() => {
+          if (typeof swapLocked !== "undefined" && swapLocked) return;
           if (!swapBackAllowed(submissionStatus, executionInFlightRef.current)) return;
+          if (typeof reviewAttempt !== "undefined") reviewAttempt.current += 1;
           setReviewStage(undefined);
           setQuote(undefined);
         }}
