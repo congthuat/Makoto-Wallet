@@ -18,14 +18,16 @@ function nodes(tree: any): any[] {
 }
 for (const locale of ["en", "vi"] as const) {
   const copy = locale === "en" ? en : vi;
-  test(`7D ${locale}: real render follows financial hierarchy with one H1 and a secondary Agent disclosure`, () => {
+  test(`7J ${locale}: Overview has one holdings H1, visible Agent composer and wallet/security rail`, () => {
     const html = renderOverview({ locale });
-    const positions = ["holdings-title", 'class="actions"', 'id="assets"', 'id="activity"', "dashboard-agent-title"].map(key => html.indexOf(key));
+    const positions = ["holdings-title", 'class="actions"', 'id="activity"', "dashboard-agent-title", 'id="assets"'].map(key => html.indexOf(key));
     assert.ok(positions.every(p => p >= 0));
     assert.deepEqual(positions, [...positions].sort((a,b) => a-b));
-    assert.equal((html.match(/<h1>/g) ?? []).length, 1);
+    assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
     assert.match(html, /<h2 id="dashboard-agent-title"/);
-    assert.ok(html.includes(`<details><summary>${copy["overview.prepareAction"]}</summary>`));
+    assert.match(html, /<aside class="rightRail"/);
+    assert.match(html, /id="overview-security-title"/);
+    assert.doesNotMatch(html, /<details><summary>Prepare an action here/);
     assert.ok(html.includes(copy["overview.holdings"]));
     assert.ok(html.includes(copy["overview.assets"]));
     assert.match(html, /id="dashboard-agent-question"/);
@@ -35,11 +37,26 @@ for (const locale of ["en", "vi"] as const) {
     const html = renderOverview({ locale });
     assert.match(html, />123\.456789 USDC</);
     assert.match(html, />0 EURC</);
-    assert.equal((html.match(/<li>/g) ?? []).length, 2, "only supported ERC-20 assets, no native duplicate");
-    assert.doesNotMatch(html, /\$|APY|24h|portfolio percentage/i);
+    assert.match(html, />0 cirBTC</);
+    const assets = nodes(ConnectedOverview(fixture({ locale }))).find(n => n.props?.className === "assets");
+    assert.equal(nodes(assets).filter(n => n.type === "li").length, 3, "only supported ERC-20 assets, no native duplicate");
+    assert.doesNotMatch(html, /APY|24h|portfolio percentage/i);
     const large = renderOverview({ balances: { usdc: { data: 123456789012345678901234567890n }, eurc: { data: 1n } } });
     assert.match(large, /123456789012345678901234\.56789 USDC/);
     assert.match(large, /0\.000001 EURC/);
+    const cirbtc = renderOverview({ balances: { usdc: { data: 1n }, eurc: { data: 1n }, cirbtc: { data: 123456789n } } });
+    assert.match(cirbtc, /1\.23456789 cirBTC/);
+  });
+  test(`7J ${locale}: holdings hero shows asset count and native denomination disclosure without a combined total`, () => {
+    const html = renderOverview({ locale });
+    assert.ok(html.includes(locale === "en" ? "3 assets" : "3 tài sản"));
+    assert.match(html, /123\.456789 USDC/);
+    assert.match(html, /0 EURC/);
+    assert.ok(html.includes(locale === "en" ? "Balances shown in native denominations." : "Số dư hiển thị theo đơn vị gốc."));
+    assert.doesNotMatch(html, /total balance|portfolio value|estimated portfolio|USDC \+ EURC/i);
+    const hero = html.slice(html.indexOf('aria-labelledby="holdings-title"'), html.indexOf('class="figures"'));
+    assert.doesNotMatch(hero, /123\.456789|0 EURC/);
+    assert.doesNotMatch(hero, /<button/);
   });
   test(`7D ${locale}: network/account context and failed/loading balances are not zero`, () => {
     const html = renderOverview({ locale, balances: { usdc: { isPending: true }, eurc: { isError: true, data: 777n } } });
@@ -121,21 +138,69 @@ test("7D real action props invoke the existing parent callbacks and preserve onA
   const disabled = nodes(ConnectedOverview(fixture({onArc:false}))).find(n=>n.props?.className==="actions");
   assert.ok(nodes(disabled).filter(n=>n.type==="button").every(n=>n.props.disabled));
 });
-test("7D five-record preview and history, refresh and local receipt callbacks retain identity", () => {
+test("7J three-record preview and full history callbacks retain identity", () => {
   const records = Array.from({length:7}, (_, i) => record({logIndex:i, source:i===0?"local":"onchain"}));
   const calls: unknown[] = [];
   const tree = ConnectedOverview(fixture({activities:records,activityUnavailable:true,onHistory:()=>calls.push("history"),onRefresh:()=>calls.push("refresh"),onReceipt:(r:unknown)=>calls.push(r)}));
   const list = nodes(tree).find(n=>n.props?.className==="activity");
-  assert.equal(nodes(list).filter(n=>n.type==="li").length,5);
+  assert.equal(nodes(list).filter(n=>n.type==="li").length,3);
   const buttons = nodes(tree).filter(n=>n.type==="button");
   for (const label of [en["walletHome.viewAll"],en["common.tryAgain"],en["overview.receipt"]]) buttons.find(n=>n.props.children===label).props.onClick();
   assert.deepEqual(calls,["history","refresh",records[0]]);
   assert.equal(nodes(list).filter(n=>n.type==="button").length,1,"onchain-only rows do not acquire receipt actions");
 });
-test("7D responsive styles wrap full values and preserve focus without another theme layer", () => {
+test("7J VI holdings heading uses the bundled Vietnamese display font while EN keeps Impact", () => {
+  const source = readFileSync(new URL("../components/ConnectedOverview.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../components/ConnectedOverview.module.css", import.meta.url), "utf8");
+  assert.match(source, /vietnameseHoldings/);
+  assert.match(css, /\.holdings h1 \{[^}]*Impact/);
+  assert.match(css, /\.vietnameseHoldings h1 \{[^}]*font-family: var\(--font-vi-display\)/);
+  assert.match(css, /\.vietnameseHoldings h1 \{[^}]*font-weight: 900/);
+});
+test("7J desktop Overview uses explicit holdings, actions, lower-row and asset grid areas", () => {
+  const source = readFileSync(new URL("../components/ConnectedOverview.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../components/ConnectedOverview.module.css", import.meta.url), "utf8");
+  assert.match(css, /grid-template-columns: repeat\(12, minmax\(0, 1fr\)\)/);
+  assert.match(css, /grid-template-areas:[\s\S]*"holdings holdings holdings holdings holdings holdings holdings holdings holdings network network network"/);
+  assert.match(css, /"actions actions actions actions actions actions actions actions actions actions actions actions"/);
+  assert.match(css, /"activity activity activity activity activity agent agent agent agent security security security"/);
+  assert.match(css, /"assets assets assets assets assets assets assets assets assets assets assets assets"/);
+  assert.match(css, /\.mainColumn, \.lowerGrid, \.rightRail \{ display: contents; \}/);
+  assert.match(css, /\.networkCard \{ grid-area: network; align-self: stretch; height: auto; padding: 14px 16px; \}/);
+  assert.match(css, /\.ledger \{ grid-area: activity; align-self: stretch; height: auto; \}/);
+  assert.match(css, /\.agent \{ grid-area: agent; align-self: stretch; height: auto; \}/);
+  assert.match(css, /\.securityCard \{ grid-area: security; align-self: stretch; height: auto; \}/);
+  assert.match(css, /\.assetDisclosure \{ grid-area: assets; align-self: start; \}/);
+  assert.match(css, /--dashboard-gap: 14px/);
+  assert.doesNotMatch(css, /subgrid/);
+  assert.ok(source.indexOf('id="assets"') < source.indexOf('className={styles.rightRail}'));
+});
+test("7J responsive styles wrap full values and preserve focus inside the light and dark application shell", () => {
   const css=readFileSync(new URL("../components/ConnectedOverview.module.css",import.meta.url),"utf8");
   assert.match(css,/overflow-wrap: anywhere/); assert.match(css,/min-width: 0/);
   assert.match(css,/font-variant-numeric: tabular-nums/); assert.match(css,/:focus-visible/);
-  assert.match(css,/min-height: 44px/); assert.match(css,/@media \(min-width: 768px\)/);
-  assert.doesNotMatch(css,/#[\da-f]{3,8}\b|gradient|animation:|white-space: nowrap|--lc-[\w-]+:/i);
+  assert.match(css,/min-height: 44px/); assert.match(css,/@media \(max-width: 767px\)/);
+  const shell=readFileSync(new URL("../components/AppShell.module.css",import.meta.url),"utf8");
+  assert.match(shell,/--mk-shell: var\(--mk-page-bg\)/);
+  assert.match(shell,/--mk-shell-line: var\(--mk-border-primary\)/);
+  assert.doesNotMatch(css,/animation:|white-space: nowrap/);
+});
+
+test("7J every Overview CSS reference resolves, including the recovered rail and asset disclosure", () => {
+  const source=readFileSync(new URL("../components/ConnectedOverview.tsx",import.meta.url),"utf8");
+  const css=readFileSync(new URL("../components/ConnectedOverview.module.css",import.meta.url),"utf8");
+  for (const [,name] of source.matchAll(/styles\.(\w+)/g)) assert.ok(css.includes(`.${name}`), `Missing Overview style: ${name}`);
+});
+
+test("7J App Lock reports actual availability and enabled state without a security score", () => {
+  for (const [appLock, expected] of [
+    [{ initialized: false }, "Checking"],
+    [{ initialized: true, available: false }, en["overview.unavailable"]],
+    [{ initialized: true, available: true, enabled: false }, "Not enabled"],
+    [{ initialized: true, available: true, enabled: true }, "Enabled"],
+  ] as const) {
+    const html=renderOverview({appLock});
+    assert.ok(html.includes(expected));
+    assert.doesNotMatch(html,/security score|100% secure/i);
+  }
 });

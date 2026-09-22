@@ -36,8 +36,8 @@ export function SendFixture(options = {}) {
   const [note,setNote] = React.useState("");
   const [largeAcknowledged,setLargeAcknowledged] = React.useState(false);
   const asset = getAssetById(assetId), balance = options.balance ?? 123456789n;
-  const connection = {address:"${account}"};
-  const validated = validateAssetSend(recipient,amount,balance,asset,connection.address);
+  const wallet = {kind:"external",status:"connected",address:"${account}",isArc:true};
+  const validated = validateAssetSend(recipient,amount,balance,asset,wallet.address);
   const normalizedRecipient = normalizeRecipient(recipient);
   const pending = stage === "awaiting" || stage === "confirming";
   const contacts = [], recents = [], matchedContact = undefined, canSaveContact = false;

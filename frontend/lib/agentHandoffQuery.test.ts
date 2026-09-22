@@ -42,7 +42,7 @@ function harness(initialQuery = "") {
   };
   const context = {
     URLSearchParams,
-    connection: { address: account as string | undefined },
+    wallet: { kind: "external", status: "connected", address: account as string | undefined },
     walletState: "arc" as WalletUiState,
     balancesSettled: true,
     canConsumeAgentHandoff,
@@ -127,7 +127,7 @@ for (const reason of ["account", "expiry", "id", "missing"] as const) test(`quer
   const app = harness(), prepared = handoff();
   app.render();
   if (reason !== "missing") storeAgentHandoff(app.store, reason === "expiry" ? { ...prepared, expiresAt: now - 1 } : prepared);
-  if (reason === "account") app.context.connection.address = "0x2222222222222222222222222222222222222222";
+  if (reason === "account") app.context.wallet.address = "0x2222222222222222222222222222222222222222";
   app.navigate(`?agentHandoff=${reason === "id" ? "different-id" : prepared.id}`);
   app.render(); app.flush();
   const result = app.render();

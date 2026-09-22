@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useConnection, usePublicClient } from "wagmi";
+import { usePublicClient } from "wagmi";
 import { AppShell } from "./AppShell";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
 import { usePreferences } from "@/hooks/usePreferences";
-import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
+import { useWalletReadContext } from "@/hooks/useWalletAccount";
 import { useWalletActivity } from "@/hooks/useWalletActivity";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
 import { createAgentContextSnapshot } from "@/lib/agent/context";
@@ -24,14 +24,14 @@ import { translate, type Locale, type TranslationKey } from "@/i18n";
 import styles from "./MakotoAgentPage.module.css";
 
 export function MakotoAgentPage() {
-  const { locale } = usePreferences(), connection = useConnection(), chain = useVerifiedWalletChain();
+  const { locale } = usePreferences(), wallet = useWalletReadContext();
   const publicClient = usePublicClient({ chainId: arcTestnet.id });
   const planningServices = useMemo(() => createAgentPlanningServices(publicClient), [publicClient]);
   const onchainServices = useMemo(() => createOnchainIntelligenceServices(publicClient), [publicClient]);
-  const canRead = connection.isConnected && chain.isArc, balances = useWalletBalances(connection.address, canRead), activity = useWalletActivity(connection.address, canRead, true), ownerJars = useOwnerJars(canRead ? connection.address : undefined), savings = summarizeSavingsJars(ownerJars.jars);
-  const snapshot = useMemo(() => createAgentContextSnapshot({ connected: connection.isConnected, account: connection.address, walletType: connection.connector?.name, verifiedChainId: chain.providerChainId, isArc: chain.isArc, balances: { usdc: balances.usdc.data, eurc: balances.eurc.data }, activity: activity.data, activityLoadState: activity.loadState, activityPartial: activity.partial, activityUnavailable: activity.unavailable, vault: { available: canRead && !ownerJars.isLoading && !ownerJars.error, total: canRead ? savings.totalSaved : undefined, goalCount: canRead ? ownerJars.jars.length : undefined, activeCount: canRead ? savings.active : undefined } }), [activity.data, activity.loadState, activity.partial, activity.unavailable, balances.eurc.data, balances.usdc.data, canRead, chain.isArc, chain.providerChainId, connection.address, connection.connector?.name, connection.isConnected, ownerJars.error, ownerJars.isLoading, ownerJars.jars.length, savings.active, savings.totalSaved]);
-  const { messages, hasSessionContext, clearConversation, input, setInput, inputRef, ask, submit } = useMakotoAgent(snapshot, locale, connection.address, planningServices, onchainServices);
-  return <AppShell><AgentWorkspace locale={locale} account={connection.address} chainId={chain.providerChainId} messages={messages} hasSessionContext={hasSessionContext} clearConversation={clearConversation} input={input} setInput={setInput} inputRef={inputRef} ask={ask} submit={submit} /></AppShell>;
+  const canRead = wallet.status === "connected" && wallet.isArc, balances = useWalletBalances(wallet.address, canRead), activity = useWalletActivity(wallet.address, canRead, true), ownerJars = useOwnerJars(canRead ? wallet.address : undefined), savings = summarizeSavingsJars(ownerJars.jars);
+  const snapshot = useMemo(() => createAgentContextSnapshot({ connected: wallet.status === "connected", account: wallet.address, walletType: wallet.providerName, accountKind: wallet.kind, walletStatus: wallet.status, verifiedChainId: wallet.providerChainId, isArc: wallet.isArc, balances: { usdc: balances.usdc.data, eurc: balances.eurc.data, cirbtc: balances.cirbtc.data }, activity: activity.data, activityLoadState: activity.loadState, activityPartial: activity.partial, activityUnavailable: activity.unavailable, vault: { available: canRead && !ownerJars.isLoading && !ownerJars.error, total: canRead ? savings.totalSaved : undefined, goalCount: canRead ? ownerJars.jars.length : undefined, activeCount: canRead ? savings.active : undefined } }), [activity.data, activity.loadState, activity.partial, activity.unavailable, balances.cirbtc.data, balances.eurc.data, balances.usdc.data, canRead, ownerJars.error, ownerJars.isLoading, ownerJars.jars.length, savings.active, savings.totalSaved, wallet.address, wallet.isArc, wallet.kind, wallet.providerChainId, wallet.providerName, wallet.status]);
+  const { messages, hasSessionContext, clearConversation, input, setInput, inputRef, ask, submit } = useMakotoAgent(snapshot, locale, wallet.address, planningServices, onchainServices);
+  return <AppShell><AgentWorkspace locale={locale} account={wallet.address} chainId={wallet.providerChainId} messages={messages} hasSessionContext={hasSessionContext} clearConversation={clearConversation} input={input} setInput={setInput} inputRef={inputRef} ask={ask} submit={submit} /></AppShell>;
 }
 
 /** Presentation seam shared by the live page and isolated browser fixtures. */
@@ -46,10 +46,10 @@ export function AgentWorkspace({ locale, account, chainId, messages, hasSessionC
   const latest = replies.at(-1);
   const current = { account, chainId };
   const showBoundary = !latest || agentWorkspaceMode(latest.presentation?.intent, Boolean(latest.draft), latest.presentation?.result) === "action";
-  return <div className={styles.workspace}>
+  return <div className={`${styles.workspace} ${locale === "vi" ? styles.vietnameseWorkspace : ""}`}>
     <header className={styles.contextHeader}>
-      <div><p className={styles.eyebrow}>Makoto Agent</p><h1>{t("agent.workspace.title")}</h1><p>{t("agent.workspace.subtitle")}</p></div>
-      <dl><div><dt>{t("agent.workspace.account")}</dt><dd>{account ?? t("agent.page.disconnected")}</dd></div><div><dt>{t("agent.draft.network")}</dt><dd>{chainId === arcTestnet.id ? "Arc Testnet" : chainId === 84532 ? "Base Sepolia" : chainId ?? t("agent.value.unavailable")}</dd></div><div><dt>{t("agent.workspace.mode")}</dt><dd>{t("agent.workspace.prepareOnly")}</dd></div></dl>
+      <div className={styles.heroCopy}><p className={styles.eyebrow}>{t("agent.workspace.eyebrow")}</p><h1>{t("agent.workspace.title")}</h1><p>{t("agent.workspace.subtitle")}</p></div>
+      <dl className={styles.contextCard}><div><dt>{t("agent.workspace.account")}</dt><dd className={styles.accountValue}>{account ?? t("agent.page.disconnected")}</dd></div><div><dt>{t("agent.draft.network")}</dt><dd>{chainId === arcTestnet.id ? "Arc Testnet" : chainId === 84532 ? "Base Sepolia" : chainId ?? t("agent.value.unavailable")}</dd></div><div><dt>{t("agent.workspace.mode")}</dt><dd className={styles.modeValue}>{t("agent.workspace.prepareOnly")}</dd></div></dl>
     </header>
     <form className={styles.composer} onSubmit={submit}>
       <label htmlFor="agent-question">{t("agent.page.inputLabel")}</label>
@@ -59,13 +59,13 @@ export function AgentWorkspace({ locale, account, chainId, messages, hasSessionC
     <div className={showBoundary ? styles.operations : styles.readOperations}>
       <div className={styles.operationColumn} aria-live="polite" aria-relevant="additions text">
         {latest ? <AgentOperation key={latest.id} message={latest} locale={locale} current={current} /> : <section className={styles.empty}><h2>{t("agent.workspace.emptyTitle")}</h2><p>{t("agent.workspace.emptyCopy")}</p></section>}
+        <section className={styles.history}><header><h2>{t("agent.workspace.history")}</h2><button type="button" onClick={clearConversation} disabled={!messages.length && !hasSessionContext}>{t("agent.page.clear")}</button></header>
+          {replies.length > 1 && <details><summary>{t("agent.workspace.previous")} ({replies.length - 1})</summary>{replies.slice(0, -1).map((message) => <AgentOperation key={message.id} message={message} locale={locale} current={current} />)}</details>}
+          {replies.length <= 1 && <p>{t("agent.workspace.historyEmpty")}</p>}
+        </section>
       </div>
-      {showBoundary && <aside className={styles.boundary} aria-label={t("agent.workspace.boundary")}><h2>{t("agent.workspace.boundary")}</h2><ol><li><strong>{t("agent.workspace.agentPrepares")}</strong><p>{t("agent.workspace.agentPreparesCopy")}</p></li><li><strong>{t("agent.workspace.reviewChecks")}</strong><p>{t("agent.workspace.reviewChecksCopy")}</p></li><li><strong>{t("agent.workspace.walletConfirms")}</strong><p>{t("agent.workspace.walletConfirmsCopy")}</p></li></ol><p>{t("agent.page.disclosure")}</p></aside>}
+      {showBoundary && <aside className={styles.boundary} aria-label={t("agent.workspace.boundary")}><h2>{t("agent.workspace.boundary")}</h2><ol className={styles.boundarySteps}><li><strong>{t("agent.workspace.agentPrepares")}</strong><p>{t("agent.workspace.agentPreparesCopy")}</p></li><li><strong>{t("agent.workspace.reviewChecks")}</strong><p>{t("agent.workspace.reviewChecksCopy")}</p></li><li><strong>{t("agent.workspace.walletConfirms")}</strong><p>{t("agent.workspace.walletConfirmsCopy")}</p></li></ol><p>{t("agent.page.disclosure")}</p></aside>}
     </div>
-    <section className={styles.history}><header><h2>{t("agent.workspace.history")}</h2><button type="button" onClick={clearConversation} disabled={!messages.length && !hasSessionContext}>{t("agent.page.clear")}</button></header>
-      {replies.length > 1 && <details><summary>{t("agent.workspace.previous")} ({replies.length - 1})</summary>{replies.slice(0, -1).map((message) => <AgentOperation key={message.id} message={message} locale={locale} current={current} />)}</details>}
-      {replies.length <= 1 && <p>{t("agent.workspace.historyEmpty")}</p>}
-    </section>
   </div>;
 }
 
@@ -101,14 +101,13 @@ export function EvidenceBlock({ value, locale }: { value: AgentIntelligenceResul
 }
 export function ActionDraftCard({ draft, draftContext, vi }: { draft: AgentActionDraft; draftContext?: AgentDraftContext; vi: boolean }) {
   const locale: Locale = vi ? "vi" : "en";
-  const connection = useConnection();
-  const chain = useVerifiedWalletChain();
+  const wallet = useWalletReadContext();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [preparing, setPreparing] = useState(false);
   const [handoffRequestId, setHandoffRequestId] = useState<string>();
   const progressRef = useRef<HTMLParagraphElement>(null);
-  const validation = validateAgentActionDraft(draft), context = assessAgentDraftContext(draftContext, { account: connection.address, chainId: chain.providerChainId }), labelKeys: Record<AgentActionDraft["kind"], TranslationKey> = { send: "agent.draft.send", swap: "agent.draft.swap", bridge: "agent.draft.bridge", "vault-deposit": "agent.draft.vaultDeposit", "vault-withdraw": "agent.draft.vaultWithdraw" };
+  const validation = validateAgentActionDraft(draft), context = assessAgentDraftContext(draftContext, { account: wallet.address, chainId: wallet.providerChainId }), labelKeys: Record<AgentActionDraft["kind"], TranslationKey> = { send: "agent.draft.send", swap: "agent.draft.swap", bridge: "agent.draft.bridge", "vault-deposit": "agent.draft.vaultDeposit", "vault-withdraw": "agent.draft.vaultWithdraw" };
   const asset = draft.kind === "swap" ? draft.inputAsset : draft.asset;
   const outputAsset = draft.kind === "swap" ? draft.outputAsset : undefined;
   const recipient = draft.kind === "send" || draft.kind === "bridge" ? draft.recipient : undefined;
@@ -118,18 +117,19 @@ export function ActionDraftCard({ draft, draftContext, vi }: { draft: AgentActio
   // The URL query is the completion signal for same-path handoff navigation.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (preparing && handoffRequestId && searchParams.get("agentHandoff") === handoffRequestId) setPreparing(false); }, [handoffRequestId, preparing, searchParams]);
-  function prepare() { const prepared = prepareAgentActionHandoff(draft, connection.address); if (prepared.handoff) { setPreparing(true); setHandoffRequestId(prepared.handoff.id); storeAgentHandoff(window.sessionStorage, prepared.handoff); window.requestAnimationFrame(() => { progressRef.current?.focus(); router.push(handoffUrl(prepared.handoff!)); }); } }
+  function prepare() { const prepared = prepareAgentActionHandoff(draft, wallet.address); if (prepared.handoff) { setPreparing(true); setHandoffRequestId(prepared.handoff.id); storeAgentHandoff(window.sessionStorage, prepared.handoff); window.requestAnimationFrame(() => { progressRef.current?.focus(); router.push(handoffUrl(prepared.handoff!)); }); } }
   if (preparing) return <section className={styles.draft}><header><strong>{translate(locale, "agent.draft.preparing")}</strong><span>{translate(locale, "agent.draft.openingReview")}</span></header><p ref={progressRef} tabIndex={-1} role="status" aria-live="polite">{translate(locale, "agent.draft.openingReview")}</p></section>;
   const missingLabels = validation.missingFields.map((field) => validationFieldLabel(field, locale));
   const errorLabels = validation.errors.map((error) => error.startsWith("MAX") ? translate(locale, "agent.draft.maxBlocked") : validationFieldLabel(error, locale));
   const contextKey = context.status === "current" ? "agent.draft.ready" : context.status === "historical" ? "agent.draft.historical" : "agent.draft.contextUnknown";
   const contextHelpKey = context.status === "current" ? undefined : context.status === "historical" ? "agent.draft.historicalHelp" : "agent.draft.contextUnknownHelp";
   const statusKey = validation.valid ? contextKey : validation.missingFields.length ? "agent.draft.missing" : "agent.draft.blocked";
-  const canPrepare = validation.valid && connection.address !== undefined;
+  const localActionSupported = wallet.kind !== "local" || draft.kind === "send";
+  const canPrepare = validation.valid && wallet.address !== undefined && localActionSupported;
   const prepareKey = context.status === "current" ? "agent.draft.review" : "agent.draft.prepareCurrent";
   const contextHelpId = `${helpId}-context`;
   const describedBy = [!validation.valid ? helpId : undefined, contextHelpKey ? contextHelpId : undefined].filter(Boolean).join(" ") || undefined;
-  return <section className={styles.draft} data-context-status={context.status} aria-label={translate(locale, "agent.draft.aria")}><header><strong>{translate(locale, "agent.draft.title")}</strong><span className={context.status !== "current" && validation.valid ? styles.historicalStatus : undefined}>{translate(locale, statusKey)}</span></header><dl><div><dt>{translate(locale, "agent.draft.action")}</dt><dd>{translate(locale, labelKeys[draft.kind])}</dd></div><div><dt>{translate(locale, "agent.draft.amount")}</dt><dd>{`${draft.amount} ${asset}`}{outputAsset ? ` → ${outputAsset}` : ""}</dd></div>{recipient && <div><dt>{translate(locale, "agent.draft.recipient")}</dt><dd className={styles.longValue}>{recipient}</dd></div>}<div><dt>{translate(locale, "agent.draft.network")}</dt><dd>{sourceChain}{destinationChain ? ` → ${destinationChain}` : ""}</dd></div><div><dt>{translate(locale, "agent.workspace.originAccount")}</dt><dd className={styles.longValue}>{draftContext?.account ?? translate(locale, "agent.value.unavailable")}</dd></div><div><dt>{translate(locale, "agent.workspace.originNetwork")}</dt><dd>{draftContext?.chainId ?? translate(locale, "agent.value.unavailable")}</dd></div>{missingLabels.length > 0 && <div><dt>{translate(locale, "agent.draft.missingLabel")}</dt><dd>{missingLabels.join(", ")}</dd></div>}{errorLabels.length > 0 && <div><dt>{translate(locale, "agent.draft.blockedLabel")}</dt><dd>{errorLabels.join(", ")}</dd></div>}</dl><div className={styles.draftBoundary}><strong>{translate(locale, "agent.workspace.safety")}</strong><p>{translate(locale, "agent.workspace.draftBoundary")}</p></div><p>{translate(locale, "agent.draft.helper")}</p>{contextHelpKey && <p id={contextHelpId} className={styles.historicalContext} role="status">{translate(locale, contextHelpKey)}</p>}<button type="button" className={styles.prepareButton} onClick={prepare} disabled={!canPrepare} aria-describedby={describedBy}>{translate(locale, prepareKey)}</button>{!validation.valid && <small id={helpId}>{translate(locale, "agent.draft.disabled")}</small>}{validation.valid && !connection.address && <small id={helpId}>{translate(locale, "agent.draft.waitingForWallet")}</small>}</section>;
+  return <section className={styles.draft} data-context-status={context.status} aria-label={translate(locale, "agent.draft.aria")}><header><strong>{translate(locale, "agent.draft.title")}</strong><span className={context.status !== "current" && validation.valid ? styles.historicalStatus : undefined}>{translate(locale, statusKey)}</span></header><dl><div><dt>{translate(locale, "agent.draft.action")}</dt><dd>{translate(locale, labelKeys[draft.kind])}</dd></div><div><dt>{translate(locale, "agent.draft.amount")}</dt><dd>{`${draft.amount} ${asset}`}{outputAsset ? ` → ${outputAsset}` : ""}</dd></div>{recipient && <div><dt>{translate(locale, "agent.draft.recipient")}</dt><dd className={styles.longValue}>{recipient}</dd></div>}<div><dt>{translate(locale, "agent.draft.network")}</dt><dd>{sourceChain}{destinationChain ? ` → ${destinationChain}` : ""}</dd></div><div><dt>{translate(locale, "agent.workspace.originAccount")}</dt><dd className={styles.longValue}>{draftContext?.account ?? translate(locale, "agent.value.unavailable")}</dd></div><div><dt>{translate(locale, "agent.workspace.originNetwork")}</dt><dd>{draftContext?.chainId ?? translate(locale, "agent.value.unavailable")}</dd></div>{missingLabels.length > 0 && <div><dt>{translate(locale, "agent.draft.missingLabel")}</dt><dd>{missingLabels.join(", ")}</dd></div>}{errorLabels.length > 0 && <div><dt>{translate(locale, "agent.draft.blockedLabel")}</dt><dd>{errorLabels.join(", ")}</dd></div>}</dl><div className={styles.draftBoundary}><strong>{translate(locale, "agent.workspace.safety")}</strong><p>{translate(locale, "agent.workspace.draftBoundary")}</p></div><p>{translate(locale, "agent.draft.helper")}</p>{!localActionSupported && <p className={styles.historicalContext} role="status">{vi ? "Ví cục bộ chỉ hỗ trợ chuẩn bị lệnh gửi trong giai đoạn này." : "Local wallets support Send preparation only in this phase."}</p>}{contextHelpKey && <p id={contextHelpId} className={styles.historicalContext} role="status">{translate(locale, contextHelpKey)}</p>}<button type="button" className={styles.prepareButton} onClick={prepare} disabled={!canPrepare} aria-describedby={describedBy}>{translate(locale, prepareKey)}</button>{!validation.valid && <small id={helpId}>{translate(locale, "agent.draft.disabled")}</small>}{validation.valid && !wallet.address && <small id={helpId}>{translate(locale, "agent.draft.waitingForWallet")}</small>}</section>;
 }
 
 function validationFieldLabel(field: string, locale: Locale) { const keys: Record<string, TranslationKey> = { draft: "agent.field.draft", amount: "agent.field.amount", asset: "agent.field.asset", outputAsset: "agent.field.outputAsset", recipient: "agent.field.recipient", sourceChain: "agent.field.sourceChain", destinationChain: "agent.field.destinationChain" }; return keys[field] ? translate(locale, keys[field]) : field; }

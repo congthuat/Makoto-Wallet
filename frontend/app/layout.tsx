@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Manrope } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "./providers";
 import "./globals.css";
 import { LEGACY_LOCALE_COOKIE, LEGACY_THEME_COOKIE, MAKOTO_LOCALE_COOKIE, MAKOTO_THEME_COOKIE, resolvePreference } from "@/lib/preferences";
@@ -10,6 +11,15 @@ const manrope = Manrope({
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-ui",
   display: "swap",
+});
+
+const robotoCondensed = localFont({
+  src: "./fonts/RobotoCondensed-Variable.ttf",
+  variable: "--font-vi-display",
+  display: "swap",
+  preload: false,
+  weight: "100 900",
+  style: "normal",
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,7 +45,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const theme = resolvePreference(cookieStore.get(MAKOTO_THEME_COOKIE)?.value, cookieStore.get(LEGACY_THEME_COOKIE)?.value, ["light", "dark", "system"] as const, "system");
   return (
     <html lang={locale} data-theme={theme}>
-      <body className={manrope.variable}>
+      <body className={`${manrope.variable} ${robotoCondensed.variable}`}>
         <Providers initialLocale={locale} initialTheme={theme}>{children}</Providers>
       </body>
     </html>

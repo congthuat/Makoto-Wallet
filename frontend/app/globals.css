@@ -1508,3 +1508,146 @@ footer {
 .jar-detail-page .security-panel{gap:var(--lc-space-3)}.jar-detail-page .security-panel.frozen{border-color:color-mix(in srgb,var(--lc-error) 42%,var(--lc-separator));background:var(--lc-error-surface)}.jar-detail-page .security-panel h2{margin:var(--lc-space-1) 0 0;color:var(--lc-text);font:700 var(--lc-section-size)/var(--lc-section-line) var(--font-display),sans-serif}.jar-detail-page .security-panel>p{margin:0;padding:var(--lc-space-3);border-left:3px solid var(--lc-attention);border-radius:var(--lc-radius-control);color:var(--lc-text-secondary);background:var(--lc-attention-surface);font-size:var(--lc-support-size);line-height:var(--lc-support-line)}.jar-detail-page .security-panel .security-facts{margin:0;border-top:1px solid var(--lc-separator);border-bottom:1px solid var(--lc-separator)}.jar-detail-page .security-panel .security-facts>div{padding:var(--lc-space-3) 0}.jar-detail-page .security-panel .security-facts>div+div{border-top:1px solid var(--lc-separator)}.jar-detail-page .security-panel .security-facts dt{color:var(--lc-text-secondary);font-size:var(--lc-meta-size)}.jar-detail-page .security-panel .security-facts dd{color:var(--lc-text);font:700 var(--lc-label-size)/var(--lc-label-line) var(--font-display),sans-serif;overflow-wrap:anywhere}
 .jar-detail-page .security-actions{gap:var(--lc-space-2)}.jar-detail-page .security-actions button,.jar-detail-page .security-input button{min-height:44px;border-radius:var(--lc-radius-control)}.jar-detail-page .security-input{gap:var(--lc-space-3);padding-top:var(--lc-space-3);border-top:1px solid var(--lc-separator)}.jar-detail-page .security-input label{color:var(--lc-text);font-size:var(--lc-label-size)}.jar-detail-page .security-input input{min-height:44px;border-color:var(--lc-control-border);background:var(--lc-surface);color:var(--lc-text)}.jar-detail-page .security-input small{color:var(--lc-text-secondary);font-size:var(--lc-meta-size);line-height:var(--lc-meta-line)}
 @media(max-width:600px){.jar-detail-page .private-metadata-panel dl{grid-template-columns:1fr}.jar-detail-page .private-metadata-panel dl div+div{padding-left:0;border-top:1px solid color-mix(in srgb,var(--lc-action) 20%,var(--lc-separator));border-left:0}.jar-detail-page .security-actions{display:grid;grid-template-columns:1fr}.jar-detail-page .security-actions button{width:100%}}
+
+/* Makoto transaction shell: shared theme tokens for Send, Receive, Swap, and Bridge. */
+.modal-backdrop:has(.create-modal.wallet-action-modal) {
+  background: color-mix(in srgb, var(--mk-page-bg) 76%, transparent);
+  backdrop-filter: blur(5px);
+}
+.modal-backdrop .create-modal.wallet-action-modal {
+  --lc-text: var(--mk-text-primary);
+  --lc-text-secondary: var(--mk-text-secondary);
+  --lc-text-tertiary: var(--mk-text-muted);
+  --lc-separator: var(--mk-border-subtle);
+  --lc-control-border: var(--mk-border-primary);
+  --lc-surface: var(--mk-surface-primary);
+  --lc-inset: var(--mk-surface-secondary);
+  --lc-action: var(--mk-accent-primary);
+  --lc-focus: var(--mk-focus);
+  --lc-on-action: var(--mk-on-accent);
+  --lc-success: var(--mk-success);
+  --lc-success-surface: var(--mk-success-surface);
+  --lc-attention: var(--mk-warning);
+  --lc-attention-surface: var(--mk-warning-surface);
+  --lc-error: var(--mk-error);
+  --lc-error-surface: var(--mk-error-surface);
+  --lc-information: var(--mk-information);
+  --lc-information-surface: var(--mk-information-surface);
+  --surface-overlay: var(--mk-surface-primary);
+  --surface: var(--mk-surface-primary);
+  --surface-raised: var(--mk-surface-secondary);
+  --white: var(--mk-surface-primary);
+  --background: var(--mk-page-bg);
+  --ink: var(--mk-text-primary);
+  --muted: var(--mk-text-secondary);
+  --line: var(--mk-border-subtle);
+  --purple: var(--mk-accent-primary);
+  --purple-dark: var(--mk-accent-hover);
+  --lavender: var(--mk-accent-soft);
+  width: min(640px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 100px 16px;
+  padding: 24px;
+  border: 1px solid var(--mk-border-primary);
+  border-radius: var(--lc-radius-dialog);
+  color: var(--mk-text-primary);
+  background: var(--mk-surface-primary);
+  box-shadow: var(--lc-shadow-dialog);
+}
+.modal-backdrop .create-modal.wallet-action-modal .modal-header {
+  top: -24px;
+  margin: -24px -24px 0;
+  padding: 24px 24px 12px;
+  border-bottom: 1px solid var(--mk-border-subtle);
+  border-radius: var(--lc-radius-dialog) var(--lc-radius-dialog) 0 0;
+  background: var(--mk-surface-primary);
+}
+.modal-backdrop .create-modal.wallet-action-modal .modal-header h2 { color: var(--mk-text-primary); }
+.modal-backdrop .create-modal.wallet-action-modal .modal-header .eyebrow { color: var(--mk-text-secondary); }
+.modal-backdrop .create-modal.wallet-action-modal .modal-header > button {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--mk-border-primary);
+  border-radius: var(--lc-radius-control);
+  color: var(--mk-text-primary);
+  background: var(--mk-surface-secondary);
+  font-size: 20px;
+  line-height: 1;
+}
+.modal-backdrop .create-modal.wallet-action-modal .modal-header > button:hover:not(:disabled) {
+  border-color: var(--mk-accent-primary);
+  background: var(--mk-surface-tertiary);
+}
+.modal-backdrop .create-modal.wallet-action-modal :is(input, select, textarea) {
+  min-height: 48px;
+  color: var(--mk-text-primary);
+  background: var(--mk-surface-secondary);
+  border-color: var(--mk-border-primary);
+}
+.modal-backdrop .create-modal.wallet-action-modal textarea { min-height: 56px; }
+.modal-backdrop .create-modal.wallet-action-modal :is(input, select, textarea)::placeholder { color: var(--mk-text-muted); }
+.modal-backdrop .create-modal.wallet-action-modal :is(input, select, textarea):focus {
+  border-color: var(--mk-accent-primary);
+  box-shadow: 0 0 0 3px var(--mk-focus);
+  outline: 0;
+}
+.modal-backdrop .create-modal.wallet-action-modal :is(.primary-action, .switch-review, .switch-button) {
+  min-height: 48px;
+  border: 1px solid var(--mk-accent-primary);
+  border-radius: var(--lc-radius-control);
+  color: var(--mk-on-accent);
+  background: var(--mk-accent-primary);
+}
+.modal-backdrop .create-modal.wallet-action-modal :is(.primary-action, .switch-review, .switch-button):hover:not(:disabled) { background: var(--mk-accent-hover); }
+.modal-backdrop .create-modal.wallet-action-modal :is(.secondary-action, .secondary-button, .cancel-action) {
+  min-height: 44px;
+  border: 1px solid var(--mk-border-primary);
+  border-radius: var(--lc-radius-control);
+  color: var(--mk-accent-ink);
+  background: var(--mk-surface-secondary);
+}
+.modal-backdrop .create-modal.wallet-action-modal :is(.secondary-action, .secondary-button, .cancel-action):hover:not(:disabled) {
+  border-color: var(--mk-accent-primary);
+  background: var(--mk-accent-soft);
+}
+.modal-backdrop .create-modal.wallet-action-modal :is(.primary-action, .secondary-action, .secondary-button, .switch-review, .switch-button, .cancel-action):disabled {
+  opacity: 1;
+  border-color: var(--mk-border-subtle);
+  color: var(--mk-disabled-text);
+  background: var(--mk-disabled-bg);
+}
+.modal-backdrop .create-modal.wallet-action-modal :is(button, a, summary):focus-visible { outline-color: var(--mk-focus); }
+.modal-backdrop .create-modal.wallet-action-modal a { color: var(--mk-accent-ink); }
+.modal-backdrop .create-modal.wallet-action-modal .receive-qr-card {
+  border: 1px solid var(--mk-border-primary);
+  background: #fff;
+  box-shadow: var(--mk-shadow-card);
+}
+.modal-backdrop .create-modal.wallet-action-modal .receive-qr-card :is(strong, span) { color: #17202a; }
+@media (max-width: 767px) {
+  .modal-backdrop .create-modal.wallet-action-modal {
+    width: min(100%, 640px);
+    max-height: calc(100dvh - max(24px, calc(env(safe-area-inset-top) + env(safe-area-inset-bottom))));
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+    border-radius: var(--lc-radius-dialog) var(--lc-radius-dialog) 0 0;
+  }
+  .modal-backdrop .create-modal.wallet-action-modal .modal-header {
+    top: -20px;
+    margin: -20px -16px 0;
+    padding: 20px 16px 12px;
+    border-radius: var(--lc-radius-dialog) var(--lc-radius-dialog) 0 0;
+  }
+  .modal-backdrop .create-modal.wallet-action-modal .modal-actions {
+    grid-template-columns: 1fr;
+    position: sticky;
+    bottom: -1px;
+    z-index: 4;
+    margin-inline: -2px;
+    padding: 12px 2px calc(2px + env(safe-area-inset-bottom));
+    background: var(--mk-surface-primary);
+  }
+}

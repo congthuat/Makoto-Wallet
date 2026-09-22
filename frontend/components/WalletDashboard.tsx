@@ -9,6 +9,7 @@ import { AppShell } from "./AppShell";
 import { ConnectedOverview } from "./ConnectedOverview";
 import overviewStyles from "./ConnectedOverview.module.css";
 import { CreateWalletGuide } from "./CreateWalletGuide";
+import { NativeWalletOnboarding } from "./NativeWalletOnboarding";
 import shellStyles from "./AppShell.module.css";
 import foundation from "./OverviewFoundation.module.css";
 import { SendFlow } from "./SendFlow";
@@ -17,17 +18,19 @@ import { SwapPanel } from "./SwapPanel";
 import { TransactionReceiptPanel } from "./TransactionReceiptPanel";
 import { ActivityHistoryPanel } from "./ActivityHistoryPanel";
 import { ActionDraftCard, EvidenceBlock } from "./MakotoAgentPage";
+import { MakotoTerrain } from "./MakotoTerrain";
 
+import { useAppLock } from "@/hooks/useAppLock";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { useWalletActivity } from "@/hooks/useWalletActivity";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
+import { useLocalWalletControls, useWalletReadContext } from "@/hooks/useWalletAccount";
 import { useMakotoAgent } from "@/hooks/useMakotoAgent";
 
 import { formatAssetAmount, getAssetById } from "@/lib/assets";
-import { formatUsdc, shortAddress } from "@/lib/format";
 import { summarizeSavingsJars } from "@/lib/savingsSummary";
 import type { WalletActivity } from "@/lib/wallet";
 import { mergeWalletActivity, recordWalletActivity } from "@/lib/walletActivity";
@@ -39,11 +42,6 @@ import { createOnchainIntelligenceServices } from "@/lib/agent/intelligence/onch
 import { rankAgentSuggestions, readSuggestionUsage, recordSuggestionUsage, suggestionStorageKey } from "@/lib/agent/suggestions";
 import {
   appKitViewForPath,
-  appKitViewForCreateMethod,
-  ONBOARDING_INTENT_KEY,
-  parseOnboardingIntent,
-  shouldShowWalletReady,
-  type CreateWalletMethod,
   type OnboardingPath,
 } from "@/lib/onboarding";
 import { getAppKit, isReownConfigured } from "@/lib/wagmi";
@@ -55,49 +53,51 @@ type Action = "send" | "receive" | "swap" | "bridge";
 export function WalletDashboard() {
   const { locale, t } = usePreferences();
 
+  const appLock = useAppLock();
   const hydrated = useHydrated();
   const connection = useConnection();
+  const wallet = useWalletReadContext();
+  const localWallet = useLocalWalletControls();
   const publicClient = usePublicClient({ chainId: arcTestnet.id });
   const agentPlanningServices = useMemo(() => createAgentPlanningServices(publicClient), [publicClient]);
   const onchainServices = useMemo(() => createOnchainIntelligenceServices(publicClient), [publicClient]);
   const chain = useVerifiedWalletChain();
-  const walletState = deriveWalletUiState({ hydrated, connectionStatus: connection.status, isConnected: connection.isConnected, connectorChainId: chain.connectorChainId, providerChainId: chain.providerChainId, isArc: chain.isArc });
+  const externalWalletState = deriveWalletUiState({ hydrated, connectionStatus: connection.status, isConnected: connection.isConnected, connectorChainId: chain.connectorChainId, providerChainId: chain.providerChainId, isArc: chain.isArc });
+  const walletState = wallet.kind === "local" ? (!hydrated ? "hydrating" : wallet.address ? "arc" : "disconnected") : externalWalletState;
   const onArc = walletState === "arc";
 
-  const balances = useWalletBalances(connection.address, onArc);
+  const balances = useWalletBalances(wallet.address, onArc);
   const {
     jars,
     isLoading: jarsLoading,
     error: jarsError,
-  } = useOwnerJars(onArc ? connection.address : undefined);
+  } = useOwnerJars(onArc ? wallet.address : undefined);
 
   const [action, setAction] = useState<Action>();
   const [agentHandoff, setAgentHandoff] = useState<AgentActionHandoff>();
   const agentHandoffRequestId = useSearchParams().get("agentHandoff") ?? undefined;
   const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
-  const activity = useWalletActivity(connection.address, onArc, activityHistoryOpen);
+  const activity = useWalletActivity(wallet.address, onArc, activityHistoryOpen);
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
   const [receiptActivity, setReceiptActivity] = useState<WalletActivity>();
   const [activityHistoryLimit, setActivityHistoryLimit] = useState(20);
   const [createGuideOpen, setCreateGuideOpen] = useState(false);
-  const [onboardingIntent, setOnboardingIntent] = useState<OnboardingPath | undefined>(() =>
-    typeof window === "undefined" ? undefined : parseOnboardingIntent(window.sessionStorage.getItem(ONBOARDING_INTENT_KEY)),
-  );
   const dashboardState = agentHandoffRequestId && walletState === "disconnected" ? "hydrating" : walletState;
   const connected = dashboardState === "arc" || dashboardState === "wrong-network";
 
-  const balancesSettled = !balances.usdc.isPending && !balances.eurc.isPending;
+  const balancesSettled = !balances.usdc.isPending && !balances.eurc.isPending && !balances.cirbtc.isPending;
   useEffect(() => {
-    if (!agentHandoffRequestId || !connection.address || !canConsumeAgentHandoff(walletState, balancesSettled)) return;
+    if (!agentHandoffRequestId || wallet.status !== "connected" || !wallet.address || !canConsumeAgentHandoff(walletState, balancesSettled)) return;
     const timer = window.setTimeout(() => {
-      const handoff = consumeAgentHandoff(window.sessionStorage, agentHandoffRequestId, connection.address);
+      const handoff = consumeAgentHandoff(window.sessionStorage, agentHandoffRequestId, wallet.address);
       window.history.replaceState({}, "", window.location.pathname);
       if (!handoff || !["send", "swap", "bridge"].includes(handoff.action)) return;
+      if (wallet.kind === "local" && handoff.action !== "send") return;
       setAgentHandoff(handoff);
       setAction(handoff.action === "bridge" ? "bridge" : handoff.action === "swap" ? "swap" : "send");
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [agentHandoffRequestId, balancesSettled, connection.address, walletState]);
+  }, [agentHandoffRequestId, balancesSettled, wallet.address, wallet.kind, wallet.status, walletState]);
 
   useEffect(() => {
     const settleDashboardFragment = () => {
@@ -111,27 +111,29 @@ export function WalletDashboard() {
   }, [connected]);
 
   const activities = useMemo(() => {
-    const optimistic = optimisticActivity && connection.address && optimisticActivity.address.toLowerCase() === connection.address.toLowerCase()
+    const optimistic = optimisticActivity && wallet.address && optimisticActivity.address.toLowerCase() === wallet.address.toLowerCase()
       ? optimisticActivity.records
       : [];
     return mergeWalletActivity(activity.data, optimistic);
-  }, [activity.data, connection.address, optimisticActivity]);
+  }, [activity.data, wallet.address, optimisticActivity]);
 
   const totals = useMemo(() => summarizeSavingsJars(jars), [jars]);
   const vaultDataState = deriveFinancialDataState({ enabled: onArc, isLoading: jarsLoading, isError: Boolean(jarsError) });
   const agentSnapshot = useMemo(() => createAgentContextSnapshot({
-    connected: connection.isConnected,
-    account: connection.address,
-    walletType: connection.connector?.name,
-    verifiedChainId: chain.providerChainId,
-    isArc: chain.isArc,
-    balances: { usdc: balances.usdc.data, eurc: balances.eurc.data },
+    connected: wallet.status === "connected",
+    account: wallet.address,
+    walletType: wallet.providerName,
+    accountKind: wallet.kind,
+    walletStatus: wallet.status,
+    verifiedChainId: wallet.providerChainId,
+    isArc: wallet.isArc,
+    balances: { usdc: balances.usdc.data, eurc: balances.eurc.data, cirbtc: balances.cirbtc.data },
     activity: activities,
     activityLoadState: activity.loadState,
     activityPartial: activity.partial,
     activityUnavailable: activity.unavailable,
     vault: { available: vaultDataState === "ready", total: vaultDataState === "ready" ? totals.totalSaved : undefined, goalCount: vaultDataState === "ready" ? jars.length : undefined, activeCount: vaultDataState === "ready" ? totals.active : undefined },
-  }), [activities, activity.loadState, activity.partial, activity.unavailable, balances.eurc.data, balances.usdc.data, chain.isArc, chain.providerChainId, connection.address, connection.connector?.name, connection.isConnected, jars.length, totals.active, totals.totalSaved, vaultDataState]);
+  }), [activities, activity.loadState, activity.partial, activity.unavailable, balances.cirbtc.data, balances.eurc.data, balances.usdc.data, jars.length, totals.active, totals.totalSaved, vaultDataState, wallet.address, wallet.isArc, wallet.kind, wallet.providerChainId, wallet.providerName, wallet.status]);
   const {
     input: agentInput,
     inputRef: agentInputRef,
@@ -139,9 +141,9 @@ export function WalletDashboard() {
     setInput: setAgentInput,
     ask: askAgent,
     submit: submitAgent,
-  } = useMakotoAgent(agentSnapshot, locale, connection.address, agentPlanningServices, onchainServices);
+  } = useMakotoAgent(agentSnapshot, locale, wallet.address, agentPlanningServices, onchainServices);
 
-  const suggestionKey = suggestionStorageKey(connection.address, chain.providerChainId);
+  const suggestionKey = suggestionStorageKey(wallet.address, wallet.providerChainId);
   const agentSuggestions = useMemo(() => rankAgentSuggestions({
     activities,
     isArc: onArc,
@@ -165,28 +167,8 @@ export function WalletDashboard() {
   async function beginOnboarding(path: OnboardingPath) {
     const appKit = getAppKit();
     if (!appKit) return;
-    window.sessionStorage.setItem(ONBOARDING_INTENT_KEY, path);
-    setOnboardingIntent(path);
     await appKit.open({ view: appKitViewForPath(path) });
   }
-
-  async function beginCreateWallet(method: CreateWalletMethod) {
-    const appKit = getAppKit();
-    if (!appKit) return;
-    window.sessionStorage.setItem(ONBOARDING_INTENT_KEY, "create");
-    setOnboardingIntent("create");
-    setCreateGuideOpen(false);
-    await appKit.open({ view: appKitViewForCreateMethod(method) });
-  }
-
-  function continueToWallet() {
-    window.sessionStorage.removeItem(ONBOARDING_INTENT_KEY);
-    setOnboardingIntent(undefined);
-  }
-
-  const usdcBalance =
-    balances.usdc.data === undefined ? "—" : formatUsdc(balances.usdc.data);
-  const showWalletReady = shouldShowWalletReady(onboardingIntent, onArc, connection.connector?.id);
 
   return (
     <AppShell>
@@ -200,62 +182,65 @@ export function WalletDashboard() {
           </section>
         ) : !connected ? (
           <>
-          <section className={foundation.disconnected}>
-            <div>
-              <h1>{t("walletHome.connectTitle")}</h1>
-              <p>{t("walletHome.connectCopy")}</p>
-              <section className={foundation.onboarding} aria-labelledby="onboarding-title">
-                <h2 id="onboarding-title">{t("onboarding.title")}</h2>
+          <section className={`${foundation.disconnected} ${locale === "vi" ? foundation.vietnamese : ""}`.trim()} aria-labelledby="landing-title">
+            <div className={foundation.disconnectedCopy}>
+              <span className={foundation.disconnectedKicker}>{t("walletHome.landingKicker")}</span>
+              <h1 id="landing-title">{t("walletHome.landingTitle")}</h1>
+              <p className={foundation.disconnectedIntro}>{t("walletHome.landingCopy")}</p>
+              <p className={foundation.disconnectedFeatures} role="list" aria-label={t("walletHome.landingCapabilitiesLabel")}>
+                {t("walletHome.landingCapabilities").split(" · ").map((capability) => <span role="listitem" key={capability}>{capability}</span>)}
+              </p>
+              <p className={foundation.disconnectedSafety}>{t("walletHome.landingSafety")}</p>
+              <div className={foundation.landingActions}>
                 <button
                   type="button"
-                  className={foundation.create}
-                  onClick={() => setCreateGuideOpen(true)}
-                  disabled={!isReownConfigured}
-                >
-                  <strong>{t("onboarding.createWallet")}</strong>
-                  <span>{t("onboarding.createHelp")}</span>
-                </button>
-                <button
-                  type="button"
+                  className={foundation.primaryAction}
                   onClick={() => void beginOnboarding("existing")}
                   disabled={!isReownConfigured}
                 >
-                  <strong>{t("onboarding.connectExisting")}</strong>
-                  <span>{t("onboarding.connectHelp")}</span>
+                  {t("onboarding.connectExisting")}
                 </button>
-                <p>{t("onboarding.noPrivateKeyStorage")}</p>
-                {!isReownConfigured && <p role="status">{t("onboarding.unavailable")}</p>}
-              </section>
+                <button
+                  type="button"
+                  onClick={() => setCreateGuideOpen(true)}
+                >
+                  {t("onboarding.createWallet")}
+                </button>
+              </div>
+              <p className={foundation.landingSupport}>{!isReownConfigured ? t("onboarding.externalUnavailable") : t("walletHome.landingActionSupport")}</p>
             </div>
+            <div className={foundation.disconnectedArt} aria-hidden="true"><MakotoTerrain /></div>
+          </section>
+          <section className={`${foundation.landingValues} ${locale === "vi" ? foundation.vietnameseValues : ""}`.trim()} aria-label={t("walletHome.landingValuesLabel")}>
+            <article className={foundation.landingValue}><strong>{t("walletHome.landingNonCustodialLabel")}</strong><p>{t("walletHome.landingNonCustodialCopy")}</p></article>
+            <article className={foundation.landingValue}><strong>{t("walletHome.landingArcLabel")}</strong><p>{t("walletHome.landingArcCopy")}</p></article>
+            <article className={foundation.landingValue}><strong>{t("walletHome.landingBuilderLabel")}</strong><p>{t("walletHome.landingBuilderCopy")}</p></article>
           </section>
           </>
-        ) : showWalletReady && connection.address ? (
-          <section className={styles.walletReady} aria-labelledby="wallet-ready-title">
-            <span className={styles.kicker}>MAKOTO WALLET{" · "}ARC TESTNET</span>
-            <div className={styles.walletReadyBadge}>Arc Testnet</div>
-            <h1 id="wallet-ready-title">{t("onboarding.walletReady")}</h1>
-            <p>{t("onboarding.walletReadyCopy")}</p>
-            <dl>
-              <div><dt>{t("onboarding.walletAddress")}</dt><dd>{shortAddress(connection.address)}</dd></div>
-              <div><dt>{t("wallet.network")}</dt><dd>Arc Testnet · 5042002</dd></div>
-              <div><dt>{t("wallet.usdcBalance")}</dt><dd>{usdcBalance} USDC</dd></div>
-            </dl>
-            <p className={styles.walletReadySafety}>{t("onboarding.noPrivateKeyStorage")}</p>
-            <button type="button" onClick={continueToWallet}>{t("onboarding.continue")}</button>
-          </section>
         ) : (
           <ConnectedOverview
             locale={locale}
-            address={connection.address}
-            connectorName={connection.connector?.name}
-            chainId={chain.providerChainId}
+            address={wallet.address}
+            connectorName={wallet.providerName}
+            chainId={wallet.providerChainId}
             onArc={onArc}
+            walletKind={wallet.kind}
+            walletStatus={wallet.status}
+            onUnlock={() => setCreateGuideOpen(true)}
+            onLock={localWallet.lock}
+            appLock={{ initialized: appLock.initialized, available: appLock.available, enabled: appLock.enabled, locked: appLock.locked }}
             balances={balances.assets}
             activities={activities}
             activityLoading={activity.isLoading}
             activityPartial={activity.partial}
             activityUnavailable={activity.unavailable}
-            onAction={setAction}
+            onAction={(next) => {
+              if (wallet.kind === "local" && next === "send" && wallet.status !== "connected") {
+                setCreateGuideOpen(true);
+                return;
+              }
+              setAction(next);
+            }}
             onHistory={() => { setActivityHistoryLimit(20); setActivityHistoryOpen(true); }}
             onRefresh={() => void activity.refetch()}
             onReceipt={setReceiptActivity}
@@ -283,28 +268,29 @@ export function WalletDashboard() {
           </ConnectedOverview>
         )}
 
-        <footer className={shellStyles.footer}>Makoto Wallet</footer>
+        <footer className={shellStyles.footer}><span>{"// MAKOTO WALLET　 // ARC TESTNET"}</span><span>{locale === "vi" ? "XÂY DỰNG CHO MỘT INTERNET CỞI MỞ HƠN." : "BUILT FOR A MORE OPEN INTERNET."}</span></footer>
 
       {action === "send" && (
         <SendFlow
           initialValues={agentHandoff ? { amount: agentHandoff.amount, asset: agentHandoff.asset.toLowerCase() as "usdc" | "eurc", recipient: agentHandoff.recipient } : undefined}
           origin={agentHandoff?.source === "makoto-agent" ? "agent" : undefined}
-          balances={{ usdc: balances.usdc.data ?? 0n, eurc: balances.eurc.data ?? 0n }}
+          balances={{ usdc: balances.usdc.data ?? 0n, eurc: balances.eurc.data ?? 0n, cirbtc: balances.cirbtc.data ?? 0n }}
           onClose={() => setAction(undefined)}
           onConfirmed={(item) => {
-            if (agentHandoff?.source === "makoto-agent" && connection.address) storeAgentResult(window.sessionStorage, { id: `send-${Date.now()}`, account: connection.address, action: "send", status: "confirmed", createdAt: Date.now(), amount: formatAssetAmount(item.amount, getAssetById(item.assetId)!), asset: item.assetSymbol, transactionHash: item.hash });
-            if (connection.address) setOptimisticActivity({ address: connection.address, records: recordWalletActivity(connection.address, arcTestnet.id, item) });
+            if (agentHandoff?.source === "makoto-agent" && wallet.address) storeAgentResult(window.sessionStorage, { id: `send-${Date.now()}`, account: wallet.address, action: "send", status: "confirmed", createdAt: Date.now(), amount: formatAssetAmount(item.amount, getAssetById(item.assetId)!), asset: item.assetSymbol, transactionHash: item.hash });
+            if (wallet.address) setOptimisticActivity({ address: wallet.address, records: recordWalletActivity(wallet.address, arcTestnet.id, item) });
             void balances.usdc.refetch();
             void balances.eurc.refetch();
+            void balances.cirbtc.refetch();
             void activity.refetch();
           }}
           onViewReceipt={(item) => { setAction(undefined); setReceiptActivity(item); }}
         />
       )}
 
-      {action === "receive" && connection.address && (
+      {action === "receive" && wallet.address && (
         <ReceivePanel
-          address={connection.address}
+          address={wallet.address}
           onClose={() => setAction(undefined)}
         />
       )}
@@ -313,7 +299,7 @@ export function WalletDashboard() {
         <SwapPanel initialMode={action} initialValues={agentHandoff ? { amount: agentHandoff.amount, asset: agentHandoff.asset.toLowerCase() as "usdc" | "eurc", outputAsset: agentHandoff.outputAsset?.toLowerCase() as "usdc" | "eurc" | undefined, sourceChain: agentHandoff.sourceChain, destinationChain: agentHandoff.destinationChain, recipient: agentHandoff.recipient, origin: "agent" } : undefined} onClose={() => setAction(undefined)} onConfirmed={() => void activity.refetch()} />
       )}
 
-      {receiptActivity && connection.address && <TransactionReceiptPanel activity={receiptActivity} walletAddress={connection.address} onClose={() => setReceiptActivity(undefined)} />}
+      {receiptActivity && wallet.address && <TransactionReceiptPanel activity={receiptActivity} walletAddress={wallet.address} onClose={() => setReceiptActivity(undefined)} />}
       {activityHistoryOpen && <ActivityHistoryPanel
         activities={activities}
         locale={locale}
@@ -329,29 +315,7 @@ export function WalletDashboard() {
         onReceipt={(item) => setReceiptActivity(item)}
       />}
       {createGuideOpen && <CreateWalletGuide onClose={() => setCreateGuideOpen(false)}>
-        {(dismiss) => <>
-          <header>
-            <h2 id="create-guide-title">{t("onboarding.createGuideTitle")}</h2>
-            <button type="button" onClick={dismiss} aria-label={t("common.close")}>×</button>
-          </header>
-          <p>{t("onboarding.createGuideCopy")}</p>
-          <div className={foundation.choices}>
-            <article>
-              <button type="button" onClick={() => void beginCreateWallet("email")} autoFocus data-guide-initial-focus>{t("onboarding.continueEmail")}</button>
-              <p>{t("onboarding.emailGuide")}</p>
-              <ol>
-                <li>{t("onboarding.emailStep1")}</li>
-                <li>{t("onboarding.emailStep2")}</li>
-                <li>{t("onboarding.emailStep3")}</li>
-              </ol>
-            </article>
-            <article>
-              <button type="button" onClick={() => void beginCreateWallet("google")}>{t("onboarding.continueGoogle")}</button>
-              <p>{t("onboarding.googleGuide")}</p>
-            </article>
-          </div>
-          <p>{t("onboarding.noPrivateKeyStorage")}</p>
-        </>}
+        {(dismiss) => <NativeWalletOnboarding onClose={dismiss} />}
       </CreateWalletGuide>}
     </AppShell>
   );

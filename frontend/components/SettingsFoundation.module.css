@@ -1,25 +1,61 @@
-.hashDestination { scroll-margin-top: var(--lc-space-6); }
+.settingsPage {
+  --lc-surface: var(--mk-surface-primary);
+  --lc-surface-raised: var(--mk-surface-secondary);
+  --lc-inset: var(--mk-surface-tertiary);
+  --lc-text: var(--mk-text-primary);
+  --lc-text-secondary: var(--mk-text-secondary);
+  --lc-text-tertiary: var(--mk-text-muted);
+  --lc-separator: var(--mk-border-primary);
+  --lc-control-border: var(--mk-border-primary);
+  --lc-action: var(--mk-accent-primary);
+  --lc-action-hover: var(--mk-accent-hover);
+  --lc-selected: var(--mk-accent-soft);
+  --lc-blue-line: var(--mk-border-subtle);
+  --lc-on-action: var(--mk-on-accent);
+  --lc-focus: var(--mk-focus);
+  --lc-success: var(--mk-success);
+  --lc-success-surface: var(--mk-success-surface);
+  --lc-attention: var(--mk-warning);
+  --lc-attention-surface: var(--mk-warning-surface);
+  --lc-error: var(--mk-error);
+  --lc-error-surface: var(--mk-error-surface);
+  --lc-information: var(--mk-information);
+  --lc-information-surface: var(--mk-information-surface);
+  --settings-gap: 14px;
+  --settings-panel-shadow: var(--mk-shadow-card);
+  --settings-hero-ink: var(--mk-text-primary);
+  --settings-hero-muted: var(--mk-text-secondary);
+  --settings-hero-eyebrow: var(--mk-accent-ink);
+  min-width: 0;
+  color: var(--lc-text);
+  font-size: var(--lc-body-size);
+  line-height: 1.6;
+}
 
-.settingsHero { margin: 0 0 var(--lc-space-5); padding-bottom: var(--lc-space-5); border-bottom: 1px solid var(--lc-separator); }
-.settingsHero h1 { margin: 0; color: var(--lc-text); font-size: var(--lc-title-size); line-height: var(--lc-title-line); font-weight: 600; letter-spacing: normal; }
-.settingsHero > span { display: block; max-width: 620px; margin-top: var(--lc-space-2); color: var(--lc-text-secondary); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
+.hashDestination { scroll-margin-top: 24px; }
+
+.settingsHero { margin: 0 0 var(--settings-gap); padding: 2px 0 4px; }
+.settingsHero .eyebrow { margin: 0 0 7px; color: var(--settings-hero-eyebrow); font: 700 11px/1.5 var(--font-ui), sans-serif; letter-spacing: .19em; text-transform: uppercase; }
+.settingsHero h1 { margin: 0; color: var(--settings-hero-ink); font: 900 clamp(30px, 3.2vw, 48px)/1.02 Impact, "Arial Narrow", var(--font-ui), sans-serif; letter-spacing: -.02em; text-transform: uppercase; }
+.vietnameseSettings .settingsHero h1 { font-family: var(--font-vi-display), var(--font-ui), sans-serif; font-size: clamp(30px, 3.2vw, 48px); line-height: 1.08; letter-spacing: -.025em; font-synthesis: none; font-kerning: normal; text-rendering: optimizeLegibility; }
+.settingsHero > p:last-child { max-width: 62ch; margin: 8px 0 0; color: var(--settings-hero-muted); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
 
 .securityOverview {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--lc-space-4);
-  margin-bottom: var(--lc-space-6);
-  padding: var(--lc-surface-padding);
+  gap: 14px;
+  margin-bottom: var(--settings-gap);
+  padding: 12px 16px;
   border: 1px solid var(--lc-separator);
   border-left: 3px solid var(--lc-text-tertiary);
-  border-radius: var(--lc-radius-surface);
+  border-radius: var(--lc-radius-control);
   background: var(--lc-surface);
+  box-shadow: var(--settings-panel-shadow);
 }
-
-.securityOverview h2 { margin: 0; font-size: var(--lc-section-size); line-height: var(--lc-section-line); font-weight: 600; }
-.securityOverview p { max-width: 640px; margin: var(--lc-space-2) 0 0; color: var(--lc-text-secondary); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
-.securityStatusDot { width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; background: var(--lc-text-tertiary); }
+.securityOverview h2 { margin: 0; color: var(--lc-text); font-size: 16px; line-height: 22px; font-weight: 700; }
+.securityOverview p { max-width: 640px; margin: 2px 0 0; color: var(--lc-text-secondary); font-size: 13px; line-height: 19px; }
+.securityStatusDot { width: 9px; height: 9px; flex-shrink: 0; border-radius: 50%; background: var(--lc-text-tertiary); }
 .securityOverview_protected { border-left-color: var(--lc-success); background: var(--lc-success-surface); }
 .securityOverview_protected .securityStatusDot { background: var(--lc-success); }
 .securityOverview_review { border-left-color: var(--lc-attention); background: var(--lc-attention-surface); }
@@ -29,67 +65,79 @@
 .securityOverview_disconnected .securityStatusDot,
 .securityOverview_unknown .securityStatusDot { background: var(--lc-information); }
 
-.settingsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lc-space-4); }
-.settingsCard { min-width: 0; padding: var(--lc-surface-padding); border: 1px solid var(--lc-separator); border-radius: var(--lc-radius-surface); background: var(--lc-surface); }
-.settingsCard h2 { margin: 0 0 var(--lc-space-4); font-size: var(--lc-section-size); line-height: var(--lc-section-line); font-weight: 600; }
+.settingsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--settings-gap); align-items: start; }
+.settingsCard { min-width: 0; padding: 18px; border: 1px solid var(--lc-separator); border-radius: var(--lc-radius-control); background: var(--lc-surface); box-shadow: var(--settings-panel-shadow); }
+.settingsCard h2 { margin: 0 0 12px; color: var(--lc-text); font-size: 18px; line-height: 26px; font-weight: 700; }
 .settingsWide { grid-column: 1 / -1; }
 .settingsMuted { margin: 0; color: var(--lc-text-secondary); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
 
-.settingsInfo { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--lc-space-2) var(--lc-space-4); padding: var(--lc-space-3) 0; border-top: 1px solid var(--lc-separator); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
+.settingsInfo { display: grid; grid-template-columns: minmax(90px, .7fr) minmax(0, 1.3fr); align-items: baseline; gap: 8px 16px; padding: 10px 0; border-top: 1px solid var(--lc-separator); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
 .settingsCard h2 + .settingsInfo { padding-top: 0; border-top: 0; }
 .settingsInfo > span { color: var(--lc-text-secondary); }
-.settingsInfo strong { min-width: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.settingsInfo strong { min-width: 0; color: var(--lc-text); font-weight: 700; text-align: right; overflow-wrap: anywhere; }
 
-.settingsActions { display: flex; flex-wrap: wrap; gap: var(--lc-space-2); margin-top: var(--lc-space-4); }
-.settingsActions :is(button,a),
+.settingsActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.settingsActions :is(button, a),
 .settingsPreferenceReset button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 8px 16px;
+  min-height: 40px;
+  padding: 8px 13px;
   border: 1px solid var(--lc-control-border);
   border-radius: var(--lc-radius-control);
   color: var(--lc-text);
-  background: var(--lc-surface);
-  font: 600 var(--lc-label-size)/var(--lc-label-line) var(--font-body), sans-serif;
+  background: var(--lc-surface-raised);
+  font: 700 var(--lc-label-size)/var(--lc-label-line) var(--font-body), sans-serif;
   text-decoration: none;
   cursor: pointer;
 }
-
 .settingsActions button:disabled { cursor: not-allowed; opacity: .55; }
-.settingsActions :is(button,a):hover,
-.settingsPreferenceReset button:hover { background: var(--lc-inset); }
-.settingsLink { display: inline-flex; align-items: center; min-height: 44px; margin-top: var(--lc-space-2); color: var(--lc-action); font-size: var(--lc-label-size); line-height: var(--lc-label-line); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
-.settingsDisclosure { max-width: 700px; margin: 0; padding-left: 20px; color: var(--lc-text-secondary); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
-.settingsDisclosure li + li { margin-top: var(--lc-space-2); }
+.settingsActions :is(button, a):hover,
+.settingsPreferenceReset button:hover { border-color: var(--lc-action); color: var(--lc-action-hover); background: var(--lc-selected); }
+.settingsLink { display: inline-flex; align-items: center; min-height: 40px; margin-top: 8px; padding: 8px 13px; border: 1px solid var(--lc-control-border); border-radius: var(--lc-radius-control); color: var(--lc-action); background: var(--lc-surface-raised); font-size: var(--lc-label-size); line-height: var(--lc-label-line); font-weight: 700; text-decoration: none; }
+.settingsLink:hover { border-color: var(--lc-action); color: var(--lc-action-hover); background: var(--lc-selected); }
 
-.helpLinks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--lc-space-3); margin-top: var(--lc-space-4); }
-.helpLink { min-width: 0; min-height: 72px; padding: var(--lc-space-3); border: 1px solid var(--lc-control-border); border-radius: var(--lc-radius-control); color: var(--lc-text); background: var(--lc-surface); text-decoration: none; }
-.helpLink:hover { background: var(--lc-inset); }
+.settingsDisclosure { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; color: var(--lc-text-secondary); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
+.settingsDisclosure li { min-width: 0; padding: 10px 12px; border-left: 2px solid var(--lc-blue-line); background: var(--lc-inset); }
+
+.helpLinks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.helpLink { display: grid; align-content: start; min-width: 0; min-height: 84px; padding: 14px; border: 1px solid var(--lc-control-border); border-radius: var(--lc-radius-control); color: var(--lc-text); background: var(--lc-surface-raised); text-decoration: none; transition: border-color 120ms ease, background-color 120ms ease; }
+.helpLink:hover { border-color: var(--lc-action); background: var(--lc-selected); }
 .helpLink strong, .helpLink span { display: block; }
-.helpLink strong { color: var(--lc-action); font-size: var(--lc-label-size); line-height: var(--lc-label-line); font-weight: 600; }
-.helpLink span { margin-top: var(--lc-space-1); color: var(--lc-text-secondary); font-size: var(--lc-meta-size); line-height: var(--lc-meta-line); }
+.helpLink strong { color: var(--lc-action); font-size: var(--lc-label-size); line-height: var(--lc-label-line); font-weight: 700; }
+.helpLink span { margin-top: 4px; color: var(--lc-text-secondary); font-size: var(--lc-meta-size); line-height: var(--lc-meta-line); }
 
-.settingsChoices { display: flex; flex-wrap: wrap; gap: var(--lc-space-2); margin: 0; padding: 0; border: 0; }
-.settingsChoices legend { margin-bottom: var(--lc-space-3); color: var(--lc-text-secondary); font-size: var(--lc-label-size); line-height: var(--lc-label-line); }
-.settingsChoices label { display: inline-flex; align-items: center; gap: var(--lc-space-2); min-height: 44px; padding: 8px 12px; border: 1px solid var(--lc-control-border); border-radius: var(--lc-radius-control); color: var(--lc-text); font-size: var(--lc-label-size); line-height: var(--lc-label-line); cursor: pointer; }
-.settingsChoices label:has(input:checked) { border-color: var(--lc-action); background: var(--lc-selected); }
+.settingsChoices { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; border: 0; }
+.settingsChoices legend { margin-bottom: 10px; color: var(--lc-text-secondary); font-size: var(--lc-label-size); line-height: var(--lc-label-line); }
+.settingsChoices label { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--lc-control-border); border-radius: var(--lc-radius-control); color: var(--lc-text); background: var(--lc-surface-raised); font-size: var(--lc-label-size); line-height: var(--lc-label-line); cursor: pointer; }
+.settingsChoices label:hover { border-color: var(--lc-action); background: var(--lc-selected); }
+.settingsChoices label:has(input:checked) { border-color: var(--lc-action); color: var(--lc-action-hover); background: var(--lc-selected); font-weight: 700; }
+.settingsChoices label:has(input:focus-visible) { outline: 3px solid var(--lc-focus); outline-offset: 3px; }
 .settingsChoices input { margin: 0; accent-color: var(--lc-action); }
-.settingsPreferenceReset { display: flex; justify-content: flex-start; margin-top: var(--lc-space-5); padding-top: var(--lc-space-5); border-top: 1px solid var(--lc-separator); }
 
-.securityAlerts { display: grid; gap: var(--lc-space-3); }
-.securityAlert { display: grid; gap: var(--lc-space-1); padding: var(--lc-space-3); border: 1px solid var(--lc-separator); border-left: 3px solid var(--lc-information); border-radius: var(--lc-radius-control); color: var(--lc-text); background: var(--lc-information-surface); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
-.securityAlert strong { font-weight: 600; }
+.settingsPreferenceReset { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: var(--settings-gap); padding-top: 14px; border-top: 1px solid var(--lc-separator); }
+.settingsPreferenceResetCopy { display: grid; gap: 2px; min-width: 0; color: var(--lc-text-secondary); font-size: var(--lc-meta-size); line-height: var(--lc-meta-line); }
+.settingsPreferenceResetCopy strong { color: var(--lc-text); font-size: var(--lc-label-size); line-height: var(--lc-label-line); }
+.settingsPreferenceReset button { color: var(--lc-text-secondary); background: transparent; }
+
+.securityAlerts { display: grid; gap: 10px; }
+.securityAlert { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--lc-separator); border-left: 3px solid var(--lc-information); border-radius: var(--lc-radius-control); color: var(--lc-text); background: var(--lc-information-surface); font-size: var(--lc-support-size); line-height: var(--lc-support-line); }
+.securityAlert strong { font-weight: 700; }
 .securityAlert_warning { border-left-color: var(--lc-attention); background: var(--lc-attention-surface); }
 .securityAlert_danger { border-left-color: var(--lc-error); background: var(--lc-error-surface); }
 
-.settingsCard :is(button,a,input):focus-visible { outline: 3px solid var(--lc-focus); outline-offset: 3px; }
+.settingsCard :is(button, a, input):focus-visible,
+.settingsPreferenceReset button:focus-visible { outline: 3px solid var(--lc-focus); outline-offset: 3px; }
 
 @media (max-width: 767px) {
+  .settingsHero h1, .vietnameseSettings .settingsHero h1 { font-size: clamp(30px, 10vw, 40px); }
   .settingsGrid { grid-template-columns: minmax(0, 1fr); }
   .securityOverview { align-items: flex-start; }
-  .settingsInfo strong { max-width: 64%; }
-  .settingsPreferenceReset { margin-top: var(--lc-space-4); padding-top: var(--lc-space-4); }
+  .settingsInfo { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .settingsInfo strong { text-align: left; }
+  .settingsDisclosure { grid-template-columns: minmax(0, 1fr); }
   .helpLinks { grid-template-columns: minmax(0, 1fr); }
+  .settingsPreferenceReset { align-items: stretch; flex-direction: column; }
+  .settingsPreferenceReset button { width: 100%; }
 }

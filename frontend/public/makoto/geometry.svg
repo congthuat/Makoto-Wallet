@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 500" fill="none">
+<defs><linearGradient id="stone" x2="1" y2="1"><stop stop-color="#8091a7"/><stop offset="1" stop-color="#111e2d"/></linearGradient><linearGradient id="blue" x2="0.8" y2="1"><stop stop-color="#092775"/><stop offset="1" stop-color="#245dff"/></linearGradient><pattern id="grid" width="28" height="48" patternUnits="userSpaceOnUse"><path d="M0 0 28 48M28 0 0 48M14 0v48M0 24h28" stroke="#9fb3d6" stroke-opacity=".19" stroke-width=".6"/></pattern></defs>
+<path d="M0 500 112 222 193 339 279 126 400 309 477 177 600 500Z" fill="#101d2c"/>
+<path d="m0 500 112-278 28 202 53-85 86-213-21 374Z" fill="url(#stone)"/>
+<path d="m302 500 0-380 78-93 0 473Z" fill="#17243a"/>
+<path d="m380 27 81 58v415h-81Z" fill="url(#blue)"/>
+<path d="m461 500 0-260 72-82 67 70v272Z" fill="#111c2c"/>
+<path d="m461 240 72-82-22 342h-50Z" fill="url(#stone)"/>
+<path d="m0 500 112-278 81 117 86-213 23 36v-42l78-93 81 58v155l72-82 67 70v272Z" fill="url(#grid)"/>
+<path d="m40 465 72-243 28 202 53-85M212 445l67-319-21 374M302 120l78-93v473M461 240l72-82-22 342" stroke="#b3c1d8" stroke-opacity=".25"/>
+</svg>

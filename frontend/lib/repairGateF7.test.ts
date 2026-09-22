@@ -70,6 +70,10 @@ function harness(componentSource = source) {
     },
     "@/hooks/useVerifiedWalletChain": { useVerifiedWalletChain: () => ({ isArc: true, verifyNow: () => o.verify() }) },
     "@/hooks/useWalletBalances": { useWalletBalances: () => ({ assets: { usdc: { data: 10_000_000n }, eurc: { data: 10_000_000n } }, usdc: { refetch: async () => {} }, eurc: { refetch: async () => {} } }) },
+    "@/hooks/useWalletAccount": { useWalletAccount: () => ({
+      read: { kind: "external", address: account, chainId: 5042002, status: "connected", connectionStatus: "connected", isArc: true },
+      execution: { kind: "external", submitReviewed: (_request: unknown, legacy?: () => Promise<string>) => legacy!() },
+    }) },
     "@/lib/walletActivity": { createAssetActivity: () => ({}), recordWalletActivity: () => {} },
     "@/lib/agent/actions": { storeAgentResult: () => {} },
     "./TransactionSafetyReview": { TransactionSafetyReview: "controlled-review" },

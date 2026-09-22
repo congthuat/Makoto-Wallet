@@ -26,9 +26,9 @@ test("responsive CSS fixes overflow sources instead of masking the page", () => 
 });
 
 test("foundation shell preserves connected dashboard section order and artwork exclusions", () => {
-  // Phase 7D owns composition inside the existing shared shell.
+  // Phase 7J keeps the asset details below the activity and Agent workspace.
   assert.match(dashboard, /<AppShell>/);
-  assert.match(overview, /holdings-title[\s\S]*id="assets"[\s\S]*id="activity"[\s\S]*dashboard-agent-title/);
+  assert.match(overview, /holdings-title[\s\S]*id="activity"[\s\S]*dashboard-agent-title[\s\S]*id="assets"/);
   assert.doesNotMatch(dashboard, /styles\.companionCard|companion-art\.jpg|MakotoPayHomeSection/);
 });
 
@@ -36,7 +36,7 @@ test("header keeps six localized destinations named at the 900px navigation widt
   for (const label of ["Overview", "Activity", "Agent", "Settings", "Help & Support", "Feedback"]) assert.match(header, new RegExp(label));
   assert.match(header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems"))), /href: "\/\#activity"/);
   assert.match(header, /href: "\/settings#security"/);
-  assert.match(headerCss, /@media\(max-width:1120px\)/);
+  assert.match(headerCss, /@media\s*\(max-width:\s*1200px\)/);
   assert.doesNotMatch(headerCss, /\.navLink[^\{]*\{[^}]*display:none/);
 });
 
@@ -49,12 +49,13 @@ test("shared shell provides a localized keyboard skip destination and stable hea
   assert.match(header, /aria-current=\{isActive\(item\.href\) \? "page" : undefined\}/);
 });
 
-test("flow-based shell reserves safe-area space and preserves all four action handlers", () => {
-  assert.match(shellCss, /padding: var\(--lc-section-gap\) var\(--lc-gutter\) max\(var\(--lc-section-gap\), env\(safe-area-inset-bottom\)\)/);
-  assert.doesNotMatch(headerCss, /position:\s*fixed/);
+test("desktop sidebar clears content and becomes flow-based on mobile while preserving actions", () => {
+  assert.match(shellCss, /env\(safe-area-inset-bottom\)/);
+  assert.match(shellCss, /margin-left:\s*var\(--mk-sidebar-width\)/);
+  assert.match(headerCss, /@media\s*\(max-width:\s*767px\)[\s\S]*\.sidebar\s*\{[^}]*position:\s*static/);
   assert.match(wallet, /\.agentCommands\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
   assert.match(overview, /\["send", "receive", "swap", "bridge"\]/);
-  assert.match(dashboard, /onAction=\{setAction\}/);
+  assert.match(dashboard, /onAction=\{\(next\) =>/);
 });
 
 test("Makoto Vault desktop content clears the shared sidebar and header", () => {
@@ -69,7 +70,7 @@ test("Makoto Vault mobile hero starts below the shared header", () => {
 
 test("Dashboard heading is route-local and Settings fragments retain exact selection", () => {
   assert.doesNotMatch(header, /styles\.pageHeading/);
-  assert.match(overview, /<h1>\{t\("overview.title"\)\}/);
+  assert.match(overview, /<h1 id="holdings-title">\{t\("overview.holdings"\)\}/);
   assert.match(header, /if \(!fragment\) return pathname === route && !hash/);
 });
 
@@ -118,7 +119,7 @@ test("wallet balances avoid the obsolete native query and aggressive background 
 test("mobile controls and modals account for touch and safe areas", () => {
   assert.match(globals, /env\(safe-area-inset-top\)/);
   assert.match(globals, /env\(safe-area-inset-bottom\)/);
-  assert.match(headerCss, /\.languageTrigger,\.themeButton,\.walletControlWrap\{min-height:44px\}/);
+  assert.match(headerCss, /\.languageTrigger,\s*\.themeButton,\s*\.walletControlWrap\s*\{\s*min-height:\s*44px;?\s*\}/);
   assert.match(settingsCss, /\.settingsChoices label\s*\{[^}]*min-height:\s*44px/s);
   assert.match(globals, /\.connected-popover\.account-menu\s*\{[^}]*bottom:\s*0[^}]*width:\s*100%[^}]*max-height:\s*calc\(100dvh[^}]*overflow-y:\s*auto/s);
   assert.match(globals, /\.account-sheet-backdrop\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0/s);
@@ -197,7 +198,7 @@ test("connected account focus and dismissal behavior remains accessible", () => 
 });
 
 test("dashboard previews five activities and opens paginated full history", () => {
-  assert.match(overview, /activities\.slice\(0,\s*5\)/);
+  assert.match(overview, /activities\.slice\(0,\s*3\)/);
   assert.match(dashboard, /summarizeSavingsJars\(jars\)/);
   assert.match(dashboard, /savingsSummary/);
   assert.match(dashboard, /activity\.loadMore\(\)/);

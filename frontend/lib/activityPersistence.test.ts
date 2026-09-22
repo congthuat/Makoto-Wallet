@@ -5,7 +5,7 @@ import test from "node:test";
 const source = (name: string) => readFileSync(new URL(`../components/${name}`, import.meta.url), "utf8");
 
 test("every real confirmed Makoto money flow uses the central Activity writer", () => {
-  assert.match(source("WalletDashboard.tsx"), /recordWalletActivity\(connection\.address, arcTestnet\.id, item\)/);
+  assert.match(source("WalletDashboard.tsx"), /recordWalletActivity\(wallet\.address, arcTestnet\.id, item\)/);
   assert.match(source("RealSwapFlow.tsx"), /kind: "swap"[\s\S]*swapReceive:/);
   assert.match(source("RealSwapFlow.tsx"), /recordWalletActivity\(/);
   assert.match(source("OwnerDepositFlow.tsx"), /kind: "vault-deposit"[\s\S]*recordWalletActivity|recordWalletActivity[\s\S]*kind: "vault-deposit"/);

@@ -45,11 +45,12 @@ export function record(overrides = {}) {
 }
 export function fixture(overrides = {}) {
   const locale = overrides.locale ?? "en";
+  const { balances: balanceOverrides, ...rest } = overrides;
   return { locale, address: account, connectorName: "Test wallet", chainId: 5042002, onArc: true,
-    balances: { usdc: { data: 123456789n, isPending: false, isError: false }, eurc: { data: 0n, isPending: false, isError: false } },
+    balances: { usdc: { data: 123456789n, isPending: false, isError: false }, eurc: { data: 0n, isPending: false, isError: false }, cirbtc: { data: 0n, isPending: false, isError: false }, ...balanceOverrides },
     activities: [], activityLoading: false, activityPartial: false, activityUnavailable: false,
     onAction: () => {}, onHistory: () => {}, onRefresh: () => {}, onReceipt: () => {},
-    children: React.createElement(AgentEntry, { locale, t: key => translate(locale, key) }), ...overrides };
+    children: React.createElement(AgentEntry, { locale, t: key => translate(locale, key) }), ...rest };
 }
 export function renderOverview(overrides = {}) { return renderToStaticMarkup(React.createElement(ConnectedOverview, fixture(overrides))); }
 export function overviewCss() {

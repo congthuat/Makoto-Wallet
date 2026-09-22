@@ -2,6 +2,7 @@ import { formatUnits } from "viem";
 import { arcTestnet } from "viem/chains";
 import { translate, type TranslationKey } from "../../i18n/index.ts";
 import type { WalletActivity } from "../wallet.ts";
+import { getAssetById } from "../assets.ts";
 import type { AgentContextSnapshot, AgentIntent, AgentResponse, AgentToolResult } from "./types.ts";
 import { blockingExplanation, formatPlanningAmount, type AgentPlanningResult } from "./planning.ts";
 import { createAgentActionDraft, type AgentOrchestrationDecision } from "./orchestration.ts";
@@ -21,7 +22,7 @@ export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: Agen
   if (intent.kind === "unknown") return { intent, text: vi ? "Mình có thể xem số dư, mạng, hoạt động gần đây, Makoto Vault, giải thích giao dịch và các biện pháp an toàn. Mình cũng có thể chuẩn bị hành động an toàn; bạn luôn kiểm tra và xác nhận trong ví." : "I can show balances, network status, recent activity, Makoto Vault, transaction explanations, and safety capabilities. I can also prepare safe actions; you always review and confirm them in your wallet." };
   if (isPlanningIntent(intent.kind)) return formatPlanningResponse(intent, result, vi);
   if (!result?.ok) return { intent, result, text: localUnavailable(result?.unavailable, vi) };
-  if (intent.kind === "wallet-overview") { const b = snapshot.balances; return { intent, result, text: vi ? `Số dư Arc Testnet — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}.` : `Arc Testnet balances — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}.` }; }
+  if (intent.kind === "wallet-overview") { const b = snapshot.balances, cirbtcDecimals = getAssetById("cirbtc")?.decimals ?? 8; return { intent, result, text: vi ? `Số dư Arc Testnet — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}; cirBTC: ${amount(b.cirbtc, intent.locale, cirbtcDecimals)}.` : `Arc Testnet balances — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}; cirBTC: ${amount(b.cirbtc, intent.locale, cirbtcDecimals)}.` }; }
   if (intent.kind === "network-status") return { intent, result, text: networkText(snapshot, vi) };
   if (intent.kind === "vault-summary") return { intent, result, text: vi ? `Makoto Vault: ${amount(snapshot.vault.total, intent.locale)} USDC trong ${snapshot.vault.goalCount ?? "không khả dụng"} mục tiêu; ${snapshot.vault.activeCount ?? "không khả dụng"} đang hoạt động.` : `Makoto Vault: ${amount(snapshot.vault.total, intent.locale)} USDC across ${snapshot.vault.goalCount ?? "unavailable"} goals; ${snapshot.vault.activeCount ?? "unavailable"} active.` };
   if (intent.kind === "safety-capabilities") { const labels = snapshot.safetyCapabilities.map((capability) => safetyCapabilityLabel(capability, intent.locale)); return { intent, result, text: vi ? `Makoto hỗ trợ: ${labels.join(", ")}. Các biện pháp này không phải kiểm toán và không đảm bảo không có rủi ro.` : `Makoto supports: ${labels.join(", ")}. These protections are not an audit and do not guarantee zero risk.` }; }
@@ -160,7 +161,7 @@ export function explain(item: WalletActivity, vi: boolean) {
   if (item.kind === "vault-withdraw") return vi ? `Bạn đã rút ${sent} khỏi Makoto Vault.${hash}` : `You withdrew ${sent} from Makoto Vault.${hash}`;
   return item.direction === "receive" ? (vi ? `Bạn đã nhận ${sent} từ ${item.counterparty}.${hash}` : `You received ${sent} from ${item.counterparty}.${hash}`) : (vi ? `Bạn đã gửi ${sent} đến ${item.counterparty}.${hash}` : `You sent ${sent} to ${item.counterparty}.${hash}`);
 }
-function amount(value: bigint | undefined, locale: AgentIntent["locale"]) { return value === undefined ? translate(locale, "agent.value.unavailable") : formatUnits(value, 6); }
+function amount(value: bigint | undefined, locale: AgentIntent["locale"], decimals = 6) { return value === undefined ? translate(locale, "agent.value.unavailable") : formatUnits(value, decimals); }
 function localUnavailable(text: string | undefined, vi: boolean) { if (text?.startsWith("Connect")) return vi ? "Kết nối ví để xem số dư và hoạt động." : "Connect your wallet to view balances and activity."; if (text?.includes("partial")) return vi ? "Không có hoạt động phù hợp trong dữ liệu đã tải; lịch sử hiện chỉ có một phần." : "No matching activity is available in the loaded data; history is currently partial."; return vi ? "Thông tin này hiện không khả dụng." : "That information is currently unavailable."; }
 function clarificationText(intent: AgentIntent, decision: AgentOrchestrationDecision) {
   const locale = intent.locale, preparation = intent.preparation, missing = decision.missingFields ?? [];

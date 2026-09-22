@@ -35,8 +35,8 @@ test("connected dashboard fragments remain while Activity stays anchored to the 
   assert.doesNotMatch(dashboard, /function DisconnectedDestinations|Connect to view assets|Connect to view activity/);
 });
 
-test("Security stays compact and Help exposes only real support resources", () => {
-  assert.match(settings, /id="security"[\s\S]*Wallet and network status\.[\s\S]*securityOverview/);
+test("Settings stays compact and Help exposes only real support resources", () => {
+  assert.match(settings, /id="security"[\s\S]*Wallet, security, appearance, language and support\.[\s\S]*securityOverview/);
   assert.match(settings, /Connected wallet[\s\S]*Network safety[\s\S]*Privacy[\s\S]*Appearance[\s\S]*Language/);
   assert.match(settings, /visibleAlerts\.length > 0/);
   assert.match(settings, /settingsPreferenceReset/);
@@ -75,8 +75,8 @@ test("narrow-phone navigation keeps all six foundation destinations labeled", ()
   assert.match(header, /href: "\/\#activity"[^\n]*en: "Activity", vi: "Hoạt động"/);
   assert.match(header, /href: "\/settings#security",[^\n]*en: "Settings", vi: "Cài đặt"/);
   assert.doesNotMatch(header, /mobileEn: "Security"|en: "Security Center"/);
-  assert.match(headerCss, /@media\(max-width:767px\)[\s\S]*\.nav\{flex-wrap:wrap;overflow:visible/);
-  assert.match(headerCss, /\.navLink,\.feedbackLink\{min-height:44px/);
+  assert.match(headerCss, /@media\s*\(max-width:\s*767px\)[\s\S]*\.nav\s*\{[^}]*flex-wrap:\s*wrap/);
+  for (const selector of ["navLink", "feedbackLink"]) assert.match(headerCss, new RegExp(`\\.${selector}\\s*\\{[^}]*min-height:\\s*44px`));
 });
 
 test("Mobile Top-Up phone field has a stable form identifier", () => {

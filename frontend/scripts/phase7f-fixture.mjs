@@ -34,7 +34,7 @@ export function SwapFixture(options={}) {
  const submissionStatus=options.state==='pending'?'submitted-pending':'idle',executionInFlightRef={current:swapLocked};
  const route={provider:'xylonet'},slippage=.005,swapGasFee=options.state==='unavailable'?undefined:1000000000000n,approvalGasFee=1000000000000n;
  const gasUnavailable=options.state==='unavailable',gasCost={sufficientGasBalance:!gasUnavailable};
- const balance=10000000n,connection={address:'${account}',isConnected:true},chain={isArc:true},reviewedAccount=connection.address;
+ const balance=10000000n,connection={address:'${account}',isConnected:true},wallet={kind:'external',address:connection.address,status:'connected',isArc:true},execution={kind:'external'},chain={isArc:true},reviewedAccount=wallet.address;
  const approvalGasCovered=true,maxApprovalGasCovered=true;
  const pending=options.state==='preflight'?(vi?'Đang kiểm tra cuối cùng…':'Running final preflight…'):options.state==='awaiting'?(vi?'Chờ xác nhận trong ví…':'Waiting for wallet confirmation…'):options.state==='pending'?(vi?'Đang chờ xác nhận trên Arc…':'Waiting for Arc confirmation…'):undefined;
  const error=options.error;

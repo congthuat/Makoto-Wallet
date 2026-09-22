@@ -125,7 +125,7 @@ test("implementation records origin context, renders semantic historical state, 
   assert.match(page, /assessAgentDraftContext/);
   assert.match(page, /data-context-status=\{context\.status\}/);
   assert.match(page, /agent\.draft\.prepareCurrent/);
-  assert.match(page, /useVerifiedWalletChain/);
+  assert.match(page, /useWalletReadContext/);
   assert.match(page, /draftContext=\{message\.draftContext\}/);
   assert.match(dashboard, /draftContext=\{message\.draftContext\}/);
   for (const forbidden of ["writeContract", "sendTransaction", "submitReviewedTransaction", "signMessage"]) {

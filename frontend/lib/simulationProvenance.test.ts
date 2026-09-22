@@ -35,9 +35,9 @@ test("Vault withdrawal simulates the exact request before review and wallet writ
 
 test("Direct CCTP approval and burn revalidate after actual simulation", () => {
   const text = source("CctpBridgeFlow.tsx");
-  ordered(text, "await simulateIntent(approval);", "const approvalSnapshot = prepareFlowReview(approval");
-  ordered(text, "client.simulateContract({ address: usdc.address", "const approvalChecked = revalidateTransactionReview(approvalSnapshot");
-  ordered(text, "await simulateIntent(intent);", "const checked = revalidateTransactionReview(reviewSnapshot");
+  ordered(text, "await simulateExact(intent, envelope);", "const snapshot = prepareFlowReview(intent");
+  ordered(text, "await simulateExact(review.intent, review.envelope);", "const checked = revalidateTransactionReview(review.snapshot");
+  ordered(text, "const checked = revalidateTransactionReview(review.snapshot", "adapter.submitReviewed(review.snapshot.request");
 });
 
 test("Send binds passed evidence only after exact simulation and revalidates after final simulation", () => {

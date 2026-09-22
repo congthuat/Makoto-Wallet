@@ -34,7 +34,7 @@ test("RPC fallback scans a bounded range and normalizes a recent USDC send", asy
   let logCall = 0;
   const client = { getBlockNumber: async () => 20_000n, getLogs: async (args: { fromBlock: bigint; toBlock: bigint }) => { calls.push(args); logCall += 1; return logCall === 1 ? [{ address: usdc.address, blockNumber: 19_999n, transactionHash: hash, logIndex: 7, args: { from: wallet, to: other, value: 2_000_000n } }] : []; }, getBlock: async () => ({ timestamp: 123n }), getTransaction: async () => { throw new Error("not expected"); } } as unknown as PublicClient;
   const rows = await loadRecentRpcActivity(wallet, undefined, client);
-  assert.equal(rows.length, 1); assert.equal(rows[0].direction, "send"); assert.equal(rows[0].provider, "rpc"); assert.equal(rows[0].confirmedAt, 123_000); assert.equal(calls.length, 4); assert.equal(calls[0].fromBlock, 20_000n - RPC_ACTIVITY_BLOCK_WINDOW + 1n);
+  assert.equal(rows.length, 1); assert.equal(rows[0].direction, "send"); assert.equal(rows[0].provider, "rpc"); assert.equal(rows[0].confirmedAt, 123_000); assert.equal(calls.length, 6); assert.equal(calls[0].fromBlock, 20_000n - RPC_ACTIVITY_BLOCK_WINDOW + 1n);
 });
 
 test("Activity refresh lifecycle and server-only provider safeguards remain wired", () => {

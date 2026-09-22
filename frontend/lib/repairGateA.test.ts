@@ -80,6 +80,10 @@ function swapHarness(initialAllowance = 0n) {
     },
     "@/hooks/useVerifiedWalletChain": { useVerifiedWalletChain: () => ({ isArc: true, verifyNow: async () => true }) },
     "@/hooks/useWalletBalances": { useWalletBalances: () => ({ assets: { usdc: { data: 10_000_000n }, eurc: { data: 10_000_000n } } }) },
+    "@/hooks/useWalletAccount": { useWalletAccount: () => ({
+      read: { kind: "external", address: account, chainId: arcTestnet.id, status: "connected", connectionStatus: "connected", isArc: true },
+      execution: { kind: "external", submitReviewed: (_request: unknown, legacy?: () => Promise<string>) => legacy!() },
+    }) },
     "@/lib/walletActivity": {},
     "@/lib/agent/actions": { storeAgentResult: () => {} },
     "./TransactionSafetyReview": { TransactionSafetyReview: "controlled-review" },

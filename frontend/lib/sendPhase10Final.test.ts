@@ -10,14 +10,14 @@ test("Arc review requires connector and provider to freshly report Arc Testnet",
   assert.equal(isVerifiedArcReview(5_042_002, 5_042_002), true);
   assert.equal(isVerifiedArcReview(5_042_002, 50_350_312), false);
   assert.equal(isVerifiedArcReview(50_350_312, 5_042_002), false);
-  assert.match(send, /const networkVerified = await chain\.verifyNow\(\)/);
-  assert.match(send, /isArc: reviewNetworkVerified && chain\.isArc/);
+  assert.match(send, /const networkVerified = await verifyArc\(\)/);
+  assert.match(send, /isArc: reviewNetworkVerified && wallet\.isArc/);
 });
 
 test("open review invalidates on chain or account change and submit re-verifies", () => {
-  assert.match(send, /const wrongChain = \(chain\.connectorChainId[\s\S]*setReviewing\(false\)/);
-  assert.match(send, /connection\.address\?\.toLowerCase\(\) !== reviewedAccount\.toLowerCase\(\)/);
-  assert.ok((send.match(/await chain\.verifyNow\(\)/g) ?? []).length >= 4);
+  assert.match(send, /const wrongChain = wallet\.kind === "external"[\s\S]*setReviewing\(false\)/);
+  assert.match(send, /wallet\.address\?\.toLowerCase\(\) !== reviewedAccount\.toLowerCase\(\)/);
+  assert.ok((send.match(/await verifyArc\(\)/g) ?? []).length >= 4);
   assert.match(chainHook, /provider\.on\?\.\("chainChanged"/);
   assert.match(chainHook, /window\.addEventListener\("focus"/);
   assert.match(chainHook, /document\.addEventListener\("visibilitychange"/);

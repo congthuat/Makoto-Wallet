@@ -5,12 +5,14 @@ import { readFileSync } from "node:fs";
 import { renderSend, renderReceive, account, recipient } from "../scripts/phase7e-fixture.mjs";
 
 for (const locale of ["en", "vi"]) {
-  test(`7E ${locale}: Send input order and exact six-decimal balance/amount`, () => {
+  test(`7E ${locale}: Send input order and native asset precision`, () => {
     const html = renderSend({locale});
     const order = ['id="send-asset"', 'id="send-available"', 'id="send-amount"', 'id="send-recipient"', 'class="send-network-context"'].map(s=>html.indexOf(s));
     assert.ok(order.every(n=>n>=0)); assert.deepEqual(order,[...order].sort((a,b)=>a-b));
     assert.ok(html.includes("123.456789")); assert.ok(html.includes('value="1.234567"'));
     assert.ok(html.includes('aria-describedby="send-available"'));
+    const cirbtc = renderSend({locale,assetId:"cirbtc",amount:"1.23456789",balance:123456789n});
+    assert.match(cirbtc,/value="cirbtc" selected/); assert.match(cirbtc,/>1\.23456789 cirBTC</);
   });
   test(`7E ${locale}: selected EURC and zero balance stay truthful`, () => {
     const html=renderSend({locale,assetId:"eurc",balance:0n});
@@ -52,11 +54,12 @@ for (const locale of ["en", "vi"]) {
     assert.ok(html.indexOf(account)<html.indexOf('class="receive-qr-card"'));
     assert.ok(html.indexOf('class="receive-qr-card"')<html.indexOf('class="receive-request"'));
     assert.ok(html.includes('id="receive-asset"')); assert.ok(html.includes('aria-labelledby="receive-address-label"'));
+    assert.ok(html.includes("cirBTC · Circle Wrapped Bitcoin"));
     assert.ok(html.includes(locale === "en" ? "Only send supported assets on Arc Testnet" : "Chỉ gửi tài sản được hỗ trợ trên Arc Testnet"));
     assert.ok(html.includes(locale === "en" ? "does not mean funds have been received" : "không có nghĩa là tiền đã được nhận"));
   });
 }
 test("7E disconnected receive remains gated by the dashboard",()=>{
   const dashboard=readFileSync(new URL("../components/WalletDashboard.tsx",import.meta.url),"utf8");
-  assert.match(dashboard,/action === "receive" && connection.address && \(\s*<ReceivePanel\s*address=\{connection.address\}/);
+  assert.match(dashboard,/action === "receive" && wallet.address && \(\s*<ReceivePanel\s*address=\{wallet.address\}/);
 });

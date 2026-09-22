@@ -19,9 +19,8 @@ if (start < 0) throw new Error("Workspace fixture seam changed");
 export const fixtureSource = `
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
-import { useConnection } from "wagmi";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
+import { useWalletReadContext } from "@/hooks/useWalletAccount";
 import { handoffUrl, prepareAgentActionHandoff, storeAgentHandoff, validateAgentActionDraft } from "@/lib/agent/actions";
 import { assessAgentDraftContext } from "@/lib/agent/draftContext";
 import { agentWorkspaceMode } from "@/lib/agent/workspace";
@@ -63,9 +62,8 @@ function compile(source, filename) {
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const mod = { exports: {} };
   new Function("require", "module", "exports", code)((id) => {
-    if (id === "wagmi") return { useConnection: () => ({address:binding.address}) };
     if (id === "next/navigation") return { useRouter: () => ({push:()=>{throw new Error("SSR navigation forbidden");}}), useSearchParams: () => new URLSearchParams() };
-    if (id === "@/hooks/useVerifiedWalletChain") return {useVerifiedWalletChain:()=>({providerChainId:binding.chainId})};
+    if (id === "@/hooks/useWalletAccount") return {useWalletReadContext:()=>({kind:"external",status:"connected",address:binding.address,providerChainId:binding.chainId,isArc:binding.chainId===arc})};
     if (id.startsWith("@/") || id.startsWith(".")) {
       let target = id.startsWith("@/") ? path.join(root,id.slice(2)) : path.resolve(path.dirname(filename),id);
       if (!path.extname(target)) target = existsSync(target+".ts") ? target+".ts" : path.join(target,"index.ts");

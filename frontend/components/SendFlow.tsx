@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/purity */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useConnection, usePublicClient, useWriteContract } from "wagmi";
+import { usePublicClient, useWriteContract } from "wagmi";
 import { encodeFunctionData } from "viem";
 import { arcTestnet } from "viem/chains";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
@@ -21,7 +21,8 @@ import { globalReviewChecks, hasBlockingChecks, sendRecipientChecks } from "@/li
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { arcFeeMateriallyChanged, calculateArcFee, formatArcFeeEstimate, maxSendAmountAfterArcFee, sendCostWithArcFee } from "@/lib/arcFees";
 import { assessTransaction, transactionFingerprint, type TransactionIntent } from "@/lib/transactionSafety";
-import { prepareTransactionReview, revalidateTransactionReview, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import { prepareTransactionReview, revalidateTransactionReview, ReviewSubmissionGuard, submitReviewedTransaction, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import { useWalletAccount } from "@/hooks/useWalletAccount";
 import { storeAgentResult } from "@/lib/agent/actions";
 import "./SendReceive.css";
 
@@ -77,45 +78,49 @@ export function SendFlow({
   const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
   const [reviewPreparedAt, setReviewPreparedAt] = useState(0);
   const submittingRef = useRef(false);
-  const connection = useConnection();
+  const { read: wallet, execution } = useWalletAccount();
   const chain = useVerifiedWalletChain();
   const writer = useWriteContract();
   const client = usePublicClient({ chainId: arcTestnet.id });
   const reviewAttempt = useRef(0),
     reviewInFlight = useRef(false),
-    currentAccount = useRef(connection.address);
+    currentAccount = useRef(wallet.address),
+    submissionGuard = useRef(new ReviewSubmissionGuard());
   const asset = getAssetById(assetId)!;
   const balance = balances[assetId];
-  const validated = validateAssetSend(recipient, amount, balance, asset, connection.address);
+  const validated = validateAssetSend(recipient, amount, balance, asset, wallet.address);
   const pending = stage === "awaiting" || stage === "confirming" || feeEstimate.status === "loading" || recipientKind === "checking" || memoCompatibility === "checking";
   const large = !("error" in validated) && isLargeSend(validated.amount, balance);
   const contacts = useMemo(() => {
     void contactsRevision;
-    return connection.address ? loadContacts(connection.address, arcTestnet.id) : [];
-  }, [connection.address, contactsRevision]);
+    return wallet.address ? loadContacts(wallet.address, arcTestnet.id) : [];
+  }, [wallet.address, contactsRevision]);
   const recents = useMemo(() => {
     void contactsRevision;
-    return connection.address ? loadRecentRecipients(connection.address, arcTestnet.id) : [];
-  }, [connection.address, contactsRevision]);
+    return wallet.address ? loadRecentRecipients(wallet.address, arcTestnet.id) : [];
+  }, [wallet.address, contactsRevision]);
   const normalizedRecipient = normalizeRecipient(recipient);
   const matchedContact = normalizedRecipient ? contacts.find((item) => item.address.toLowerCase() === normalizedRecipient.toLowerCase()) : undefined;
-  const canSaveContact = Boolean(connection.address && normalizedRecipient && normalizedRecipient.toLowerCase() !== connection.address.toLowerCase() && !matchedContact);
+  const canSaveContact = Boolean(wallet.address && normalizedRecipient && normalizedRecipient.toLowerCase() !== wallet.address.toLowerCase() && !matchedContact);
   const memoNote = memoNoteResult(note);
   const feeCost = !("error" in validated) && feeEstimate.status === "ready" ? sendCostWithArcFee(assetId === "usdc" ? validated.amount : 0n, assetId === "usdc" ? balance : balances.usdc, feeEstimate.rawFee) : undefined;
   const feeBlocksSend = Boolean(feeCost && feeCost.remainingUsdc6 === undefined);
+  const verifyArc = () => wallet.kind === "local"
+    ? Promise.resolve(wallet.status === "connected" && wallet.chainId === arcTestnet.id)
+    : chain.verifyNow();
   const safetyChecks =
     "error" in validated
       ? []
       : [
           ...globalReviewChecks({
-            connected: connection.isConnected,
-            account: connection.address,
+            connected: wallet.status === "connected",
+            account: wallet.address,
             reviewedAccount,
-            isArc: reviewNetworkVerified && chain.isArc,
+            isArc: reviewNetworkVerified && wallet.isArc,
             amount: validated.amount,
             balance,
           }),
-          ...sendRecipientChecks(validated.address, connection.address, Boolean(matchedContact || recents.some((item) => item.address.toLowerCase() === validated.address.toLowerCase())), Boolean(memoNote.note)),
+          ...sendRecipientChecks(validated.address, wallet.address, Boolean(matchedContact || recents.some((item) => item.address.toLowerCase() === validated.address.toLowerCase())), Boolean(memoNote.note)),
           ...(feeBlocksSend
             ? [
                 {
@@ -127,10 +132,10 @@ export function SendFlow({
             : []),
         ];
   function currentSafetyIntent(preparedAt = reviewPreparedAt): TransactionIntent | undefined {
-    if ("error" in validated || !connection.address || memoNote.error) return undefined;
+    if ("error" in validated || !wallet.address || memoNote.error) return undefined;
     const memoTransfer = memoNote.note
       ? buildArcMemoTransfer({
-          sender: connection.address,
+          sender: wallet.address,
           token: asset.address,
           recipient: validated.address,
           amount: validated.amount,
@@ -153,7 +158,7 @@ export function SendFlow({
       id: `send:${asset.id}`,
       kind: memoTransfer ? "memo-send" : "send",
       chainId: arcTestnet.id,
-      account: connection.address,
+      account: wallet.address,
       target,
       calldata,
       value: 0n,
@@ -166,8 +171,8 @@ export function SendFlow({
   const simulationPassed = Boolean(reviewSnapshot && safetyIntent && reviewSnapshot.fingerprint === transactionFingerprint(safetyIntent));
   const safetyAssessment = safetyIntent
     ? assessTransaction(safetyIntent, {
-        connectedAccount: connection.address,
-        connectedChainId: reviewNetworkVerified && chain.isArc ? arcTestnet.id : undefined,
+        connectedAccount: wallet.address,
+        connectedChainId: reviewNetworkVerified && wallet.isArc ? arcTestnet.id : undefined,
         balances,
         simulation: simulationPassed ? "passed" : "unavailable",
         expectedTarget: safetyIntent.target,
@@ -176,13 +181,13 @@ export function SendFlow({
     : undefined;
 
   useEffect(() => {
-    currentAccount.current = connection.address;
-  }, [connection.address]);
+    currentAccount.current = wallet.address;
+  }, [wallet.address]);
 
   useEffect(() => {
     if (!reviewing) return;
-    const wrongChain = (chain.connectorChainId !== undefined && chain.connectorChainId !== arcTestnet.id) || (chain.providerChainId !== undefined && chain.providerChainId !== arcTestnet.id);
-    const wrongAccount = Boolean(reviewedAccount && connection.address?.toLowerCase() !== reviewedAccount.toLowerCase());
+    const wrongChain = wallet.kind === "external" && ((chain.connectorChainId !== undefined && chain.connectorChainId !== arcTestnet.id) || (chain.providerChainId !== undefined && chain.providerChainId !== arcTestnet.id));
+    const wrongAccount = Boolean(reviewedAccount && wallet.address?.toLowerCase() !== reviewedAccount.toLowerCase());
     if (!wrongChain && !wrongAccount) return;
     const timeout = window.setTimeout(() => {
       setReviewNetworkVerified(false);
@@ -190,13 +195,13 @@ export function SendFlow({
       setError(copy.detailsChanged);
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [chain.connectorChainId, chain.providerChainId, connection.address, copy.detailsChanged, reviewedAccount, reviewing]);
+  }, [chain.connectorChainId, chain.providerChainId, wallet.address, wallet.kind, copy.detailsChanged, reviewedAccount, reviewing]);
 
   async function estimateSendFee(sendAmount: bigint) {
-    if (!client || !connection.address || !normalizedRecipient || memoNote.error) return undefined;
+    if (!client || !wallet.address || !normalizedRecipient || memoNote.error) return undefined;
     const memoTransfer = memoNote.note
       ? buildArcMemoTransfer({
-          sender: connection.address,
+          sender: wallet.address,
           token: asset.address,
           recipient: normalizedRecipient,
           amount: sendAmount,
@@ -209,14 +214,14 @@ export function SendFlow({
           abi: arcMemoAbi,
           functionName: "memo",
           args: memoTransfer.args,
-          account: connection.address,
+          account: wallet.address,
         })
       : await client.estimateContractGas({
           address: asset.address,
           abi: erc20BalanceAbi,
           functionName: "transfer",
           args: [normalizedRecipient, sendAmount],
-          account: connection.address,
+          account: wallet.address,
         });
     const fees = await client.estimateFeesPerGas();
     const price = fees.maxFeePerGas ?? (await client.getGasPrice());
@@ -241,18 +246,18 @@ export function SendFlow({
     if (message) return setError(message);
     if (memoNote.error) return setError(copy.memoInvalid);
     const attempt = ++reviewAttempt.current,
-      requestedAccount = connection.address;
+      requestedAccount = wallet.address;
     const isCurrent = () => attempt === reviewAttempt.current && currentAccount.current?.toLowerCase() === requestedAccount?.toLowerCase();
     reviewInFlight.current = true;
     const preparedAt = nowMs();
     setError(undefined);
-    setReviewedAccount(connection.address);
+    setReviewedAccount(wallet.address);
     setReviewPreparedAt(preparedAt);
     setStage("idle");
     setFeeEstimate({ status: "loading" });
     setReviewSnapshot(undefined);
     try {
-      const networkVerified = await chain.verifyNow();
+      const networkVerified = await verifyArc();
       if (!isCurrent()) return;
       setReviewNetworkVerified(networkVerified);
       setReviewing(true);
@@ -279,7 +284,7 @@ export function SendFlow({
             prepareTransactionReview({
               intent,
               context: {
-                connectedAccount: connection.address,
+                connectedAccount: wallet.address,
                 connectedChainId: arcTestnet.id,
                 balances,
                 simulation: "passed",
@@ -298,13 +303,13 @@ export function SendFlow({
       setRecipientKind("checking");
       setMemoCompatibility(memoNote.note ? "checking" : "none");
       try {
-        if (!memoNote.note || !connection.address) {
+        if (!memoNote.note || !wallet.address) {
           const code = await client.getBytecode({ address: validated.address });
           if (!isCurrent()) return;
           setRecipientKind(code && code !== "0x" ? "contract" : "wallet");
           return;
         }
-        const [recipientCode, senderCode, memoCode] = await Promise.all([client.getBytecode({ address: validated.address }), client.getBytecode({ address: connection.address }), client.getBytecode({ address: ARC_MEMO_ADDRESS })]);
+        const [recipientCode, senderCode, memoCode] = await Promise.all([client.getBytecode({ address: validated.address }), client.getBytecode({ address: wallet.address }), client.getBytecode({ address: ARC_MEMO_ADDRESS })]);
         if (!isCurrent()) return;
         setRecipientKind(recipientCode && recipientCode !== "0x" ? "contract" : "wallet");
         setMemoCompatibility(senderCode && senderCode !== "0x" ? "contract-wallet" : memoCode && memoCode !== "0x" ? "compatible" : "unavailable");
@@ -341,9 +346,9 @@ export function SendFlow({
   }
 
   function submitContact() {
-    if (!connection.address || !normalizedRecipient) return;
+    if (!wallet.address || !normalizedRecipient) return;
     try {
-      saveContact(connection.address, arcTestnet.id, contactName, normalizedRecipient);
+      saveContact(wallet.address, arcTestnet.id, contactName, normalizedRecipient);
       setContactsRevision((value) => value + 1);
       setContactName("");
       setContactFormOpen(false);
@@ -354,8 +359,8 @@ export function SendFlow({
   }
 
   function removeSavedContact(contact: WalletContact) {
-    if (!connection.address || !window.confirm(copy.removeConfirm.replace("{name}", contact.name))) return;
-    deleteContact(connection.address, arcTestnet.id, contact.address);
+    if (!wallet.address || !window.confirm(copy.removeConfirm.replace("{name}", contact.name))) return;
+    deleteContact(wallet.address, arcTestnet.id, contact.address);
     setContactsRevision((value) => value + 1);
     setContactFeedback(copy.contactRemoved);
   }
@@ -367,7 +372,7 @@ export function SendFlow({
       resetSafety();
       const normalized = normalizeRecipient(pasted);
       if (!normalized) setError(copy.invalidAddress);
-      else if (connection.address && normalized.toLowerCase() === connection.address.toLowerCase()) setError(copy.selfSend);
+      else if (wallet.address && normalized.toLowerCase() === wallet.address.toLowerCase()) setError(copy.selfSend);
     } catch {
       setError(copy.pasteFailed);
     }
@@ -379,7 +384,7 @@ export function SendFlow({
       setAmount(formatAssetAmount(balance < 0n ? 0n : balance, asset));
       return;
     }
-    if (!normalizedRecipient || !connection.address || balance <= 0n || memoNote.error || !(await chain.verifyNow())) {
+    if (!normalizedRecipient || !wallet.address || balance <= 0n || memoNote.error || !(await verifyArc())) {
       setError(copy.maxFeeUnavailable);
       return;
     }
@@ -407,8 +412,8 @@ export function SendFlow({
   }
 
   async function submit() {
-    if (submittingRef.current || pending || "error" in validated || !connection.address || !client || memoNote.error || (memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)) return;
-    if (!reviewedAccount || reviewedAccount.toLowerCase() !== connection.address.toLowerCase()) {
+    if (submittingRef.current || pending || "error" in validated || !wallet.address || !client || !execution || memoNote.error || (memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)) return;
+    if (!reviewedAccount || reviewedAccount.toLowerCase() !== wallet.address.toLowerCase()) {
       setReviewing(false);
       setError(copy.detailsChanged);
       return;
@@ -421,8 +426,8 @@ export function SendFlow({
     const revalidation = revalidateTransactionReview(reviewSnapshot, {
       intent: safetyIntent,
       context: {
-        connectedAccount: connection.address,
-        connectedChainId: reviewNetworkVerified && chain.isArc ? arcTestnet.id : undefined,
+        connectedAccount: wallet.address,
+        connectedChainId: reviewNetworkVerified && wallet.isArc ? arcTestnet.id : undefined,
         balances,
         simulation: "passed",
         expectedTarget: safetyIntent.target,
@@ -439,13 +444,13 @@ export function SendFlow({
     setStage("awaiting");
     let submittedHash: `0x${string}` | undefined;
     try {
-      if (!(await chain.verifyNow())) {
+      if (!(await verifyArc())) {
         setReviewNetworkVerified(false);
         throw new Error("Wrong network: Arc Testnet is required");
       }
       const memoTransfer = memoNote.note
         ? buildArcMemoTransfer({
-            sender: connection.address,
+            sender: wallet.address,
             token: asset.address,
             recipient: validated.address,
             amount: validated.amount,
@@ -453,7 +458,7 @@ export function SendFlow({
           })
         : undefined;
       if (memoTransfer) {
-        const [senderCode, memoCode] = await Promise.all([client.getBytecode({ address: connection.address }), client.getBytecode({ address: ARC_MEMO_ADDRESS })]);
+        const [senderCode, memoCode] = await Promise.all([client.getBytecode({ address: wallet.address }), client.getBytecode({ address: ARC_MEMO_ADDRESS })]);
         if (senderCode && senderCode !== "0x") {
           setError(copy.eoaRequired);
           setStage("failed");
@@ -471,7 +476,7 @@ export function SendFlow({
         address: asset.address,
         abi: erc20BalanceAbi,
         functionName: "balanceOf",
-        args: [connection.address],
+        args: [wallet.address],
       });
       const freshFee = await estimateSendFee(validated.amount).catch(() => undefined);
       if (freshFee !== undefined && feeEstimate.status === "ready" && arcFeeMateriallyChanged(feeEstimate.rawFee, freshFee)) {
@@ -495,23 +500,29 @@ export function SendFlow({
           abi: arcMemoAbi,
           functionName: "memo",
           args: memoTransfer.args,
-          account: connection.address,
+          account: wallet.address,
         });
         await simulateSendIntent(finalIntent);
         const finalRevalidation = revalidateTransactionReview(reviewSnapshot, {
           intent: finalIntent,
-          context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
+          context: { connectedAccount: wallet.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
           now: nowMs(),
         });
         if (!finalRevalidation.valid) throw new Error(copy.detailsChanged);
-        if (!(await chain.verifyNow())) throw new Error("Wrong network: Arc Testnet is required");
-        submittedHash = await writer.writeContractAsync({
-          address: ARC_MEMO_ADDRESS,
-          abi: arcMemoAbi,
-          functionName: "memo",
-          args: memoTransfer.args,
-          account: connection.address,
-          chainId: arcTestnet.id,
+        if (!(await verifyArc())) throw new Error("Wrong network: Arc Testnet is required");
+        submittedHash = await submitReviewedTransaction(reviewSnapshot, {
+          intent: finalIntent,
+          context: { connectedAccount: wallet.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
+          now: nowMs(),
+          guard: submissionGuard.current,
+          submit: (request) => execution.submitReviewed(request, () => writer.writeContractAsync({
+            address: ARC_MEMO_ADDRESS,
+            abi: arcMemoAbi,
+            functionName: "memo",
+            args: memoTransfer.args,
+            account: wallet.address,
+            chainId: arcTestnet.id,
+          })),
         });
       } else {
         await client.simulateContract({
@@ -519,23 +530,29 @@ export function SendFlow({
           abi: erc20BalanceAbi,
           functionName: "transfer",
           args: [validated.address, validated.amount],
-          account: connection.address,
+          account: wallet.address,
         });
         await simulateSendIntent(finalIntent);
         const finalRevalidation = revalidateTransactionReview(reviewSnapshot, {
           intent: finalIntent,
-          context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
+          context: { connectedAccount: wallet.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
           now: nowMs(),
         });
         if (!finalRevalidation.valid) throw new Error(copy.detailsChanged);
-        if (!(await chain.verifyNow())) throw new Error("Wrong network: Arc Testnet is required");
-        submittedHash = await writer.writeContractAsync({
-          address: asset.address,
-          abi: erc20BalanceAbi,
-          functionName: "transfer",
-          args: [validated.address, validated.amount],
-          account: connection.address,
-          chainId: arcTestnet.id,
+        if (!(await verifyArc())) throw new Error("Wrong network: Arc Testnet is required");
+        submittedHash = await submitReviewedTransaction(reviewSnapshot, {
+          intent: finalIntent,
+          context: { connectedAccount: wallet.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
+          now: nowMs(),
+          guard: submissionGuard.current,
+          submit: (request) => execution.submitReviewed(request, () => writer.writeContractAsync({
+            address: asset.address,
+            abi: erc20BalanceAbi,
+            functionName: "transfer",
+            args: [validated.address, validated.amount],
+            account: wallet.address,
+            chainId: arcTestnet.id,
+          })),
         });
       }
       setHash(submittedHash);
@@ -550,7 +567,7 @@ export function SendFlow({
         memoTransfer
           ? verifyMemoEvent(receipt.logs, {
               ...memoTransfer,
-              sender: connection.address,
+              sender: wallet.address,
               target: asset.address,
             })
             ? "verified"
@@ -569,14 +586,14 @@ export function SendFlow({
       });
       setConfirmedActivity(activity);
       onConfirmed(activity);
-      recordRecentRecipient(connection.address, arcTestnet.id, validated.address);
+      recordRecentRecipient(wallet.address, arcTestnet.id, validated.address);
       setStage("confirmed");
     } catch (caught) {
       const failure = classifyWalletFailure(caught, Boolean(submittedHash));
-      if (origin === "agent" && connection.address)
+      if (origin === "agent" && wallet.address)
         storeAgentResult(window.sessionStorage, {
           id: `send-${Date.now()}`,
-          account: connection.address,
+          account: wallet.address,
           action: "send",
           status: failure === "rejected" ? "cancelled" : failure === "confirmation-unknown" ? "unknown" : "failed",
           createdAt: Date.now(),
@@ -787,7 +804,7 @@ export function SendFlow({
             </p>
           )}
           {!reviewNetworkVerified && <p className="field-error">{copy.arcRequired}</p>}
-          {!reviewNetworkVerified && (
+          {!reviewNetworkVerified && wallet.kind === "external" && (
             <button type="button" className="secondary-action" onClick={() => void chain.switchToArc()}>
               {copy.switchArc}
             </button>
@@ -858,7 +875,7 @@ export function SendFlow({
             </div>
           </label>
           <p id="send-recipient-context" className="send-recipient-context" role="status">
-            {!recipient.trim() ? copy.recipientHint : !normalizedRecipient ? copy.invalidAddress : normalizedRecipient.toLowerCase() === connection.address?.toLowerCase() ? copy.ownRecipient : copy.recipientFormat}
+            {!recipient.trim() ? copy.recipientHint : !normalizedRecipient ? copy.invalidAddress : normalizedRecipient.toLowerCase() === wallet.address?.toLowerCase() ? copy.ownRecipient : copy.recipientFormat}
           </p>
           {(contacts.length > 0 || recents.length > 0 || canSaveContact || matchedContact) && (
             <div className="recipient-helper">
@@ -1028,7 +1045,7 @@ function sendCopy(locale: "en" | "vi", t: ReturnType<typeof usePreferences>["t"]
     note: vi ? "Ví sẽ yêu cầu xác nhận rõ ràng. Phí mạng do ví và mạng Arc xác định." : "Your wallet will ask for explicit confirmation. Network fee is determined by the wallet and Arc network.",
     invalidAddress: vi ? "Nhập địa chỉ ví hợp lệ." : "Enter a valid wallet address.",
     selfSend: vi ? "Không thể gửi tài sản đến chính ví đang kết nối." : "You cannot send assets to the currently connected wallet.",
-    invalidAmount: vi ? "Nhập số tiền lớn hơn 0, tối đa 6 chữ số thập phân." : "Enter an amount greater than 0 with at most 6 decimals.",
+    invalidAmount: vi ? "Nhập số tiền lớn hơn 0 với số chữ số thập phân hợp lệ cho tài sản đã chọn." : "Enter an amount greater than 0 with the decimal precision supported by the selected asset.",
     insufficient: vi ? "Số dư tài sản đã chọn không đủ." : "Your selected asset balance is too low.",
     freshInsufficient: vi ? "Số dư vừa thay đổi và không còn đủ. Không có giao dịch nào được gửi." : "Your balance changed and is no longer sufficient. No transaction was submitted.",
     awaiting: vi ? "Đang chờ bạn xác nhận trong ví." : "Awaiting confirmation in your wallet.",

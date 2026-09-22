@@ -4,11 +4,11 @@ import { useEffect, useRef, type ReactNode, type SyntheticEvent } from "react";
 import styles from "./OverviewFoundation.module.css";
 
 /** Native modal supplies inert background and focus containment; no auth ownership. */
-export function CreateWalletGuide({ children, onClose }: { children: (dismiss: (event: SyntheticEvent<HTMLElement>) => void) => ReactNode; onClose(): void }) {
+export function CreateWalletGuide({ children, onClose }: { children: (dismiss: () => void) => ReactNode; onClose(): void }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  function dismiss(event: SyntheticEvent<HTMLElement>) {
+  function dismiss(event?: SyntheticEvent<HTMLElement>) {
     // Explicit dismissal returns focus through the native dialog close algorithm.
-    event.currentTarget.closest("dialog")?.close();
+    event?.currentTarget.closest("dialog")?.close();
     onClose();
   }
   useEffect(() => {

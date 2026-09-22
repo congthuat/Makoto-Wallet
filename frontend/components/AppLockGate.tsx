@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useDisconnect } from "wagmi";
 import { useAppLock } from "@/hooks/useAppLock";
 import { usePreferences } from "@/hooks/usePreferences";
 import { AppLockPinInput } from "./AppLockPinInput";
@@ -10,7 +9,6 @@ import { AppLockPinInput } from "./AppLockPinInput";
 export function AppLockGate({ children }: { children: ReactNode }) {
   const appLock = useAppLock();
   const { t } = usePreferences();
-  const disconnect = useDisconnect();
   const [pin, setPin] = useState("");
   const [message, setMessage] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
@@ -25,7 +23,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
     if (result === "wrong") setMessage(t("appLock.wrongPin"));
     if (result === "cooldown") setMessage(t("appLock.tryAgainIn", { seconds: Math.max(1, Math.ceil(((appLock.config?.cooldownUntil ?? Date.now()) - Date.now()) / 1000)) }));
   }
-  function reset() { appLock.reset(); disconnect.mutate(); setResetOpen(false); }
+  function reset() { appLock.reset(); setResetOpen(false); }
   return <main className="app-lock-screen"><section className="app-lock-card" aria-labelledby="app-lock-title">
     <Image src="/makoto/logo-pro-v2.png" alt="" width={76} height={76} priority />
     <h1 id="app-lock-title">{t("appLock.lockedTitle")}</h1><p>{t("appLock.enterToContinue")}</p>

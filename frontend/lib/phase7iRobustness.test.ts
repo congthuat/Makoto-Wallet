@@ -43,7 +43,7 @@ test("Universal Bridge rejects stale asynchronous estimates before review state 
 
 test("direct Send, Swap, and CCTP reviews do not promote stale pre-sign state", () => {
   assert.match(cctp, /reviewAttempt = useRef\(0\)/);
-  assert.match(cctp, /if \(!isCurrent\(\)\) return;/);
+  assert.match(cctp, /input\.attempt !== reviewAttempt\.current[\s\S]*currentWallet\.current\.kind !== input\.accountKind[\s\S]*currentWallet\.current\.address/);
   assert.match(cctp, /if \(pending\) return;/);
   assert.match(send, /reviewInFlight = useRef\(false\)/);
   assert.match(send, /if \(reviewInFlight\.current\) return;/);

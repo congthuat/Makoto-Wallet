@@ -20,9 +20,11 @@ export type AgentContextSnapshot = Readonly<{
   connected: boolean;
   account?: Address;
   walletType?: string;
+  accountKind?: "external" | "local";
+  walletStatus?: "connected" | "locked" | "unavailable";
   verifiedChainId?: number;
   isArc: boolean;
-  balances: Readonly<{ usdc?: bigint; eurc?: bigint }>;
+  balances: Readonly<{ usdc?: bigint; eurc?: bigint; cirbtc?: bigint }>;
   activity: readonly WalletActivity[];
   activityLoadState: AgentActivityLoadState;
   activityPartial: boolean;

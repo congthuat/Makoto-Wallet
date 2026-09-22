@@ -87,7 +87,7 @@ test("Repair Gate F6: source, amount, quick amount, routing, and slippage edits 
   assert.match(form, /<select className="asset-selector" value=\{to\.id\} disabled>/);
   assert.match(form, /value=\{amount\} disabled=\{swapLocked\}/);
   assert.match(form, /disabled=\{swapLocked \|\| balance <= 0n \|\| Boolean\(pending\)\}/);
-  assert.match(form, /disabled=\{swapLocked \|\| Boolean\(pending\) \|\| !chain\.isArc\}/);
+  assert.match(form, /disabled=\{swapLocked \|\| Boolean\(pending\) \|\| !wallet\.isArc\}/);
   assert.equal((form.match(/disabled=\{swapLocked\}/g) ?? []).length >= 5, true);
   assert.match(form, /if \(swapIsInFlight\(\)\) return;[\s\S]*setFromId/);
   assert.match(form, /if \(swapIsInFlight\(\)\) return;[\s\S]*setAmount/);

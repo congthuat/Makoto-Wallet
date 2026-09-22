@@ -30,6 +30,46 @@
   --lc-radius-control: 8px; --lc-radius-surface: 12px;
   --lc-radius-dialog: 16px; --lc-radius-status: 6px;
   --lc-shadow-dialog: 0 20px 54px light-dark(rgb(16 24 40 / .16), rgb(0 0 0 / .4));
+
+  /* Phase 7J unified Makoto surfaces for Overview, Agent, and Settings. */
+  --mk-page-bg: light-dark(#EAF0F6, #07131F);
+  --mk-surface-primary: light-dark(#FFFFFF, #111C28);
+  --mk-surface-secondary: light-dark(#F6F8FB, #162433);
+  --mk-surface-tertiary: light-dark(#EEF3F8, #1B2A3A);
+  --mk-border-primary: light-dark(#CBD7E5, #32465A);
+  --mk-border-subtle: light-dark(#DCE5EE, #25394B);
+  --mk-text-primary: light-dark(#07131F, #F4F7FB);
+  --mk-text-secondary: light-dark(#50657A, #A9B9C9);
+  --mk-text-muted: light-dark(#74889C, #7E91A6);
+  --mk-accent-primary: #1F55E6;
+  --mk-accent-hover: light-dark(#153EA8, #346CFF);
+  --mk-accent-soft: light-dark(#EAF0FF, #162F66);
+  --mk-accent-ink: light-dark(#1742B4, #8EB0FF);
+  --mk-on-accent: #FFFFFF;
+  --mk-focus: light-dark(rgb(31 85 230 / .55), rgb(52 108 255 / .7));
+  --mk-success: light-dark(#0A684F, #72D1A4);
+  --mk-success-surface: light-dark(#DFF5EC, #18372F);
+  --mk-warning: light-dark(#725010, #D6AB73);
+  --mk-warning-surface: light-dark(#FFF2D0, #3A2D20);
+  --mk-error: light-dark(#963B34, #F0A39A);
+  --mk-error-surface: light-dark(#FBECEB, #402724);
+  --mk-information: light-dark(#285B85, #9EC7EA);
+  --mk-information-surface: light-dark(#EDF4FA, #1B3041);
+  --mk-disabled-bg: light-dark(#E4EAF1, #223241);
+  --mk-disabled-text: light-dark(#66758B, #788DA3);
+  --mk-shadow-card: light-dark(0 10px 24px rgb(30 59 102 / .08), none);
+  --mk-art-glow: light-dark(rgb(36 91 255 / .04), rgb(52 108 255 / .09));
+  /* Fixed application chrome: the shared header and sidebar stay dark in both content themes. */
+  --mk-chrome-bg: #08131D;
+  --mk-chrome-surface: #102331;
+  --mk-chrome-surface-hover: #142B3F;
+  --mk-chrome-border: #293B4A;
+  --mk-chrome-text: #F4F7FB;
+  --mk-chrome-muted: #A9B9C9;
+  --mk-chrome-icon: #BFCEE2;
+  --mk-chrome-accent: #1F55E6;
+  --mk-chrome-accent-hover: #346CFF;
+  --mk-chrome-focus: #8DAFFF;
   --lc-body-size: 15px; --lc-body-line: 24px;
   --lc-title-size: 28px; --lc-title-line: 36px;
   --lc-figure-size: 40px; --lc-figure-line: 48px;

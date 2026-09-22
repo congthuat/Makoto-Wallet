@@ -104,7 +104,7 @@ function outcomeFor(value: AgentPlanningResult): AgentOutcomeCategory | undefine
   return value.status === "unavailable" ? "PLANNING_FAILED" : undefined;
 }
 function validOutput(value: unknown): value is AgentCapabilityOutput { return typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).every((key) => ["result", "planning", "intelligence", "category"].includes(key)); }
-function walletOverview(s: AgentContextSnapshot): AgentToolResult { return unavailableWallet(s, "wallet_overview") ?? result("wallet_overview", { connected: true, account: s.account, network: s.verifiedChainId, usdc: s.balances.usdc, eurc: s.balances.eurc }); }
+function walletOverview(s: AgentContextSnapshot): AgentToolResult { return unavailableWallet(s, "wallet_overview") ?? result("wallet_overview", { connected: true, account: s.account, network: s.verifiedChainId, usdc: s.balances.usdc, eurc: s.balances.eurc, cirbtc: s.balances.cirbtc }); }
 function vaultSummary(s: AgentContextSnapshot): AgentToolResult { return unavailableWallet(s, "vault_summary") ?? (!s.vault.available ? { tool: "vault_summary", ok: false, unavailable: "Vault data is unavailable." } : result("vault_summary", s.vault)); }
 function networkStatus(s: AgentContextSnapshot): AgentToolResult { return result("network_status", { connected: s.connected, currentChainId: s.verifiedChainId, requiredChainId: arcTestnet.id, arcActionsAvailable: s.connected && s.isArc }); }
 function safetyCapabilities(s: AgentContextSnapshot): AgentToolResult { return result("safety_capabilities", s.safetyCapabilities); }

@@ -70,3 +70,61 @@
   .ledger-exchange .exchange-result-rows dd { text-align: left; }
   .ledger-exchange .modal-actions { position: static; margin: 0; padding: 16px 0 0; }
 }
+
+/* Phase 7J modal polish: shared secondary controls and compact disclosures. */
+.ledger-exchange :is(.compact-swap-flow, .universal-bridge form) { gap: 16px; }
+.ledger-exchange :is(.swap-asset-grid, .bridge-networks) { gap: 10px; }
+.ledger-exchange .swap-quick-amounts { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 0; }
+.ledger-exchange .swap-quick-amounts button {
+  min-width: 58px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--mk-border-primary);
+  border-radius: var(--lc-radius-control);
+  color: var(--mk-accent-ink);
+  background: var(--mk-surface-secondary);
+}
+.ledger-exchange .swap-quick-amounts button:hover:not(:disabled) { border-color: var(--mk-accent-primary); background: var(--mk-accent-soft); }
+.ledger-exchange :is(.swap-advanced, .bridge-options) {
+  border: 1px solid var(--mk-border-subtle);
+  border-radius: var(--lc-radius-control);
+  background: var(--mk-surface-secondary);
+}
+.ledger-exchange :is(.swap-advanced, .bridge-options) > summary {
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--mk-text-primary);
+}
+.ledger-exchange :is(.swap-advanced, .bridge-options)[open] > summary { color: var(--mk-accent-ink); }
+.ledger-exchange :is(.swap-advanced, .bridge-options) fieldset { margin: 0 12px 12px !important; border-color: var(--mk-border-subtle); background: var(--mk-surface-primary); }
+.ledger-exchange .swap-provider-detail { margin: 0 12px 12px; border-color: var(--mk-border-subtle); background: var(--mk-surface-primary); }
+.ledger-exchange .bridge-destination { gap: 8px; padding-block: 12px; border-color: var(--mk-border-subtle); }
+.ledger-exchange .bridge-reverse { width: 40px; height: 40px; border-radius: var(--lc-radius-control); color: var(--mk-accent-ink); background: var(--mk-surface-secondary); }
+.ledger-exchange .bridge-recipient-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--mk-border-subtle);
+  border-radius: var(--lc-radius-control);
+  background: var(--mk-surface-secondary);
+}
+.ledger-exchange .bridge-recipient-summary > span { min-width: 0; display: grid; gap: 2px; }
+.ledger-exchange .bridge-recipient-summary small { color: var(--mk-text-secondary); }
+.ledger-exchange .bridge-recipient-summary strong { color: var(--mk-text-primary); overflow-wrap: anywhere; }
+.ledger-exchange .bridge-recipient-editor { border-color: var(--mk-border-subtle); background: var(--mk-surface-secondary); }
+.ledger-exchange .bridge-recipient-editor legend { color: var(--mk-text-secondary); }
+.ledger-exchange .universal-bridge header p { color: var(--mk-accent-ink); }
+.ledger-exchange .universal-bridge .primary-action,
+.ledger-exchange .universal-bridge .secondary-action { min-height: 48px; }
+.ledger-exchange .universal-bridge .primary-action { color: var(--mk-on-accent); background: var(--mk-accent-primary); border-color: var(--mk-accent-primary); }
+.ledger-exchange .universal-bridge .secondary-action { color: var(--mk-accent-ink); background: var(--mk-surface-secondary); border-color: var(--mk-border-primary); }
+
+@media (max-width: 599px) {
+  .ledger-exchange .swap-quick-amounts { gap: 8px; }
+  .ledger-exchange .swap-quick-amounts button { flex: 1 1 64px; }
+  .ledger-exchange .bridge-recipient-summary { align-items: flex-start; }
+  .ledger-exchange .bridge-recipient-summary .secondary-action { flex: 0 0 auto; }
+  .ledger-exchange .modal-actions { position: static; margin: 0; padding: 12px 0 0; }
+}

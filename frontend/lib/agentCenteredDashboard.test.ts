@@ -12,21 +12,23 @@ const css = readFileSync(new URL("../components/MakotoWallet.module.css", import
 const en = readFileSync(new URL("../i18n/en.ts", import.meta.url), "utf8");
 const vi = readFileSync(new URL("../i18n/vi.ts", import.meta.url), "utf8");
 
-test("shared header preserves the production Makoto logo asset", () => {
-  assert.match(header, /\/makoto\/logo-pro-v2\.png/);
+test("7J shared header uses the Makoto wordmark with decorative terrain", () => {
+  assert.match(header, /aria-label="Makoto Wallet"/);
+  assert.match(header, /<strong>MAKOTO<\/strong><small>WALLET<\/small>/);
+  assert.match(header, /<MakotoTerrain/);
   assert.doesNotMatch(header, /agent-logo|lettermark|new-logo/i);
 });
 
 test("7D holdings precede activity and secondary Agent content", () => {
-  assert.match(overview, /holdings-title[\s\S]*id="assets"[\s\S]*id="activity"[\s\S]*dashboard-agent-title/);
+  assert.match(overview, /holdings-title[\s\S]*id="activity"[\s\S]*dashboard-agent-title[\s\S]*id="assets"/);
   assert.match(dashboard, /<ConnectedOverview/);
   assert.match(dashboard, /id="dashboard-agent-question"/);
 });
 
 test("primary command order starts Send Receive Swap and retains Bridge", () => {
   assert.match(overview, /\["send", "receive", "swap", "bridge"\]/);
-  assert.match(overview, /disabled=\{!onArc\} onClick=\{\(\) => props.onAction\(action\)\}/);
-  assert.match(dashboard, /onAction=\{setAction\}/);
+  assert.match(overview, /disabled=\{!onArc\}/);
+  assert.match(dashboard, /onAction=\{\(next\) =>/);
 });
 
 test("Quick Actions reuse existing dashboard flow state", () => {
@@ -51,17 +53,19 @@ test("Agent preparation remains a draft handoff with no wallet execution", () =>
 });
 
 test("7D Agent title is a secondary localized heading with a retained labeled composer", () => {
-  assert.match(overview, /<h2 id="dashboard-agent-title">\{t\("agentDashboard.title"\)\}/);
+  assert.match(overview, /<h2 id="dashboard-agent-title">\{t\("overview.agentTitle"\)\}/);
   assert.match(en, /"agentDashboard.title": "Makoto Agent"/);
   assert.match(vi, /"agentDashboard.title": "Makoto Agent"/);
+  assert.match(en, /"overview.agentTitle": "Agent"/);
+  assert.match(vi, /"overview.agentTitle": "Trợ lý"/);
   assert.match(dashboard, /<label htmlFor="dashboard-agent-question">\{t\("agentDashboard.inputLabel"\)\}/);
 });
 
-test("7D compact Agent uses the same semantic text and control tokens", () => {
-  assert.match(overviewCss, /\.agent p \{ font-size: var\(--lc-support-size\)/);
-  assert.match(overviewCss, /var\(--lc-text\)/);
-  assert.match(overviewCss, /var\(--lc-radius-control\)/);
-  assert.doesNotMatch(overviewCss, /position: absolute|position: fixed/);
+test("7J Agent stays in document flow with readable panel text and keyboard focus", () => {
+  assert.match(overviewCss, /\.agent p \{ font-size: 12px; line-height: 1\.6/);
+  assert.match(overviewCss, /var\(--ov-ink\)/);
+  assert.match(overviewCss, /:focus-visible/);
+  assert.doesNotMatch(overviewCss, /\.agent\s*\{[^}]*position:\s*(?:absolute|fixed)/);
 });
 
 test("7D operational Overview contains no decorative Agent art or motion", () => {
@@ -70,7 +74,8 @@ test("7D operational Overview contains no decorative Agent art or motion", () =>
 });
 
 test("7D ranked suggestions remain optional, wrapping and connected to the existing planner", () => {
-  assert.match(overview, /<details><summary>\{t\("overview.prepareAction"\)\}<\/summary>\{props.children\}/);
+  assert.match(overview, /\{props.children\}/);
+  assert.match(overview, /Read & prepare only\. You confirm\./);
   assert.match(dashboard, /agentSuggestions.map/);
   assert.match(dashboard, /selectAgentSuggestion\(suggestion.id, prompt\)/);
   assert.match(overviewCss, /\.suggestions \{ display: flex; flex-wrap: wrap/);
@@ -118,11 +123,11 @@ test("dark disconnected surfaces reuse the Agent dashboard violet-black family",
   assert.match(css, /html\[data-theme="dark"\]\) \.disconnectedArt\{border-left-color:var\(--mw-divider\);background:radial-gradient/);
 });
 
-test("7D both themes resolve through existing Ledger Calm tokens", () => {
-  assert.match(overviewCss, /background: var\(--lc-surface\)/);
-  assert.match(overviewCss, /color: var\(--lc-text\)/);
-  assert.match(overviewCss, /var\(--lc-separator\)/);
-  assert.doesNotMatch(overviewCss, /data-theme|#[0-9a-f]{6}/i);
+test("7J light information panels share semantic tokens inside both shell themes", () => {
+  assert.match(overviewCss, /background: var\(--ov-surface\)/);
+  assert.match(overviewCss, /color: var\(--ov-ink\)/);
+  assert.match(overviewCss, /var\(--ov-line\)/);
+  assert.match(overviewCss, /--lc-text: var\(--ov-ink\)/);
 });
 
 test("7D preserves account and history context without a blanket Protected meter", () => {
@@ -133,15 +138,18 @@ test("7D preserves account and history context without a blanket Protected meter
   assert.doesNotMatch(dashboard, /securityStatus|walletStatusBar/);
 });
 
-test("disconnected dashboard contains only the connection hero", () => {
-  const disconnected = dashboard.slice(dashboard.indexOf(") : !connected ? ("), dashboard.indexOf(") : showWalletReady"));
+test("disconnected dashboard contains only the editorial landing hero", () => {
+  const disconnectedStart = dashboard.indexOf(") : !connected ? (");
+  const disconnected = dashboard.slice(disconnectedStart, dashboard.indexOf("<ConnectedOverview", disconnectedStart));
   for (const removed of ["DisconnectedDestinations", "My Assets", "View assets", "View activity", "disconnectedDestination"]) {
     assert.doesNotMatch(disconnected, new RegExp(removed));
   }
-  assert.match(disconnected, /walletHome\.connectTitle/);
+  assert.match(disconnected, /walletHome\.landingTitle/);
+  assert.match(disconnected, /walletHome\.landingCapabilities/);
+  assert.match(disconnected, /walletHome\.landingSafety/);
   assert.match(disconnected, /onboarding\.createWallet/);
   assert.match(disconnected, /onboarding\.connectExisting/);
-  assert.match(disconnected, /onboarding\.noPrivateKeyStorage/);
+  assert.doesNotMatch(disconnected, /onboarding\.title/);
 });
 
 test("existing-wallet option shares the header connection-green token family", () => {
@@ -153,7 +161,7 @@ test("existing-wallet option shares the header connection-green token family", (
 });
 
 test("adaptive suggestions are wallet and chain scoped", () => {
-  assert.match(dashboard, /suggestionStorageKey\(connection\.address, chain\.providerChainId\)/);
+  assert.match(dashboard, /suggestionStorageKey\(wallet\.address, wallet\.providerChainId\)/);
   assert.match(dashboard, /rankAgentSuggestions/);
   assert.match(dashboard, /recordSuggestionUsage/);
 });
