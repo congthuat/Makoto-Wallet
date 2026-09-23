@@ -3,11 +3,13 @@
 > Current execution pointer. Update after each completed sub-phase.
 
 ## Current
-- **Major phase:** Phase 7 — Ledger Calm
-- **Sub-phase:** 7J
-- **Status:** COMPLETE
-- **Next:** 8A — Tool Layer Audit
-- **After Phase 7:** 8A — Tool Layer Audit
+- **Major phase:** Phase 8 — Makoto Tool Layer
+- **Sub-phase:** 8B — Read Tools
+- **Status:** NOT STARTED
+- **Next:** 8B — Read Tools
+- **After 8B:** 8C — Quote Tools
+- **Phase 8 branch:** phase8-tool-layer
+- **Phase 8 base commit:** `7ae32e081e64126892721a46b39a0f460f146971`
 - **Branch captured at setup:** phase7-astra-ledger-calm
 - **HEAD captured at setup:** `4fad37b6f479c20a306741e4b08a0cb29a13a8f4`
 - **Handoff branch:** phase7-astra-ledger-calm
@@ -52,4 +54,6 @@ Never claim tests passed if they were not run.
 - **Phase 7J COMPLETE** — branch `phase7-astra-ledger-calm`; handoff commit `3410ed350cbf34b19537f6743799aafb51058d10` (`feat(wallet): complete Ledger Calm and native wallet foundation`).
 - Completed validation: frontend 1162/1162 PASS; focused 7J / Native Wallet 64/64 PASS; contracts 19/19 PASS; compile PASS; typecheck PASS; production build PASS; git diff --check PASS; lint: 0 errors, 7 inherited warnings.
 - Native Wallet was completed as a post-7J adjunct scope and included in the handoff commit. No live transaction was triggered during verification.
-- Next approved sub-phase: **8A — Tool Layer Audit**. Phase 8A implementation has not started.
+- At the Phase 7J handoff, the next approved sub-phase was **8A — Current-System Audit**.
+- **Phase 8A COMPLETE** — read-only inventory/reuse audit on `phase8-tool-layer`; no product code changed or tests rerun. Existing READ capabilities are not yet a canonical Phase 8 tool layer; PREPARE capabilities remain bounded and execution-disabled, and Agent-owned execution is absent. Send, Xylo Swap, Direct CCTP, Circle App Kit Bridge, and Unified Balance already exist. Circle App Kit Swap is a candidate; x402 is an inactive dependency.
+- **Phase 8B NEXT — Read Tools (not started).** Normalize existing wallet identity/type/lock, verified chain, balances, activity load state, allowances, receipts, and bridge operation evidence into account- and chain-bound READ outputs. Preserve freshness, partial/unavailable states, provider provenance, and source-confirmed versus destination-confirmed truth. Reuse existing transaction engines. Quote tools remain 8C; prepare/write tools remain 8D, followed by 8E, 8F, and 8G.
