@@ -1,0 +1,72 @@
+.header { color: #f4f6ff; }
+.connectedHeader { background: #080717; }
+.disconnectedHeader { border-bottom: 1px solid #293b4a; background: #08131d; }
+.sidebar { position: fixed; inset: 0 auto 0 0; z-index: 30; width: 240px; display: flex; flex-direction: column; padding: 22px 14px 16px; border-right: 1px solid rgba(151, 112, 229, .22); background: #080717; overflow-y: auto; }
+.disconnectedHeader .sidebar { display: none; }
+.brand, .topBrand { color: #f4f6ff; text-decoration: none; }
+.brand { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 8px; }
+.topBrand { display: none; align-items: center; gap: 8px; }
+.brandLogo { width: 38px; height: 38px; object-fit: contain; border-radius: 11px; }
+.brandWords { display: flex; align-items: baseline; gap: 5px; }
+.brandWords strong { font: 800 17px/1 var(--font-display), system-ui, sans-serif; letter-spacing: -.2px; }
+.brandWords small { color: #aeb8d1; font: 9px/1 monospace; letter-spacing: 1.2px; }
+.manifesto, .identity, .version { display: none; }
+.nav { flex: 1; display: flex; flex-direction: column; gap: 4px; margin-top: 26px; }
+.primaryNav, .utilityNav { display: grid; gap: 4px; }
+.utilityNav { margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(172, 139, 239, .16); }
+.navLink { position: relative; display: flex; align-items: center; gap: 13px; min-height: 44px; padding: 0 13px; border: 1px solid transparent; border-radius: 10px; color: #9fa7be; text-decoration: none; font-size: 13px; font-weight: 600; transition: color 160ms ease, background 160ms ease, border-color 160ms ease, transform 120ms ease; }
+.navLink:hover { color: #f1edff; background: rgba(137, 92, 235, .09); }
+.navActive { color: #f7f3ff; border-color: rgba(124, 92, 255, .22); background: linear-gradient(90deg, rgba(129, 82, 233, .2), rgba(106, 66, 204, .09)); }
+.navActive::before { content: ""; position: absolute; left: -1px; width: 3px; height: 22px; border-radius: 2px; background: #9b84ff; }
+.headerGlyph { width: 18px; height: 18px; flex: 0 0 auto; color: currentColor; }
+.topRow { margin-left: 240px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-height: 76px; padding: 14px 24px; background: #080717; }
+.disconnectedHeader .topRow { margin-left: 0; }
+.networkPill, .faucetUtility, .themeButton, .languageTrigger, .walletControlWrap { min-height: 44px; border: 1px solid rgba(146, 105, 231, .28); border-radius: 10px; background: rgba(17, 11, 39, .94); color: #f4f6ff; box-shadow: 0 12px 30px rgba(0, 0, 0, .24); }
+.networkPill { display: inline-flex; align-items: center; gap: 9px; margin-left: 0; padding: 8px 13px; font-size: 12px; white-space: nowrap; }
+.networkPill i { width: 8px; height: 8px; border-radius: 50%; background: #aeb8d1; }.networkPill i[data-verified="true"] { background: #72d1a4; box-shadow: 0 0 0 4px rgba(114, 209, 164, .12); }
+.agentShortcut { display: none; }
+.faucetUtility { display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; color: #f4f6ff; text-decoration: none; font-size: 11px; white-space: nowrap; }.faucetUtility:hover { border-color: rgba(190, 151, 255, .64); background: rgba(137, 92, 235, .12); }
+.headerActions { display: flex; align-items: center; gap: 7px; margin-left: 0; }
+.pillGlyph, .addressGlyph { width: 18px; height: 18px; flex: 0 0 auto; }.addressGlyph { color: #b8a6ff; }
+.themeButton, .languageTrigger { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 11px; cursor: pointer; }
+.themeButton { width: 40px; padding: 8px; }.languageMenu { position: relative; }.languageChevron { width: 12px; height: 12px; }.languageDropdown { position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; display: grid; gap: 4px; min-width: 180px; padding: 8px; border: 1px solid rgba(146, 105, 231, .28); border-radius: 12px; background: #110b27; box-shadow: 0 20px 54px rgba(0, 0, 0, .4); }.languageDropdown p { margin: 0; padding: 4px 8px; color: #aaa1c2; font-size: 12px; }.languageDropdown button { min-height: 44px; padding: 8px; border: 0; display: flex; justify-content: space-between; gap: 16px; color: #f4f6ff; background: transparent; text-align: left; cursor: pointer; }.languageDropdown button:hover, .languageDropdown button[aria-pressed="true"] { background: rgba(95, 48, 190, .32); }.languageCode { color: #b8a6ff; }
+.walletControlWrap { display: flex; align-items: center; gap: 8px; padding: 0 6px 0 9px; }.walletControlWrap :global(.connect-button), .walletControlWrap :global(.wallet-summary) { min-height: 38px; border: 0; border-radius: 8px; color: #f4f6ff; background: transparent; font-size: 12px; }.header .walletControlWrap :global(.connect-button) { padding-inline: 14px; color: #fff; background: #6b46d8; }.header .walletControlWrap :global(.connect-button:hover:not(:disabled)) { background: #7d5be5; }.walletControlWrap :global(.wallet-summary strong) { font-size: 12px; white-space: nowrap; }.walletControlWrap :global(.wallet-summary small) { display: none; }
+.header :is(a, button):focus-visible { outline: 3px solid #c0b1ff; outline-offset: 3px; }
+:global(html[data-theme="light"]) .header { color: #f4f6ff; }
+:global(html[data-theme="light"]) .connectedHeader,
+:global(html[data-theme="light"]) .disconnectedHeader .topRow { background: #f8fbff; }
+:global(html[data-theme="light"]) .disconnectedHeader .topRow { border-bottom-color: rgba(104, 65, 216, .16); color: #18203b; }
+:global(html[data-theme="light"]) .connectedHeader .sidebar { background: #f8fbff; border-right-color: rgba(104, 65, 216, .14); }
+@media (max-width: 1200px) { .sidebar { width: 216px; }.topRow { margin-left: 216px; padding-inline: 16px; }.navLink { padding-inline: 11px; } }
+@media (max-width: 767px) {
+  .sidebar { position: static; width: auto; padding: 16px 12px 10px; border-right: 0; overflow: visible; }
+  .brand { padding: 0 4px 14px; }.brandLogo { width: 34px; height: 34px; }.brandWords strong { font-size: 16px; }
+  .nav { margin-top: 0; gap: 5px; }.primaryNav { grid-template-columns: repeat(3, minmax(0, 1fr)); }.utilityNav { margin-top: 5px; padding-top: 5px; border-top: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); }.navLink { justify-content: center; min-height: 44px; padding: 8px 4px; gap: 5px; font-size: 10px; }.headerGlyph { width: 18px; height: 18px; }
+  .topRow, .disconnectedHeader .topRow { margin-left: 0; flex-wrap: wrap; justify-content: flex-start; min-height: 60px; padding: 10px 12px; gap: 7px; border-bottom: 1px solid rgba(146, 105, 231, .28); }.topBrand { display: inline-flex; }.networkPill { order: 3; flex: 1 0 100%; min-height: 38px; margin-left: 0; }.headerActions { gap: 4px; margin-left: auto; }.faucetUtility { width: 42px; justify-content: center; padding: 8px; }.faucetUtility > span { display: none; }.languageTrigger { padding-inline: 8px; }.languageTrigger > svg:first-child, .addressGlyph { display: none; }.walletControlWrap { padding: 0 4px; }.walletControlWrap :global(.wallet-summary), .walletControlWrap :global(.connect-button) { padding-inline: 8px; }.themeButton { width: 42px; }
+}
+@media (prefers-reduced-motion: reduce) { .header *, .header *::before, .header *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+
+/* Classic light treatment: retain violet identity without low-contrast chrome. */
+:global(html[data-theme="light"]) .connectedHeader .topRow { background: #f8fbff; border-bottom: 1px solid rgba(104, 65, 216, .14); }
+:global(html[data-theme="light"]) .connectedHeader .brand,
+:global(html[data-theme="light"]) .connectedHeader .brandWords strong { color: #241a3d; }
+:global(html[data-theme="light"]) .connectedHeader .brandWords small { color: #6b6287; }
+:global(html[data-theme="light"]) .connectedHeader .navLink { color: #5e587b; }
+:global(html[data-theme="light"]) .connectedHeader .navLink:hover { color: #2f2353; background: rgba(137, 92, 235, .08); }
+:global(html[data-theme="light"]) .connectedHeader .navActive { color: #2f2353; border-color: rgba(124, 92, 255, .25); background: linear-gradient(90deg, rgba(129, 82, 233, .16), rgba(106, 66, 204, .07)); }
+:global(html[data-theme="light"]) .connectedHeader .utilityNav { border-top-color: rgba(104, 65, 216, .14); }
+:global(html[data-theme="light"]) .connectedHeader .networkPill,
+:global(html[data-theme="light"]) .connectedHeader .faucetUtility,
+:global(html[data-theme="light"]) .connectedHeader .themeButton,
+:global(html[data-theme="light"]) .connectedHeader .languageTrigger,
+:global(html[data-theme="light"]) .connectedHeader .walletControlWrap { color: #30234f; border-color: rgba(104, 65, 216, .2); background: rgba(255, 255, 255, .92); box-shadow: 0 10px 24px rgba(74, 48, 140, .08); }
+:global(html[data-theme="light"]) .connectedHeader .networkPill i { background: #8a80a9; }
+:global(html[data-theme="light"]) .connectedHeader .networkPill i[data-verified="true"] { background: #18885d; }
+:global(html[data-theme="light"]) .connectedHeader .faucetUtility:hover { border-color: rgba(104, 65, 216, .45); background: rgba(137, 92, 235, .08); }
+:global(html[data-theme="light"]) .connectedHeader .languageCode,
+:global(html[data-theme="light"]) .connectedHeader .addressGlyph { color: #6841d8; }
+:global(html[data-theme="light"]) .connectedHeader .walletControlWrap :global(.wallet-summary) { color: #30234f; background: transparent; }
+:global(html[data-theme="light"]) .connectedHeader .walletControlWrap :global(.wallet-summary small) { color: #6b6287; }
+:global(html[data-theme="light"]) .connectedHeader .languageDropdown { border-color: rgba(104, 65, 216, .2); background: #fff; box-shadow: 0 20px 54px rgba(74, 48, 140, .16); }
+:global(html[data-theme="light"]) .connectedHeader .languageDropdown p { color: #6b6287; }
+:global(html[data-theme="light"]) .connectedHeader .languageDropdown button { color: #30234f; }

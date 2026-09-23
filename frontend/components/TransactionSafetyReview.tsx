@@ -6,12 +6,22 @@ import { expectedTransactionChanges, type TransactionIntent } from "@/lib/transa
 import { formatAssetAmount, getAssetById } from "@/lib/assets";
 import type { TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 
-export type ReviewDetail = { label: string; value: ReactNode };
+export type ReviewDetail = { label: string; value: ReactNode; presentation?: "value" | "prose" };
 
-export function TransactionSafetyReview({ title, summary, details, compactDetails, technicalDetails = [], technicalDetailIndexes = [], technicalContent, compact = false, checks, assessment, review, walletNotice, onBack, onContinue, continueDisabled = false, continueLabel, children }: { title: string; summary: string; details: readonly ReviewDetail[]; compactDetails?: readonly ReviewDetail[]; technicalDetails?: readonly ReviewDetail[]; technicalDetailIndexes?: readonly number[]; technicalContent?: ReactNode; compact?: boolean; checks: readonly SafetyCheck[]; assessment?: TransactionSafetyAssessment; review?: TransactionReviewSnapshot; walletNotice: string; onBack(): void; onContinue(): void; continueDisabled?: boolean; continueLabel?: string; children?: ReactNode }) {
-  const { t, locale } = usePreferences();
-  const blocked = hasBlockingChecks(checks) || assessment?.status === "blocked" || assessment?.status === "unknown";
+function effectiveReviewAssessment(assessment?: TransactionSafetyAssessment, snapshotAssessment?: TransactionSafetyAssessment) {
+  if (!assessment) return snapshotAssessment;
+  if (!snapshotAssessment) return assessment;
+  // Neither source may hide a more restrictive assessment from the other.
+  const priority = { ready: 0, review: 1, unknown: 2, blocked: 3 };
+  return priority[assessment.status] > priority[snapshotAssessment.status] ? assessment : snapshotAssessment;
+}
+
+export function TransactionSafetyReview({ title, summary, details, costDetails = [], compactDetails, technicalDetails = [], technicalDetailIndexes = [], technicalContent, compact = false, checks, assessment, review, walletNotice, onBack, onContinue, backDisabled = false, continueDisabled = false, continueLabel, children }: { title: string; summary: string; details: readonly ReviewDetail[]; costDetails?: readonly ReviewDetail[]; compactDetails?: readonly ReviewDetail[]; technicalDetails?: readonly ReviewDetail[]; technicalDetailIndexes?: readonly number[]; technicalContent?: ReactNode; compact?: boolean; checks: readonly SafetyCheck[]; assessment?: TransactionSafetyAssessment; review?: TransactionReviewSnapshot; walletNotice: string; onBack(): void; onContinue(): void; backDisabled?: boolean; continueDisabled?: boolean; continueLabel?: string; children?: ReactNode }) {
+  const { t } = usePreferences();
+  const effectiveAssessment = effectiveReviewAssessment(assessment, review?.assessment);
+  const blocked = hasBlockingChecks(checks) || effectiveAssessment?.status === "blocked" || effectiveAssessment?.status === "unknown";
   const attentionChecks = checks.filter((check) => check.status === "attention" || check.status === "blocking");
+  const simulationNotPerformed = effectiveAssessment?.checks.some((check) => check.code === "request-simulation-not-performed") ?? false;
   const visibleDetails = compactDetails ?? details.filter((_, index) => !technicalDetailIndexes.includes(index));
   const collapsedDetails = [...details.filter((_, index) => technicalDetailIndexes.includes(index)), ...technicalDetails];
   if (compact)
@@ -20,20 +30,10 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
         <header>
           <h3>{title}</h3>
         </header>
-        <section aria-labelledby="compact-review-summary">
-          <h4 className="sr-only" id="compact-review-summary">
-            {t("review.details")}
-          </h4>
-          <dl className="wallet-review compact-review-summary">
-            {visibleDetails.map((detail) => (
-              <div key={detail.label}>
-                <dt>{detail.label}</dt>
-                <dd>{detail.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-        <CompactSafetySummary checks={checks} assessment={assessment ?? review?.assessment} />
+        <ReviewSection id="compact-review-summary" title={t("review.intent")} compact><ReviewDetailList details={visibleDetails} className="compact-review-summary" /></ReviewSection>
+        {costDetails.length > 0 && <ReviewSection id="compact-review-cost" title={t("review.cost")} compact><ReviewDetailList details={costDetails} className="compact-review-summary" /></ReviewSection>}
+        <CompactSafetySummary checks={checks} assessment={effectiveAssessment} />
+        <ReviewLimitations assessment={effectiveAssessment} simulationNotPerformed={simulationNotPerformed} />
         {attentionChecks.length > 0 && (
           <div className="compact-safety-issues">
             <TransactionSafetyChecks checks={attentionChecks} />
@@ -47,7 +47,7 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
                 {collapsedDetails.map((detail) => (
                   <div key={detail.label}>
                     <dt>{detail.label}</dt>
-                    <dd>{detail.value}</dd>
+                    <dd className={detail.presentation === "prose" ? "review-detail-prose" : undefined}>{detail.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -58,15 +58,15 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
                 {t("review.details")} · {new Date(review.expiresAt).toLocaleTimeString()}
               </p>
             )}
-            {(assessment || review) && <p className="review-validity">Simulation · {(assessment ?? review!.assessment).status}</p>}
+            {effectiveAssessment && <p className="review-validity">Simulation · {effectiveAssessment.status}</p>}
             {review && <TransactionExpectedChanges intent={review.intent} />}
             {technicalContent}
           </div>
         </details>
         {children}
-        {walletNotice && <p className="compact-wallet-notice">{locale === "vi" ? "Bạn xác nhận lần cuối trong ví." : "Final confirmation happens in your wallet."}</p>}
+        <WalletHandoffNotice notice={walletNotice} compact />
         <div className="modal-actions">
-          <button type="button" className="secondary-action" onClick={onBack}>
+          <button type="button" className="secondary-action" onClick={onBack} disabled={backDisabled}>
             {t("review.back")}
           </button>
           <button type="button" className="primary-action" onClick={onContinue} disabled={blocked || continueDisabled}>
@@ -82,33 +82,20 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
         <h3>{title}</h3>
         <p>{summary}</p>
       </header>
-      <section aria-labelledby="review-details">
-        <h4 id="review-details">{t("review.details")}</h4>
-        <dl className="wallet-review">
-          {details.map((detail) => (
-            <div key={detail.label}>
-              <dt>{detail.label}</dt>
-              <dd>{detail.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-      <TransactionSafetyChecks checks={checks} />
+      <ReviewSection id="review-details" title={t("review.intent")}><ReviewDetailList details={details} /></ReviewSection>
+      {costDetails.length > 0 && <ReviewSection id="review-cost" title={t("review.cost")}><ReviewDetailList details={costDetails} /></ReviewSection>}
+      {review && <TransactionExpectedChanges intent={review.intent} />}
+      <ReviewSection id="review-evidence" title={t("review.safetyEvidence")}><TransactionSafetyChecks checks={checks} />{effectiveAssessment && <TransactionSafetyAssessmentView assessment={effectiveAssessment} />}</ReviewSection>
+      <ReviewLimitations assessment={effectiveAssessment} simulationNotPerformed={simulationNotPerformed} />
       {review && (
         <p className="review-validity">
           {t("review.details")} · {new Date(review.expiresAt).toLocaleTimeString()}
         </p>
       )}
-      {(assessment || review) && <TransactionSafetyAssessmentView assessment={assessment ?? review!.assessment} />}
-      {review && <TransactionExpectedChanges intent={review.intent} />}
       {children}
-      <div className="wallet-confirmation">
-        <strong>{t("review.walletConfirmation")}</strong>
-        <span>{walletNotice}</span>
-        <small>{t("review.networkFee")}</small>
-      </div>
+      <WalletHandoffNotice notice={walletNotice} />
       <div className="modal-actions">
-        <button type="button" className="secondary-action" onClick={onBack}>
+        <button type="button" className="secondary-action" onClick={onBack} disabled={backDisabled}>
           {t("review.back")}
         </button>
         <button type="button" className="primary-action" onClick={onContinue} disabled={blocked || continueDisabled}>
@@ -117,6 +104,25 @@ export function TransactionSafetyReview({ title, summary, details, compactDetail
       </div>
     </div>
   );
+}
+
+function ReviewSection({ id, title, compact = false, children }: { id: string; title: string; compact?: boolean; children: ReactNode }) {
+  return <section className={`review-section${compact ? " review-section-compact" : ""}`} aria-labelledby={id}><h4 id={id}>{title}</h4>{children}</section>;
+}
+
+function ReviewDetailList({ details, className = "" }: { details: readonly ReviewDetail[]; className?: string }) {
+  return <dl className={`wallet-review ${className}`.trim()}>{details.map((detail) => <div key={detail.label}><dt>{detail.label}</dt><dd className={detail.presentation === "prose" ? "review-detail-prose" : undefined}>{detail.value}</dd></div>)}</dl>;
+}
+
+function ReviewLimitations({ assessment, simulationNotPerformed }: { assessment?: TransactionSafetyAssessment; simulationNotPerformed: boolean }) {
+  const { t } = usePreferences();
+  if (!simulationNotPerformed && assessment?.status !== "unknown") return null;
+  return <section className="review-limitations" aria-labelledby="review-limitations"><h4 id="review-limitations">{t("review.limitations")}</h4>{simulationNotPerformed && <p>{t("review.simulationNotPerformed")}</p>}{assessment?.status === "unknown" && <p>{t("review.evidenceUnknown")}</p>}</section>;
+}
+
+function WalletHandoffNotice({ notice, compact = false }: { notice: string; compact?: boolean }) {
+  const { t } = usePreferences();
+  return <div className={compact ? "compact-wallet-notice" : "wallet-confirmation"}><strong>{t("review.walletHandoff")}</strong>{notice && <span>{notice}</span>}<small>{t("review.walletHandoffDescription")}</small>{!compact && <small>{t("review.networkFee")}</small>}</div>;
 }
 
 function CompactSafetySummary({ checks, assessment }: { checks: readonly SafetyCheck[]; assessment?: TransactionSafetyAssessment }) {

@@ -60,14 +60,14 @@ test("17 Arc-side bridge transfer verifies", () => assert.equal(verifyTransactio
 test("18 bridge verification exposes no destination completion claim", () => assert.equal("destinationCompleted" in verifyTransactionReceipt(activity({ kind: "bridge" }), wallet, receipt([transfer()])), false));
 
 test("19 matching Arc Memo event is detected", () => assert.ok(verifyTransactionReceipt(activity(), wallet, receipt([transfer(), memoLog("Dinner")])).memo));
-test("20 valid UTF-8 memo decoded", () => assert.equal(findMatchingMemo([memoLog("Dinner")], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n })?.text, "Dinner"));
-test("21 Vietnamese memo decoded", () => assert.equal(findMatchingMemo([memoLog("Ăn tối")], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n })?.text, "Ăn tối"));
-test("22 emoji memo decoded", () => assert.equal(findMatchingMemo([memoLog("Dinner 🍜")], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n })?.text, "Dinner 🍜"));
-test("23 wrong Memo sender ignored", () => assert.equal(findMatchingMemo([memoLog("Dinner", { sender: wrong })], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n }), undefined));
-test("24 wrong Memo target ignored", () => assert.equal(findMatchingMemo([memoLog("Dinner", { target: eurc.address })], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n }), undefined));
-test("25 wrong callDataHash ignored", () => assert.equal(findMatchingMemo([memoLog("Dinner", { callDataHash: `0x${"99".repeat(32)}` })], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n }), undefined));
-test("26 unrelated Memo event ignored", () => assert.equal(findMatchingMemo([memoLog("Dinner", { sender: wrong, target: eurc.address })], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n }), undefined));
-test("27 malformed memo log fails safely", () => assert.equal(findMatchingMemo([{ address: ARC_MEMO_ADDRESS, data: "0x12", topics: ["0x12"] }], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n }), undefined));
+test("20 valid UTF-8 memo decoded", () => assert.equal(findMatchingMemo([memoLog("Dinner")], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n, transactionHash: hash })?.text, "Dinner"));
+test("21 Vietnamese memo decoded", () => assert.equal(findMatchingMemo([memoLog("Ăn tối")], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n, transactionHash: hash })?.text, "Ăn tối"));
+test("22 emoji memo decoded", () => assert.equal(findMatchingMemo([memoLog("Dinner 🍜")], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n, transactionHash: hash })?.text, "Dinner 🍜"));
+test("23 wrong Memo sender ignored", () => assert.equal(findMatchingMemo([memoLog("Dinner", { sender: wrong })], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n, transactionHash: hash }), undefined));
+test("24 wrong Memo target ignored", () => assert.equal(findMatchingMemo([memoLog("Dinner", { target: eurc.address })], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n, transactionHash: hash }), undefined));
+test("25 wrong callDataHash ignored", () => assert.equal(findMatchingMemo([memoLog("Dinner", { callDataHash: `0x${"99".repeat(32)}` })], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n, transactionHash: hash }), undefined));
+test("26 unrelated Memo event ignored", () => assert.equal(findMatchingMemo([memoLog("Dinner", { sender: wrong, target: eurc.address })], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n, transactionHash: hash }), undefined));
+test("27 malformed memo log fails safely", () => assert.equal(findMatchingMemo([{ address: ARC_MEMO_ADDRESS, data: "0x12", topics: ["0x12"] }], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n, transactionHash: hash }), undefined));
 test("28 missing Memo event means no memo, not receipt failure", () => { const result = verifyTransactionReceipt(activity(), wallet, receipt([transfer()])); assert.equal(result.verified, true); assert.equal(result.memo, undefined); });
 test("normal direct Send without Memo verifies through the unique fallback", () => { const result = verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 5 })])); assert.equal(result.verified, true); assert.equal(result.memo, undefined); });
 test("unrelated Memo remains ignored when Transfer uses fallback", () => { const result = verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 5 }), memoLog("Dinner", { sender: wrong })])); assert.equal(result.verified, true); assert.equal(result.memo, undefined); });
@@ -78,3 +78,30 @@ test("30 contact display name is not leaked into canonical share text", () => as
 test("31 note included only when verified", () => assert.match(buildCanonicalReceiptText(activity(), verifyTransactionReceipt(activity(), wallet, receipt([transfer(), memoLog("Dinner")])), "en"), /Note: Dinner/));
 test("32 no note line when absent", () => assert.doesNotMatch(buildCanonicalReceiptText(activity(), verifyTransactionReceipt(activity(), wallet, receipt([transfer()])), "en"), /^Note:/m));
 test("33 deterministic receipt text", () => { const verified = verifyTransactionReceipt(activity(), wallet, receipt([transfer()])); assert.equal(buildCanonicalReceiptText(activity(), verified, "vi"), buildCanonicalReceiptText(activity(), verified, "vi")); });
+
+for (const locale of ["en", "vi"] as const) {
+  for (const outcome of ["success", "reverted", "unresolved"] as const) {
+    test(`Phase 7H swap export/share input wording: ${outcome} ${locale}`, () => {
+      const a = swapActivity();
+      const evidence = outcome === "success" ? receipt([transfer(), swapReceive()]) : receipt([], { status: outcome === "reverted" ? "reverted" : "success" });
+      const verification = verifyTransactionReceipt(a, wallet, evidence);
+      const text = buildCanonicalReceiptText(a, verification, locale);
+      const lines = text.split("\n");
+      const vi = locale === "vi";
+      if (outcome === "success") {
+        assert.equal(lines[1], vi ? "Trạng thái: Đã xác nhận" : "Status: Confirmed");
+        assert.equal(lines[3], vi ? "Đã gửi: 5 USDC" : "Sent: 5 USDC");
+        assert.equal(lines[4], vi ? "Đã nhận: 4.99 EURC" : "Received: 4.99 EURC");
+      } else {
+        assert.equal(lines[1], outcome === "reverted" ? (vi ? "Trạng thái: Xác nhận thất bại" : "Status: Confirmed failure") : (vi ? "Trạng thái: Đã gửi — chưa rõ trạng thái xác nhận" : "Status: Submitted — confirmation status unknown"));
+        assert.equal(lines[3], vi ? "Số tiền dự định gửi: 5 USDC" : "Intended amount: 5 USDC");
+        // The existing VI status describes submission, not a completed asset transfer.
+        assert.doesNotMatch(text, /^(?:Sent|Đã gửi):/m);
+        assert.doesNotMatch(text, /^(?:Received|Đã nhận):/m);
+        assert.doesNotMatch(text, /4\.99/);
+      }
+      assert.equal(a.amount, 5_000_000n);
+      assert.equal(a.swapReceive?.amount, 4_990_000n);
+    });
+  }
+}

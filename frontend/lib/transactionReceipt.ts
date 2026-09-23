@@ -8,33 +8,69 @@ import { arcScanTransactionUrl, type WalletActivity } from "./wallet.ts";
 export const transferEventAbi = [{ type: "event", name: "Transfer", inputs: [{ name: "from", type: "address", indexed: true }, { name: "to", type: "address", indexed: true }, { name: "value", type: "uint256", indexed: false }] }] as const;
 
 export type ReceiptLog = { address: Address | string; data: Hex; topics: readonly Hex[]; logIndex?: number | null; transactionHash?: Hash | null };
-export type MinimalTransactionReceipt = { status: "success" | "reverted"; transactionHash: Hash; blockNumber: bigint; logs: readonly ReceiptLog[] };
+export type MinimalTransactionReceipt = { status: "success" | "reverted"; transactionHash?: Hash | null; blockNumber: bigint; logs: readonly ReceiptLog[] };
+export type SwapReceiveEvidence = Readonly<{ amount: bigint; logIndex: number }>;
 export type VerifiedMemo = { text?: string; data: Hex; memoId: Hex; memoIndex: bigint };
 export type ReceiptVerification = { verified: boolean; from: Address; to: Address; blockNumber: bigint; memo?: VerifiedMemo; reason?: "status" | "hash" | "block" | "transfer-missing" | "transfer-ambiguous" | "swap-sent" | "swap-receive" };
+export type ReceiptConfirmationStatus = "not-submitted" | "submitted-unknown" | "confirmed-success" | "confirmed-failure";
+
+/** Classify receipt evidence before it is presented or exported. */
+export function classifyReceiptConfirmation(verification: ReceiptVerification | undefined, submitted = true): ReceiptConfirmationStatus {
+  if (!submitted) return "not-submitted";
+  if (!verification) return "submitted-unknown";
+  if (verification.verified) return "confirmed-success";
+  return verification.reason === "status" ? "confirmed-failure" : "submitted-unknown";
+}
 
 export function verifyTransactionReceipt(activity: WalletActivity, walletAddress: Address, receipt: MinimalTransactionReceipt): ReceiptVerification {
   const wallet = getAddress(walletAddress);
   const from = activity.direction === "send" ? wallet : activity.counterparty;
   const to = activity.direction === "send" ? activity.counterparty : wallet;
   const blockNumber = receipt.blockNumber;
+  const receiptHash = receipt.transactionHash;
+  if (!receiptHash || receiptHash.toLowerCase() !== activity.hash.toLowerCase()) return { verified: false, from, to, blockNumber, reason: "hash" };
   if (receipt.status !== "success") return { verified: false, from, to, blockNumber, reason: "status" };
-  if (receipt.transactionHash.toLowerCase() !== activity.hash.toLowerCase()) return { verified: false, from, to, blockNumber, reason: "hash" };
   if (activity.blockNumber > 0n && receipt.blockNumber !== activity.blockNumber) return { verified: false, from, to, blockNumber, reason: "block" };
-  const sent = findTransfer(receipt.logs, { token: activity.tokenAddress, from, to, value: activity.amount, logIndex: activity.logIndex, transactionHash: receipt.transactionHash });
+  const sent = findTransfer(receipt.logs, { token: activity.tokenAddress, from, to, value: activity.amount, logIndex: activity.logIndex, transactionHash: receiptHash });
   if (sent !== "matched") return { verified: false, from, to, blockNumber, reason: activity.kind === "swap" ? "swap-sent" : sent === "ambiguous" ? "transfer-ambiguous" : "transfer-missing" };
   if (activity.kind === "swap") {
     const receive = activity.swapReceive;
-    if (!receive || findTransfer(receipt.logs, { token: receive.tokenAddress, to: wallet, value: receive.amount, logIndex: receive.logIndex, transactionHash: receipt.transactionHash }) !== "matched") return { verified: false, from, to, blockNumber, reason: "swap-receive" };
+    if (!receive || findTransfer(receipt.logs, { token: receive.tokenAddress, to: wallet, value: receive.amount, logIndex: receive.logIndex, transactionHash: receiptHash }) !== "matched") return { verified: false, from, to, blockNumber, reason: "swap-receive" };
   }
-  const memo = activity.kind === "transfer" ? findMatchingMemo(receipt.logs, { sender: from, token: activity.tokenAddress, recipient: to, amount: activity.amount }) : undefined;
+  const memo = activity.kind === "transfer" ? findMatchingMemo(receipt.logs, { sender: from, token: activity.tokenAddress, recipient: to, amount: activity.amount, transactionHash: receiptHash }) : undefined;
   return { verified: true, from, to, blockNumber, ...(memo ? { memo } : {}) };
 }
 
-export function findMatchingMemo(logs: readonly ReceiptLog[], expected: { sender: Address; token: Address; recipient: Address; amount: bigint }): VerifiedMemo | undefined {
+/**
+ * Derive a swap's actual output only from one unambiguous ERC-20 Transfer
+ * event in the submitted transaction. A quote, minimum, or arbitrary log
+ * position is never accepted as receipt evidence.
+ */
+export function findUniqueSwapReceive(receipt: MinimalTransactionReceipt, expected: { token: Address; recipient: Address; transactionHash: Hash }): SwapReceiveEvidence | undefined {
+  const receiptHash = receipt.transactionHash;
+  if (!receiptHash || receiptHash.toLowerCase() !== expected.transactionHash.toLowerCase()) return undefined;
+  if (receipt.status !== "success") return undefined;
+  const matches: SwapReceiveEvidence[] = [];
+  for (const log of receipt.logs) {
+    if (!isAddress(log.address) || getAddress(log.address) !== getAddress(expected.token)) continue;
+    if (log.transactionHash && log.transactionHash.toLowerCase() !== receiptHash.toLowerCase()) continue;
+    const logIndex = log.logIndex;
+    if (typeof logIndex !== "number" || !Number.isSafeInteger(logIndex) || logIndex < 0) continue;
+    try {
+      const decoded = decodeEventLog({ abi: transferEventAbi, eventName: "Transfer", data: log.data, topics: log.topics as [Hex, ...Hex[]] });
+      if (getAddress(decoded.args.to) !== getAddress(expected.recipient) || decoded.args.value <= 0n) continue;
+      matches.push({ amount: decoded.args.value, logIndex });
+    } catch { /* Malformed and unrelated logs are not receipt evidence. */ }
+  }
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+export function findMatchingMemo(logs: readonly ReceiptLog[], expected: { sender: Address; token: Address; recipient: Address; amount: bigint; transactionHash: Hash }): VerifiedMemo | undefined {
   const innerData = encodeFunctionData({ abi: erc20BalanceAbi, functionName: "transfer", args: [expected.recipient, expected.amount] });
   const expectedHash = keccak256(innerData);
   for (const log of logs) {
     if (!isAddress(log.address) || getAddress(log.address) !== ARC_MEMO_ADDRESS) continue;
+    if (!log.transactionHash || log.transactionHash.toLowerCase() !== expected.transactionHash.toLowerCase()) continue;
     try {
       const decoded = decodeEventLog({ abi: arcMemoAbi, eventName: "Memo", data: log.data, topics: log.topics as [Hex, ...Hex[]] });
       const args = decoded.args;
@@ -56,9 +92,14 @@ export function buildCanonicalReceiptText(activity: WalletActivity, verification
   const vi = locale === "vi";
   const asset = getAssetById(activity.assetId)!;
   const type = activity.kind === "swap" ? (vi ? "Hoán đổi" : "Swap") : activity.kind === "bridge" ? (vi ? "Bridge" : "Bridge") : activity.direction === "send" ? (vi ? "Gửi" : "Send") : (vi ? "Nhận" : "Receive");
-  const lines = [vi ? "Makoto Wallet — Biên nhận giao dịch" : "Makoto Wallet — Transaction Receipt", `${vi ? "Trạng thái" : "Status"}: ${vi ? "Đã xác nhận" : "Confirmed"}`, `${vi ? "Loại" : "Type"}: ${type}`];
-  if (activity.kind === "swap" && activity.swapReceive) lines.push(`${vi ? "Đã gửi" : "Sent"}: ${formatAssetAmount(activity.amount, asset)} ${activity.assetSymbol}`, `${vi ? "Đã nhận" : "Received"}: ${formatAssetAmount(activity.swapReceive.amount, getAssetById(activity.swapReceive.assetId)!)} ${activity.swapReceive.assetSymbol}`);
-  else lines.push(`${vi ? "Số tiền" : "Amount"}: ${formatAssetAmount(activity.amount, asset)} ${activity.assetSymbol}`);
+  const status = classifyReceiptConfirmation(verification);
+  const statusLabel = status === "confirmed-success" ? (vi ? "Đã xác nhận" : "Confirmed") : status === "confirmed-failure" ? (vi ? "Xác nhận thất bại" : "Confirmed failure") : (vi ? "Đã gửi — chưa rõ trạng thái xác nhận" : "Submitted — confirmation status unknown");
+  const lines = [vi ? "Makoto Wallet — Biên nhận giao dịch" : "Makoto Wallet — Transaction Receipt", `${vi ? "Trạng thái" : "Status"}: ${statusLabel}`, `${vi ? "Loại" : "Type"}: ${type}`];
+  if (activity.kind === "swap") {
+    const inputLabel = status === "confirmed-success" ? (vi ? "Đã gửi" : "Sent") : (vi ? "Số tiền dự định gửi" : "Intended amount");
+    lines.push(`${inputLabel}: ${formatAssetAmount(activity.amount, asset)} ${activity.assetSymbol}`);
+    if (status === "confirmed-success" && activity.swapReceive) lines.push(`${vi ? "Đã nhận" : "Received"}: ${formatAssetAmount(activity.swapReceive.amount, getAssetById(activity.swapReceive.assetId)!)} ${activity.swapReceive.assetSymbol}`);
+  } else lines.push(`${vi ? "Số tiền" : "Amount"}: ${formatAssetAmount(activity.amount, asset)} ${activity.assetSymbol}`);
   lines.push(`${vi ? "Từ" : "From"}: ${verification.from}`, `${vi ? "Đến" : "To"}: ${verification.to}`, `${vi ? "Mạng" : "Network"}: Arc Testnet`, `${vi ? "Khối" : "Block"}: ${verification.blockNumber}`, `${vi ? "Giao dịch" : "Transaction"}: ${activity.hash}`);
   if (verification.verified && verification.memo?.text) lines.push(`${vi ? "Ghi chú" : "Note"}: ${verification.memo.text}`);
   lines.push(`ArcScan: ${arcScanTransactionUrl(activity.hash)}`);

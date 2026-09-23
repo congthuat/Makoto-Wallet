@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useConnection, useDisconnect } from "wagmi";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
 import { useHydrated } from "@/hooks/useHydrated";
+import { useWalletReadContext } from "@/hooks/useWalletAccount";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { formatUsdc, shortAddress } from "@/lib/format";
 import { ARC_EXPLORER_URL } from "@/lib/config";
@@ -16,6 +17,7 @@ export function WalletControl() {
   const hydrated = useHydrated();
   const connection = useConnection();
   const disconnect = useDisconnect();
+  const wallet = useWalletReadContext();
   const verifiedChain = useVerifiedWalletChain();
   const { t } = usePreferences();
   const [accountOpen, setAccountOpen] = useState(false);
@@ -26,7 +28,10 @@ export function WalletControl() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelCloseRef = useRef<HTMLButtonElement>(null);
   const onArc = verifiedChain.isArc;
-  const balances = useWalletBalances(connection.address, connection.isConnected && onArc);
+  const localWallet = wallet.kind === "local";
+  const activeAddress = wallet.address ?? connection.address;
+  const activeOnArc = localWallet ? wallet.isArc : onArc;
+  const balances = useWalletBalances(activeAddress, !localWallet && connection.isConnected && onArc);
   const walletName = connection.connector?.name;
   const walletKind = walletKindFromConnector(connection.connector?.id);
 
@@ -83,13 +88,13 @@ export function WalletControl() {
   }
 
   async function copyAddress() {
-    if (!connection.address) return;
-    await navigator.clipboard.writeText(connection.address);
+    if (!activeAddress) return;
+    await navigator.clipboard.writeText(activeAddress);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
 
-  if (!hydrated || connection.status !== "connected") {
+  if (!hydrated || (!localWallet && connection.status !== "connected") || !activeAddress) {
     return <div className="wallet-control">
       <button
         className="connect-button"
@@ -102,11 +107,21 @@ export function WalletControl() {
     </div>;
   }
 
-  const accountPanel = <div className="wallet-popover connected-popover account-menu" role="dialog" aria-modal={isMobileAccountSheet ? "true" : undefined} aria-label={t("wallet.connected")}>
+  const localAccountPanel = <div className="wallet-popover connected-popover account-menu" role="dialog" aria-modal={isMobileAccountSheet ? "true" : undefined} aria-label={wallet.providerName ?? "Makoto Local Wallet"}>
+    <div className="wallet-popover-heading"><strong>{t("wallet.account")}</strong><button ref={panelCloseRef} onClick={(event) => closeAccount(event.detail === 0)} aria-label={t("common.close")}>×</button></div>
+    <span className="account-provider">{wallet.providerName ?? "Makoto Local Wallet"}</span>
+    <p className="account-address">{shortAddress(activeAddress)}</p>
+    <div className="account-links"><button onClick={() => void copyAddress()}>{copied ? t("wallet.copied") : t("wallet.copy")}</button><a href={`${ARC_EXPLORER_URL}/address/${activeAddress}`} target="_blank" rel="noreferrer">{t("wallet.arcscan")} ↗</a></div>
+    <div className="wallet-network-row"><span>{t("wallet.network")}</span><strong><i className={activeOnArc ? "healthy-dot" : "warning-dot"} />{activeOnArc ? t("network.arc") : t("wallet.wrongNetwork")}</strong></div>
+    <div className="wallet-network-row"><span>{t("wallet.wallet")}</span><strong>{wallet.status === "connected" ? t("onboarding.unlocked") : t("onboarding.locked")}</strong></div>
+    <a className="account-settings-link" href="/settings#security" onClick={() => setAccountOpen(false)}>{t("overview.securityCenter")}</a>
+  </div>;
+
+  const accountPanel = localWallet ? localAccountPanel : <div className="wallet-popover connected-popover account-menu" role="dialog" aria-modal={isMobileAccountSheet ? "true" : undefined} aria-label={t("wallet.connected")}>
     <div className="wallet-popover-heading"><strong>{t("wallet.account")}</strong><button ref={panelCloseRef} onClick={(event) => closeAccount(event.detail === 0)} aria-label={t("common.close")}>×</button></div>
     <span className="account-provider">{walletKind === "embedded" ? t("onboarding.walletType") : t("onboarding.externalWalletType")}{walletName ? ` · ${walletName}` : ""}</span>
-    <p className="account-address">{shortAddress(connection.address)}</p>
-    <div className="account-links"><button onClick={() => void copyAddress()}>{copied ? t("wallet.copied") : t("wallet.copy")}</button><a href={`${ARC_EXPLORER_URL}/address/${connection.address}`} target="_blank" rel="noreferrer">{t("wallet.arcscan")} ↗</a></div>
+    <p className="account-address">{shortAddress(activeAddress)}</p>
+    <div className="account-links"><button onClick={() => void copyAddress()}>{copied ? t("wallet.copied") : t("wallet.copy")}</button><a href={`${ARC_EXPLORER_URL}/address/${activeAddress}`} target="_blank" rel="noreferrer">{t("wallet.arcscan")} ↗</a></div>
     <div className="wallet-network-row"><span>{t("wallet.network")}</span><strong><i className={onArc ? "healthy-dot" : "warning-dot"} />{onArc ? t("network.arc") : t("wallet.wrongNetwork")}</strong></div>
     {onArc ? <div className="wallet-balances"><div><span>{t("wallet.usdcBalance")}</span><strong>{balances.usdc.data === undefined ? "…" : formatUsdc(balances.usdc.data)} USDC</strong></div></div> : <button className="switch-button" onClick={() => void switchToArc()} disabled={isSwitchPending(verifiedChain.switchStatus)}>{switchButtonLabel(verifiedChain.switchStatus, t)}</button>}
     {verifiedChain.switchMessage && <p className={verifiedChain.switchStatus === "connected" ? "wallet-success" : "wallet-error"} role="status">{verifiedChain.switchMessage}</p>}
@@ -123,9 +138,9 @@ export function WalletControl() {
     : null;
 
   return <div ref={controlRef} className="wallet-control connected">
-    <button ref={triggerRef} className={`wallet-summary ${onArc ? "on-arc" : "wrong-chain"}`} onClick={() => setAccountOpen((open) => !open)} aria-expanded={accountOpen}>
+    <button ref={triggerRef} className={`wallet-summary ${activeOnArc ? "on-arc" : "wrong-chain"}`} onClick={() => setAccountOpen((open) => !open)} aria-expanded={accountOpen}>
       <span className="wallet-status-dot" />
-      <span><strong>{shortAddress(connection.address)}</strong><small>{onArc ? t("network.arc") : t("wallet.wrongNetwork")}</small></span>
+      <span><strong>{shortAddress(activeAddress)}</strong><small>{localWallet ? `${wallet.providerName ?? "Makoto Local Wallet"} · ${wallet.status === "connected" ? t("onboarding.unlocked") : t("onboarding.locked")}` : activeOnArc ? t("network.arc") : t("wallet.wrongNetwork")}</small></span>
     </button>
     {accountOpen && !isMobileAccountSheet && accountPanel}
     {mobileAccountOverlay}

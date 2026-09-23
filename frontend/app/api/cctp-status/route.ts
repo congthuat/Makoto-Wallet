@@ -19,10 +19,17 @@ export async function GET(request: NextRequest) {
   if (response.status === 404) return NextResponse.json({ status: "pending" }, { headers: { "Cache-Control": "no-store" } });
   if (!response.ok) return NextResponse.json({ status: "pending" }, { headers: { "Cache-Control": "no-store" } });
 
-  const payload = await response.json().catch(() => undefined) as { messages?: Array<{ status?: unknown; forwardTxHash?: unknown }> } | undefined;
+  const payload = await response.json().catch(() => undefined) as { messages?: Array<{ status?: unknown; attestation?: unknown; forwardingState?: unknown; forwardingStatus?: unknown; forwardTxHash?: unknown }> } | undefined;
   const message = payload?.messages?.[0];
+  const messageStatus = typeof message?.status === "string" ? message.status : "pending";
   const forwardTxHash = typeof message?.forwardTxHash === "string" && /^0x[0-9a-fA-F]{64}$/.test(message.forwardTxHash)
     ? message.forwardTxHash
     : undefined;
-  return NextResponse.json({ status: forwardTxHash ? "complete" : typeof message?.status === "string" ? message.status : "pending", forwardTxHash }, { headers: { "Cache-Control": "no-store" } });
+  const forwardingState = typeof message?.forwardingState === "string"
+    ? message.forwardingState
+    : typeof message?.forwardingStatus === "string"
+      ? message.forwardingStatus
+      : forwardTxHash ? "submitted" : "pending";
+  const attestationStatus = typeof message?.attestation === "string" && message.attestation.startsWith("0x") ? "available" : messageStatus;
+  return NextResponse.json({ status: forwardTxHash ? "complete" : messageStatus, messageStatus, attestationStatus, forwardingState, forwardTxHash }, { headers: { "Cache-Control": "no-store" } });
 }

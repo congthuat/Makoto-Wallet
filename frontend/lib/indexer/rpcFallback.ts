@@ -1,8 +1,8 @@
-import { createPublicClient, getAddress, http, parseAbiItem, toFunctionSelector, type Address, type Hash, type PublicClient } from "viem";
+import { createPublicClient, fallback, getAddress, http, parseAbiItem, toFunctionSelector, type Address, type Hash, type PublicClient } from "viem";
 import { arcTestnet } from "viem/chains";
 
 import { SUPPORTED_ASSETS } from "../assets.ts";
-import { arcRpcUrl } from "../config.ts";
+import { ARC_PUBLIC_RPC_URLS } from "../config.ts";
 import { CCTP_TOKEN_MESSENGER_ABI, CCTP_TOKEN_MESSENGER_V2, CCTP_TOKEN_MINTER_V2 } from "../cctp.ts";
 import { groupXyloSwaps, normalizeWalletActivities } from "../onchainActivity.ts";
 import type { WalletActivity } from "../wallet.ts";
@@ -11,7 +11,7 @@ const TRANSFER = parseAbiItem("event Transfer(address indexed from, address inde
 const CCTP_SELECTOR = toFunctionSelector(CCTP_TOKEN_MESSENGER_ABI[0]);
 export const RPC_ACTIVITY_BLOCK_WINDOW = 10_000n;
 
-export async function loadRecentRpcActivity(wallet: Address, vaultAddress?: Address, client: PublicClient = createPublicClient({ chain: arcTestnet, transport: http(arcRpcUrl, { timeout: 10_000 }) })) {
+export async function loadRecentRpcActivity(wallet: Address, vaultAddress?: Address, client: PublicClient = createPublicClient({ chain: arcTestnet, transport: fallback(ARC_PUBLIC_RPC_URLS.map((url) => http(url, { retryCount: 1, retryDelay: 250, timeout: 10_000 })), { rank: false, retryCount: 1, retryDelay: 300 }) })) {
   const latest = await client.getBlockNumber();
   const fromBlock = latest >= RPC_ACTIVITY_BLOCK_WINDOW ? latest - RPC_ACTIVITY_BLOCK_WINDOW + 1n : 0n;
   const logs = (await Promise.all(SUPPORTED_ASSETS.flatMap((asset) => [

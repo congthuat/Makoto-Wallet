@@ -29,7 +29,7 @@ export function deserializeWalletActivity(payload: string): WalletActivity[] {
     const parsed: unknown = JSON.parse(payload);
     if (!Array.isArray(parsed)) return [];
     const records = parsed.map(parseV3Record);
-    return records.every(Boolean) ? normalizeWalletActivities(records as WalletActivity[], MAX_ACTIVITY) : [];
+    return records.every(Boolean) ? normalizeLogicalWalletActivities(records as WalletActivity[], MAX_ACTIVITY) : [];
   } catch { return []; }
 }
 
@@ -47,7 +47,7 @@ export function loadWalletActivity(address: Address, chainId: number, storage = 
 }
 
 export function saveWalletActivity(address: Address, chainId: number, records: WalletActivity[], storage = browserStorage()) {
-  const normalized = normalizeWalletActivities(records, MAX_ACTIVITY);
+  const normalized = normalizeLogicalWalletActivities(records, MAX_ACTIVITY);
   try { storage?.setItem(walletActivityKey(address, chainId), serializeWalletActivity(normalized)); } catch { /* local cache is non-authoritative */ }
   return normalized;
 }
@@ -65,12 +65,30 @@ export function recordWalletActivity(address: Address, chainId: number, record: 
 }
 
 export function mergeWalletActivity(onchain: WalletActivity[], local: WalletActivity[], limit = 250) {
-  const canonical = new Set(onchain.map(canonicalTransferIdentity));
-  return normalizeWalletActivities([...onchain, ...local.filter((item) => !canonical.has(canonicalTransferIdentity(item)))], limit);
+  return normalizeLogicalWalletActivities([...onchain, ...local], limit);
 }
 
-function canonicalTransferIdentity(item: WalletActivity) {
-  return `${item.hash.toLowerCase()}:${item.tokenAddress.toLowerCase()}:${item.direction}:${item.amount}:${item.counterparty.toLowerCase()}`;
+/** Account and chain are already bound by the storage/query key, so a hash is
+ * the deterministic identity of one logical transaction on this surface. */
+export function activityTransactionIdentity(item: Pick<WalletActivity, "hash">) {
+  return item.hash.toLowerCase();
+}
+
+function normalizeLogicalWalletActivities(records: WalletActivity[], limit: number) {
+  const unique = new Map<string, WalletActivity>();
+  for (const item of normalizeWalletActivities(records, Number.MAX_SAFE_INTEGER)) {
+    const key = activityTransactionIdentity(item);
+    const previous = unique.get(key);
+    if (!previous || preferActivity(item, previous)) unique.set(key, item);
+  }
+  return normalizeWalletActivities([...unique.values()], limit);
+}
+
+function preferActivity(candidate: WalletActivity, previous: WalletActivity) {
+  if (candidate.source !== previous.source) return candidate.source === "onchain";
+  if ((candidate.logIndex >= 0) !== (previous.logIndex >= 0)) return candidate.logIndex >= 0;
+  if ((candidate.blockNumber > 0n) !== (previous.blockNumber > 0n)) return candidate.blockNumber > 0n;
+  return candidate.confirmedAt > previous.confirmedAt;
 }
 
 function parseV3Record(value: unknown): WalletActivity | undefined {
@@ -84,7 +102,7 @@ function parseV3Record(value: unknown): WalletActivity | undefined {
     if (!receivedAsset || value.swapReceive.assetSymbol !== receivedAsset.symbol || value.swapReceive.tokenAddress !== receivedAsset.address || value.swapReceive.decimals !== receivedAsset.decimals) return undefined;
     swapReceive = { amount: BigInt(value.swapReceive.amount), assetId: receivedAsset.id, assetSymbol: receivedAsset.symbol, tokenAddress: receivedAsset.address, decimals: receivedAsset.decimals, logIndex: value.swapReceive.logIndex };
   }
-  if ((value.kind === "swap") !== Boolean(swapReceive)) return undefined;
+  if ((value.swapReceive !== undefined && !swapReceive) || (value.kind !== "swap" && swapReceive)) return undefined;
   return { hash: value.hash, logIndex: value.logIndex, direction: value.direction, kind: value.kind, amount: BigInt(value.amount), counterparty: getAddress(value.counterparty), confirmedAt: value.confirmedAt, blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals, source: "local", provider: "local-receipt", ...(swapReceive ? { swapReceive } : {}) };
 }
 

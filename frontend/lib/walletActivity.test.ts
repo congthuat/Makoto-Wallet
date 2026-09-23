@@ -42,10 +42,22 @@ test("local optimistic record does not duplicate its canonical on-chain transfer
   assert.deepEqual(mergeWalletActivity([canonical], [optimistic]), [canonical]);
 });
 
-test("same hash can retain multiple token transfer logs", () => {
+test("one transaction hash produces one logical Activity entry", () => {
   const usdc = activity(5, "usdc", 100, 1);
   const eurc = { ...activity(6, "eurc", 100, 2), hash: usdc.hash };
-  assert.equal(mergeWalletActivity([usdc, eurc], []).length, 2);
+  assert.equal(mergeWalletActivity([usdc, eurc], []).length, 1);
+});
+
+test("Phase 4.5 submitted-to-confirmed pattern upserts instead of duplicating", () => {
+  const storage = new MemoryStorage();
+  const confirmed = activity(7, "usdc", 200, 9);
+  const submitted = { ...confirmed, logIndex: -1, confirmedAt: 100, blockNumber: 0n };
+  recordWalletActivity(owner, 5042002, submitted, storage);
+  recordWalletActivity(owner, 5042002, confirmed, storage);
+  const persisted = loadWalletActivity(owner, 5042002, storage);
+  assert.equal(persisted.length, 1);
+  assert.equal(persisted[0].logIndex, 9);
+  assert.deepEqual(mergeWalletActivity([confirmed], [submitted, confirmed]), [confirmed]);
 });
 
 test("malformed v3 and legacy payloads fail safely", () => {

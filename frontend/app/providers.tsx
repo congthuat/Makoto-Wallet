@@ -9,6 +9,7 @@ import { PreferenceProvider, usePreferences } from "@/hooks/usePreferences";
 import type { Locale, ThemePreference } from "@/i18n";
 import { AppLockProvider } from "@/hooks/useAppLock";
 import { AppLockGate } from "@/components/AppLockGate";
+import { LocalWalletProvider } from "@/hooks/useWalletAccount";
 
 export function Providers({ children, initialLocale, initialTheme }: { children: ReactNode; initialLocale: Locale; initialTheme: ThemePreference }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -19,7 +20,7 @@ export function Providers({ children, initialLocale, initialTheme }: { children:
       <AppKitThemeSync />
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-          <AppLockProvider><AppLockGate><WalletNetworkProvider>{children}</WalletNetworkProvider></AppLockGate></AppLockProvider>
+          <AppLockProvider><AppLockGate><LocalWalletProvider><WalletNetworkProvider>{children}</WalletNetworkProvider></LocalWalletProvider></AppLockGate></AppLockProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </PreferenceProvider>

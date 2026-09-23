@@ -2,9 +2,9 @@ import { formatUnits, getAddress, parseUnits, type Address } from "viem";
 import type { GetBalancesResult, EstimateSpendResult, SpendResult, DepositResult } from "@circle-fin/app-kit";
 import type { UnifiedBalance } from "./types.ts";
 
-export function normalizeUnifiedBalance(input: { available: bigint; pending: bigint; sources: UnifiedBalance["sources"] }): UnifiedBalance {
-  if (input.available < 0n || input.pending < 0n || input.sources.some((source) => source.amount < 0n)) throw new RangeError("Gateway balances cannot be negative");
-  return { ...input, total: input.available + input.pending };
+export function normalizeUnifiedBalance(input: { available: bigint; pending: bigint | undefined; sources: UnifiedBalance["sources"] }): UnifiedBalance {
+  if (input.available < 0n || (input.pending !== undefined && input.pending < 0n) || input.sources.some((source) => source.amount < 0n)) throw new RangeError("Gateway balances cannot be negative");
+  return { ...input, total: input.pending === undefined ? undefined : input.available + input.pending };
 }
 
 export type UnifiedBalanceState = { status: "ready"; balance: UnifiedBalance } | { status: "unavailable" | "disconnected"; reason: string };
@@ -12,8 +12,27 @@ export type UnifiedBalanceState = { status: "ready"; balance: UnifiedBalance } |
 export function normalizeCircleBalances(result: GetBalancesResult, account: string): UnifiedBalance {
   const entry = result.breakdown.find((item) => item.depositor.toLowerCase() === account.toLowerCase());
   const available = parseUnits(result.totalConfirmedBalance, 6);
-  const pending = parseUnits(result.totalPendingBalance ?? "0", 6);
-  return { available, pending, total: available + pending, sources: (entry?.breakdown ?? []).map((item) => ({ domain: 0, chain: String(item.chain), amount: parseUnits(item.confirmedBalance, 6) })) };
+  const pending = result.totalPendingBalance === undefined ? undefined : parseUnits(result.totalPendingBalance, 6);
+  return normalizeUnifiedBalance({ available, pending, sources: (entry?.breakdown ?? []).map((item) => ({ domain: 0, chain: String(item.chain), amount: parseUnits(item.confirmedBalance, 6) })) });
+}
+
+export type UnifiedBalanceEvidence = "unknown" | "known-zero" | "known-non-zero";
+
+export function unifiedBalanceEvidence(balance: Pick<UnifiedBalance, "available" | "pending"> | undefined): UnifiedBalanceEvidence {
+  if (!balance) return "unknown";
+  if (balance.pending === undefined) return balance.available === 0n ? "unknown" : "known-non-zero";
+  if (balance.available === 0n && balance.pending === 0n) return "known-zero";
+  return "known-non-zero";
+}
+
+export function formatUnifiedBalanceAmount(amount: bigint | undefined, unavailableLabel: string): string {
+  return amount === undefined ? unavailableLabel : formatUnits(amount, 6);
+}
+
+export function unifiedBalanceSourcesState(balance: Pick<UnifiedBalance, "sources" | "total"> | undefined): "unavailable" | "empty" | "available" {
+  if (!balance) return "unavailable";
+  if (balance.sources.length > 0) return "available";
+  return balance.total === 0n ? "empty" : "unavailable";
 }
 export function parsePositiveUsdc(value: string): bigint | undefined {
   try {

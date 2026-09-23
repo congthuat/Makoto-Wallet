@@ -1,0 +1,36 @@
+.page {
+  --mk-shell: var(--mk-page-bg);
+  --mk-shell-raised: var(--mk-surface-primary);
+  --mk-shell-line: var(--mk-border-primary);
+  --mk-shell-text: var(--mk-text-primary);
+  --mk-shell-muted: var(--mk-text-secondary);
+  --mk-blue: var(--mk-accent-primary);
+  --mk-panel: var(--mk-surface-primary);
+  --mk-ink: var(--mk-text-primary);
+  --mk-muted: var(--mk-text-secondary);
+  --mk-line: var(--mk-border-subtle);
+  --mk-inset: var(--mk-surface-tertiary);
+  --mk-sidebar-width: 240px;
+  --lc-gutter: 24px;
+  min-height: 100dvh;
+  color: var(--mk-text-primary);
+  background: var(--mk-shell);
+  font-size: var(--lc-body-size);
+  line-height: 1.5;
+}
+:global(html[data-theme="dark"]) .page { background: #080717; }
+@media (prefers-color-scheme: dark) { :global(html[data-theme="system"]) .page { background: #080717; } }
+.content { min-width: 0; margin-left: var(--mk-sidebar-width); padding: 10px var(--lc-gutter) max(24px, env(safe-area-inset-bottom)); }
+.disconnectedShell .content { margin-left: 0; padding: 0 var(--lc-gutter) max(24px, env(safe-area-inset-bottom)); }
+.content:focus { outline: none; }
+.heading { margin: 0 0 24px; }
+.heading h1 { margin: 0; font-size: var(--lc-title-size); overflow-wrap: anywhere; }
+.heading p, .heading > span { display: block; margin: 8px 0 0; color: var(--lc-text-secondary); }
+.skipLink { position: fixed; top: 8px; left: 8px; z-index: 3000; padding: 12px 16px; color: var(--mk-on-accent); background: var(--mk-blue); transform: translateY(-160%); }
+.skipLink:focus { transform: none; }
+.page :is(a,button,input,select,textarea,[tabindex]):focus-visible { outline: 3px solid var(--mk-focus); outline-offset: 3px; }
+.footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 16px; padding: 16px 4px; border-top: 1px solid var(--mk-shell-line); color: var(--mk-shell-muted); font: 11px/1.6 monospace; letter-spacing: .12em; text-transform: uppercase; }
+@media (min-width: 1900px) { .content { max-width: 1760px; } }
+@media (max-width: 1200px) { .page { --mk-sidebar-width: 216px; } .content { padding-inline: 16px; } }
+@media (max-width: 767px) { .content { margin-left: 0; padding: 14px 12px max(24px, env(safe-area-inset-bottom)); } }
+@media (max-width: 767px) { .disconnectedShell .content { padding: 0 12px max(24px, env(safe-area-inset-bottom)); } }

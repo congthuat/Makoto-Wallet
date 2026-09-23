@@ -17,13 +17,13 @@ export function MakotoPay() {
   function openComingSoon(service: string, button: HTMLButtonElement) { openerRef.current = button; setComingSoon(service); }
   function closeComingSoon() { setComingSoon(undefined); window.setTimeout(() => openerRef.current?.focus(), 0); }
 
-  return <main className={`${walletStyles.page} ${styles.page}`}><div className={styles.shell}>
+  return <main className={`${walletStyles.page} ${styles.page}`} data-pay-state="prototype"><div className={styles.shell}>
     <AppHeader />
-    <section className={styles.hero} aria-labelledby="pay-title"><div>
+    <section className={styles.hero} aria-labelledby="pay-title" data-pay-state="prototype"><div>
       <span className={styles.badge}>{t("pay.badge")}</span><p className={styles.eyebrow}>MAKOTO PAY</p>
       <h1 id="pay-title">{t("pay.heroTitle")}</h1><p className={styles.heroCopy}>{t("pay.heroCopy")}</p>
     </div></section>
-    <aside className={styles.notice} aria-label={t("pay.prototypeNoticeTitle")}><strong>{t("pay.prototypeNoticeTitle")}</strong><span>{t("pay.prototypeNotice")}</span></aside>
+    <aside className={styles.notice} aria-label={t("pay.prototypeNoticeTitle")} role="note"><strong>{t("pay.prototypeNoticeTitle")}</strong><span>{t("pay.prototypeNotice")}</span></aside>
     <ServiceSection title={t("pay.popular")} entries={POPULAR_PAY_SERVICE_IDS} t={t} onComingSoon={openComingSoon} featured />
     <ServiceSection title={t("pay.allServices")} entries={PAY_SERVICE_IDS} t={t} onComingSoon={openComingSoon} />
   </div>{comingSoon && <ServiceComingSoonDialog service={comingSoon} onClose={closeComingSoon} />}</main>;
@@ -33,8 +33,8 @@ function ServiceSection({ title, entries, t, onComingSoon, featured = false }: {
   return <section className={styles.catalog} aria-labelledby={`services-${featured ? "popular" : "all"}`}><div className={styles.sectionHeading}><div><p className={styles.eyebrow}>MAKOTO PAY</p><h2 id={`services-${featured ? "popular" : "all"}`}>{title}</h2></div><span>{featured ? t("pay.popularHint") : t("pay.catalogHint")}</span></div><div className={`${styles.serviceGrid} ${featured ? styles.popularGrid : ""}`}>{entries.map((id) => {
     const demo = id === "mobile"; const name = t(`pay.service.${id}` as Parameters<typeof t>[0]);
     const description = t(`pay.service.${id}.description` as Parameters<typeof t>[0]);
-    return demo ? <Link key={id} href="/pay/mobile-topup" title={description} className={`${styles.serviceCard} ${styles.demoCard}`}><ServiceCardContent art={PAY_SERVICE_ART[id]} name={name} description={featured ? description : undefined} status={t("pay.demoAvailable")} /></Link>
-      : <button key={id} type="button" title={description} className={styles.serviceCard} onClick={(event) => onComingSoon(name, event.currentTarget)}><ServiceCardContent art={PAY_SERVICE_ART[id]} name={name} description={featured ? description : undefined} status={t("pay.comingSoon")} /></button>;
+    return demo ? <Link key={id} href="/pay/mobile-topup" title={description} className={`${styles.serviceCard} ${styles.demoCard}`} data-service-state="demo"><ServiceCardContent art={PAY_SERVICE_ART[id]} name={name} description={featured ? description : undefined} status={t("pay.demoAvailable")} /></Link>
+      : <button key={id} type="button" title={description} className={styles.serviceCard} data-service-state="planned" onClick={(event) => onComingSoon(name, event.currentTarget)}><ServiceCardContent art={PAY_SERVICE_ART[id]} name={name} description={featured ? description : undefined} status={t("pay.comingSoon")} /></button>;
   })}</div></section>;
 }
 

@@ -1,7 +1,7 @@
 const ARC_TESTNET_NAME = "Arc Testnet";
 const ARC_TESTNET_NETWORK = "arcTestnet";
 const ARC_TESTNET_CHAIN_ID = 5042002;
-const ARC_TESTNET_RPC_URL = "https://rpc.testnet.arc.network";
+const ARC_TESTNET_RPC_URL = "https://rpc.testnet.arc.io";
 const ARC_TESTNET_USDC_ADDRESS = "0x3600000000000000000000000000000000000000";
 
 async function assertArcTestnet(hre) {

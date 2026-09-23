@@ -12,6 +12,8 @@ export function createAgentContextSnapshot(input: AgentContextSnapshotInput): Ag
     connected: input.connected,
     ...(input.account ? { account: input.account } : {}),
     ...(input.walletType ? { walletType: input.walletType } : {}),
+    ...(input.accountKind ? { accountKind: input.accountKind } : {}),
+    ...(input.walletStatus ? { walletStatus: input.walletStatus } : {}),
     ...(input.verifiedChainId !== undefined ? { verifiedChainId: input.verifiedChainId } : {}),
     isArc: input.isArc,
     balances: Object.freeze({ ...input.balances }),

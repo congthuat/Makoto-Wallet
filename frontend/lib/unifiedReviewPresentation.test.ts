@@ -6,7 +6,7 @@ const component = (name: string) => readFileSync(new URL(`../components/${name}`
 const shared = component("TransactionSafetyReview.tsx");
 
 test("shared review uniformly renders safety, expected changes, and wallet confirmation", () => { assert.match(shared, /TransactionSafetyAssessmentView/); assert.match(shared, /review && <TransactionExpectedChanges intent=\{review\.intent\}/); assert.match(shared, /wallet-confirmation/); });
-test("Universal Bridge uses the shared review while preserving Circle lifecycle details", () => { const source = component("UniversalBridgeFlow.tsx"); assert.match(source, /if \(estimate && reviewSnapshot\)[\s\S]*?<TransactionSafetyReview/); assert.match(source, /walletNotice=""/); assert.match(source, /bridge-timeline/); });
+test("Universal Bridge uses the shared review while preserving Circle lifecycle details", () => { const source = component("UniversalBridgeFlow.tsx"); assert.match(source, /bridgeReviewIsActionable\(result, estimate, reviewSnapshot\)[\s\S]*?<TransactionSafetyReview/); assert.match(source, /walletNotice=""/); assert.match(source, /bridge-timeline/); });
 
 test("compact review keeps technical PASS details collapsed without hiding warnings", () => {
   const compact = shared.slice(shared.indexOf("if (compact)"), shared.indexOf("function CompactSafetySummary"));

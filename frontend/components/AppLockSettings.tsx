@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useDisconnect } from "wagmi";
 import { useAppLock } from "@/hooks/useAppLock";
+import { useLocalWalletControls } from "@/hooks/useWalletAccount";
 import { usePreferences } from "@/hooks/usePreferences";
 import { AUTO_LOCK_OPTIONS, isValidPin, isWeakPin, pinsMatch } from "@/lib/appLock";
 import styles from "./MakotoWallet.module.css";
@@ -10,16 +10,16 @@ import { AppLockPinInput } from "./AppLockPinInput";
 
 type Flow = "setup" | "change" | "disable" | "reset" | undefined;
 export function AppLockSettings() {
-  const lock = useAppLock(); const { t } = usePreferences(); const disconnect = useDisconnect();
+  const lock = useAppLock(); const localWallet = useLocalWalletControls(); const { t } = usePreferences();
   const [flow, setFlow] = useState<Flow>(); const [pin, setPin] = useState(""); const [next, setNext] = useState(""); const [confirm, setConfirm] = useState(""); const [autoLockMs, setAutoLockMs] = useState(300_000); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   const close = () => { setFlow(undefined); setPin(""); setNext(""); setConfirm(""); setError(""); setBusy(false); };
   async function submit() {
     setError(""); setBusy(true);
     try {
-      if (flow === "setup") { if (!pinsMatch(pin, confirm)) throw new Error(t("appLock.pinMismatch")); await lock.setup(pin, autoLockMs); close(); }
+      if (flow === "setup") { if (!pinsMatch(pin, confirm)) throw new Error(t("appLock.pinMismatch")); await lock.setup(pin, autoLockMs); localWallet.lock(); close(); }
       else if (flow === "change") { if (!pinsMatch(next, confirm)) throw new Error(t("appLock.pinMismatch")); if (!(await lock.changePin(pin, next))) throw new Error(t("appLock.wrongPin")); close(); }
       else if (flow === "disable") { if (!(await lock.disable(pin))) throw new Error(t("appLock.wrongPin")); close(); }
-      else if (flow === "reset") { lock.reset(); disconnect.mutate(); close(); }
+      else if (flow === "reset") { lock.reset(); close(); }
     } catch (reason) { setError(reason instanceof Error ? reason.message : t("appLock.unavailable")); setPin(""); setNext(""); setConfirm(""); setBusy(false); }
   }
   const newPin = flow === "change" ? next : pin;
@@ -34,7 +34,7 @@ export function AppLockSettings() {
         </div>
       </>}
       <p className={styles.settingsMuted}>{t("appLock.disclosure")}</p>{lock.enabled && <p className={styles.settingsMuted}>{t("appLock.storageDisclosure")}</p>}
-      <div className={styles.settingsActions}>{!lock.enabled ? <button type="button" onClick={() => setFlow("setup")}>{t("appLock.setup")}</button> : <><button type="button" onClick={lock.lock}>{t("appLock.lockNow")}</button><button type="button" onClick={() => setFlow("change")}>{t("appLock.changePin")}</button><button type="button" onClick={() => setFlow("disable")}>{t("appLock.disable")}</button><button type="button" onClick={() => setFlow("reset")}>{t("appLock.forgot")}</button></>}</div>
+      <div className={styles.settingsActions}>{!lock.enabled ? <button type="button" onClick={() => setFlow("setup")}>{t("appLock.setup")}</button> : <><button type="button" onClick={() => { localWallet.lock(); lock.lock(); }}>{t("appLock.lockNow")}</button><button type="button" onClick={() => setFlow("change")}>{t("appLock.changePin")}</button><button type="button" onClick={() => setFlow("disable")}>{t("appLock.disable")}</button><button type="button" onClick={() => setFlow("reset")}>{t("appLock.forgot")}</button></>}</div>
     </>}
     {flow && <div className={styles.appLockPanel} role="dialog" aria-modal="true" aria-labelledby="app-lock-flow-title"><h3 id="app-lock-flow-title">{t(flow === "setup" ? "appLock.setup" : flow === "change" ? "appLock.changePin" : flow === "disable" ? "appLock.disable" : "appLock.resetTitle")}</h3>
       {(flow === "setup" || flow === "change") && <p>{t("appLock.disclosure")}</p>}{flow === "setup" && <ol><li>{t("appLock.setupStep1")}</li><li>{t("appLock.setupStep2")}</li><li>{t("appLock.setupStep3")}</li><li>{t("appLock.setupStep4")}</li></ol>}

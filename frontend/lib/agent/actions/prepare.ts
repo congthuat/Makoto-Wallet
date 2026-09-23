@@ -8,7 +8,7 @@ export function prepareAgentActionHandoff(draft: AgentActionDraft, account = "",
   const validation = validateAgentActionDraft(draft);
   if (!validation.valid) return Object.freeze({ draft, status: validation.missingFields.length ? "needs-input" : "blocked", missingFields: validation.missingFields, warnings: validation.errors });
   if (!/^0x[a-fA-F0-9]{40}$/.test(account)) return Object.freeze({ draft, status: "blocked", missingFields: Object.freeze([]), warnings: Object.freeze(["Connect the wallet that will review this action."]) });
-  return Object.freeze({ draft, status: "preparing", missingFields: Object.freeze([]), warnings: Object.freeze(["Makoto Agent never signs transactions."]), handoff: handoffFor(draft, account, now) });
+  return Object.freeze({ draft, status: "preparing", missingFields: Object.freeze([]), warnings: Object.freeze(["Agent never signs transactions."]), handoff: handoffFor(draft, account, now) });
 }
 
 export function handoffUrl(handoff: AgentActionHandoff) { return `${handoff.path}?agentHandoff=${encodeURIComponent(handoff.id)}`; }

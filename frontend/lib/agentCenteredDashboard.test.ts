@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const dashboard = readFileSync(new URL("../components/WalletDashboard.tsx", import.meta.url), "utf8");
+const overview = readFileSync(new URL("../components/ConnectedOverview.tsx", import.meta.url), "utf8");
+const overviewCss = readFileSync(new URL("../components/ConnectedOverview.module.css", import.meta.url), "utf8");
 const header = readFileSync(new URL("../components/AppHeader.tsx", import.meta.url), "utf8");
 const agentPage = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
 const agentHook = readFileSync(new URL("../hooks/useMakotoAgent.ts", import.meta.url), "utf8");
@@ -10,22 +12,23 @@ const css = readFileSync(new URL("../components/MakotoWallet.module.css", import
 const en = readFileSync(new URL("../i18n/en.ts", import.meta.url), "utf8");
 const vi = readFileSync(new URL("../i18n/vi.ts", import.meta.url), "utf8");
 
-test("dashboard preserves the production Makoto logo asset", () => {
-  assert.match(dashboard, /\/makoto\/logo-pro-v2\.png/);
-  assert.doesNotMatch(dashboard, /agent-logo|lettermark|new-logo/i);
+test("7J shared header uses the Makoto wordmark with decorative terrain", () => {
+  assert.match(header, /aria-label="Makoto Wallet"/);
+  assert.match(header, /<strong>MAKOTO<\/strong><small>WALLET<\/small>/);
+  assert.match(header, /<MakotoTerrain/);
+  assert.doesNotMatch(header, /agent-logo|lettermark|new-logo/i);
 });
 
-test("Agent hero is the first connected dashboard section", () => {
-  assert.ok(dashboard.indexOf("styles.agentHero") < dashboard.indexOf("styles.portfolioGrid"));
-  assert.match(dashboard, /id="dashboard-agent-title"/);
+test("classic dashboard keeps the Agent hero, command strip, assets, status, and activity surfaces", () => {
+  assert.match(overview, /agentHero[\s\S]*className=\{styles\.actions\}[\s\S]*id="assets"[\s\S]*wallet-status-title[\s\S]*id="activity"/);
+  assert.match(dashboard, /<ConnectedOverview/);
   assert.match(dashboard, /id="dashboard-agent-question"/);
 });
 
 test("primary command order starts Send Receive Swap and retains Bridge", () => {
-  const commands = dashboard.slice(dashboard.indexOf("styles.agentCommands"), dashboard.indexOf("styles.agentSecondaryCommands"));
-  const order = [commands.indexOf('setAction("send")'), commands.indexOf('setAction("receive")'), commands.indexOf('setAction("swap")'), commands.indexOf('setAction("bridge")')];
-  assert.ok(order.every((value) => value >= 0));
-  assert.deepEqual([...order].sort((a, b) => a - b), order);
+  assert.match(overview, /\["send", "receive", "swap", "bridge"\]/);
+  assert.match(overview, /disabled=\{!onArc\}/);
+  assert.match(dashboard, /onAction=\{\(next\) =>/);
 });
 
 test("Quick Actions reuse existing dashboard flow state", () => {
@@ -46,77 +49,82 @@ test("Agent preparation remains a draft handoff with no wallet execution", () =>
   assert.match(agentPage, /prepareAgentActionHandoff/);
   assert.match(agentPage, /storeAgentHandoff/);
   assert.doesNotMatch(agentHook, /writeContract|sendTransaction|signMessage|eth_sendTransaction/);
-  assert.doesNotMatch(dashboard.slice(dashboard.indexOf("styles.agentHero"), dashboard.indexOf("styles.dashboardGrid")), /writeContract|sendTransaction|signMessage/);
+  assert.doesNotMatch(dashboard.slice(dashboard.indexOf("<ConnectedOverview"), dashboard.indexOf("</ConnectedOverview>")), /writeContract|sendTransaction|signMessage/);
 });
 
-test("hero title is one semantic two-tone Makoto Agent badge in English and Vietnamese", () => {
-  const heroCopy = dashboard.slice(dashboard.indexOf("styles.agentHeroCopy"), dashboard.indexOf("styles.agentInteraction"));
-  assert.match(heroCopy, /<h1 id="dashboard-agent-title" aria-label=\{t\("agentDashboard\.title"\)\}>[\s\S]*styles\.agentTitleMakoto} aria-hidden="true">Makoto<\/span>[\s\S]*styles\.agentTitleAgent} aria-hidden="true">Agent<\/span>[\s\S]*<\/h1>/);
-  assert.equal((heroCopy.match(/<h1/g) ?? []).length, 1);
-  assert.doesNotMatch(heroCopy, /agentEyebrow|agentTagline|agentSupport|MAKOTO AGENT|ARC TESTNET|star|icon/i);
-  assert.match(en, /"agentDashboard\.title": "Makoto Agent"/);
-  assert.match(en, /"agentDashboard\.tagline": "Your wallet copilot on Arc\."/);
-  assert.match(en, /"agentDashboard\.support": "Check balances, activity, and network status\."/);
-  assert.match(vi, /"agentDashboard\.title": "Makoto Agent"/);
-  assert.match(vi, /"agentDashboard\.tagline": "Trợ lý ví của bạn trên Arc\."/);
-  assert.match(vi, /"agentDashboard\.support": "Xem số dư, hoạt động và trạng thái mạng\."/);
-  assert.match(en, /Ask Makoto Agent anything/);
-  assert.match(vi, /Hỏi Makoto Agent bất cứ điều gì/);
+test("classic Agent title and retained labeled composer remain localized", () => {
+  assert.match(overview, /<h1 id="dashboard-agent-title"><em>\{t\("overview.agentTitle"\)\}<\/em><\/h1>/);
+  assert.match(en, /"overview.agentTitle": "Agent"/);
+  assert.match(vi, /"overview.agentTitle": "Trợ lý"/);
+  assert.doesNotMatch(overview, /Makoto Agent|Read & prepare only\. You confirm\./);
+  assert.match(dashboard, /<label htmlFor="dashboard-agent-question">\{t\("agentDashboard.inputLabel"\)\}/);
 });
 
-test("hero title badge stays compact, top-left, responsive, and theme intentional", () => {
-  assert.match(css, /\.agentHeroCopy\{position:absolute;top:22px;left:22px;width:auto;max-width:calc\(100% - 44px\)/);
-  assert.match(css, /\.agentHeroCopy h1\{[^}]*display:inline-flex[^}]*min-height:68px[^}]*padding:15px 24px[^}]*border-radius:17px[^}]*font:750 30px\/1[^}]*white-space:nowrap/);
-  assert.match(css, /\.agentTitleMakoto\{color:#f8f5ff\}/);
-  assert.match(css, /\.agentTitleAgent\{color:#c9adff\}/);
-  assert.match(css, /@media\(max-width:767px\)[\s\S]*\.agentHeroCopy\{position:absolute;top:14px;left:14px;justify-self:auto[^}]*max-width:calc\(100% - 28px\)[^}]*\}[\s\S]*\.agentHeroCopy h1\{min-height:52px;max-width:none;padding:11px 17px;border-radius:15px;gap:6px;font-size:21px/);
-  assert.match(css, /html\[data-theme="light"\]\) \.agentHeroCopy h1\{border-color:rgba\(107,70,216,\.28\)[^}]*background:rgba\(255,255,255,\.84\)/);
-  assert.match(css, /html\[data-theme="light"\]\) \.agentTitleMakoto\{color:#241a3d\}/);
-  assert.match(css, /html\[data-theme="light"\]\) \.agentTitleAgent\{color:#7047d8\}/);
+test("classic Agent stays readable and keyboard-focusable", () => {
+  assert.match(overviewCss, /\.agentBody \.messages p/);
+  assert.match(overviewCss, /--classic-text/);
+  assert.match(overviewCss, /:focus-visible/);
+  assert.doesNotMatch(overviewCss, /\.agent\s*\{[^}]*position:\s*(?:absolute|fixed)/);
 });
 
-test("Agent character asset and animation are restrained with explicit reduced motion", () => {
-  const heroCss = css.slice(css.indexOf("/* Agent-centered dashboard */"));
-  assert.match(dashboard, /\/makoto\/agent-hero-v2\.png/);
-  for (const name of ["agentFloat", "agentAura", "agentOrbit", "agentGlow", "agentParticleDrift"]) assert.match(css, new RegExp(`@keyframes ${name}`));
-  assert.match(css, /@media\(prefers-reduced-motion:reduce\)[\s\S]*\.agentCharacter[\s\S]*animation:none!important/);
-  assert.doesNotMatch(heroCss, /canvas|WebGL|video/);
+test("classic Overview restores the Makoto Agent artwork and restrained motion", () => {
+  assert.match(overview, /agent-hero-v2|agentAtmosphere|agentParticle|agentOrbit/);
+  assert.match(overviewCss, /@keyframes agentFloat/);
 });
 
-test("ranked suggestions use a right-side speech-bubble rail and shortcuts remain centered", () => {
-  const stage = dashboard.slice(dashboard.indexOf("styles.agentOrbitStage"), dashboard.indexOf("styles.agentHeroCopy"));
-  assert.match(stage, /styles\.agentAtmosphere/);
-  assert.match(stage, /styles\.agentAmbientSuggestions/);
-  assert.match(css, /\.agentOrbitStage\{grid-area:visual;position:relative/);
-  assert.match(css, /\.agentOrbitStage::after\{content:"";position:absolute;top:50%;left:50%/);
-  assert.match(css, /\.agentAmbientSuggestions button::before\{content:"";position:absolute;top:50%;left:-9px/);
-  assert.match(css, /@media\(min-width:1101px\)[\s\S]*\.agentAmbientSuggestions\{top:50%;right:-112px;bottom:auto;left:auto;width:248px;height:auto;display:flex;flex-direction:column/);
-  assert.match(css, /\.agentAmbientSuggestions button:nth-child\(1\)\{width:100%;min-height:68px/);
-  assert.match(css, /\.agentAmbientSuggestions button:nth-child\(2\)\{width:88%;min-height:60px/);
-  assert.match(css, /\.agentAmbientSuggestions button:nth-child\(3\)\{width:76%;min-height:52px/);
-  assert.match(css, /\.quickActionsPanel \.agentCommands\{grid-area:auto;place-self:center;width:min\(100%,568px\);grid-template-columns:repeat\(4,minmax\(118px,133px\)\);justify-content:center;margin-inline:auto/);
+test("classic prompt rail is replaced by a localized composer suggestion popover", () => {
+  assert.match(overview, /\{props.children\}/);
+  assert.match(dashboard, /agentSuggestionGroups\.map/);
+  assert.match(dashboard, /className=\{overviewStyles\.suggestionTrigger\}/);
+  assert.match(dashboard, /selectAgentSuggestion\(prompt\)/);
+  assert.doesNotMatch(dashboard, /className=\{overviewStyles\.suggestions\}/);
+  assert.doesNotMatch(overviewCss, /agentSlot > \.suggestions/);
 });
 
-test("Quick Actions are a distinct sibling section containing only the four core wallet actions", () => {
-  const heroStart = dashboard.indexOf("styles.agentHero");
-  const heroEnd = dashboard.indexOf("</section>", heroStart);
-  const quickActionsStart = dashboard.indexOf("styles.quickActionsPanel");
-  assert.ok(heroStart >= 0 && heroEnd > heroStart && quickActionsStart > heroEnd);
-  assert.doesNotMatch(dashboard.slice(heroStart, heroEnd), /styles\.agentCommands|setAction\(\"(?:send|receive|swap|bridge)\"\)/);
-  const commands = dashboard.slice(dashboard.indexOf("styles.agentCommands"), dashboard.indexOf("</section>", dashboard.indexOf("styles.agentCommands")));
-  for (const action of ["send", "receive", "swap", "bridge"]) assert.match(commands, new RegExp(`setAction\\(\\"${action}\\"\\)`));
-  assert.doesNotMatch(commands, /WALLET SHORTCUTS|Quick Actions|Start a wallet task/);
-  assert.doesNotMatch(commands, /Makoto Vault|Security Center|Recent Activity|\/pay|\/savings/);
-  assert.doesNotMatch(dashboard, /styles\.agentSecondaryCommands/);
+test("7D primary actions are separate from the optional Agent and secondary tools", () => {
+  const start=overview.indexOf("className={styles.actions}");
+  const commands=overview.slice(start, overview.indexOf("</section>",start));
+  assert.match(commands, /"send", "receive", "swap", "bridge"/);
+  assert.doesNotMatch(commands, /\/savings|\/pay|\/unified-balance|askAgent|submitAgent/);
+  assert.ok(start < overview.indexOf("className={styles.portfolioGrid}"));
 });
 
-test("primary navigation contains only Dashboard and Wallet with Settings in utilities", () => {
+test("primary navigation presents Dashboard Wallet and Agent with ordered utility links", () => {
   const items = header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems")) + 2);
-  for (const label of ["Dashboard", "Wallet"]) assert.match(items, new RegExp(label));
-  for (const label of ["Security Center", "Tools", "Pay", "Makoto Vault", "Makoto Agent", "Activity", "Send", "Receive", "Swap", "Bridge"]) assert.doesNotMatch(items, new RegExp(label));
-  assert.match(header, /href="\/settings#security"[^>]*>[\s\S]*"Settings"/);
+  for (const label of ["Dashboard", "Wallet", "Agent", "Trợ lý"]) assert.match(items, new RegExp(label));
+  assert.match(items, /href: "\/agent"/);
+  for (const label of ["Tools", "Pay", "Makoto Vault", "Send", "Receive", "Swap", "Bridge"]) assert.doesNotMatch(items, new RegExp(label));
+  assert.match(header, /href="\/settings#security"/);
+  assert.match(header, /href="\/settings#help"/);
+  assert.match(header, /href="https:\/\/docs\.google\.com\/forms/);
   assert.match(header, /"Feedback"/);
-  assert.match(header, /"Help & Support"/);
+  assert.ok(header.indexOf('name="feedback"') < header.indexOf('href="/settings#security"'));
+});
+
+test("final classic refinements keep truthful status and richer activity presentation", () => {
+  assert.match(overview, /data-status-kind="network"/);
+  assert.match(overviewCss, /\.statusBar span \{[^}]*width: 100%/);
+  assert.match(overview, /<ActivityIcon kind=/);
+  for (const kind of ["send", "receive", "swap", "bridge"]) assert.match(overview, new RegExp(`${kind}:`));
+  assert.match(overview, /overview\.sourceConfirmed/);
+  assert.match(overview, /activityStatus/);
+  assert.match(overview, /: "₿"/);
+  assert.match(overviewCss, /\.assetLogoFallback[^}]*#f5a623/);
+});
+
+test("final detail polish simplifies headings and restores the classic activity row anatomy", () => {
+  const assets = overview.slice(overview.indexOf('id="assets"'), overview.indexOf('className={styles.statusCard}'));
+  const activity = overview.slice(overview.indexOf('id="activity"'), overview.indexOf("function ActionIcon"));
+  assert.match(assets, /<h2 id="assets-title">/);
+  assert.doesNotMatch(assets.slice(0, assets.indexOf("</header>")), /sectionEyebrow/);
+  assert.match(activity, /<h2 id="recent-activity-title">\{t\("walletHome.activity"\)\}<\/h2>/);
+  assert.doesNotMatch(activity, /sectionEyebrow|LEDGER|SỔ HOẠT ĐỘNG/);
+  assert.match(activity, /<ActivityIcon[\s\S]*activityContext[\s\S]*activityStatus[\s\S]*activityLinks/);
+  assert.match(activity, /activityLabel\(item\)[\s\S]*formatAssetAmount\(item\.amount/);
+  assert.match(activity, /item\.kind === "bridge" \? t\("overview.sourceConfirmed"\) : t\("overview.confirmed"\)/);
+  assert.match(overviewCss, /\.agentHeroCopy h1 \{[^}]*min-height: 50px[^}]*padding: 10px 17px[^}]*font: 750 24px\/1/);
+  assert.match(overviewCss, /\.assetLogoFallback::before \{[^}]*width: 35px[^}]*height: 35px/);
+  assert.match(overviewCss, /\.activity li \{[^}]*grid-template-columns: 42px minmax\(0, 1fr\) minmax\(124px, \.34fr\) minmax\(128px, auto\)/);
 });
 
 test("Feedback opens the exact Makoto form safely in a new tab", () => {
@@ -144,31 +152,33 @@ test("dark disconnected surfaces reuse the Agent dashboard violet-black family",
   assert.match(css, /html\[data-theme="dark"\]\) \.disconnectedArt\{border-left-color:var\(--mw-divider\);background:radial-gradient/);
 });
 
-test("light mode scopes Agent and dashboard surfaces to semantic light tokens", () => {
-  assert.match(css, /html\[data-theme="light"\]\) \.agentHero\{border-color:rgba\(104,65,216,\.2\);background:/);
-  assert.match(css, /html\[data-theme="light"\]\) \.quickActionsPanel\{border-color:var\(--mw-border\);background:/);
-  assert.match(css, /html\[data-theme="light"\]\) \.portfolioGrid \.dashboardCard/);
-  assert.match(css, /html\[data-theme="light"\]\) \.lowerGrid \.activityCard/);
+test("7J light information panels share semantic tokens inside both shell themes", () => {
+  assert.match(overviewCss, /:global\(html\[data-theme="light"\]\)/);
+  assert.match(overviewCss, /var\(--classic-surface\)/);
+  assert.match(overviewCss, /var\(--classic-border\)/);
 });
 
-test("dashboard retains wallet shortcuts, Assets, Wallet Status and Recent Activity below the Hero", () => {
-  const connected = dashboard.slice(dashboard.indexOf("styles.agentHero"), dashboard.indexOf("<footer"));
-  assert.match(connected, /\? "Tài sản" : "Assets"/);
-  assert.match(connected, /Wallet Status/);
-  assert.match(connected, /walletHome\.activity/);
-  assert.match(connected, /styles\.quickActionsPanel/);
-  for (const removed of ["Makoto Tools", "Savings position", "Unified Balance", "networkCard"]) assert.doesNotMatch(connected, new RegExp(removed));
+test("7D preserves account and history context without a blanket Protected meter", () => {
+  assert.match(overview, /props.address/);
+  assert.match(overview, /props.walletKind/);
+  assert.match(overview, /props.chainId/);
+  assert.match(overview, /overview.historyPartial/);
+  assert.match(overview, /overview.historyUnavailable/);
+  assert.doesNotMatch(dashboard, /securityStatus|walletStatusBar/);
 });
 
-test("disconnected dashboard contains only the connection hero", () => {
-  const disconnected = dashboard.slice(dashboard.indexOf(") : !connected ? ("), dashboard.indexOf(") : showWalletReady"));
+test("disconnected dashboard contains only the editorial landing hero", () => {
+  const disconnectedStart = dashboard.indexOf(") : !connected ? (");
+  const disconnected = dashboard.slice(disconnectedStart, dashboard.indexOf("<ConnectedOverview", disconnectedStart));
   for (const removed of ["DisconnectedDestinations", "My Assets", "View assets", "View activity", "disconnectedDestination"]) {
     assert.doesNotMatch(disconnected, new RegExp(removed));
   }
-  assert.match(disconnected, /walletHome\.connectTitle/);
+  assert.match(disconnected, /walletHome\.landingTitle/);
+  assert.match(disconnected, /walletHome\.landingCapabilities/);
+  assert.match(disconnected, /walletHome\.landingSafety/);
   assert.match(disconnected, /onboarding\.createWallet/);
   assert.match(disconnected, /onboarding\.connectExisting/);
-  assert.match(disconnected, /onboarding\.noPrivateKeyStorage/);
+  assert.doesNotMatch(disconnected, /onboarding\.title/);
 });
 
 test("existing-wallet option shares the header connection-green token family", () => {
@@ -179,8 +189,8 @@ test("existing-wallet option shares the header connection-green token family", (
   assert.match(css, /\.createWalletButton\{border-color:var\(--action-primary\);background:var\(--action-primary\)/);
 });
 
-test("adaptive suggestions are wallet and chain scoped", () => {
-  assert.match(dashboard, /suggestionStorageKey\(connection\.address, chain\.providerChainId\)/);
-  assert.match(dashboard, /rankAgentSuggestions/);
-  assert.match(dashboard, /recordSuggestionUsage/);
+test("composer suggestions stay presentation-only and do not invoke the Agent automatically", () => {
+  const selection = dashboard.slice(dashboard.indexOf("function selectAgentSuggestion"), dashboard.indexOf("function moveSuggestionFocus"));
+  assert.match(selection, /setAgentInput\(prompt\)/);
+  assert.doesNotMatch(selection, /askAgent|submitAgent|recordSuggestionUsage/);
 });

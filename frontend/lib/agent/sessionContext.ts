@@ -1,4 +1,5 @@
 import type { AgentIntent, AgentPreparationInput } from "./types.ts";
+import type { SupportedAssetId } from "../assets.ts";
 
 export const AGENT_SESSION_CONTEXT_KEY = "makoto.agent.session-context.v1";
 export const AGENT_SESSION_CONTEXT_TTL_MS = 20 * 60_000;
@@ -107,8 +108,8 @@ export function updateAgentSessionContext(
   }
   if (topic === "swap") {
     const prior = current?.activeTopic === "swap" ? current.swap : undefined;
-    const inputAsset = intent.assetId ?? preparation?.assetId ?? prior?.inputAsset;
-    const outputAsset = intent.outputAssetId ?? preparation?.outputAssetId ?? prior?.outputAsset;
+    const inputAsset = sessionAssetId(intent.assetId ?? preparation?.assetId ?? prior?.inputAsset);
+    const outputAsset = sessionAssetId(intent.outputAssetId ?? preparation?.outputAssetId ?? prior?.outputAsset);
     if (!inputAsset || !outputAsset || inputAsset === outputAsset) return undefined;
     return freezeContext({ ...base, swap: { inputAsset, outputAsset, ...(validAmount(intent.amount ?? preparation?.amount ?? prior?.amount) ? { amount: intent.amount ?? preparation?.amount ?? prior?.amount } : {}), slippage: prior?.slippage ?? 0.005 }, ...(planningIntent ? { lastPlanningIntent: planningIntent, lastPlanningAt: now } : {}) });
   }
@@ -119,7 +120,7 @@ export function updateAgentSessionContext(
     return freezeContext({ ...base, bridge: { asset: "usdc", ...(sourceChainId ? { sourceChainId } : {}), ...(destinationChainId ? { destinationChainId } : {}), ...(validAmount(intent.amount ?? preparation?.amount ?? prior?.amount) ? { amount: intent.amount ?? preparation?.amount ?? prior?.amount } : {}) }, ...(planningIntent ? { lastPlanningIntent: planningIntent, lastPlanningAt: now } : {}) });
   }
   const prior = current?.activeTopic === "send" ? current.send : undefined;
-  const inputAsset = intent.assetId ?? preparation?.assetId ?? prior?.asset ?? "usdc";
+  const inputAsset = sessionAssetId(intent.assetId ?? preparation?.assetId ?? prior?.asset) ?? "usdc";
   return freezeContext({ ...base, send: { asset: inputAsset, ...(validAmount(intent.amount ?? preparation?.amount ?? prior?.amount) ? { amount: intent.amount ?? preparation?.amount ?? prior?.amount } : {}) }, ...(planningIntent ? { lastPlanningIntent: planningIntent, lastPlanningAt: now } : {}) });
 }
 
@@ -152,6 +153,7 @@ function normalizeAccount(value: unknown) { return typeof value === "string" && 
 function validChainId(value: unknown): value is number { return Number.isSafeInteger(value) && Number(value) > 0; }
 function validAmount(value: unknown): value is string { return typeof value === "string" && AMOUNT.test(value) && Number(value) > 0; }
 function assetId(value: unknown) { const asset = typeof value === "string" ? value.toLowerCase() : ""; return asset === "usdc" || asset === "eurc" ? asset : undefined; }
+function sessionAssetId(value: SupportedAssetId | undefined): "usdc" | "eurc" | undefined { return value === "usdc" || value === "eurc" ? value : undefined; }
 function record(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function validSwap(value: unknown) { return record(value) && onlyKeys(value, ["inputAsset", "outputAsset", "amount", "slippage"]) && assetId(value.inputAsset) !== undefined && assetId(value.outputAsset) !== undefined && value.inputAsset !== value.outputAsset && (value.amount === undefined || validAmount(value.amount)) && value.slippage === 0.005; }
 function validBridge(value: unknown) { return record(value) && onlyKeys(value, ["asset", "sourceChainId", "destinationChainId", "amount"]) && value.asset === "usdc" && (value.sourceChainId === undefined || validChainId(value.sourceChainId)) && (value.destinationChainId === undefined || validChainId(value.destinationChainId)) && (value.amount === undefined || validAmount(value.amount)); }
@@ -165,7 +167,8 @@ function validPendingPreparation(value: unknown, topic: unknown) {
   return (value.sourceChainId === undefined || validChainId(value.sourceChainId)) && (value.destinationChainId === undefined || validChainId(value.destinationChainId));
 }
 function pendingPreparation(input: AgentPreparationInput, locale: AgentIntent["locale"]): AgentPendingPreparation {
-  return Object.freeze({ version: 1, locale, kind: input.kind, ...(input.assetId ? { assetId: input.assetId } : {}), ...(validAmount(input.amount) ? { amount: input.amount } : {}), ...(input.recipient ? { recipient: input.recipient } : {}), ...(input.sourceChainId ? { sourceChainId: input.sourceChainId } : {}), ...(input.destinationChainId ? { destinationChainId: input.destinationChainId } : {}), ...(input.outputAssetId ? { outputAssetId: input.outputAssetId } : {}) });
+  const asset = sessionAssetId(input.assetId), outputAsset = sessionAssetId(input.outputAssetId);
+  return Object.freeze({ version: 1, locale, kind: input.kind, ...(asset ? { assetId: asset } : {}), ...(validAmount(input.amount) ? { amount: input.amount } : {}), ...(input.recipient ? { recipient: input.recipient } : {}), ...(input.sourceChainId ? { sourceChainId: input.sourceChainId } : {}), ...(input.destinationChainId ? { destinationChainId: input.destinationChainId } : {}), ...(outputAsset ? { outputAssetId: outputAsset } : {}) });
 }
 function completePreparation(input: AgentPreparationInput) {
   if (!validAmount(input.amount)) return false;

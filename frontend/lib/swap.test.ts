@@ -3,6 +3,12 @@ import test from "node:test";
 import { createXyloQuote, buildXyloSwapRequest, exactApprovalRequired, isSwapQuoteFresh, minimumSwapOutput, oppositeAssetId, prepareXyloSwapRequest, swapAmountForPercent, validatePreparedXyloSwap, XYLO_POOL, XYLO_ROUTER } from "./swap.ts";
 const owner = "0x1111111111111111111111111111111111111111" as const;
 test("pair is limited to canonical Arc stablecoins", () => { assert.equal(oppositeAssetId("usdc"), "eurc"); assert.equal(oppositeAssetId("eurc"), "usdc"); assert.throws(() => createXyloQuote("usdc", "usdc", 1n, 1n)); });
+test("both Xylo stablecoin directions quote and cirBTC remains unsupported", () => {
+  assert.equal(createXyloQuote("usdc", "eurc", 1_000_000n, 999_000n).toAssetId, "eurc");
+  assert.equal(createXyloQuote("eurc", "usdc", 1_000_000n, 999_000n).toAssetId, "usdc");
+  assert.throws(() => createXyloQuote("cirbtc", "usdc", 1n, 1n), /Unsupported XyloNet asset/);
+  assert.throws(() => oppositeAssetId("cirbtc"), /Unsupported XyloNet asset/);
+});
 test("stale quotes are blocked", () => { assert.equal(isSwapQuoteFresh(1_000, 46_001), false); assert.throws(() => buildXyloSwapRequest(createXyloQuote("usdc", "eurc", 1n, 1n, 1_000), 1n, 0.005, owner, 46_001)); });
 test("approval is exact and skipped when allowance is sufficient", () => { assert.equal(exactApprovalRequired(0n, 123n), 123n); assert.equal(exactApprovalRequired(123n, 123n), undefined); assert.equal(exactApprovalRequired(500n, 123n), undefined); });
 test("integer slippage sets minimum output", () => { assert.equal(minimumSwapOutput(1_000_000n, 0.005), 995_000n); assert.equal(minimumSwapOutput(1_000_000n, 0.03), 970_000n); });

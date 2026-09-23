@@ -2635,3 +2635,46 @@
   .securityOverview{border-radius:var(--radius-surface-md)}
 }
 
+/* Phase 7H: complete, evidence-led activity history without changing its data path. */
+.activityHistoryLayer{isolation:isolate;overflow-y:auto;background:color-mix(in srgb,var(--mw-text) 76%,transparent);backdrop-filter:blur(4px)}
+.activityHistoryPanel{outline:none}
+.activityHistoryPanel :is(button,a,input,summary):focus-visible{outline:3px solid color-mix(in srgb,var(--mw-accent) 68%,transparent);outline-offset:3px}
+.activityHistoryResults{padding-bottom:4px}
+.activityList .activityHistoryRow{min-height:0;align-items:start;grid-template-columns:38px minmax(0,1.35fr) minmax(126px,.65fr) auto;gap:10px 14px;padding:15px 2px 12px}
+.activityHistoryRow .activityIcon{margin-top:1px}
+.activityHistoryRow .activityMain{min-width:0;gap:5px}
+.activityHistoryRow .activityHeadline{min-width:0;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.activityHistoryRow .activityHeadline>strong:first-child{min-width:0;overflow-wrap:anywhere}
+.activityHistoryRow .activityAmount{flex:0 0 auto;color:var(--mw-text);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.activityHistoryRow .activityContext,.activityHistoryRow .activitySwapReceive,.activityHistoryRow .activityMain time{display:block;color:var(--mw-text-muted);font-size:10px;line-height:1.45}
+.activityHistoryRow .activityContext{overflow-wrap:anywhere}
+.activityHistoryRow .activitySwapReceive{color:var(--mw-text)}
+.activityHistoryRow .activityStatus{align-self:start;margin-top:2px;line-height:1.35;text-align:center}
+.activityHistoryRow .activityActions{align-self:start;justify-content:flex-end;flex-wrap:wrap;gap:7px}
+.activityHistoryRow .activityActions button,.activityHistoryRow .activityLink{min-height:36px;white-space:nowrap}
+.activityHistoryRow .activityEvidence{grid-column:2/-1;margin:1px 0 0;border-top:1px solid var(--mw-divider);color:var(--mw-text-muted)}
+.activityHistoryRow .activityEvidence summary{min-height:36px;display:flex;align-items:center;cursor:pointer;color:var(--mw-text);font-size:10px;font-weight:800;list-style-position:inside}
+.activityHistoryRow .activityEvidence summary::marker{color:var(--mw-accent)}
+.activityHistoryRow .activityEvidence dl{margin:0;padding:2px 0 4px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 16px}
+.activityHistoryRow .activityEvidence dl>div{min-width:0;display:grid;gap:2px}
+.activityHistoryRow .activityEvidence dt{color:var(--mw-text-muted);font-size:9px;font-weight:750}
+.activityHistoryRow .activityEvidence dd{min-width:0;margin:0;color:var(--mw-text);font-size:10px;line-height:1.45;overflow-wrap:anywhere}
+.activityHistoryRow .activityEvidence code{font:inherit;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:767px){
+  .activityHistoryLayer{align-items:stretch;overflow:hidden}
+  .activityList .activityHistoryRow{grid-template-columns:36px minmax(0,1fr);gap:8px 10px;padding:14px 0}
+  .activityHistoryRow .activityHeadline{align-items:flex-start;flex-direction:column;gap:2px}
+  .activityHistoryRow .activityAmount{margin:0;text-align:left}
+  .activityHistoryRow .activityStatus,.activityHistoryRow .activityActions,.activityHistoryRow .activityEvidence{grid-column:2}
+  .activityHistoryRow .activityStatus{justify-self:start;margin-top:0}
+  .activityHistoryRow .activityActions{justify-content:flex-start}
+  .activityHistoryRow .activityEvidence{margin-top:3px}
+  .activityHistoryRow .activityEvidence dl{grid-template-columns:minmax(0,1fr);gap:8px}
+}
+
+/* Keep Activity context and actions readable while retaining purple affordances. */
+#activity-history-context{color:var(--mw-text-muted)}
+.activityHistoryPanel .activityActions button,.activityHistoryPanel .activityLink{color:var(--lc-activity-action-text)}
+.activityHistoryPanel .activityActions button:hover,.activityHistoryPanel .activityLink:hover{color:var(--lc-activity-action-hover-text)}
+.activityHistoryPanel .activityLoadMore{color:var(--lc-action)}
+

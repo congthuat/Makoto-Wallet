@@ -35,10 +35,15 @@ export function OwnerWithdrawalFlow({ jar, open, origin, onClose, onSuccess }: {
   const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
   const submissionGuard = useRef(new ReviewSubmissionGuard());
 
+  async function simulateIntent(intent: ReturnType<typeof withdrawalIntent>) {
+    if (!intent || !publicClient) throw new Error("Transaction simulation is unavailable.");
+    await publicClient.call({ account: intent.account, to: intent.target, data: intent.calldata, value: intent.value });
+  }
+
   function withdrawalIntent(amount = jar.balance) { if (!connection.address || !contractAddress) return undefined; return vaultIntent({ id: "vault-withdraw", kind: "vault-withdraw", account: connection.address, target: contractAddress, calldata: encodeFunctionData({ abi: penguJarV3Abi, functionName: "withdrawJar", args: [jar.id] }), preparedAt: reviewSnapshot?.preparedAt ?? Date.now(), assetId: "usdc", amount, jarId: jar.id }); }
   // The intent factory deliberately captures the exact render snapshot guarded by these primitives.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!open || reviewSnapshot || !connection.address || !contractAddress) return; const timeout = window.setTimeout(() => { const intent = withdrawalIntent(); if (intent) setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: verifiedChain.isArc ? arcTestnet.id : undefined, simulation: "passed", expectedTarget: contractAddress })); }, 0); return () => window.clearTimeout(timeout); }, [connection.address, open, reviewSnapshot, verifiedChain.isArc]);
+  useEffect(() => { if (!open || reviewSnapshot || !connection.address || !contractAddress) return; const timeout = window.setTimeout(() => { void (async () => { try { const intent = withdrawalIntent(); if (intent) { await simulateIntent(intent); setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: verifiedChain.isArc ? arcTestnet.id : undefined, simulation: "passed", expectedTarget: contractAddress })); } } catch (reason) { setError(reason instanceof Error ? reason.message : "Transaction simulation is unavailable."); } })(); }, 0); return () => window.clearTimeout(timeout); }, [connection.address, open, reviewSnapshot, verifiedChain.isArc]);
 
   async function withdraw() {
     setError(undefined);
@@ -60,6 +65,7 @@ export function OwnerWithdrawalFlow({ jar, open, origin, onClose, onSuccess }: {
 
       if (!reviewSnapshot) throw new Error("Review again.");
       const intent = withdrawalIntent(freshJar.balance)!;
+      await simulateIntent(intent);
       const checked = revalidateTransactionReview(reviewSnapshot, { intent, context: { connectedAccount: owner, connectedChainId: arcTestnet.id, simulation: "passed", expectedTarget: jarAddress }, now: Date.now() });
       if (!checked.valid) throw new Error("Review again.");
 

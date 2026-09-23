@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { decodeEventLog, encodeFunctionData, formatUnits, getAddress, isAddress, zeroAddress, type Hex } from "viem";
-import { useConnection, useSignMessage, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useConnection, usePublicClient, useSignMessage, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress } from "@/lib/config";
@@ -31,6 +31,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
   const connection = useConnection();
   const verifiedChain = useVerifiedWalletChain();
   const write = useWriteContract();
+  const publicClient = usePublicClient({ chainId: arcTestnet.id });
   const signMessage = useSignMessage();
   const [values, setValues] = useState<CreateJarValues>({ name: "", target: "", unlockLocal: defaultUnlockLocal() });
   const [note, setNote] = useState("");
@@ -55,6 +56,16 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
   const unlockParts = splitLocalDateTime(values.unlockLocal);
   const onArc = connection.status === "connected" && verifiedChain.isArc;
 
+  async function simulateIntent(intent: TransactionIntent) {
+    if (!publicClient) throw new Error("Transaction simulation is unavailable.");
+    await publicClient.call({ account: intent.account, to: intent.target, data: intent.calldata, value: intent.value });
+  }
+
+  async function prepareSimulatedReview(intent: TransactionIntent) {
+    await simulateIntent(intent);
+    return prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, simulation: "passed", expectedTarget: contractAddress! });
+  }
+
   function goalIntent(safe: ReturnType<typeof parseCreateJar>, commitment?: Hex): TransactionIntent | undefined {
     if (!connection.address || !contractAddress) return undefined;
     const withdrawalDelay = BigInt(withdrawalDelayHours) * 60n * 60n;
@@ -67,7 +78,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
     return { id: "vault-goal-create", kind: "vault-create", chainId: arcTestnet.id, account: connection.address, target: contractAddress, calldata, value: 0n, preparedAt: reviewNow(), metadata: { targetAmount: safe.targetAmount.toString(), unlockTime: safe.unlockTime.toString(), privacy, jarMode, guardianProtection } };
   }
 
-  function review(event: FormEvent) {
+  async function review(event: FormEvent) {
     event.preventDefault();
     try {
       const parsedReview = parseCreateJar(values);
@@ -80,7 +91,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
       }
       setFormError(undefined);
       setReviewedAccount(connection.address);
-      if (privacy === "public") { const intent = goalIntent(parsedReview); if (intent) setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: onArc ? arcTestnet.id : undefined, simulation: "passed", expectedTarget: contractAddress! })); }
+      if (privacy === "public") { const intent = goalIntent(parsedReview); if (intent) setReviewSnapshot(await prepareSimulatedReview(intent)); }
       setStep("review");
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
@@ -99,13 +110,13 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
       const protection = guardianProtection
         ? validateProtectionWallets(guardianWallet, recoveryWallet, connection.address, t("create.walletsError"), t("create.distinctWalletsError"))
         : undefined;
-      if (reviewSnapshot) { const reviewedIntent = goalIntent(safe, pendingEncrypted.current?.metadataCommitment); if (!reviewedIntent) throw new Error("Review again."); const checked = revalidateTransactionReview(reviewSnapshot, { intent: { ...reviewedIntent, preparedAt: reviewSnapshot.preparedAt }, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, simulation: "passed", expectedTarget: contractAddress }, now: reviewNow() }); if (!checked.valid) throw new Error("Review again."); }
+      if (reviewSnapshot) { const reviewedIntent = goalIntent(safe, pendingEncrypted.current?.metadataCommitment); if (!reviewedIntent) throw new Error("Review again."); await simulateIntent(reviewedIntent); const checked = revalidateTransactionReview(reviewSnapshot, { intent: { ...reviewedIntent, preparedAt: reviewSnapshot.intent.preparedAt }, context: { connectedAccount: connection.address, connectedChainId: arcTestnet.id, simulation: "passed", expectedTarget: contractAddress }, now: reviewNow() }); if (!checked.valid) throw new Error("Review again."); }
       const guardedWrite = (request: Parameters<typeof write.mutateAsync>[0]) => { if (!reviewSnapshot) throw new Error("Review again."); return submissionGuard.current.run(reviewSnapshot.fingerprint, () => write.mutateAsync(request)); };
       let hash: `0x${string}`;
       if (privacy === "private") {
         const encrypted = pendingEncrypted.current ?? await (async () => { const signature = await signMessage.mutateAsync({ message: privateMetadataSigningMessage(connection.address, arcTestnet.id, contractAddress), account: connection.address }); return encryptPrivateMetadata({ metadata: { version: 1, name: safe.name, targetAmount: formatUnits(safe.targetAmount, 6), note: note.trim() }, signature, owner: connection.address, chainId: arcTestnet.id, contractAddress }); })();
         pendingEncrypted.current = encrypted;
-        if (!reviewSnapshot) { const intent = goalIntent(safe, encrypted.metadataCommitment); if (!intent) throw new Error("Could not prepare goal review."); setReviewSnapshot(prepareFlowReview(intent, { connectedAccount: connection.address, connectedChainId: arcTestnet.id, simulation: "passed", expectedTarget: contractAddress })); setStep("review"); return; }
+        if (!reviewSnapshot) { const intent = goalIntent(safe, encrypted.metadataCommitment); if (!intent) throw new Error("Could not prepare goal review."); setReviewSnapshot(await prepareSimulatedReview(intent)); setStep("review"); return; }
         hash = jarMode === "shielded"
           ? protection
             ? await guardedWrite({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateGuardianShieldedJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n, withdrawalDelay, protection.guardian, protection.recovery], chainId: arcTestnet.id, account: connection.address })

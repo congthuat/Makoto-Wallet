@@ -27,6 +27,24 @@ test("known Xylo, Vault, Memo and Circle targets are registry backed", () => { a
 test("unexpected unknown target blocks a Makoto integration flow", () => { const unknown = "0x3333333333333333333333333333333333333333" as Address; assert.equal(assess({ ...base, target: unknown }, { expectedTarget: usdc.address }).status, "blocked"); });
 test("unknown target without an expected integration is unknown, never malicious", () => { const unknown = "0x3333333333333333333333333333333333333333" as Address; assert.equal(assess({ ...base, target: unknown }, { expectedTarget: undefined }).status, "unknown"); });
 test("exact simulation passes and revert blocks", () => { assert.equal(assess().checks.find((x) => x.code === "request-simulated")?.status, "pass"); assert.equal(assess(base, { simulation: "reverted" }).status, "blocked"); });
+test("required simulation fails closed when unavailable or not performed", () => {
+  const notPerformed = assessTransaction(base, { ...context, simulation: "not-performed" } as unknown as SafetyContext);
+  assert.equal(notPerformed.status, "blocked");
+  assert.equal(notPerformed.checks.find((check) => check.code === "request-simulation-required")?.status, "blocked");
+  const unavailable = assess(base, { simulation: "unavailable" });
+  assert.equal(unavailable.status, "unknown");
+  assert.equal(unavailable.checks.find((check) => check.code === "request-simulated")?.status, "unknown");
+});
+test("non-Circle and malformed simulation policies fail closed", () => {
+  const forgedCirclePolicy = assessTransaction(base, { ...context, simulation: "not-performed", simulationPolicy: { requirement: "externally-managed", provider: "circle-app-kit" } });
+  assert.equal(forgedCirclePolicy.status, "blocked");
+  assert.equal(forgedCirclePolicy.blockers.some((check) => check.code === "simulation-policy-invalid"), true);
+  for (const simulationPolicy of [null, "externally-managed", { requirement: "unknown" }, { requirement: "externally-managed" }, { requirement: "externally-managed", provider: "unknown" }]) {
+    const malformed = assessTransaction(base, { ...context, simulation: "passed", simulationPolicy } as unknown as SafetyContext);
+    assert.equal(malformed.status, "blocked");
+    assert.equal(malformed.blockers.some((check) => check.code === "simulation-policy-invalid"), true);
+  }
+});
 test("amount above balance and amount plus fee above balance block", () => { assert.equal(assess(base, { balances: { usdc: 999_999n } }).status, "blocked"); assert.equal(assess({ ...base, assetOut: { assetId: "usdc", amount: 2_000_000n } }).blockers.some((x) => x.code === "gas-covered"), true); });
 test("raw 18-decimal fee is preserved and only converted USDC6 enters balance comparison", () => { const intent = { ...base, gas: { ...base.gas!, maxFeeRaw18: 900_000_000_000_000n, maxFeeUsdc6: 900n } }; assert.equal(assess(intent, { balances: { usdc: 1_000_900n } }).status, "ready"); assert.equal(intent.gas.maxFeeRaw18, 900_000_000_000_000n); });
 test("finite approval passes and unlimited approval blocks", () => { const finite = { ...base, kind: "approval" as const, approval: { token: usdc.address, spender: XYLO_ROUTER, amount: 1_000_000n, finite: true } }; assert.equal(assess(finite, { allowance: 0n }).status, "review"); assert.equal(assess({ ...finite, approval: { ...finite.approval, amount: maxUint256, finite: false } }).status, "blocked"); });

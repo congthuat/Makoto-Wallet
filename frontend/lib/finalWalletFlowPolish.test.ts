@@ -17,8 +17,10 @@ test("compact reviews show exactly one review title while normal panel titles re
   assert.match(bridge, /"Review Bridge"/);
 });
 
-test("compact Send, Swap, and Bridge reviews omit the generic wallet confirmation sentence", () => {
-  assert.match(send, /compact[\s\S]*?walletNotice=""/);
+test("compact Send names its signing wallet while Swap and Bridge omit the generic confirmation sentence", () => {
+  assert.match(send, /compact[\s\S]*?walletNotice=\{wallet\.kind === "local" \? copy\.localWalletHandoff : copy\.externalWalletHandoff\}/);
+  assert.match(send, /Makoto Local Wallet will sign this exact transaction only after you explicitly confirm/);
+  assert.match(send, /connected external wallet will request confirmation for this exact transaction/);
   assert.match(swap.slice(swap.indexOf('reviewStage === "swap"')), /compact[\s\S]*?walletNotice=""/);
   assert.match(bridge, /compact[\s\S]*?walletNotice=""/);
   for (const source of [send, swap, bridge]) assert.doesNotMatch(source, /Final confirmation happens in your wallet\./);
@@ -35,15 +37,15 @@ test("Send confirmed state keeps one compact recipient presentation", () => {
 
 test("Swap review uses wallet-language labels in English and Vietnamese", () => {
   const review = swap.slice(swap.indexOf('reviewStage === "swap"'), swap.indexOf('className="create-form wallet-flow compact-swap-flow"'));
-  for (const label of ['"You pay"', '"You receive"', '"Minimum received"', '"Fee"', '"Bạn trả"', '"Bạn nhận"', '"Tối thiểu nhận"', '"Phí"']) assert.ok(review.includes(label), label);
+  for (const label of ['"You pay"', '"Expected receive · quote"', '"Minimum receive · execution protection"', '"Estimated network fee"', '"Bạn trả"', '"Dự kiến nhận · báo giá"', '"Tối thiểu nhận · bảo vệ thực thi"', '"Phí mạng ước tính"']) assert.ok(review.includes(label), label);
   assert.doesNotMatch(review, /"From"|"Current quote"|"Swap network fee"/);
 });
 
-test("Bridge default fee is compact while exact components remain in Details", () => {
-  assert.match(bridge, /compactBridgeFeeSummary\(estimate\.fees, vi\)/);
-  assert.match(bridge, /fraction\.slice\(0, 6\)/);
-  assert.match(bridge, /hasGas[\s\S]*?\+ gas/);
-  assert.match(bridge, /estimate\.fees\.map\(\(f\) => `\$\{f\.label\}: \$\{f\.amount/);
+test("Bridge fees retain every exact component in the visible cost section", () => {
+  assert.match(bridge, /costDetails=\{estimate\.fees\.map/);
+  assert.match(bridge, /fee\.amount === undefined/);
+  assert.match(bridge, /`\$\{fee\.amount\} \$\{fee\.token\}`/);
+  assert.doesNotMatch(bridge, /fraction\.slice|compactBridgeFeeSummary/);
 });
 
 test("Swap and Bridge confirmed states remain compact and repeatable", () => {

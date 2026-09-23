@@ -14,7 +14,7 @@ const account = "0x1111111111111111111111111111111111111111" as Address;
 const counterparty = "0x2222222222222222222222222222222222222222" as Address;
 const token = "0x3600000000000000000000000000000000000000" as Address;
 const activity = (kind: WalletActivity["kind"], direction: WalletActivity["direction"] = "send", index = 1): WalletActivity => ({ hash: `0x${String(index).padStart(64, "0")}` as Hash, logIndex: index, direction, kind, amount: 5_000_000n, counterparty, confirmedAt: 1000 + index, blockNumber: BigInt(index), assetId: "usdc", assetSymbol: "USDC", tokenAddress: token, decimals: 6, provider: "arcscan", source: "onchain", ...(kind === "swap" ? { swapReceive: { amount: 4_900_000n, assetId: "eurc" as const, assetSymbol: "EURC" as const, tokenAddress: "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a" as Address, decimals: 6 as const, logIndex: index + 1 } } : {}) });
-const connected = (overrides: Partial<AgentContextSnapshot> = {}) => createAgentContextSnapshot({ connected: true, account, verifiedChainId: 5042002, isArc: true, balances: { usdc: 12_300_000n, eurc: 2_000_000n }, activity: [activity("swap", "send", 6), activity("bridge", "send", 5), activity("vault-deposit", "send", 4), activity("vault-withdraw", "receive", 3), activity("transfer", "send", 2), activity("transfer", "receive", 1)], activityPartial: false, activityUnavailable: false, vault: { available: true, total: 9_000_000n, goalCount: 2, activeCount: 1 }, ...overrides });
+const connected = (overrides: Partial<AgentContextSnapshot> = {}) => createAgentContextSnapshot({ connected: true, account, verifiedChainId: 5042002, isArc: true, balances: { usdc: 12_300_000n, eurc: 2_000_000n, cirbtc: 12_345_678n }, activity: [activity("swap", "send", 6), activity("bridge", "send", 5), activity("vault-deposit", "send", 4), activity("vault-withdraw", "receive", 3), activity("transfer", "send", 2), activity("transfer", "receive", 1)], activityPartial: false, activityUnavailable: false, vault: { available: true, total: 9_000_000n, goalCount: 2, activeCount: 1 }, ...overrides });
 const parse = (text: string, locale: AgentRequest["locale"] = "en") => parseAgentRequest({ text, locale });
 async function answer(snapshot: AgentContextSnapshot, request: AgentRequest) { const intent = parseAgentRequest(request), decision = routeAgentRequest(intent); const output = decision.mode === "clarification" ? {} : await runAgentCapability({ snapshot, now: snapshot.timestamp, binding: { generation: 0, account: snapshot.account, chainId: snapshot.verifiedChainId } }, intent, decision); return answerAgentRequest(snapshot, intent, decision, output); }
 
@@ -25,7 +25,7 @@ test("AgentContextSnapshot is immutable, data-only, and represents connected/dis
 });
 
 test("wallet overview returns supplied values and preserves unavailable instead of zero", async () => {
-  const full = await runAgentTool(connected(), parse("balance")); assert.equal((full?.data as { usdc: bigint }).usdc, 12_300_000n);
+  const full = await runAgentTool(connected(), parse("balance")); assert.equal((full?.data as { usdc: bigint; cirbtc: bigint }).usdc, 12_300_000n); assert.equal((full?.data as { cirbtc: bigint }).cirbtc, 12_345_678n); assert.match((await answer(connected(), { text: "balance", locale: "en" })).text, /cirBTC: 0\.12345678/);
   const missing = await answer(connected({ balances: {} }), { text: "balance", locale: "en" }); assert.match(missing.text, /unavailable/); assert.doesNotMatch(missing.text, /USDC: 0/);
   assert.match((await answer(createAgentContextSnapshot({ connected: false, isArc: false, balances: {}, activity: [], activityPartial: false, activityUnavailable: false, vault: { available: false } }), { text: "balance", locale: "en" })).text, /Connect your wallet/);
 });
@@ -76,22 +76,27 @@ test("Agent source has no persistence or wallet-write execution surface", () => 
   const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8"); const source = [ui, readFileSync(new URL("./agent/planner.ts", import.meta.url), "utf8"), readFileSync(new URL("./agent/tools.ts", import.meta.url), "utf8")].join("\n");
   for (const forbidden of ["localStorage", "document.cookie", "writeContract", "sendTransaction", "submitReviewedTransaction", "switchChain", "walletClient", "signMessage"]) assert.equal(source.includes(forbidden), false, forbidden);
   assert.match(ui, /storeAgentHandoff\(window\.sessionStorage/);
-  assert.match(ui, /onClick=\{clearConversation\}/); assert.match(ui, /aria-live="polite"/); assert.match(ui, /agent\.page\.title/); assert.match(ui, /agent\.draft\.review/);
+  assert.match(ui, /onClick=\{clearConversation\}/); assert.match(ui, /aria-live="polite"/); assert.match(ui, /<h1>\{t\("agent\.workspace\.title"\)\}/); assert.match(ui, /agent\.draft\.review/);
 });
 
-test("Agent shell follows the shared sidebar and mobile content geometry", () => {
+test("Agent uses the common shell while preserving long-value containment", () => {
+  // Obsolete: route-local sidebar offsets. Contract: shared geometry and readable values.
+  const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
+  const shell = readFileSync(new URL("../components/AppShell.module.css", import.meta.url), "utf8");
   const css = readFileSync(new URL("../components/MakotoAgentPage.module.css", import.meta.url), "utf8");
-  assert.match(css, /\.shell\{box-sizing:border-box;width:min\(100%,1840px\);min-width:0;min-height:100vh;margin:0 auto;padding:112px 32px 40px 272px\}/);
-  assert.match(css, /@media\(max-width:1120px\)\{\.shell\{padding-left:252px\}\}/);
-  assert.match(css, /@media\(max-width:767px\)\{\.shell\{width:100%;padding:92px 14px 110px\}/);
-  assert.match(css, /\.messages article>p\{[^}]*overflow-wrap:anywhere/);
-  assert.match(css, /\.draft dd\{[^}]*overflow-wrap:anywhere/);
-  assert.match(css, /\.composer input\{[^}]*width:100%;min-width:0/);
+  assert.match(ui, /return <AppShell>/);
+  assert.match(shell, /var\(--lc-gutter\)/);
+  assert.doesNotMatch(css, /\.shell\s*\{/);
+  // Phase 7G replaces chat bubbles with operations; retain the same containment contract.
+  assert.match(css, /\.workspace p\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  assert.match(css, /\.draft dd\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  assert.match(css, /\.composer input\s*\{[^}]*min-width:\s*0;[^}]*width:\s*100%/);
   assert.doesNotMatch(css, /margin-left\s*:|translateX\(|100vw|width\s*:\s*calc\(/);
 });
 
-test("Agent quick prompts replace the legacy Vault surface with network intelligence", () => {
+test("Agent suggestions reuse the shared catalog instead of legacy quick prompts", () => {
   const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
-  assert.match(ui, /agent\.prompt\.network/);
+  assert.match(ui, /agentSuggestionGroups/);
+  assert.match(ui, /selectSuggestion\(suggestion\.promptKey\)/);
   assert.doesNotMatch(ui, /What's in my Vault\?|Trong Makoto Vault có gì\?/);
 });

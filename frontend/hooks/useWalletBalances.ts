@@ -16,6 +16,7 @@ export function useWalletBalances(address?: Address, enabled = false) {
   } as const;
   const usdcAsset = getAssetById("usdc")!;
   const eurcAsset = getAssetById("eurc")!;
+  const cirbtcAsset = getAssetById("cirbtc")!;
   const usdc = useReadContract({
     address: usdcAsset.address,
     abi: erc20BalanceAbi,
@@ -32,6 +33,14 @@ export function useWalletBalances(address?: Address, enabled = false) {
     chainId: arcTestnet.id,
     query,
   });
+  const cirbtc = useReadContract({
+    address: cirbtcAsset.address,
+    abi: erc20BalanceAbi,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    chainId: arcTestnet.id,
+    query,
+  });
 
-  return { usdc, eurc, assets: { usdc, eurc } };
+  return { usdc, eurc, cirbtc, assets: { usdc, eurc, cirbtc } };
 }
