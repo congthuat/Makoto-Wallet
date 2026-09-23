@@ -94,8 +94,9 @@ test("Agent uses the common shell while preserving long-value containment", () =
   assert.doesNotMatch(css, /margin-left\s*:|translateX\(|100vw|width\s*:\s*calc\(/);
 });
 
-test("Agent quick prompts replace the legacy Vault surface with network intelligence", () => {
+test("Agent suggestions reuse the shared catalog instead of legacy quick prompts", () => {
   const ui = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
-  assert.match(ui, /agent\.prompt\.network/);
+  assert.match(ui, /agentSuggestionGroups/);
+  assert.match(ui, /selectSuggestion\(suggestion\.promptKey\)/);
   assert.doesNotMatch(ui, /What's in my Vault\?|Trong Makoto Vault có gì\?/);
 });

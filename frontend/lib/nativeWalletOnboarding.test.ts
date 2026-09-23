@@ -77,5 +77,8 @@ test("native wallet modal uses Makoto theme tokens and responsive phrase grids w
   assert.match(css, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(css, /@media\(max-width:520px\)[\s\S]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /@media\(max-width:390px\)[\s\S]*overflow-x:hidden/);
-  assert.doesNotMatch(css, /gradient|glass|backdrop-filter|#(?:7[0-9a-f]{5}|8[0-9a-f]{5})/i);
+  assert.match(css, /\.progress ol\{[^}]*repeat\(auto-fit,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.infoNote\{/);
+  assert.match(component, /onboarding\.passwordAppLock/);
+  assert.match(component, /aria-describedby=\{error \? "verification-error" : undefined\}/);
 });

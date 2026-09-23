@@ -80,6 +80,12 @@ export function NativeWalletOnboarding({ onClose }: { onClose(): void }) {
     if (stage === "delete-confirm") return t("onboarding.deleteWallet");
     return t("onboarding.createGuideTitle");
   }, [mode, stage, t]);
+  const progressSteps = mode === "create"
+    ? [t("onboarding.progressCreate"), t("onboarding.progressBackup"), t("onboarding.progressVerify"), t("onboarding.progressPassword"), t("onboarding.progressReady")]
+    : [t("onboarding.progressImport"), t("onboarding.progressAddress"), t("onboarding.progressPassword"), t("onboarding.progressReady")];
+  const progressIndex = mode === "create"
+    ? ({ intro: 0, phrase: 1, verify: 2, password: 3, saving: 3, success: 4 } as Partial<Record<Stage, number>>)[stage]
+    : ({ restore: 0, "restore-confirm": 1, password: 2, saving: 2, success: 3 } as Partial<Record<Stage, number>>)[stage];
 
   function resetTransientSecrets() {
     setSecret(undefined);
@@ -269,6 +275,9 @@ export function NativeWalletOnboarding({ onClose }: { onClose(): void }) {
       </div>
       <button type="button" className={styles.close} onClick={close} aria-label={t("common.close")}>×</button>
     </header>
+    {progressIndex !== undefined && <nav className={styles.progress} aria-label={t("onboarding.progressAria")}>
+      <ol>{progressSteps.map((label, index) => <li key={label} className={index < progressIndex ? styles.progressComplete : index === progressIndex ? styles.progressCurrent : ""} aria-current={index === progressIndex ? "step" : undefined}><span>{index + 1}</span><small>{label}</small></li>)}</ol>
+    </nav>}
 
     {stage === "intro" && <section className={styles.stage} aria-labelledby="create-guide-title">
       <p className={styles.lead}>{t("onboarding.securityIntro")}</p>
@@ -304,10 +313,10 @@ export function NativeWalletOnboarding({ onClose }: { onClose(): void }) {
       <div className={styles.challengeGrid}>
         {challenge.map((position) => <label key={position}>
           <span>{t("onboarding.wordNumber", { position })}</span>
-          <input value={answers[position] ?? ""} onChange={(event) => setAnswers((current) => ({ ...current, [position]: event.target.value }))} autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="off" required aria-invalid={Boolean(error)} />
+          <input value={answers[position] ?? ""} onChange={(event) => setAnswers((current) => ({ ...current, [position]: event.target.value }))} autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="off" required aria-invalid={Boolean(error)} aria-describedby={error ? "verification-error" : undefined} />
         </label>)}
       </div>
-      {error && <p className={styles.error} role="alert">{error}</p>}
+      {error && <p id="verification-error" className={styles.error} role="alert">{error}</p>}
       <div className={styles.actions}>
         <button type="submit" className={styles.primary}>{t("onboarding.continue")}</button>
         <button type="button" className={styles.secondary} onClick={() => { setError(undefined); setStage("phrase"); }}>{t("onboarding.back")}</button>
@@ -339,16 +348,17 @@ export function NativeWalletOnboarding({ onClose }: { onClose(): void }) {
     {(stage === "password" || stage === "saving") && <form className={styles.stage} onSubmit={(event) => void saveWallet(event)}>
       <p className={styles.lead}>{t("onboarding.passwordIntro")}</p>
       <p className={styles.support}>{t("onboarding.passwordRecovery")}</p>
+      <div className={styles.infoNote} role="note">{t("onboarding.passwordAppLock")}</div>
       <label className={styles.field}>
         <span>{t("onboarding.passwordLabel")}</span>
-        <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => { setPassword(event.target.value); setError(undefined); }} autoComplete="new-password" minLength={8} required disabled={stage === "saving"} aria-invalid={Boolean(error)} />
+        <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => { setPassword(event.target.value); setError(undefined); }} autoComplete="new-password" minLength={8} required disabled={stage === "saving"} aria-invalid={Boolean(error)} aria-describedby={error ? "wallet-password-error" : undefined} />
       </label>
       <label className={styles.field}>
         <span>{t("onboarding.confirmPassword")}</span>
-        <input type={showPassword ? "text" : "password"} value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setError(undefined); }} autoComplete="new-password" minLength={8} required disabled={stage === "saving"} aria-invalid={Boolean(error)} />
+        <input type={showPassword ? "text" : "password"} value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setError(undefined); }} autoComplete="new-password" minLength={8} required disabled={stage === "saving"} aria-invalid={Boolean(error)} aria-describedby={error ? "wallet-password-error" : undefined} />
       </label>
       <button type="button" className={styles.textButton} onClick={() => setShowPassword((current) => !current)} disabled={stage === "saving"}>{t(showPassword ? "onboarding.hidePassword" : "onboarding.showPassword")}</button>
-      {error && <p className={styles.error} role="alert">{error}</p>}
+      {error && <p id="wallet-password-error" className={styles.error} role="alert">{error}</p>}
       <div className={styles.actions}>
         <button type="submit" className={styles.primary} disabled={stage === "saving"}>{t(stage === "saving" ? "onboarding.saving" : "onboarding.saveWallet")}</button>
         <button type="button" className={styles.secondary} disabled={stage === "saving"} onClick={() => { setPassword(""); setConfirmation(""); setError(undefined); setStage(mode === "restore" ? "restore-confirm" : "verify"); }}>{t("onboarding.back")}</button>
@@ -386,10 +396,10 @@ export function NativeWalletOnboarding({ onClose }: { onClose(): void }) {
       <p className={styles.lead}>{t("onboarding.unlockIntro")}</p>
       <label className={styles.field}>
         <span>{t("onboarding.passwordLabel")}</span>
-        <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => { setPassword(event.target.value); setError(undefined); }} autoComplete="current-password" minLength={8} required disabled={unlocking} aria-invalid={Boolean(error)} autoFocus />
+        <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => { setPassword(event.target.value); setError(undefined); }} autoComplete="current-password" minLength={8} required disabled={unlocking} aria-invalid={Boolean(error)} aria-describedby={error ? "unlock-password-error" : undefined} autoFocus />
       </label>
       <button type="button" className={styles.textButton} onClick={() => setShowPassword((current) => !current)} disabled={unlocking}>{t(showPassword ? "onboarding.hidePassword" : "onboarding.showPassword")}</button>
-      {error && <p className={styles.error} role="alert">{error}</p>}
+      {error && <p id="unlock-password-error" className={styles.error} role="alert">{error}</p>}
       <div className={styles.actions}>
         <button type="submit" className={styles.primary} disabled={unlocking}>{t(unlocking ? "onboarding.unlocking" : "onboarding.unlock")}</button>
         <button type="button" className={styles.secondary} disabled={unlocking} onClick={() => { setPassword(""); setError(undefined); setStage("existing"); }}>{t("onboarding.cancel")}</button>

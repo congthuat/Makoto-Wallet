@@ -371,7 +371,12 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
   const balance = balances.usdc.data ?? 0n;
   return <form className="create-form wallet-flow" onSubmit={(event) => { event.preventDefault(); void review(); }}>
     <label>{vi ? "Số USDC muốn nhận trên Base Sepolia" : "USDC to receive on Base Sepolia"}<div className="wallet-field-with-action amount"><input inputMode="decimal" value={amount} disabled={Boolean(pending)} onChange={(event) => { setAmount(event.target.value); invalidateReview(); }} placeholder="0.00" /><span>USDC</span><button type="button" disabled={Boolean(pending)} onClick={() => { setAmount(formatAssetAmount(balance, usdc)); invalidateReview(); }}>MAX</button></div><small>{vi ? "Khả dụng trên Arc" : "Available on Arc"}: {formatAssetAmount(balance, usdc)} USDC</small></label>
-    <p className="wallet-notice">{vi ? "Arc Testnet → Base Sepolia qua Circle CCTP V2. Chỉ USDC; người nhận là cùng địa chỉ ví." : "Arc Testnet → Base Sepolia via Circle CCTP V2. USDC only; the recipient is the same wallet address."}</p>
+    <dl className="bridge-context-grid">
+      <div><dt>{vi ? "Tuyến" : "Route"}</dt><dd>Arc Testnet → Base Sepolia</dd></div>
+      <div><dt>{vi ? "Nhà cung cấp" : "Provider"}</dt><dd>Circle CCTP V2</dd></div>
+      <div><dt>{vi ? "Tài sản" : "Asset"}</dt><dd>USDC</dd></div>
+      <div><dt>{vi ? "Trạng thái ví" : "Wallet status"}</dt><dd>{wallet.kind === "local" ? wallet.status === "connected" ? (vi ? "Đã mở khóa" : "Unlocked") : (vi ? "Đã khóa" : "Locked") : (vi ? "Ví ngoài" : "External wallet")}</dd></div>
+    </dl>
     {wallet.kind === "local" && wallet.status !== "connected" && <p className="wallet-notice">{vi ? "Ví local đang khóa: đọc phí và chuẩn bị Review vẫn khả dụng; ký bị chặn." : "Local wallet locked: fee reads and Review preparation remain available; signing is blocked."}</p>}
     {pending && <p className="transaction-progress" role="status" aria-live="polite" aria-atomic="true">{pending}</p>}
     {error && <p className="field-error" role="alert">{error}</p>}

@@ -69,6 +69,24 @@
 
 /* Phase 7J modal polish: compact transaction hierarchy with shared Makoto tokens. */
 .ledger-send .send-flow { gap: 14px; }
+.ledger-send .send-source-context {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(120px, .6fr);
+  border: 1px solid var(--mk-border-subtle);
+  border-radius: var(--lc-radius-control);
+  background: var(--mk-surface-secondary);
+  overflow: hidden;
+}
+.ledger-send .send-source-context > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 11px 13px;
+}
+.ledger-send .send-source-context > div + div { border-left: 1px solid var(--mk-border-subtle); }
+.ledger-send .send-source-context span,
+.ledger-send .send-source-context small { color: var(--mk-text-muted); font-size: 12px; line-height: 17px; }
+.ledger-send .send-source-context strong { color: var(--mk-text-primary); font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
 .ledger-send .send-flow > label { display: grid; gap: 8px; }
 .ledger-send .send-flow .asset-selector { min-height: 48px; background: var(--mk-surface-secondary); }
 .ledger-send .send-available { margin: -8px 0 0; font-size: 13px; line-height: 18px; }
@@ -167,6 +185,8 @@
 .ledger-receive .receive-explanation { margin-top: 12px; font-size: 13px; line-height: 18px; }
 
 @media (max-width: 599px) {
+  .ledger-send .send-source-context { grid-template-columns: 1fr; }
+  .ledger-send .send-source-context > div + div { border-top: 1px solid var(--mk-border-subtle); border-left: 0; }
   .ledger-send .send-flow > .modal-actions { position: static; margin: 0; padding: 12px 0 0; }
   .ledger-send .send-flow .wallet-field-with-action.amount { flex-wrap: wrap; }
   .ledger-send .send-flow .wallet-field-with-action.amount input { flex: 1 1 150px; }

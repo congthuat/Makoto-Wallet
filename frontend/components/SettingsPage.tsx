@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { arcTestnet } from "viem/chains";
 import { AppShell } from "./AppShell";
+import { useAppLock } from "@/hooks/useAppLock";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
@@ -14,18 +15,44 @@ import styles from "./SettingsFoundation.module.css";
 
 export function SettingsPage() {
   const { locale, setLocale, theme, setTheme, resetPreferences } = usePreferences();
+  const appLock = useAppLock();
   const wallet = useWalletReadContext();
   const chain = useVerifiedWalletChain();
-  const canReadJars = wallet.status === "connected" && chain.isArc;
+  const walletKnown = Boolean(wallet.address) && wallet.status !== "unavailable";
+  const walletUnlocked = wallet.status === "connected";
+  const canReadJars = walletUnlocked && wallet.isArc;
   const ownerJars = useOwnerJars(canReadJars ? wallet.address : undefined);
   const [copied, setCopied] = useState(false);
   const vi = locale === "vi";
-  const network = deriveNetworkSafety(wallet.status === "connected", chain.isArc);
+  const network = deriveNetworkSafety(walletKnown, wallet.isArc);
   const protectionState: ProtectionLoadState = !canReadJars ? "unavailable" : ownerJars.isLoading ? "loading" : ownerJars.error ? "error" : "ready";
   const alerts = deriveSecurityAlerts({ network, protectionState, summary: summarizeJarProtection(ownerJars.jars) });
   const overall = deriveOverallSecurityStatus(network, protectionState, alerts);
   const visibleAlerts = overall === "review" ? alerts : [];
   const switching = ["waiting", "switching", "missing"].includes(chain.switchStatus);
+  const localWallet = wallet.kind === "local" && walletKnown;
+  const walletState = !walletKnown
+    ? (vi ? "Chưa kết nối" : "Not connected")
+    : localWallet && !walletUnlocked
+      ? (vi ? "Đã khóa" : "Locked")
+      : (vi ? "Đã kết nối" : "Connected");
+  const walletName = !walletKnown
+    ? walletState
+    : localWallet
+      ? "Makoto Local Wallet"
+      : (wallet.providerName ?? (vi ? "Ví ngoài" : "External wallet"));
+  const executionState = !walletKnown
+    ? (vi ? "Không khả dụng" : "Unavailable")
+    : walletUnlocked
+      ? (vi ? "Khả dụng" : "Available")
+      : (vi ? "Cần mở khóa" : "Unlock required");
+  const appLockState = !appLock.initialized
+    ? (vi ? "Đang kiểm tra" : "Checking")
+    : !appLock.available
+      ? (vi ? "Không khả dụng" : "Unavailable")
+      : appLock.enabled
+        ? appLock.locked ? (vi ? "Đã khóa" : "Locked") : (vi ? "Đã bật" : "Enabled")
+        : (vi ? "Chưa bật" : "Not enabled");
 
   useEffect(() => {
     const settleSettingsFragment = () => {
@@ -48,28 +75,72 @@ export function SettingsPage() {
   return <AppShell>
     <div className={`${styles.settingsPage} ${vi ? styles.vietnameseSettings : ""}`}>
       <div id="security" className={styles.hashDestination} data-security-state={overall}>
-        <section className={styles.settingsHero}><p className={styles.eyebrow}>{vi ? "CÀI ĐẶT" : "SETTINGS"}</p><h1>{vi ? "CÀI ĐẶT" : "SETTINGS"}</h1><p>{vi ? "Ví, bảo mật, giao diện, ngôn ngữ và hỗ trợ." : "Wallet, security, appearance, language and support."}</p></section>
-      <section className={`${styles.securityOverview} ${styles[`securityOverview_${overall}`]}`} aria-labelledby="security-status-title" data-security-state={overall}><div><h2 id="security-status-title">{statusLabel(overall, vi)}</h2><p>{statusCopy(overall, vi)}</p></div><span className={styles.securityStatusDot} aria-hidden="true" /></section>
+        <section className={styles.settingsHero}><h1>{vi ? "Cài đặt" : "Settings"}</h1><p>{vi ? "Ví, bảo mật, giao diện, ngôn ngữ và hỗ trợ." : "Wallet, security, appearance, language and support."}</p></section>
+
+        <section className={styles.statusPanel} aria-labelledby="wallet-status-title">
+          <div className={styles.sectionHeading}><p>{vi ? "TRẠNG THÁI / VÍ" : "STATUS / WALLET"}</p><h2 id="wallet-status-title">{vi ? "Ví & Mạng" : "Wallet & Network"}</h2></div>
+          <div className={styles.statusColumns}>
+            <div className={styles.statusGroup}>
+              <h3>{vi ? "Danh tính ví" : "Wallet identity"}</h3>
+              <InfoRow label={vi ? "Ví" : "Wallet"} value={walletName} />
+              {wallet.address && <InfoRow label={vi ? "Địa chỉ" : "Address"} value={shortAddress(wallet.address)} />}
+              <InfoRow label={vi ? "Trạng thái ví" : "Wallet state"} value={walletState} />
+              <InfoRow label={vi ? "Thực thi" : "Execution"} value={executionState} />
+              {wallet.address && <div className={styles.settingsActions}><button type="button" onClick={() => void copyAddress()}>{copied ? (vi ? "Đã sao chép" : "Copied") : (vi ? "Sao chép địa chỉ" : "Copy address")}</button><a href={`${ARC_EXPLORER_URL}/address/${wallet.address}`} target="_blank" rel="noreferrer">ArcScan ↗</a></div>}
+            </div>
+            <div className={styles.statusGroup}>
+              <h3>{vi ? "An toàn mạng" : "Network safety"}</h3>
+              <InfoRow label={vi ? "Mạng" : "Network"} value="Arc Testnet" />
+              <InfoRow label="Chain ID" value={String(arcTestnet.id)} />
+              <InfoRow label={vi ? "Token gas" : "Gas token"} value="USDC" />
+              <InfoRow label={vi ? "Trạng thái" : "Status"} value={network === "correct" ? (vi ? "Đúng mạng" : "Correct network") : network === "wrong" ? (vi ? "Sai mạng" : "Wrong network") : walletState} />
+              {network === "wrong" && wallet.kind === "external" && <div className={styles.settingsActions}><button type="button" disabled={switching} onClick={() => void chain.switchToArc()}>{switching ? (vi ? "Đang chuyển…" : "Switching…") : (vi ? "Chuyển mạng" : "Switch network")}</button></div>}
+              {chain.switchMessage && network === "wrong" && <p className={styles.settingsMuted} role="status">{chain.switchMessage}</p>}
+            </div>
+          </div>
+        </section>
       </div>
 
       <div className={styles.settingsGrid}>
-      <SettingsCard title={vi ? "Ví đã kết nối" : "Connected wallet"}>{wallet.status === "connected" && wallet.address ? <><InfoRow label={vi ? "Địa chỉ" : "Address"} value={shortAddress(wallet.address)} /><InfoRow label={vi ? "Nhà cung cấp" : "Provider"} value={wallet.providerName ?? (vi ? "Không xác định" : "Unknown")} /><InfoRow label={vi ? "Mạng" : "Network"} value={network === "correct" ? "Arc Testnet" : (vi ? "Chưa xác minh" : "Unverified")} /><div className={styles.settingsActions}><button type="button" onClick={() => void copyAddress()}>{copied ? (vi ? "Đã sao chép" : "Copied") : (vi ? "Sao chép" : "Copy")}</button><a href={`${ARC_EXPLORER_URL}/address/${wallet.address}`} target="_blank" rel="noreferrer">ArcScan ↗</a></div></> : <p className={styles.settingsMuted}>{vi ? "Chưa kết nối." : "Not connected."}</p>}</SettingsCard>
-      <SettingsCard title={vi ? "An toàn mạng" : "Network safety"}><InfoRow label={vi ? "Mạng" : "Network"} value="Arc Testnet" /><InfoRow label="Chain ID" value={String(arcTestnet.id)} /><InfoRow label={vi ? "Token gas" : "Gas token"} value="USDC" /><InfoRow label={vi ? "Trạng thái" : "Status"} value={network === "correct" ? (vi ? "Đúng mạng" : "Correct network") : network === "wrong" ? (vi ? "Sai mạng" : "Wrong network") : (vi ? "Chưa kết nối" : "Disconnected")} />{network === "wrong" && <div className={styles.settingsActions}><button type="button" disabled={switching} onClick={() => void chain.switchToArc()}>{switching ? (vi ? "Đang chuyển…" : "Switching…") : (vi ? "Chuyển mạng" : "Switch network")}</button></div>}{chain.switchMessage && network === "wrong" && <p className={styles.settingsMuted} role="status">{chain.switchMessage}</p>}<a className={styles.settingsLink} href={ARC_EXPLORER_URL} target="_blank" rel="noreferrer">ArcScan ↗</a></SettingsCard>
-      <SettingsCard title={vi ? "Quyền riêng tư" : "Privacy"} wide><ul className={styles.settingsDisclosure}><li>{vi ? "Dữ liệu được lưu trên trình duyệt này." : "Data stays in this browser."}</li><li>{vi ? "Không chia sẻ khóa riêng tư hoặc dữ liệu bí mật." : "Never share private keys or secret data."}</li></ul></SettingsCard>
-      {visibleAlerts.length > 0 && <SettingsCard title={vi ? "Cảnh báo" : "Alerts"} wide><div className={styles.securityAlerts} aria-live="polite">{visibleAlerts.map((alert) => <AlertRow key={alert.code} alert={alert} vi={vi} />)}</div></SettingsCard>}
-      <SettingsCard title={vi ? "Giao diện" : "Appearance"}><ChoiceGroup label={vi ? "Chủ đề" : "Theme"} value={theme} onChange={setTheme} options={[["system", vi ? "Hệ thống" : "System"], ["light", vi ? "Sáng" : "Light"], ["dark", vi ? "Tối" : "Dark"]]} /></SettingsCard>
-      <SettingsCard title={vi ? "Ngôn ngữ" : "Language"}><ChoiceGroup label={vi ? "Ngôn ngữ" : "Language"} value={locale} onChange={setLocale} options={[["en", "English"], ["vi", "Tiếng Việt"]]} /></SettingsCard>
+      <SettingsCard title={vi ? "Bảo mật / Quyền riêng tư" : "Security / Privacy"} className={styles.securityCard}>
+        <section className={`${styles.securityOverview} ${styles[`securityOverview_${overall}`]}`} aria-labelledby="security-status-title" data-security-state={overall}><div><h3 id="security-status-title">{localWallet && !walletUnlocked ? (vi ? "Ví cục bộ đã khóa" : "Local wallet locked") : statusLabel(overall, vi)}</h3><p>{localWallet && !walletUnlocked ? (vi ? "Cần mở khóa để ký. Các thao tác đọc công khai vẫn khả dụng." : "Unlock required for signing. Public reads remain available.") : statusCopy(overall, vi)}</p></div><span className={styles.securityStatusDot} aria-hidden="true" /></section>
+        <InfoRow label="App Lock" value={appLockState} />
+        <ul className={styles.settingsDisclosure}><li>{vi ? "Dữ liệu được lưu trên trình duyệt này." : "Data stays in this browser."}</li><li>{vi ? "Không chia sẻ khóa riêng tư hoặc dữ liệu bí mật." : "Never share private keys or secret data."}</li></ul>
+        {visibleAlerts.length > 0 && <div className={styles.securityAlerts} aria-live="polite">{visibleAlerts.map((alert) => <AlertRow key={alert.code} alert={alert} vi={vi} />)}</div>}
+      </SettingsCard>
+      <SettingsCard title={vi ? "Tùy chọn" : "Preferences"}>
+        <div className={styles.preferenceGroups}><section><h3>{vi ? "Giao diện" : "Appearance"}</h3><ChoiceGroup label={vi ? "Chủ đề" : "Theme"} value={theme} onChange={setTheme} options={[["system", vi ? "Hệ thống" : "System"], ["light", vi ? "Sáng" : "Light"], ["dark", vi ? "Tối" : "Dark"]]} /></section><section><h3>{vi ? "Ngôn ngữ" : "Language"}</h3><ChoiceGroup label={vi ? "Ngôn ngữ" : "Language"} value={locale} onChange={setLocale} options={[["en", "English"], ["vi", "Tiếng Việt"]]} /></section></div>
+        <div className={styles.settingsPreferenceReset}><div className={styles.settingsPreferenceResetCopy}><strong>{vi ? "Đặt lại tùy chọn" : "Reset preferences"}</strong><span>{vi ? "Khôi phục giao diện và ngôn ngữ về mặc định." : "Restore theme and language preferences to defaults."}</span></div><button type="button" onClick={resetPreferences}>{vi ? "Đặt lại" : "Reset"}</button></div>
+      </SettingsCard>
       <section id="help" className={`${styles.settingsCard} ${styles.settingsWide} ${styles.hashDestination}`} aria-labelledby="help-title">
-        <h2 id="help-title">{vi ? "Trợ giúp & hỗ trợ" : "Help & Support"}</h2>
-        <p className={styles.settingsMuted}>{vi ? "Tài liệu và các kênh hỗ trợ hiện có của Makoto." : "Available Makoto documentation and support channels."}</p>
-        <div className={styles.helpLinks}>
-          <a className={styles.helpLink} href="https://docs.arc.io/arc-chain" target="_blank" rel="noreferrer"><strong>{vi ? "Tài liệu Arc" : "Arc documentation"}</strong><span>{vi ? "Đọc tài liệu mạng chính thức." : "Read the official network documentation."}</span></a>
-          <a className={styles.helpLink} href={ARC_EXPLORER_URL} target="_blank" rel="noreferrer"><strong>ArcScan ↗</strong><span>{vi ? "Kiểm tra giao dịch và địa chỉ." : "Check transactions and addresses."}</span></a>
-          <a className={styles.helpLink} href="https://docs.google.com/forms/d/e/1FAIpQLSfH_cQv0Gkxy604YcpVHpitSfoWbF5_ud3f5WG_Jc4d7A6nVg/viewform" target="_blank" rel="noreferrer"><strong>{vi ? "Gửi phản hồi" : "Send feedback"}</strong><span>{vi ? "Báo lỗi hoặc chia sẻ góp ý." : "Report an issue or share feedback."}</span></a>
+        <div className={styles.sectionHeading}><p>{vi ? "HỖ TRỢ" : "SUPPORT"}</p><h2 id="help-title">{vi ? "Trợ giúp & hỗ trợ" : "Help & Support"}</h2></div>
+        <p className={styles.settingsMuted}>{vi ? "Câu trả lời nhanh cho các thao tác ví phổ biến, cùng tài nguyên mạng chính thức." : "Quick answers for common wallet tasks, plus official network resources."}</p>
+        <div className={styles.helpGroup}>
+          <h3 className={styles.helpGroupTitle}>{vi ? "Trợ giúp nhanh" : "Quick help"}</h3>
+          <div className={styles.helpTopics}>
+            {([
+              [vi ? "Ví & bảo mật" : "Wallet & security", vi ? "Tạo, nhập, mở khóa và bảo vệ cụm từ khôi phục." : "Create, import, unlock, and protect your recovery phrase."],
+              [vi ? "Gửi / Nhận" : "Send / Receive", vi ? "Kiểm tra địa chỉ, mạng và biên nhận trước khi hoàn tất." : "Check addresses, network, and receipts before finishing."],
+              ["Swap", vi ? "Xem lại báo giá, mức tối thiểu nhận được và phí trước khi ký." : "Review quotes, minimum received, and fees before signing."],
+              ["Bridge", vi ? "Theo dõi riêng giao dịch nguồn, Circle và mạng đích." : "Track source, Circle, and destination stages separately."],
+              ["Agent", vi ? "Agent có thể chuẩn bị thao tác; ví của bạn luôn là bên ký." : "The Agent can prepare actions; your wallet always signs."],
+              [vi ? "Khắc phục sự cố" : "Troubleshooting", vi ? "Kiểm tra kết nối, Arc Testnet và trạng thái ví trước tiên." : "Check connection, Arc Testnet, and wallet status first."],
+            ] as const).map(([title, copy]) => <article className={styles.helpTopic} key={title}><strong>{title}</strong><span>{copy}</span></article>)}
+          </div>
+        </div>
+        <div className={styles.helpGroup}>
+          <h3 className={styles.helpGroupTitle}>{vi ? "Tài nguyên" : "Resources"}</h3>
+          <div className={styles.helpLinks}>
+            <a className={styles.helpLink} href="https://docs.arc.io/arc-chain" target="_blank" rel="noreferrer"><strong>{vi ? "Tài liệu Arc" : "Arc documentation"} ↗</strong><span>{vi ? "Đọc tài liệu mạng chính thức." : "Read the official network documentation."}</span></a>
+            <a className={styles.helpLink} href={ARC_EXPLORER_URL} target="_blank" rel="noreferrer"><strong>ArcScan ↗</strong><span>{vi ? "Kiểm tra giao dịch và địa chỉ." : "Check transactions and addresses."}</span></a>
+          </div>
+        </div>
+        <div className={styles.feedbackCard}>
+          <div className={styles.feedbackCopy}><strong>{vi ? "Chia sẻ phản hồi" : "Share feedback"}</strong><span>{vi ? "Giúp cải thiện Ví Makoto." : "Help improve Makoto Wallet."}</span></div>
+          <a className={styles.feedbackAction} href="https://docs.google.com/forms/d/e/1FAIpQLSfH_cQv0Gkxy604YcpVHpitSfoWbF5_ud3f5WG_Jc4d7A6nVg/viewform" target="_blank" rel="noreferrer">{vi ? "Gửi phản hồi" : "Send feedback"} ↗</a>
         </div>
       </section>
       </div>
-      <div className={styles.settingsPreferenceReset}><div className={styles.settingsPreferenceResetCopy}><strong>{vi ? "Tùy chọn" : "Preferences"}</strong><span>{vi ? "Khôi phục giao diện và ngôn ngữ về mặc định." : "Restore theme and language preferences to defaults."}</span></div><button type="button" onClick={resetPreferences}>{vi ? "Đặt lại tùy chọn" : "Reset preferences"}</button></div>
     </div>
   </AppShell>;
 }
@@ -78,6 +149,6 @@ function statusLabel(status: SecurityOverallStatus, vi: boolean) { return ({ pro
 function statusCopy(status: SecurityOverallStatus, vi: boolean) { return ({ protected: vi ? "Hiện không có cảnh báo bảo mật đang hoạt động." : "There are no active security alerts right now.", review: vi ? "Kiểm tra cảnh báo bên dưới." : "Check the alerts below.", disconnected: vi ? "Kết nối ví để kiểm tra." : "Connect a wallet to check.", unknown: vi ? "Chưa thể xác minh." : "Status unavailable." })[status]; }
 function alertText(alert: SecurityAlert, vi: boolean): [string, string] { const n = alert.count ?? 0; return ({ disconnected: [vi ? "Chưa kết nối ví" : "Wallet disconnected", vi ? "Kết nối ví để kiểm tra." : "Connect a wallet to check."], "wrong-network": [vi ? "Sai mạng" : "Wrong network", vi ? "Chuyển sang Arc Testnet." : "Switch to Arc Testnet."], "protection-loading": [vi ? "Đang kiểm tra" : "Checking goals", vi ? "Đang tải trạng thái." : "Loading status."], "protection-unavailable": [vi ? "Không thể xác minh" : "Status unavailable", vi ? "Hãy thử lại sau." : "Try again later."], "frozen-jars": [vi ? `${n} mục tiêu đang đóng băng` : `${n} frozen goal${n === 1 ? "" : "s"}`, vi ? "Kiểm tra trạng thái khôi phục." : "Check recovery status."], "pending-owner-recovery": [vi ? `${n} yêu cầu khôi phục đang chờ` : `${n} pending owner recover${n === 1 ? "y" : "ies"}`, vi ? "Kiểm tra yêu cầu." : "Review the request."], "pending-guardian-change": [vi ? `${n} thay đổi Guardian đang chờ` : `${n} pending Guardian change${n === 1 ? "" : "s"}`, vi ? "Kiểm tra thay đổi." : "Review the change."], "shielded-without-guardian": [vi ? `${n} mục tiêu SHIELDED chưa có Guardian` : `${n} SHIELDED goal${n === 1 ? "" : "s"} without a Guardian`, vi ? "Nếu cần, hãy xem lại cài đặt khôi phục." : "Review recovery settings if needed."], "shielded-without-recovery": [vi ? `${n} mục tiêu SHIELDED chưa có ví khôi phục` : `${n} SHIELDED goal${n === 1 ? "" : "s"} without recovery`, vi ? "Nếu cần, hãy xem lại cài đặt khôi phục." : "Review recovery settings if needed."] } satisfies Record<SecurityAlert["code"], [string, string]>)[alert.code]; }
 function AlertRow({ alert, vi }: { alert: SecurityAlert; vi: boolean }) { const [title, detail] = alertText(alert, vi); return <div className={`${styles.securityAlert} ${styles[`securityAlert_${alert.severity}`]}`} data-alert-code={alert.code}><strong>{title}</strong><span>{detail}</span></div>; }
-function SettingsCard({ title, children, wide = false }: { title: string; children: ReactNode; wide?: boolean }) { return <section className={`${styles.settingsCard} ${wide ? styles.settingsWide : ""}`}><h2>{title}</h2>{children}</section>; }
+function SettingsCard({ title, children, wide = false, className = "" }: { title: string; children: ReactNode; wide?: boolean; className?: string }) { return <section className={`${styles.settingsCard} ${wide ? styles.settingsWide : ""} ${className}`}><h2>{title}</h2>{children}</section>; }
 function InfoRow({ label, value }: { label: string; value: string }) { return <div className={styles.settingsInfo}><span>{label}</span><strong>{value}</strong></div>; }
 function ChoiceGroup<T extends string>({ label, value, onChange, options }: { label: string; value: T; onChange(value: T): void; options: readonly (readonly [T, string])[] }) { return <fieldset className={styles.settingsChoices}><legend>{label}</legend>{options.map(([option, text]) => <label key={option}><input type="radio" name={label} value={option} checked={value === option} onChange={() => onChange(option)} /><span>{text}</span></label>)}</fieldset>; }

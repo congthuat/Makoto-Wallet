@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useConnection } from "wagmi";
 import { AppHeader } from "./AppHeader";
 import { useHydrated } from "@/hooks/useHydrated";
+import { useWalletReadContext } from "@/hooks/useWalletAccount";
 import { usePreferences } from "@/hooks/usePreferences";
 import styles from "./AppShell.module.css";
 
@@ -12,7 +13,9 @@ export function AppShell({ children, legacyClassName }: { children: ReactNode; l
   const { locale } = usePreferences();
   const hydrated = useHydrated();
   const connection = useConnection();
-  const shellMode = hydrated && connection.isConnected ? "connected" : "disconnected";
+  const wallet = useWalletReadContext();
+  const hasWalletIdentity = hydrated && Boolean(wallet.address) && wallet.status !== "unavailable";
+  const shellMode = hasWalletIdentity || connection.isConnected ? "connected" : "disconnected";
   return <div className={`${styles.page} ${styles[`${shellMode}Shell`]} ${legacyClassName ?? ""}`.trim()} data-shell-mode={shellMode}>
     <a className={styles.skipLink} href="#main-content">{locale === "vi" ? "Đến nội dung chính" : "Skip to main content"}</a>
     <AppHeader />

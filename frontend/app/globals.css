@@ -1515,6 +1515,11 @@ footer {
   backdrop-filter: blur(5px);
 }
 .modal-backdrop .create-modal.wallet-action-modal {
+  --mk-accent-primary: #6b46d8;
+  --mk-accent-hover: #5b38c4;
+  --mk-accent-soft: #eee9ff;
+  --mk-accent-ink: #5633bd;
+  --mk-focus: rgb(107 70 216 / .28);
   --lc-text: var(--mk-text-primary);
   --lc-text-secondary: var(--mk-text-secondary);
   --lc-text-tertiary: var(--mk-text-muted);
@@ -1557,6 +1562,43 @@ footer {
   background: var(--mk-surface-primary);
   box-shadow: var(--lc-shadow-dialog);
 }
+.modal-backdrop .create-modal.wallet-action-modal:focus-visible { outline: none; }
+:where(html[data-theme="dark"]) .modal-backdrop .create-modal.wallet-action-modal {
+  --mk-surface-primary: rgba(12, 10, 29, .98);
+  --mk-surface-secondary: #110b27;
+  --mk-surface-tertiary: #21163d;
+  --mk-border-primary: rgba(146, 105, 231, .3);
+  --mk-border-subtle: rgba(172, 139, 239, .16);
+  --mk-text-primary: #f4f6ff;
+  --mk-text-secondary: #aaa1c2;
+  --mk-text-muted: #82799b;
+  --mk-accent-primary: #7651df;
+  --mk-accent-hover: #8769e8;
+  --mk-accent-soft: rgba(95, 48, 190, .32);
+  --mk-accent-ink: #cbbfff;
+  --mk-focus: rgba(155, 132, 255, .38);
+  --mk-shadow-card: 0 16px 38px rgba(8, 3, 24, .2);
+  --lc-shadow-dialog: 0 28px 80px rgba(3, 1, 14, .58), 0 0 0 1px rgba(172, 139, 239, .05);
+}
+@media (prefers-color-scheme: dark) {
+  :where(html[data-theme="system"]) .modal-backdrop .create-modal.wallet-action-modal {
+    --mk-surface-primary: rgba(12, 10, 29, .98);
+    --mk-surface-secondary: #110b27;
+    --mk-surface-tertiary: #21163d;
+    --mk-border-primary: rgba(146, 105, 231, .3);
+    --mk-border-subtle: rgba(172, 139, 239, .16);
+    --mk-text-primary: #f4f6ff;
+    --mk-text-secondary: #aaa1c2;
+    --mk-text-muted: #82799b;
+    --mk-accent-primary: #7651df;
+    --mk-accent-hover: #8769e8;
+    --mk-accent-soft: rgba(95, 48, 190, .32);
+    --mk-accent-ink: #cbbfff;
+    --mk-focus: rgba(155, 132, 255, .38);
+    --mk-shadow-card: 0 16px 38px rgba(8, 3, 24, .2);
+    --lc-shadow-dialog: 0 28px 80px rgba(3, 1, 14, .58), 0 0 0 1px rgba(172, 139, 239, .05);
+  }
+}
 .modal-backdrop .create-modal.wallet-action-modal .modal-header {
   top: -24px;
   margin: -24px -24px 0;
@@ -1565,12 +1607,12 @@ footer {
   border-radius: var(--lc-radius-dialog) var(--lc-radius-dialog) 0 0;
   background: var(--mk-surface-primary);
 }
-.modal-backdrop .create-modal.wallet-action-modal .modal-header h2 { color: var(--mk-text-primary); }
-.modal-backdrop .create-modal.wallet-action-modal .modal-header .eyebrow { color: var(--mk-text-secondary); }
+.modal-backdrop .create-modal.wallet-action-modal .modal-header h2 { color: var(--mk-text-primary); font-size: clamp(24px, 4vw, 30px); line-height: 1.15; letter-spacing: -.025em; }
+.modal-backdrop .create-modal.wallet-action-modal .modal-header .eyebrow { margin-bottom: 5px; color: var(--mk-accent-ink); font: 750 10px/1.4 ui-monospace, monospace; letter-spacing: .13em; text-transform: uppercase; }
 .modal-backdrop .create-modal.wallet-action-modal .modal-header > button {
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   border: 1px solid var(--mk-border-primary);
   border-radius: var(--lc-radius-control);
   color: var(--mk-text-primary);
@@ -1622,6 +1664,7 @@ footer {
 }
 .modal-backdrop .create-modal.wallet-action-modal :is(button, a, summary):focus-visible { outline-color: var(--mk-focus); }
 .modal-backdrop .create-modal.wallet-action-modal a { color: var(--mk-accent-ink); }
+.modal-backdrop .create-modal.wallet-action-modal .modal-actions { gap: 9px; border-color: var(--mk-border-subtle); }
 .modal-backdrop .create-modal.wallet-action-modal .receive-qr-card {
   border: 1px solid var(--mk-border-primary);
   background: #fff;
@@ -1633,7 +1676,7 @@ footer {
     width: min(100%, 640px);
     max-height: calc(100dvh - max(24px, calc(env(safe-area-inset-top) + env(safe-area-inset-bottom))));
     padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
-    border-radius: var(--lc-radius-dialog) var(--lc-radius-dialog) 0 0;
+    border-radius: var(--lc-radius-dialog);
   }
   .modal-backdrop .create-modal.wallet-action-modal .modal-header {
     top: -20px;
@@ -1650,4 +1693,193 @@ footer {
     padding: 12px 2px calc(2px + env(safe-area-inset-bottom));
     background: var(--mk-surface-primary);
   }
+}
+
+/* Classic Makoto account popover: presentation-only theme sync. */
+.connected-popover.account-menu {
+  --account-surface: #fffdf8;
+  --account-surface-raised: #f5f0ff;
+  --account-border: rgba(104, 65, 216, .24);
+  --account-divider: rgba(104, 65, 216, .14);
+  --account-text: #2b2142;
+  --account-muted: #6f6682;
+  --account-accent: #6841d8;
+  --account-accent-soft: rgba(104, 65, 216, .1);
+  --account-focus: #6841d8;
+  box-sizing: border-box;
+  width: min(322px, calc(100vw - 24px));
+  padding: 16px;
+  border-color: var(--account-border);
+  border-radius: 16px;
+  color: var(--account-text);
+  background: linear-gradient(145deg, var(--account-surface), color-mix(in srgb, var(--account-surface-raised) 38%, var(--account-surface)));
+  box-shadow: 0 20px 46px rgba(61, 37, 112, .16), 0 0 0 1px rgba(104, 65, 216, .04);
+}
+.connected-popover.account-menu .wallet-popover-heading {
+  min-height: 34px;
+  color: var(--account-text);
+  background: var(--account-surface);
+}
+.connected-popover.account-menu .wallet-popover-heading > strong {
+  font-size: 15px;
+  line-height: 1.25;
+  letter-spacing: -.01em;
+}
+.connected-popover.account-menu .wallet-popover-heading button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--account-border);
+  border-radius: 999px;
+  color: var(--account-text);
+  background: var(--account-surface-raised);
+  line-height: 1;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+.connected-popover.account-menu .wallet-popover-heading button:hover {
+  border-color: var(--account-accent);
+  color: var(--account-accent);
+  background: var(--account-accent-soft);
+}
+.connected-popover.account-menu .account-provider {
+  margin-top: 3px;
+  color: var(--account-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.connected-popover.account-menu .account-address {
+  margin: 5px 0 12px !important;
+  color: var(--account-text) !important;
+  font-size: 18px !important;
+  line-height: 1.25 !important;
+  letter-spacing: -.015em;
+}
+.connected-popover.account-menu .account-links {
+  gap: 8px;
+  margin-bottom: 13px;
+}
+.connected-popover.account-menu .account-links :is(button, a) {
+  min-height: 40px;
+  padding: 7px 10px;
+  border-color: var(--account-border);
+  border-radius: 10px;
+  color: var(--account-accent);
+  background: var(--account-surface-raised);
+  font-size: 10px;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.connected-popover.account-menu .account-links :is(button, a):hover {
+  border-color: var(--account-accent);
+  background: var(--account-accent-soft);
+}
+.connected-popover.account-menu .wallet-network-row {
+  min-height: 42px;
+  gap: 14px;
+  padding: 10px 0;
+  border-color: var(--account-divider);
+  color: var(--account-text);
+  font-size: 11px;
+}
+.connected-popover.account-menu .wallet-network-row > span { color: var(--account-muted); }
+.connected-popover.account-menu .wallet-network-row > strong {
+  min-width: 0;
+  justify-content: flex-end;
+  color: var(--account-text);
+  text-align: right;
+}
+.connected-popover.account-menu .wallet-network-row + .wallet-network-row > strong {
+  padding: 4px 8px;
+  border: 1px solid var(--account-border);
+  border-radius: 999px;
+  color: var(--account-muted);
+  background: var(--account-surface-raised);
+  font-size: 10px;
+}
+.connected-popover.account-menu .healthy-dot {
+  background: #43b985;
+  box-shadow: 0 0 0 3px rgba(67, 185, 133, .13);
+}
+.connected-popover.account-menu .account-settings-link {
+  min-height: 42px;
+  margin-top: 3px;
+  padding: 9px 10px;
+  border: 1px solid var(--account-divider);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--account-accent);
+  background: var(--account-surface-raised);
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.connected-popover.account-menu .account-settings-link::after {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  content: "\2192";
+  background: var(--account-accent-soft);
+  font-size: 15px;
+  line-height: 1;
+}
+.connected-popover.account-menu .account-settings-link:hover {
+  border-color: var(--account-divider);
+  background: var(--account-accent-soft);
+}
+.connected-popover.account-menu :is(button, a, summary):focus-visible {
+  outline: 3px solid var(--account-focus);
+  outline-offset: 2px;
+}
+
+html[data-theme="dark"] .connected-popover.account-menu {
+  --account-surface: #0c091c;
+  --account-surface-raised: #17102f;
+  --account-border: rgba(146, 105, 231, .34);
+  --account-divider: rgba(172, 139, 239, .16);
+  --account-text: #f4f1ff;
+  --account-muted: #aaa1c2;
+  --account-accent: #cbbfff;
+  --account-accent-soft: rgba(95, 48, 190, .3);
+  --account-focus: #c0b1ff;
+  background: linear-gradient(145deg, rgba(15, 10, 32, .99), rgba(10, 7, 24, .99));
+  box-shadow: 0 22px 54px rgba(3, 1, 14, .5), 0 0 0 1px rgba(172, 139, 239, .05);
+}
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] .connected-popover.account-menu {
+    --account-surface: #0c091c;
+    --account-surface-raised: #17102f;
+    --account-border: rgba(146, 105, 231, .34);
+    --account-divider: rgba(172, 139, 239, .16);
+    --account-text: #f4f1ff;
+    --account-muted: #aaa1c2;
+    --account-accent: #cbbfff;
+    --account-accent-soft: rgba(95, 48, 190, .3);
+    --account-focus: #c0b1ff;
+    background: linear-gradient(145deg, rgba(15, 10, 32, .99), rgba(10, 7, 24, .99));
+    box-shadow: 0 22px 54px rgba(3, 1, 14, .5), 0 0 0 1px rgba(172, 139, 239, .05);
+  }
+}
+@media (max-width: 620px) {
+  .connected-popover.account-menu {
+    width: 100%;
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+  }
+  .connected-popover.account-menu .wallet-popover-heading {
+    margin: -18px -18px 0;
+    padding: 18px 18px 10px;
+  }
+  .connected-popover.account-menu .wallet-popover-heading button {
+    width: 44px;
+    height: 44px;
+  }
+  .connected-popover.account-menu .account-links :is(button, a),
+  .connected-popover.account-menu .account-settings-link { min-height: 44px; }
 }

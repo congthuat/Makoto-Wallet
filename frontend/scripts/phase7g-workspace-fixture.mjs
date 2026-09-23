@@ -26,6 +26,7 @@ import { assessAgentDraftContext } from "@/lib/agent/draftContext";
 import { agentWorkspaceMode } from "@/lib/agent/workspace";
 import { blockingExplanation } from "@/lib/agent/planning";
 import { formatAgentActionResult } from "@/lib/agent/resultFormatter";
+import { agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import { translate } from "@/i18n";
 import { arcTestnet } from "viem/chains";
 const styles = new Proxy({}, { get: (_target, key) => String(key) });

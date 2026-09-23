@@ -732,7 +732,7 @@ export function SendFlow({
           checks={safetyChecks}
           assessment={safetyAssessment}
           review={reviewSnapshot}
-          walletNotice=""
+          walletNotice={wallet.kind === "local" ? copy.localWalletHandoff : copy.externalWalletHandoff}
           onBack={() => {
             if (pending) return;
             if (typeof reviewInFlight !== "undefined" && reviewInFlight.current) return;
@@ -818,6 +818,17 @@ export function SendFlow({
             void review();
           }}
         >
+          <div className="send-source-context">
+            <div>
+              <span>{copy.from}</span>
+              <strong>{wallet.kind === "local" ? copy.localWallet : copy.externalWallet}</strong>
+              {wallet.address && <small>{shortAddress(wallet.address)}</small>}
+            </div>
+            <div>
+              <span>{copy.network}</span>
+              <strong>Arc Testnet</strong>
+            </div>
+          </div>
           <label htmlFor="send-asset">
             {copy.asset}
             <select id="send-asset" name="asset" className="asset-selector" value={assetId} onChange={(event) => selectAsset(event.target.value as SupportedAssetId)}>
@@ -1030,6 +1041,11 @@ function sendCopy(locale: "en" | "vi", t: ReturnType<typeof usePreferences>["t"]
     switchArc: vi ? "Chuyển sang Arc Testnet" : "Switch to Arc Testnet",
     wrongNetwork: vi ? "Sai mạng · Cần Arc Testnet 5042002" : "Wrong network · Arc Testnet 5042002 required",
     title: vi ? "Gửi tài sản" : "Send asset",
+    from: vi ? "Từ" : "From",
+    localWallet: vi ? "Ví Makoto Local" : "Makoto Local Wallet",
+    externalWallet: vi ? "Ví ngoài" : "External Wallet",
+    localWalletHandoff: vi ? "Ví Makoto Local sẽ ký giao dịch chính xác này sau khi bạn xác nhận rõ ràng." : "Makoto Local Wallet will sign this exact transaction only after you explicitly confirm.",
+    externalWalletHandoff: vi ? "Ví ngoài đã kết nối sẽ yêu cầu xác nhận giao dịch chính xác này." : "Your connected external wallet will request confirmation for this exact transaction.",
     asset: vi ? "Tài sản" : "Asset",
     recipient: vi ? "Địa chỉ nhận" : "Recipient address",
     amount: vi ? "Số tiền" : "Amount",

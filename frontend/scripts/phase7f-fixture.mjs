@@ -28,7 +28,7 @@ export function SwapFixture(options={}) {
  const unknown=options.state==='unknown'?{hash:'${hash}',quote}:undefined;
  const failure=options.state==='failure'?{hash:'${hash}',quote}:undefined;
  const success=options.state==='success'||options.state==='success-unavailable'?{hash:'${hash}',quote,received:options.state==='success'?1111111n:undefined}:undefined;
- const maxApproval=options.state==='max'?{balance:10000000n,approvalFee:1000000000000n,account:'${account}'}:undefined;
+ const maxApproval=options.state==='max'?{balance:10000000n,approvalEnvelope:{rawMaxFee18:1000000000000n},account:'${account}'}:undefined;
  const reviewStage=options.state==='approval'?'approval':['review','preflight','awaiting','pending','unavailable','expired'].includes(options.state)?'swap':undefined;
  const swapLocked=['preflight','awaiting','pending'].includes(options.state);
  const submissionStatus=options.state==='pending'?'submitted-pending':'idle',executionInFlightRef={current:swapLocked};

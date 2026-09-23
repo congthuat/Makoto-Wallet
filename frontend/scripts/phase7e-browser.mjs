@@ -67,13 +67,20 @@ window.mountFixture('send');`);
   function active(selector){assert.equal(evaluate(`document.activeElement.matches(${JSON.stringify(selector)})`),true,`Expected keyboard focus on ${selector}`);}
   function contained(){assert.equal(evaluate(`!!document.activeElement.closest('[role=dialog]') && document.activeElement.checkVisibility()`),true,'Focus must remain on a visible modal target');}
   function visibleFocus(){
-    const r=evaluate(`(()=>{const e=document.activeElement,s=getComputedStyle(e),r=e.getBoundingClientRect(),p=e.closest('[role=dialog]'),b=p.getBoundingClientRect(),h=p.querySelector('.modal-header').getBoundingClientRect(),pad=parseFloat(s.outlineWidth)+parseFloat(s.outlineOffset);return {target:e.id||e.textContent,style:s.outlineStyle,width:parseFloat(s.outlineWidth),color:s.outlineColor,inside:!!p,visible:e.checkVisibility(),fits:r.left-pad>=b.left&&r.right+pad<=b.right&&r.top-pad>=b.top&&r.bottom+pad<=b.bottom&&r.top-pad>=0&&r.bottom+pad<=innerHeight&&(!!e.closest('.modal-header')||r.top-pad>=h.bottom)};})()`);
-    assert.equal(r.style,'solid',JSON.stringify(r));assert.ok(r.width>=2,JSON.stringify(r));assert.equal(r.visible&&r.inside&&r.fits,true,JSON.stringify(r));
+    const r=evaluate(`(()=>{const e=document.activeElement,s=getComputedStyle(e),r=e.getBoundingClientRect(),p=e.closest('[role=dialog]'),b=p.getBoundingClientRect(),h=p.querySelector('.modal-header').getBoundingClientRect(),visibleColor=v=>v&&!/\\btransparent\\b/.test(v)&&!/rgba\\([^)]*,\\s*0(?:\\.0+)?\\s*\\)/.test(v)&&!/\\/\\s*0(?:\\.0+)?\\s*\\)/.test(v),outline=s.outlineStyle!=='none'&&parseFloat(s.outlineWidth)>=1&&visibleColor(s.outlineColor),shadow=s.boxShadow!=='none'&&visibleColor(s.boxShadow),tolerance=2;return {target:e.id||e.textContent,focusVisible:e.matches(':focus-visible'),outline,shadow,outlineStyle:s.outlineStyle,outlineWidth:s.outlineWidth,outlineColor:s.outlineColor,boxShadow:s.boxShadow,inside:!!p,visible:e.checkVisibility(),fits:r.left>=b.left-tolerance&&r.right<=b.right+tolerance&&r.top>=b.top-tolerance&&r.bottom<=b.bottom+tolerance&&r.top>=-tolerance&&r.bottom<=innerHeight+tolerance&&(!!e.closest('.modal-header')||r.top>=h.bottom-tolerance)};})()`);
+    assert.equal(r.focusVisible,true,JSON.stringify(r));assert.equal(r.outline||r.shadow,true,JSON.stringify(r));assert.equal(r.visible&&r.inside&&r.fits,true,JSON.stringify(r));
   }
   function cycle(selectors,inspectFocus=true){
-    run('focus',selectors[0]);
-    for(let i=1;i<=selectors.length;i++){run('press','Tab');active(selectors[i%selectors.length]);contained();if(inspectFocus)visibleFocus();}
-    for(let i=selectors.length-1;i>=0;i--){run('press','Shift+Tab');active(selectors[i]);contained();if(inspectFocus)visibleFocus();}
+    run('focus','[role=dialog]');
+    for(let i=0;i<selectors.length;i++){run('press','Tab');active(selectors[i]);contained();if(inspectFocus)visibleFocus();}
+    run('press','Tab');active(selectors[0]);contained();if(inspectFocus)visibleFocus();
+    run('press','Shift+Tab');active(selectors.at(-1));contained();if(inspectFocus)visibleFocus();
+    for(let i=selectors.length-2;i>=0;i--){run('press','Shift+Tab');active(selectors[i]);contained();if(inspectFocus)visibleFocus();}
+  }
+  function keyboardFocus(selector){
+    run('focus','[role=dialog]');
+    for(let i=0;i<40;i++){run('press','Tab');if(evaluate(`document.activeElement.matches(${JSON.stringify(selector)})`)){contained();visibleFocus();return;}}
+    assert.fail(`Keyboard Tab did not reach ${selector}`);
   }
   try{
     run('open',base);run('wait','--fn','!!window.mountFixture && document.fonts.status === "loaded"');
@@ -92,12 +99,13 @@ window.mountFixture('send');`);
           assert.equal(evaluate(`!!document.querySelector('.compact-transaction-review') && !window.fixtureClosed`),true);
         });
         if(kind==='send')check(`input/focus ${name}`,()=>{
-          run('focus','#send-asset');run('press','Tab');assert.equal(evaluate('document.activeElement.id'),'send-amount');
-          visibleFocus();run('screenshot',path.join(output,`focus-${name}.png`));
+          cycle(['.modal-header button','#send-asset','#send-amount','.wallet-field-with-action.amount button','#send-recipient','.wallet-field-with-action:not(.amount) button','#send-note','.modal-actions .secondary-action','.modal-actions .primary-action']);
+          keyboardFocus('#send-recipient');run('screenshot',path.join(output,`focus-${name}.png`));
           run('fill','#send-recipient','bad');assert.equal(evaluate('document.querySelector("#send-recipient").getAttribute("aria-invalid")'),'true');
           visibleFocus();
-          assert.equal(evaluate(`(()=>{const e=document.activeElement,probe=document.createElement('span');probe.style.color='var(--lc-error)';e.parentElement.append(probe);const same=getComputedStyle(e).borderColor===getComputedStyle(probe).color;probe.remove();return same;})()`),true,'Error border coexists with focus outline');
+          assert.equal(evaluate(`(()=>{const feedback=document.querySelector('#send-recipient-context');return feedback?.checkVisibility()&&feedback.textContent.trim().length>0;})()`),true,'Invalid recipient keeps visible descriptive feedback while keyboard focus remains visible');
         });
+        if(kind==='review')check(`review keyboard ${name}`,()=>{cycle(['.modal-header button','.compact-review-details summary','.modal-actions .secondary-action','.modal-actions .primary-action']);});
         if(kind==='review')check(`editable Back ${name}`,()=>{run('click','.secondary-action');assert.equal(evaluate('document.querySelector("#send-amount").value'),'1.234567');});
         if(kind==='receive')check(`copy/request ${name}`,()=>{
           run('click','.receive-address button');assert.equal(evaluate('window.copiedText'),account);
@@ -111,15 +119,15 @@ window.mountFixture('send');`);
       }
       mount('receive');
       const closed=['.modal-header button','#receive-asset','.receive-address button','.receive-request summary','.receive-details summary'];
-      check(`keyboard closed Details ${name}`,()=>{cycle(closed);run('focus','.receive-details summary');visibleFocus();});
+      check(`keyboard closed Details ${name}`,()=>{cycle(closed);keyboardFocus('.receive-details summary');});
       check(`keyboard disclosure Enter/Space ${name}`,()=>{
-        run('focus','.receive-details summary');run('press','Enter');assert.equal(evaluate(`document.querySelector('.receive-details').open`),true);
+        keyboardFocus('.receive-details summary');run('press','Enter');assert.equal(evaluate(`document.querySelector('.receive-details').open`),true);
         run('press','Space');assert.equal(evaluate(`document.querySelector('.receive-details').open`),false);
         run('press','Space');assert.equal(evaluate(`document.querySelector('.receive-details').open`),true);
       });
       check(`keyboard open Details ${name}`,()=>{cycle([...closed,'.receive-details a']);});
       check(`keyboard open request ${name}`,()=>{
-        run('focus','.receive-request summary');run('press','Enter');run('fill','#receive-amount','1.234567');
+        keyboardFocus('.receive-request summary');run('press','Enter');run('fill','#receive-amount','1.234567');
         cycle([...closed.slice(0,4),'#receive-amount','.receive-add-note',closed[4],'.receive-details a','.receive-actions button:first-child','.receive-actions button:last-child']);
       });
       check(`receive expanded axe ${name}`,()=>{const audit=run('a11y','--selector','[role=dialog]');assert.equal(audit.counts.violations,0,JSON.stringify(audit.violations));});

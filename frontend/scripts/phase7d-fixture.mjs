@@ -32,10 +32,10 @@ function visit(node) {
 visit(dashboard);
 if (!children) throw new Error("Production Agent children not found");
 const { AgentEntry } = compile(`export function AgentEntry({locale,t}) {
-  const overviewStyles = ${JSON.stringify(Object.fromEntries(["suggestions", "agentBody", "messages", "composer"].map(key=>[key,key])))}, styles = {}, agentStyles = {};
+  const overviewStyles = ${JSON.stringify(Object.fromEntries(["agentBody", "messages", "composer", "composerRow", "suggestionPicker", "suggestionTrigger", "suggestionPanel", "suggestionClose", "suggestionList", "composerSend"].map(key=>[key,key])))}, styles = {}, agentStyles = {};
   const agentMessages=[], agentInput="", agentInputRef=null;
-  const agentSuggestions=[{id:"balance",promptKey:"agentDashboard.inputLabel"}];
-  const selectAgentSuggestion=()=>{}, submitAgent=(e)=>e.preventDefault(), setAgentInput=()=>{};
+  const suggestionsOpen=false, suggestionPickerRef={current:null}, suggestionTriggerRef={current:null};
+  const selectAgentSuggestion=()=>{}, moveSuggestionFocus=()=>{}, submitAgent=(e)=>e.preventDefault(), setAgentInput=()=>{}, setSuggestionsOpen=()=>{};
   return <>${children}</>;
 }`);
 export const account = "0x1111111111111111111111111111111111111111";

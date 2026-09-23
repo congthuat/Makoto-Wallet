@@ -25,17 +25,18 @@ test("responsive CSS fixes overflow sources instead of masking the page", () => 
   assert.match(wallet, /\.activityStatus\s*\{[^}]*display:\s*inline-flex/s);
 });
 
-test("foundation shell preserves connected dashboard section order and artwork exclusions", () => {
-  // Phase 7J keeps the asset details below the activity and Agent workspace.
+test("classic shell preserves connected dashboard surfaces and artwork", () => {
   assert.match(dashboard, /<AppShell>/);
-  assert.match(overview, /holdings-title[\s\S]*id="activity"[\s\S]*dashboard-agent-title[\s\S]*id="assets"/);
+  assert.match(overview, /agentHero[\s\S]*id="assets"[\s\S]*id="activity"/);
+  assert.match(overview, /agent-hero-v2\.png/);
   assert.doesNotMatch(dashboard, /styles\.companionCard|companion-art\.jpg|MakotoPayHomeSection/);
 });
 
-test("header keeps six localized destinations named at the 900px navigation width", () => {
-  for (const label of ["Overview", "Activity", "Agent", "Settings", "Help & Support", "Feedback"]) assert.match(header, new RegExp(label));
-  assert.match(header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems"))), /href: "\/\#activity"/);
-  assert.match(header, /href: "\/settings#security"/);
+test("header keeps classic primary and utility destinations at the 900px navigation width", () => {
+  for (const label of ["Dashboard", "Wallet", "Agent", "Settings", "Help & Support", "Feedback"]) assert.match(header, new RegExp(label));
+  assert.match(header.slice(header.indexOf("const navItems"), header.indexOf("];", header.indexOf("const navItems"))), /href: "\/\#assets"/);
+  assert.match(header, /href: "\/agent"/);
+  assert.match(header, /href="\/settings#security"/);
   assert.match(headerCss, /@media\s*\(max-width:\s*1200px\)/);
   assert.doesNotMatch(headerCss, /\.navLink[^\{]*\{[^}]*display:none/);
 });
@@ -68,26 +69,27 @@ test("Makoto Vault mobile hero starts below the shared header", () => {
   assert.match(globals, /@media \(max-width: 620px\) \{[\s\S]*?\.savings-hero \{[^}]*margin-top:12px/);
 });
 
-test("Dashboard heading is route-local and Settings fragments retain exact selection", () => {
+test("Dashboard hero is route-local and Settings fragments retain exact selection", () => {
   assert.doesNotMatch(header, /styles\.pageHeading/);
-  assert.match(overview, /<h1 id="holdings-title">\{t\("overview.holdings"\)\}/);
+  assert.match(overview, /<h1 id="dashboard-agent-title"><em>\{t\("overview.agentTitle"\)\}/);
+  assert.doesNotMatch(overview, /Makoto Agent|agentSafetyNote/);
   assert.match(header, /if \(!fragment\) return pathname === route && !hash/);
 });
 
 test("foundation navigation uses existing absolute routes and preserves asset fragments", () => {
-  assert.match(header, /href: "\/"[^\n]*en: "Overview"/);
-  assert.match(header, /href: "\/agent"[^\n]*en: "Agent"/);
-  assert.match(header, /href: "\/\#activity"[^\n]*en: "Activity"/);
-  assert.match(header, /href: "\/settings#security"[^\n]*en: "Settings"/);
-  assert.match(header, /href: "\/settings#help"[^\n]*en: "Help & Support"/);
+  assert.match(header, /href: "\/"[^\n]*en: "Dashboard"/);
+  assert.match(header, /href: "\/\#assets"[^\n]*en: "Wallet"/);
+  assert.match(header, /href: "\/agent"[^\n]*en: "Agent"[^\n]*vi: "Trợ lý"/);
+  assert.match(header, /href="\/settings#security"/);
+  assert.match(header, /href="\/settings#help"/);
   assert.match(overview, /id="assets"/);
   assert.doesNotMatch(header, /href: "#(?:assets|apps|activity)"/);
 });
 
 test("Settings owns the Security anchor without a duplicate Security nav item", () => {
-  assert.equal(header.match(/href: "\/settings#security"/g)?.length, 1);
+  assert.equal(header.match(/href="\/settings#security"/g)?.length, 1);
   assert.doesNotMatch(header, /hash === "#guardian"|en: "Security Center"/);
-  assert.match(header, /href: "\/settings#help"/);
+  assert.match(header, /href="\/settings#help"/);
 });
 
 test("mobile dashboard stacks Assets, Wallet Status, and Activity without fixed-nav obstruction", () => {
@@ -119,7 +121,7 @@ test("wallet balances avoid the obsolete native query and aggressive background 
 test("mobile controls and modals account for touch and safe areas", () => {
   assert.match(globals, /env\(safe-area-inset-top\)/);
   assert.match(globals, /env\(safe-area-inset-bottom\)/);
-  assert.match(headerCss, /\.languageTrigger,\s*\.themeButton,\s*\.walletControlWrap\s*\{\s*min-height:\s*44px;?\s*\}/);
+  assert.match(headerCss, /\.networkPill,\s*\.faucetUtility,\s*\.themeButton,\s*\.languageTrigger,\s*\.walletControlWrap\s*\{\s*min-height:\s*44px/);
   assert.match(settingsCss, /\.settingsChoices label\s*\{[^}]*min-height:\s*44px/s);
   assert.match(globals, /\.connected-popover\.account-menu\s*\{[^}]*bottom:\s*0[^}]*width:\s*100%[^}]*max-height:\s*calc\(100dvh[^}]*overflow-y:\s*auto/s);
   assert.match(globals, /\.account-sheet-backdrop\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0/s);
@@ -197,14 +199,10 @@ test("connected account focus and dismissal behavior remains accessible", () => 
   assert.match(globals, /:is\(a,button,input,select,textarea,\[tabindex\]\):focus-visible/);
 });
 
-test("dashboard previews five activities and opens paginated full history", () => {
+test("classic dashboard previews three activities and opens full history", () => {
   assert.match(overview, /activities\.slice\(0,\s*3\)/);
-  assert.match(dashboard, /summarizeSavingsJars\(jars\)/);
-  assert.match(dashboard, /savingsSummary/);
-  assert.match(dashboard, /activity\.loadMore\(\)/);
-  assert.match(dashboard, /setActivityHistoryOpen\(true\)/);
-  assert.match(dashboard, /activityHistoryLimit < activities\.length/);
-  assert.match(wallet, /\.savingsSummary\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);
+  assert.match(overview, /onHistory/);
+  assert.match(overview, /walletHome\.viewAll/);
 });
 
 test("wallet actions remain separated from secondary tools", () => {

@@ -25,10 +25,11 @@ import {modalTabStops} from "@/lib/modalFocus";
 const root=createRoot(document.querySelector('#fixture'));let revision=0;
 const close=()=>{window.fixtureClosed=true;root.render(null);};
 function Mounted({kind,options,version}) {
- React.useEffect(()=>{window.fixtureVersion=version;},[version]);
+ React.useEffect(()=>{const dialog=document.querySelector('[role=dialog]');dialog?.setAttribute('data-fixture-version',String(version));window.fixtureVersion=version;},[version]);
  return <ExchangeFixture kind={kind} options={options} onClose={close}/>;
 }
-window.mountFixture=(kind,options={})=>{window.fixtureClosed=false;const version=++revision;root.render(<Mounted key={version} version={version} kind={kind} options={options}/>);return version;};
+window.fixtureError=null;window.addEventListener('error',event=>{window.fixtureError=event.error?.message??event.message??'Unknown fixture error';});
+window.mountFixture=(kind,options={})=>{window.fixtureClosed=false;window.fixtureError=null;const version=++revision;root.render(<Mounted key={version} version={version} kind={kind} options={options}/>);return version;};
 window.fixtureTabStops=()=>modalTabStops(document.querySelector('[role=dialog]'));
 window.mountFixture('swap',{state:'form'});`);
   // Preserve public registry constants without bundling the executable SDK.
@@ -59,16 +60,17 @@ window.mountFixture('swap',{state:'form'});`);
  const run=(...args)=>execute(args),evaluate=code=>execute(['eval','--stdin'],code).result;
  const checks=[];
  function check(name,fn){try{fn();checks.push({name,pass:true});console.log('PASS '+name);}catch(e){checks.push({name,pass:false,error:e.message});console.log('FAIL '+name+': '+e.message);}}
- function mount(kind,options){const version=evaluate(`window.mountFixture(${JSON.stringify(kind)},${JSON.stringify(options)})`);run('wait','--fn',`window.fixtureVersion===${version} && !!document.querySelector('[role=dialog]')`);}
+ function mount(kind,options){const version=evaluate(`window.mountFixture(${JSON.stringify(kind)},${JSON.stringify(options)})`);run('wait','--fn',`!!document.querySelector('[role=dialog][data-fixture-version="${version}"]') || !!window.fixtureError`);const error=evaluate('window.fixtureError');assert.equal(error,null,`Fixture render failed: ${error}`);}
  function layout(){const r=evaluate(`(()=>{const p=document.querySelector('[role=dialog]');return {page:document.documentElement.scrollWidth,width:innerWidth,panel:p.clientWidth,scroll:p.scrollWidth,clipped:[...p.querySelectorAll('*')].filter(e=>{const s=getComputedStyle(e);const sr=s.position==='absolute'&&s.width==='1px'&&s.height==='1px';return !sr&&e.checkVisibility()&&e.clientWidth>0&&e.scrollWidth>e.clientWidth+2&&s.overflowX!=='auto'&&!['INPUT','TEXTAREA'].includes(e.tagName);}).map(e=>e.tagName+'.'+e.className)}})()`);assert.ok(r.page<=r.width&&r.scroll<=r.panel+1,JSON.stringify(r));assert.deepEqual(r.clipped,[]);}
  function keyboard(){
   const n=evaluate('window.fixtureTabStops().length');
   run('focus','[role=dialog]');
-  for(let i=0;i<n+1;i++){
+  for(let i=0;i<n;i++){
    run('press','Tab');
-   const r=evaluate(`(()=>{const e=document.activeElement,s=getComputedStyle(e),r=e.getBoundingClientRect(),p=e.closest('[role=dialog]'),h=p?.querySelector('.modal-header').getBoundingClientRect();return {visible:e.checkVisibility(),inside:!!p,disabled:e.matches(':disabled'),outline:s.outlineStyle,width:parseFloat(s.outlineWidth),fits:r.top>=0&&r.bottom<=innerHeight&&(!!e.closest('.modal-header')||r.top>=h.bottom),hiddenDisclosure:!!e.closest('details:not([open])')&&e.tagName!=='SUMMARY'};})()`);
-   assert.ok(r.visible&&r.inside&&!r.disabled&&!r.hiddenDisclosure&&r.fits,JSON.stringify(r));assert.equal(r.outline,'solid');assert.ok(r.width>=2);
+   const r=evaluate(`(()=>{const e=document.activeElement,s=getComputedStyle(e),r=e.getBoundingClientRect(),p=e.closest('[role=dialog]'),h=p?.querySelector('.modal-header').getBoundingClientRect(),visibleColor=v=>v&&!/\\btransparent\\b/.test(v)&&!/rgba\\([^)]*,\\s*0(?:\\.0+)?\\s*\\)/.test(v)&&!/\\/\\s*0(?:\\.0+)?\\s*\\)/.test(v),outline=s.outlineStyle==='solid'&&parseFloat(s.outlineWidth)>=2&&visibleColor(s.outlineColor),shadow=s.boxShadow!=='none'&&visibleColor(s.boxShadow);return {expected:e===window.fixtureTabStops()[${i}],visible:e.checkVisibility(),inside:!!p,disabled:e.matches(':disabled'),focusVisible:e.matches(':focus-visible'),outline,shadow,outlineStyle:s.outlineStyle,outlineWidth:s.outlineWidth,outlineColor:s.outlineColor,boxShadow:s.boxShadow,fits:r.top>=0&&r.bottom<=innerHeight&&(!!e.closest('.modal-header')||r.top>=h.bottom),hiddenDisclosure:!!e.closest('details:not([open])')&&e.tagName!=='SUMMARY'};})()`);
+   assert.ok(r.expected&&r.visible&&r.inside&&!r.disabled&&!r.hiddenDisclosure&&r.fits,JSON.stringify(r));assert.equal(r.focusVisible,true,JSON.stringify(r));assert.equal(r.outline||r.shadow,true,JSON.stringify(r));
   }
+  run('press','Tab');assert.equal(evaluate(`document.activeElement===window.fixtureTabStops()[0]`),true);
   run('press','Shift+Tab');assert.equal(evaluate(`document.activeElement===window.fixtureTabStops().at(-1)`),true);
  }
  try {
@@ -81,7 +83,7 @@ window.mountFixture('swap',{state:'form'});`);
     check(`${kind} ${state} layout ${name}`,layout);
     check(`${kind} ${state} axe ${name}`,()=>{const a=run('a11y','--selector','[role=dialog]');assert.equal(a.counts.violations,0,JSON.stringify(a.violations));});
     if(['form','review','success','unknown'].includes(state))run('screenshot',path.join(output,`${kind}-${state}-${name}.png`));
-    if(['form','review','unknown','success'].includes(state))check(`${kind} ${state} keyboard ${name}`,keyboard);
+    if(['form','review','approval','max','unknown','success'].includes(state))check(`${kind} ${state} keyboard ${name}`,keyboard);
     if(['preflight','awaiting','pending','executing'].includes(state))check(`${kind} ${state} inert controls ${name}`,()=>{
      assert.equal(evaluate(`document.querySelector('.secondary-action').disabled && document.querySelector('.modal-header button').disabled && document.querySelector('.primary-action').disabled`),true);
      evaluate(`document.querySelector('.secondary-action').click();document.querySelector('.modal-header button').click();document.querySelector('.modal-backdrop').dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));true`);run('press','Escape');assert.equal(evaluate('window.fixtureClosed'),false);

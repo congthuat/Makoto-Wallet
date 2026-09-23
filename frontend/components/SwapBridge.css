@@ -120,6 +120,13 @@
 .ledger-exchange .universal-bridge .secondary-action { min-height: 48px; }
 .ledger-exchange .universal-bridge .primary-action { color: var(--mk-on-accent); background: var(--mk-accent-primary); border-color: var(--mk-accent-primary); }
 .ledger-exchange .universal-bridge .secondary-action { color: var(--mk-accent-ink); background: var(--mk-surface-secondary); border-color: var(--mk-border-primary); }
+.ledger-exchange :is(.asset-selector, .universal-bridge input, .universal-bridge select, .wallet-field-with-action input) { border-radius: var(--lc-radius-control); border-color: var(--mk-border-primary); background: var(--mk-surface-secondary); }
+.ledger-exchange .bridge-context-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0; border: 1px solid var(--mk-border-subtle); border-radius: var(--lc-radius-surface); background: var(--mk-surface-secondary); overflow: hidden; }
+.ledger-exchange .bridge-context-grid > div { min-width: 0; padding: 11px 12px; display: grid; gap: 3px; }
+.ledger-exchange .bridge-context-grid > div:nth-child(even) { border-left: 1px solid var(--mk-border-subtle); }
+.ledger-exchange .bridge-context-grid > div:nth-child(n + 3) { border-top: 1px solid var(--mk-border-subtle); }
+.ledger-exchange .bridge-context-grid dt { color: var(--mk-text-secondary); font-size: 11px; line-height: 1.4; }
+.ledger-exchange .bridge-context-grid dd { min-width: 0; margin: 0; color: var(--mk-text-primary); font-size: 13px; line-height: 1.45; font-weight: 700; overflow-wrap: anywhere; }
 
 @media (max-width: 599px) {
   .ledger-exchange .swap-quick-amounts { gap: 8px; }
@@ -127,4 +134,7 @@
   .ledger-exchange .bridge-recipient-summary { align-items: flex-start; }
   .ledger-exchange .bridge-recipient-summary .secondary-action { flex: 0 0 auto; }
   .ledger-exchange .modal-actions { position: static; margin: 0; padding: 12px 0 0; }
+  .ledger-exchange .bridge-context-grid { grid-template-columns: minmax(0, 1fr); }
+  .ledger-exchange .bridge-context-grid > div:nth-child(even) { border-left: 0; }
+  .ledger-exchange .bridge-context-grid > div + div { border-top: 1px solid var(--mk-border-subtle); }
 }

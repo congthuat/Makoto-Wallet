@@ -1,7 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useConnection, usePublicClient } from "wagmi";
 import { arcTestnet } from "viem/chains";
 
@@ -18,7 +19,6 @@ import { SwapPanel } from "./SwapPanel";
 import { TransactionReceiptPanel } from "./TransactionReceiptPanel";
 import { ActivityHistoryPanel } from "./ActivityHistoryPanel";
 import { ActionDraftCard, EvidenceBlock } from "./MakotoAgentPage";
-import { MakotoTerrain } from "./MakotoTerrain";
 
 import { useAppLock } from "@/hooks/useAppLock";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -39,7 +39,7 @@ import { canConsumeAgentHandoff, deriveFinancialDataState, deriveWalletUiState }
 import { createAgentContextSnapshot } from "@/lib/agent/context";
 import { createAgentPlanningServices } from "@/lib/agent/planning";
 import { createOnchainIntelligenceServices } from "@/lib/agent/intelligence/onchain";
-import { rankAgentSuggestions, readSuggestionUsage, recordSuggestionUsage, suggestionStorageKey } from "@/lib/agent/suggestions";
+import { AGENT_SUGGESTION_COUNT, agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import {
   appKitViewForPath,
   type OnboardingPath,
@@ -82,6 +82,9 @@ export function WalletDashboard() {
   const [receiptActivity, setReceiptActivity] = useState<WalletActivity>();
   const [activityHistoryLimit, setActivityHistoryLimit] = useState(20);
   const [createGuideOpen, setCreateGuideOpen] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const suggestionPickerRef = useRef<HTMLDivElement>(null);
+  const suggestionTriggerRef = useRef<HTMLButtonElement>(null);
   const dashboardState = agentHandoffRequestId && walletState === "disconnected" ? "hydrating" : walletState;
   const connected = dashboardState === "arc" || dashboardState === "wrong-network";
 
@@ -139,20 +142,46 @@ export function WalletDashboard() {
     inputRef: agentInputRef,
     messages: agentMessages,
     setInput: setAgentInput,
-    ask: askAgent,
     submit: submitAgent,
   } = useMakotoAgent(agentSnapshot, locale, wallet.address, agentPlanningServices, onchainServices);
 
-  const suggestionKey = suggestionStorageKey(wallet.address, wallet.providerChainId);
-  const agentSuggestions = useMemo(() => rankAgentSuggestions({
-    activities,
-    isArc: onArc,
-    usage: typeof window === "undefined" ? {} : readSuggestionUsage(window.localStorage, suggestionKey),
-  }), [activities, onArc, suggestionKey]);
+  useEffect(() => {
+    if (!suggestionsOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      suggestionPickerRef.current?.querySelector<HTMLButtonElement>("[data-suggestion-option]")?.focus();
+    });
+    const dismiss = (event: PointerEvent) => {
+      if (!suggestionPickerRef.current?.contains(event.target as Node)) setSuggestionsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setSuggestionsOpen(false);
+      suggestionTriggerRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [suggestionsOpen]);
 
-  function selectAgentSuggestion(id: Parameters<typeof recordSuggestionUsage>[2], prompt: string) {
-    recordSuggestionUsage(window.localStorage, suggestionKey, id);
-    askAgent(prompt);
+  function selectAgentSuggestion(prompt: string) {
+    setAgentInput(prompt);
+    setSuggestionsOpen(false);
+    window.requestAnimationFrame(() => agentInputRef.current?.focus());
+  }
+
+  function moveSuggestionFocus(event: React.KeyboardEvent<HTMLElement>) {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    const options = Array.from(suggestionPickerRef.current?.querySelectorAll<HTMLButtonElement>("[data-suggestion-option]") ?? []);
+    if (!options.length) return;
+    event.preventDefault();
+    const current = options.indexOf(document.activeElement as HTMLButtonElement);
+    const step = event.key === "ArrowDown" ? 1 : -1;
+    options[(current + step + options.length) % options.length]?.focus();
   }
 
   async function showMoreActivity() {
@@ -195,21 +224,26 @@ export function WalletDashboard() {
                 <button
                   type="button"
                   className={foundation.primaryAction}
+                  onClick={() => setCreateGuideOpen(true)}
+                >
+                  {t("onboarding.createWallet")}
+                </button>
+                <button
+                  type="button"
                   onClick={() => void beginOnboarding("existing")}
                   disabled={!isReownConfigured}
                 >
                   {t("onboarding.connectExisting")}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCreateGuideOpen(true)}
-                >
-                  {t("onboarding.createWallet")}
-                </button>
               </div>
               <p className={foundation.landingSupport}>{!isReownConfigured ? t("onboarding.externalUnavailable") : t("walletHome.landingActionSupport")}</p>
             </div>
-            <div className={foundation.disconnectedArt} aria-hidden="true"><MakotoTerrain /></div>
+            <div className={foundation.disconnectedArt} aria-hidden="true">
+              <span className={foundation.landingOrbitOuter} />
+              <span className={foundation.landingOrbitInner} />
+              <Image className={foundation.landingAgent} src="/makoto/agent-hero-v2.png" width={768} height={512} alt="" priority />
+              <span className={foundation.landingPlatform} />
+            </div>
           </section>
           <section className={`${foundation.landingValues} ${locale === "vi" ? foundation.vietnameseValues : ""}`.trim()} aria-label={t("walletHome.landingValuesLabel")}>
             <article className={foundation.landingValue}><strong>{t("walletHome.landingNonCustodialLabel")}</strong><p>{t("walletHome.landingNonCustodialCopy")}</p></article>
@@ -245,12 +279,6 @@ export function WalletDashboard() {
             onRefresh={() => void activity.refetch()}
             onReceipt={setReceiptActivity}
           >
-            <div className={overviewStyles.suggestions} aria-label={t("agentDashboard.suggestionsLabel")}>
-              {agentSuggestions.map((suggestion) => {
-                const prompt = t(suggestion.promptKey);
-                return <button type="button" key={suggestion.id} onClick={() => selectAgentSuggestion(suggestion.id, prompt)}>{prompt}</button>;
-              })}
-            </div>
             <div className={overviewStyles.agentBody}>
               {agentMessages.length > 0 && <div className={overviewStyles.messages} aria-live="polite">
                 {agentMessages.slice(-2).map((message) => <article key={message.id}>
@@ -262,7 +290,36 @@ export function WalletDashboard() {
               </div>}
               <form className={overviewStyles.composer} onSubmit={submitAgent}>
                 <label htmlFor="dashboard-agent-question">{t("agentDashboard.inputLabel")}</label>
-                <div><input ref={agentInputRef} id="dashboard-agent-question" name="agent-question" value={agentInput} onChange={(event) => setAgentInput(event.target.value)} placeholder={t("agentDashboard.placeholder")} autoComplete="off" /><button type="submit" disabled={!agentInput.trim()} aria-label={t("agentDashboard.sendRequest")}><span aria-hidden="true">↗</span></button></div>
+                <div className={overviewStyles.composerRow}>
+                  <div ref={suggestionPickerRef} className={overviewStyles.suggestionPicker}>
+                    <button
+                      ref={suggestionTriggerRef}
+                      type="button"
+                      className={overviewStyles.suggestionTrigger}
+                      aria-expanded={suggestionsOpen}
+                      aria-controls={suggestionsOpen ? "dashboard-agent-suggestions" : undefined}
+                      aria-haspopup="dialog"
+                      onClick={() => setSuggestionsOpen((current) => !current)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" /><circle cx="12" cy="12" r="3" /></svg>
+                      <span>{t("agentDashboard.suggestionsLabel")}</span>
+                    </button>
+                    {suggestionsOpen && <section id="dashboard-agent-suggestions" className={overviewStyles.suggestionPanel} role="dialog" aria-label={t("agentDashboard.suggestionsLabel")} onKeyDown={moveSuggestionFocus}>
+                      <header><div><strong>{t("agentDashboard.suggestionsLabel")}</strong><span>{t("agentDashboard.suggestionsCount", { count: AGENT_SUGGESTION_COUNT })}</span></div><button type="button" className={overviewStyles.suggestionClose} onClick={() => { setSuggestionsOpen(false); suggestionTriggerRef.current?.focus(); }} aria-label={t("common.close")}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button></header>
+                      <div className={overviewStyles.suggestionList}>
+                        {agentSuggestionGroups.map((group) => <section key={group.id} aria-labelledby={`suggestion-category-${group.id}`}>
+                          <h2 id={`suggestion-category-${group.id}`}>{t(group.labelKey)}</h2>
+                          <div>{group.suggestions.map((suggestion) => {
+                            const prompt = t(suggestion.promptKey);
+                            return <button data-suggestion-option type="button" key={suggestion.id} onClick={() => selectAgentSuggestion(prompt)}>{prompt}</button>;
+                          })}</div>
+                        </section>)}
+                      </div>
+                    </section>}
+                  </div>
+                  <input ref={agentInputRef} id="dashboard-agent-question" name="agent-question" value={agentInput} onChange={(event) => setAgentInput(event.target.value)} placeholder={t("agentDashboard.placeholder")} autoComplete="off" />
+                  <button className={overviewStyles.composerSend} type="submit" disabled={!agentInput.trim()} aria-label={t("agentDashboard.sendRequest")}><span aria-hidden="true">↗</span></button>
+                </div>
               </form>
             </div>
           </ConnectedOverview>

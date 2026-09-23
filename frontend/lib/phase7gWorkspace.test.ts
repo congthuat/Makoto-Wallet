@@ -23,7 +23,8 @@ for (const locale of ["en","vi"] as const) {
     const html=renderWorkspace({locale,scenario:"read"});
     assert.match(html,/data-operation-mode="read"/);
     assert.ok(html.includes(locale === "vi" ? "Bạn đang ở Arc Testnet." : "You are on Arc Testnet."));
-    assert.doesNotMatch(html,/class="plan"|class="draft"|class="boundary"/);
+    assert.doesNotMatch(html,/class="plan"|class="draft"/);
+    assert.match(html,/class="boundary"/);
   });
   test(`${locale}: action scan path runs from intent through plan, evidence, draft, safety and review`,()=>{
     const html=renderWorkspace({locale,scenario:"fresh"});
@@ -70,7 +71,7 @@ for (const locale of ["en","vi"] as const) {
     const html=renderWorkspace({locale,scenario:"invalid"});
     assert.match(html,/<button[^>]+class="prepareButton"[^>]+disabled=""/);
     assert.match(html,/aria-describedby=/);
-    assert.match(html,/<label for="agent-question">/);
+    assert.match(html,/<label[^>]*for="agent-question">/);
   });
 }
 

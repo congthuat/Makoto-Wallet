@@ -7,8 +7,10 @@ import { renderSend, renderReceive, account, recipient } from "../scripts/phase7
 for (const locale of ["en", "vi"]) {
   test(`7E ${locale}: Send input order and native asset precision`, () => {
     const html = renderSend({locale});
-    const order = ['id="send-asset"', 'id="send-available"', 'id="send-amount"', 'id="send-recipient"', 'class="send-network-context"'].map(s=>html.indexOf(s));
+    const order = ['class="send-source-context"', 'id="send-asset"', 'id="send-available"', 'id="send-amount"', 'id="send-recipient"', 'class="send-network-context"'].map(s=>html.indexOf(s));
     assert.ok(order.every(n=>n>=0)); assert.deepEqual(order,[...order].sort((a,b)=>a-b));
+    assert.ok(html.includes(locale === "en" ? "External Wallet" : "Ví ngoài"));
+    assert.ok(html.includes("Arc Testnet"));
     assert.ok(html.includes("123.456789")); assert.ok(html.includes('value="1.234567"'));
     assert.ok(html.includes('aria-describedby="send-available"'));
     const cirbtc = renderSend({locale,assetId:"cirbtc",amount:"1.23456789",balance:123456789n});
@@ -32,6 +34,7 @@ for (const locale of ["en", "vi"]) {
     const html=renderSend({locale,reviewing:true});
     assert.ok(html.indexOf(recipient)<html.indexOf('<details'));
     assert.ok(html.includes(locale === "en" ? "Estimated network fee" : "Phí mạng ước tính"));
+    assert.ok(html.includes(locale === "en" ? "connected external wallet will request confirmation" : "Ví ngoài đã kết nối sẽ yêu cầu xác nhận"));
     assert.ok(html.includes(locale === "en" ? "Continue to wallet" : "Tiếp tục đến ví"));
   });
   test(`7E ${locale}: unavailable fee is explicitly unavailable`, () => {

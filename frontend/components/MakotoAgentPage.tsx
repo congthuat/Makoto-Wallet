@@ -21,6 +21,7 @@ import { createOnchainIntelligenceServices } from "@/lib/agent/intelligence/onch
 import type { AgentIntelligenceResult } from "@/lib/agent/intelligence/types";
 import { arcTestnet } from "viem/chains";
 import { translate, type Locale, type TranslationKey } from "@/i18n";
+import { agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import styles from "./MakotoAgentPage.module.css";
 
 export function MakotoAgentPage() {
@@ -30,41 +31,84 @@ export function MakotoAgentPage() {
   const onchainServices = useMemo(() => createOnchainIntelligenceServices(publicClient), [publicClient]);
   const canRead = wallet.status === "connected" && wallet.isArc, balances = useWalletBalances(wallet.address, canRead), activity = useWalletActivity(wallet.address, canRead, true), ownerJars = useOwnerJars(canRead ? wallet.address : undefined), savings = summarizeSavingsJars(ownerJars.jars);
   const snapshot = useMemo(() => createAgentContextSnapshot({ connected: wallet.status === "connected", account: wallet.address, walletType: wallet.providerName, accountKind: wallet.kind, walletStatus: wallet.status, verifiedChainId: wallet.providerChainId, isArc: wallet.isArc, balances: { usdc: balances.usdc.data, eurc: balances.eurc.data, cirbtc: balances.cirbtc.data }, activity: activity.data, activityLoadState: activity.loadState, activityPartial: activity.partial, activityUnavailable: activity.unavailable, vault: { available: canRead && !ownerJars.isLoading && !ownerJars.error, total: canRead ? savings.totalSaved : undefined, goalCount: canRead ? ownerJars.jars.length : undefined, activeCount: canRead ? savings.active : undefined } }), [activity.data, activity.loadState, activity.partial, activity.unavailable, balances.cirbtc.data, balances.eurc.data, balances.usdc.data, canRead, ownerJars.error, ownerJars.isLoading, ownerJars.jars.length, savings.active, savings.totalSaved, wallet.address, wallet.isArc, wallet.kind, wallet.providerChainId, wallet.providerName, wallet.status]);
-  const { messages, hasSessionContext, clearConversation, input, setInput, inputRef, ask, submit } = useMakotoAgent(snapshot, locale, wallet.address, planningServices, onchainServices);
-  return <AppShell><AgentWorkspace locale={locale} account={wallet.address} chainId={wallet.providerChainId} messages={messages} hasSessionContext={hasSessionContext} clearConversation={clearConversation} input={input} setInput={setInput} inputRef={inputRef} ask={ask} submit={submit} /></AppShell>;
+  const { messages, hasSessionContext, clearConversation, input, setInput, inputRef, submit } = useMakotoAgent(snapshot, locale, wallet.address, planningServices, onchainServices);
+  return <AppShell><AgentWorkspace locale={locale} account={wallet.address} chainId={wallet.providerChainId} messages={messages} hasSessionContext={hasSessionContext} clearConversation={clearConversation} input={input} setInput={setInput} inputRef={inputRef} submit={submit} /></AppShell>;
 }
 
 /** Presentation seam shared by the live page and isolated browser fixtures. */
-export function AgentWorkspace({ locale, account, chainId, messages, hasSessionContext, clearConversation, input, setInput, inputRef, ask, submit }: {
+export function AgentWorkspace({ locale, account, chainId, messages, hasSessionContext, clearConversation, input, setInput, inputRef, submit }: {
   locale: Locale; account?: AgentDraftContext["account"]; chainId?: number;
   messages: AgentMessage[]; hasSessionContext: boolean; clearConversation: () => void;
   input: string; setInput: (value: string) => void; inputRef: React.RefObject<HTMLInputElement | null>;
-  ask: (value: string) => void; submit: (event: React.FormEvent) => void;
+  submit: (event: React.FormEvent) => void;
 }) {
   const t = (key: TranslationKey) => translate(locale, key);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const suggestionWrapRef = useRef<HTMLDivElement>(null);
+  const suggestionTriggerRef = useRef<HTMLButtonElement>(null);
   const replies = messages.filter((message) => message.role === "agent");
   const latest = replies.at(-1);
   const current = { account, chainId };
-  const showBoundary = !latest || agentWorkspaceMode(latest.presentation?.intent, Boolean(latest.draft), latest.presentation?.result) === "action";
+  const allSuggestions = agentSuggestionGroups.reduce<Array<{ id: string; promptKey: TranslationKey }>>((items, group) => [...items, ...group.suggestions], []);
+  const starterSuggestionIds = ["wallet-balances", "activity-recent", "prepare-send-small", "explain-bridge-status"];
+  const starterSuggestions = starterSuggestionIds.map((id) => allSuggestions.find((suggestion) => suggestion.id === id)).filter((suggestion): suggestion is { id: string; promptKey: TranslationKey } => Boolean(suggestion));
+  const networkLabel = chainId === arcTestnet.id ? "Arc Testnet" : chainId === 84532 ? "Base Sepolia" : chainId ?? t("agent.value.unavailable");
+  const accountLabel = account ? `${account.slice(0, 6)}…${account.slice(-4)}` : t("agent.page.disconnected");
+
+  useEffect(() => {
+    if (!suggestionsOpen) return;
+    function dismiss(event: PointerEvent) {
+      if (!suggestionWrapRef.current?.contains(event.target as Node)) setSuggestionsOpen(false);
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setSuggestionsOpen(false);
+      suggestionTriggerRef.current?.focus({ preventScroll: true });
+    }
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [suggestionsOpen]);
+
+  function selectSuggestion(promptKey: TranslationKey) {
+    setInput(t(promptKey));
+    setSuggestionsOpen(false);
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
   return <div className={`${styles.workspace} ${locale === "vi" ? styles.vietnameseWorkspace : ""}`}>
     <header className={styles.contextHeader}>
-      <div className={styles.heroCopy}><p className={styles.eyebrow}>{t("agent.workspace.eyebrow")}</p><h1>{t("agent.workspace.title")}</h1><p>{t("agent.workspace.subtitle")}</p></div>
-      <dl className={styles.contextCard}><div><dt>{t("agent.workspace.account")}</dt><dd className={styles.accountValue}>{account ?? t("agent.page.disconnected")}</dd></div><div><dt>{t("agent.draft.network")}</dt><dd>{chainId === arcTestnet.id ? "Arc Testnet" : chainId === 84532 ? "Base Sepolia" : chainId ?? t("agent.value.unavailable")}</dd></div><div><dt>{t("agent.workspace.mode")}</dt><dd className={styles.modeValue}>{t("agent.workspace.prepareOnly")}</dd></div></dl>
+      <div className={styles.heroCopy}><h1>{t("agent.workspace.title")}</h1><p>{t("agent.workspace.subtitle")}</p></div>
     </header>
-    <form className={styles.composer} onSubmit={submit}>
-      <label htmlFor="agent-question">{t("agent.page.inputLabel")}</label>
-      <div><input ref={inputRef} id="agent-question" value={input} onChange={(event) => setInput(event.target.value)} placeholder={t("agent.page.placeholder")} autoComplete="off" /><button type="submit" disabled={!input.trim()}>{t("agent.page.send")}</button></div>
-      <details className={styles.suggestions}><summary>{t("agent.page.suggestions")}</summary><div className={styles.prompts}>{(["agent.prompt.balance", "agent.prompt.send", "agent.prompt.swap", "agent.prompt.network"] as const).map((key) => <button key={key} type="button" onClick={() => ask(t(key))}>{t(key)}</button>)}</div></details>
-    </form>
-    <div className={showBoundary ? styles.operations : styles.readOperations}>
-      <div className={styles.operationColumn} aria-live="polite" aria-relevant="additions text">
-        {latest ? <AgentOperation key={latest.id} message={latest} locale={locale} current={current} /> : <section className={styles.empty}><h2>{t("agent.workspace.emptyTitle")}</h2><p>{t("agent.workspace.emptyCopy")}</p></section>}
-        <section className={styles.history}><header><h2>{t("agent.workspace.history")}</h2><button type="button" onClick={clearConversation} disabled={!messages.length && !hasSessionContext}>{t("agent.page.clear")}</button></header>
-          {replies.length > 1 && <details><summary>{t("agent.workspace.previous")} ({replies.length - 1})</summary>{replies.slice(0, -1).map((message) => <AgentOperation key={message.id} message={message} locale={locale} current={current} />)}</details>}
-          {replies.length <= 1 && <p>{t("agent.workspace.historyEmpty")}</p>}
-        </section>
-      </div>
-      {showBoundary && <aside className={styles.boundary} aria-label={t("agent.workspace.boundary")}><h2>{t("agent.workspace.boundary")}</h2><ol className={styles.boundarySteps}><li><strong>{t("agent.workspace.agentPrepares")}</strong><p>{t("agent.workspace.agentPreparesCopy")}</p></li><li><strong>{t("agent.workspace.reviewChecks")}</strong><p>{t("agent.workspace.reviewChecksCopy")}</p></li><li><strong>{t("agent.workspace.walletConfirms")}</strong><p>{t("agent.workspace.walletConfirmsCopy")}</p></li></ol><p>{t("agent.page.disclosure")}</p></aside>}
+    <div className={styles.workspaceGrid}>
+      <section className={styles.conversation} aria-labelledby="agent-conversation-title">
+        <h2 id="agent-conversation-title" className={styles.conversationTitle}>{t("agent.page.conversation")}</h2>
+        <div className={styles.conversationFeed} aria-live="polite" aria-relevant="additions text">
+          {latest ? <AgentOperation key={latest.id} message={latest} locale={locale} current={current} /> : <section className={styles.empty}><h2>{t("agent.workspace.emptyTitle")}</h2><p>{t("agent.workspace.emptyCopy")}</p><div className={styles.starterPrompts}>{starterSuggestions.map((suggestion) => <button key={suggestion.id} type="button" onClick={() => selectSuggestion(suggestion.promptKey)}>{t(suggestion.promptKey)}</button>)}</div></section>}
+        </div>
+        <form className={styles.composer} onSubmit={submit}>
+          <label className={styles.srOnly} htmlFor="agent-question">{t("agent.page.inputLabel")}</label>
+          <div className={styles.composerRow}>
+            <div className={styles.suggestionWrap} ref={suggestionWrapRef}>
+              <button ref={suggestionTriggerRef} className={styles.suggestionTrigger} type="button" aria-expanded={suggestionsOpen} aria-haspopup="dialog" aria-controls="agent-suggestion-panel" onClick={() => setSuggestionsOpen((open) => !open)}>{t("agent.page.suggestions")}</button>
+              {suggestionsOpen && <div id="agent-suggestion-panel" className={styles.suggestionPanel} role="dialog" aria-label={t("agent.page.suggestions")}>
+                <div className={styles.suggestionPanelHeader}><strong>{t("agent.page.suggestions")}</strong><span>{allSuggestions.length}</span></div>
+                <div className={styles.suggestionList}>{agentSuggestionGroups.map((group) => <section key={group.id}><h3>{t(group.labelKey)}</h3><div>{group.suggestions.map((suggestion) => <button key={suggestion.id} type="button" onClick={() => selectSuggestion(suggestion.promptKey)}>{t(suggestion.promptKey)}</button>)}</div></section>)}</div>
+              </div>}
+            </div>
+            <input ref={inputRef} id="agent-question" value={input} onChange={(event) => setInput(event.target.value)} placeholder={t("agent.page.placeholder")} autoComplete="off" />
+            <button className={styles.sendButton} type="submit" disabled={!input.trim()}>{t("agent.page.send")}</button>
+          </div>
+        </form>
+      </section>
+      <aside className={styles.contextRail} aria-label={t("agent.workspace.boundary")}>
+        <section className={styles.railStatus}><h2>{t("agent.workspace.wallet")}</h2><dl><div><dt>{t("agent.workspace.wallet")}</dt><dd className={styles.accountValue} title={account}>{accountLabel}</dd></div><div><dt>{t("agent.draft.network")}</dt><dd>{networkLabel}</dd></div><div><dt>{t("agent.workspace.mode")}</dt><dd className={styles.modeValue}>{t("agent.workspace.prepareOnly")}</dd></div></dl></section>
+        <section className={styles.boundary}><h2>{t("agent.workspace.boundary")}</h2><ol className={styles.boundarySteps}><li><strong>{t("agent.workspace.agentPrepares")}</strong></li><li><strong>{t("agent.workspace.reviewChecks")}</strong></li><li><strong>{t("agent.workspace.walletConfirms")}</strong></li></ol><p>{t("agent.page.disclosure")}</p></section>
+        <details className={styles.history}><summary><span>{t("agent.workspace.history")}</span><small>{replies.length}</small></summary><div className={styles.historyBody}><button type="button" onClick={clearConversation} disabled={!messages.length && !hasSessionContext}>{t("agent.page.clear")}</button>{replies.length > 1 ? <details><summary>{t("agent.workspace.previous")} ({replies.length - 1})</summary>{replies.slice(0, -1).map((message) => <AgentOperation key={message.id} message={message} locale={locale} current={current} />)}</details> : <p>{t("agent.workspace.historyEmpty")}</p>}</div></details>
+      </aside>
     </div>
   </div>;
 }

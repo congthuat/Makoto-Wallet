@@ -17,8 +17,10 @@ test("compact reviews show exactly one review title while normal panel titles re
   assert.match(bridge, /"Review Bridge"/);
 });
 
-test("compact Send, Swap, and Bridge reviews omit the generic wallet confirmation sentence", () => {
-  assert.match(send, /compact[\s\S]*?walletNotice=""/);
+test("compact Send names its signing wallet while Swap and Bridge omit the generic confirmation sentence", () => {
+  assert.match(send, /compact[\s\S]*?walletNotice=\{wallet\.kind === "local" \? copy\.localWalletHandoff : copy\.externalWalletHandoff\}/);
+  assert.match(send, /Makoto Local Wallet will sign this exact transaction only after you explicitly confirm/);
+  assert.match(send, /connected external wallet will request confirmation for this exact transaction/);
   assert.match(swap.slice(swap.indexOf('reviewStage === "swap"')), /compact[\s\S]*?walletNotice=""/);
   assert.match(bridge, /compact[\s\S]*?walletNotice=""/);
   for (const source of [send, swap, bridge]) assert.doesNotMatch(source, /Final confirmation happens in your wallet\./);
