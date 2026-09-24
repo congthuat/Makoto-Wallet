@@ -285,6 +285,14 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
     try {
       const adapter = await verifyArcExecution(review);
       if (Date.now() > review.snapshot.expiresAt || Date.now() - review.fee.quotedAt > FEE_MAX_AGE_MS) throw new Error("expired");
+      if (review.stage === "burn") {
+        const currentFee = await loadFee().catch(() => undefined);
+        if (!currentFee || !Number.isFinite(currentFee.quotedAt) || currentFee.quotedAt > Date.now() || Date.now() - currentFee.quotedAt > FEE_MAX_AGE_MS) throw new Error("changed");
+        let currentAmounts: CctpTransferAmounts;
+        try { currentAmounts = calculateCctpForwardingAmounts(review.amounts.transferAmount, currentFee); }
+        catch { throw new Error("changed"); }
+        if (currentAmounts.totalAmount !== review.amounts.totalAmount || currentAmounts.maxFee !== review.amounts.maxFee || currentAmounts.protocolFee !== review.amounts.protocolFee || currentAmounts.forwardingFee !== review.amounts.forwardingFee) throw new Error("changed");
+      }
       const [balance, allowance] = await Promise.all([arcClient.readContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "balanceOf", args: [review.account] }), arcClient.readContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "allowance", args: [review.account, CCTP_TOKEN_MESSENGER_V2] })]);
       if (balance < review.amounts.totalAmount) throw new Error("balance");
       if (review.stage === "approval" && allowance >= review.amounts.totalAmount) { setPrepared(undefined); await prepareFreshBurn(operation, review.amounts.transferAmount); return; }

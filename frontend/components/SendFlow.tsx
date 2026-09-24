@@ -479,14 +479,14 @@ export function SendFlow({
         args: [wallet.address],
       });
       const freshFee = await estimateSendFee(validated.amount).catch(() => undefined);
-      if (freshFee !== undefined && feeEstimate.status === "ready" && arcFeeMateriallyChanged(feeEstimate.rawFee, freshFee)) {
+      if (freshFee === undefined || feeEstimate.status !== "ready" || arcFeeMateriallyChanged(feeEstimate.rawFee, freshFee)) {
         setReviewing(false);
         setError(copy.detailsChanged);
         setStage("idle");
         submittingRef.current = false;
         return;
       }
-      if (validated.amount > freshBalance || (assetId === "usdc" && freshFee !== undefined && sendCostWithArcFee(validated.amount, freshBalance, freshFee).remainingUsdc6 === undefined)) {
+      if (validated.amount > freshBalance || (assetId === "usdc" && sendCostWithArcFee(validated.amount, freshBalance, freshFee).remainingUsdc6 === undefined)) {
         setError(copy.freshInsufficient);
         setStage("failed");
         submittingRef.current = false;

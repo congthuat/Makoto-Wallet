@@ -5,8 +5,9 @@ import { CCTP_TOKEN_MESSENGER_V2 } from "./cctp.ts";
 import { minimumSwapOutput, SWAP_SLIPPAGE_OPTIONS, XYLO_ROUTER } from "./swap.ts";
 import type { PrepareResult } from "./agent/prepareTools.ts";
 import type { QuoteResult } from "./agent/quoteTools.ts";
-import type { ReadResult, VerifiedNetwork, WalletState } from "./agent/readTools.ts";
-import { validatePrepareResult, validateQuoteResult, validateReadResult } from "./agent/toolSchemas.ts";
+import type { Allowance, Balances, ReadResult, VerifiedNetwork, WalletState } from "./agent/readTools.ts";
+import { quoteFingerprint, validatePrepareResult, validateQuoteResult, validateReadResult } from "./agent/toolSchemas.ts";
+import type { NormalizedTransactionRequest } from "./transactionOrchestrator.ts";
 
 export type PolicyAction = "SEND" | "SWAP" | "BRIDGE";
 export type PolicyDecision = "ALLOW" | "WARN" | "REQUIRE_REVIEW" | "REVALIDATE" | "REQUOTE" | "BLOCK";
@@ -17,7 +18,9 @@ export type PolicyReason =
   | "EXECUTION_AUTHORITY" | "REQUIRES_REVIEW" | "QUOTE_WARNING" | "PREPARATION_LIMITATION"
   | "UNSUPPORTED_CHAIN" | "UNSUPPORTED_TOKEN" | "UNSUPPORTED_PAIR" | "UNSUPPORTED_ROUTE"
   | "UNTRUSTED_TARGET" | "SPENDER_MISMATCH" | "APPROVAL_UNBOUNDED" | "APPROVAL_AMOUNT_MISMATCH"
-  | "SLIPPAGE_UNSUPPORTED" | "MIN_OUTPUT_INVALID";
+  | "SLIPPAGE_UNSUPPORTED" | "MIN_OUTPUT_INVALID"
+  | "STALE_EVIDENCE" | "BALANCE_INSUFFICIENT" | "ALLOWANCE_CHANGED" | "FEE_UNAVAILABLE"
+  | "FEE_CHANGED" | "SIMULATION_FAILED" | "SIMULATION_UNAVAILABLE" | "SIMULATION_MISMATCH";
 export type PolicyFinding = Readonly<{ code: PolicyReason; decision: PolicyDecision; evidence: string }>;
 export type PolicyInput = Readonly<{
   action: PolicyAction;
@@ -180,8 +183,123 @@ export function evaluatePolicy(input: PolicyInput): PolicyResult {
     }
   }
 
+  return policyResult(findings);
+}
+
+function policyResult(findings: readonly PolicyFinding[]): PolicyResult {
   const decision = findings.reduce<PolicyDecision>((current, finding) => precedence.indexOf(finding.decision) > precedence.indexOf(current) ? finding.decision : current, "ALLOW");
   const winner = findings.find((finding) => finding.decision === decision);
   const requiredAction = decision === "BLOCK" ? "STOP" : decision === "REQUOTE" ? "REQUOTE" : decision === "REVALIDATE" ? "REVALIDATE" : decision === "REQUIRE_REVIEW" ? "REVIEW" : "NONE";
   return { decision, findings, ...(winner ? { winningReason: winner.code } : {}), requiredAction, mustStop: decision === "BLOCK" || decision === "REQUOTE" || decision === "REVALIDATE", requiresUserReview: decision === "ALLOW" || decision === "WARN" || decision === "REQUIRE_REVIEW", requiresFreshQuote: decision === "REQUOTE", requiresRevalidation: decision === "REVALIDATE" };
+}
+
+export type FinalSimulationEvidence = Readonly<{
+  status: "passed" | "reverted" | "unavailable";
+  account: string;
+  chainId: number;
+  request: NormalizedTransactionRequest;
+  quoteFingerprint: string;
+  observedAt: number;
+}>;
+export type FinalFeeEvidence = Readonly<{
+  status: "available" | "unavailable" | "not-estimated";
+  observedAt: number;
+  maximumFeeRaw18?: bigint;
+  gasBalanceRaw18?: bigint;
+  maximumFeeUsdc6?: bigint;
+  cctpMaximumFee?: bigint;
+  cctpSourceDebit?: bigint;
+}>;
+export type FinalPolicyInput = PolicyInput & Readonly<{
+  current: Readonly<{
+    wallet: ReadResult<WalletState>;
+    network: ReadResult<VerifiedNetwork>;
+    balances: ReadResult<Balances>;
+    allowance?: ReadResult<Allowance>;
+    quote: QuoteResult<unknown>;
+    fee: FinalFeeEvidence;
+    simulation: FinalSimulationEvidence;
+  }>;
+  stepIndex?: number;
+  priorStepConfirmed?: boolean;
+}>;
+
+/** Final, provider-free decision for one prepared step. Callers acquire current evidence separately. */
+export function evaluateFinalPolicy(input: FinalPolicyInput): PolicyResult {
+  const base = evaluatePolicy(input);
+  const currentPolicy = evaluatePolicy({ ...input, wallet: input.current.wallet, network: input.current.network, quote: input.current.quote });
+  const findings: PolicyFinding[] = [...base.findings, ...currentPolicy.findings];
+  const add = (code: PolicyReason, decision: PolicyDecision, evidence: string) => findings.push({ code, decision, evidence });
+  const prepared = input.preparation?.status === "PREPARED" ? input.preparation.data : undefined;
+  const quote = input.quote?.status === "AVAILABLE" ? input.quote : undefined;
+  const fresh = input.current.quote;
+  const steps = Array.isArray(prepared?.steps) ? prepared.steps : [];
+  const stepIndex = input.stepIndex ?? steps.length - 1;
+  const step = steps[stepIndex];
+  if (!prepared || !quote || !step || !Number.isSafeInteger(stepIndex) || stepIndex < 0) return policyResult([...findings, { code: "MISSING_EVIDENCE", decision: "BLOCK", evidence: "final.step" }]);
+  if (stepIndex > 0 && input.priorStepConfirmed !== true) add("STALE_EVIDENCE", "REVALIDATE", "final.priorStepConfirmed");
+  const baselineTime = prepared.preparedAt;
+  for (const [path, read] of [["wallet.state", input.current.wallet], ["network.verified", input.current.network]] as const) {
+    if (!validateReadResult(read).valid) add("MALFORMED_EVIDENCE", "BLOCK", `final.${path}`);
+    else if (!matchesAddress(read.account, prepared.account) || read.chainId !== prepared.chainId) add("PREPARATION_MISMATCH", "BLOCK", `final.${path}.account/chainId`);
+    else if (read.capturedAt < baselineTime) add("STALE_EVIDENCE", "REVALIDATE", `final.${path}.capturedAt`);
+  }
+  const balances = input.current.balances;
+  const balanceValid = validateReadResult(balances).valid && balances.tool === "assets.balances";
+  const balanceObserved = balanceValid && balances.freshness === "live" && balances.observedAt !== null && balances.observedAt >= baselineTime;
+  const balance = balanceObserved && balances.status !== "UNAVAILABLE" ? balances.data[prepared.inputAsset] : undefined;
+  if (!balanceValid) add("MALFORMED_EVIDENCE", "BLOCK", "final.balances");
+  else if (!matchesAddress(balances.account, prepared.account) || balances.chainId !== prepared.chainId) add("PREPARATION_MISMATCH", "BLOCK", "final.balances.account/chainId");
+  else if (balance === undefined) add("UNAVAILABLE_EVIDENCE", "REVALIDATE", "final.balances");
+  const originalData = record(quote.data);
+  const debit = input.action === "BRIDGE" ? originalData?.sourceDebit : prepared.inputAmount;
+  if (typeof debit !== "bigint" || debit <= 0n) add("MALFORMED_EVIDENCE", "BLOCK", "final.requiredDebit");
+  else if (balance !== undefined && balance < debit) add("BALANCE_INSUFFICIENT", "BLOCK", "final.balances.data");
+
+  if (input.action !== "SEND") {
+    const allowance = input.current.allowance;
+    const allowanceValid = allowance && validateReadResult(allowance).valid && allowance.tool === "token.allowance";
+    const expectedSpender = input.action === "SWAP" ? XYLO_ROUTER : CCTP_TOKEN_MESSENGER_V2;
+    if (allowance && !allowanceValid) add("MALFORMED_EVIDENCE", "BLOCK", "final.allowance");
+    else if (!allowanceValid || allowance.status !== "AVAILABLE" || allowance.freshness !== "live" || allowance.observedAt === null || allowance.observedAt < baselineTime) add("UNAVAILABLE_EVIDENCE", "REVALIDATE", "final.allowance");
+    else {
+      const asset = getAssetById(prepared.inputAsset);
+      if (!asset || !matchesAddress(allowance.data.owner, prepared.account) || allowance.chainId !== prepared.chainId || allowance.data.assetId !== prepared.inputAsset || !matchesAddress(allowance.data.spender, expectedSpender) || !matchesAddress(allowance.data.token, asset.address)) add("PREPARATION_MISMATCH", "BLOCK", "final.allowance.data");
+      if (allowance.data.amount !== prepared.allowance) add("ALLOWANCE_CHANGED", "REVALIDATE", "final.allowance.data.amount");
+      if (step.kind !== "finite-approval" && typeof debit === "bigint" && allowance.data.amount < debit) add("ALLOWANCE_CHANGED", "REVALIDATE", "final.allowance.data.amount");
+    }
+  }
+
+  if (fresh.status === "EXPIRED" || fresh.expiresAt !== null && input.now > fresh.expiresAt || input.now > prepared.expiresAt) add("EXPIRED_QUOTE", "REQUOTE", "final.quote.expiresAt");
+  else if (fresh.status !== "AVAILABLE") add("UNAVAILABLE_EVIDENCE", "REQUOTE", "final.quote.status");
+  else if (!validateQuoteResult(fresh, 0).valid) add("MALFORMED_EVIDENCE", "BLOCK", "final.quote");
+  else if (fresh.observedAt < baselineTime) add("STALE_EVIDENCE", "REVALIDATE", "final.quote.observedAt");
+  else if (quoteFingerprint(fresh) !== prepared.quoteFingerprint) add("QUOTE_MISMATCH", "REQUOTE", "final.quote.fingerprint");
+
+  const fee = input.current.fee;
+  const feeValid = fee.status === "available" && Number.isFinite(fee.observedAt) && fee.observedAt >= baselineTime && fee.observedAt <= input.now;
+  if (input.action === "SWAP" && fee.status !== "not-estimated" || input.action !== "SWAP" && !feeValid) add("FEE_UNAVAILABLE", "REVALIDATE", "final.fee");
+  else if (input.action === "SEND") {
+    const expected = originalData?.maximumFeeRaw18;
+    if (typeof fee.maximumFeeRaw18 !== "bigint" || fee.maximumFeeRaw18 < 0n || typeof fee.gasBalanceRaw18 !== "bigint" || fee.gasBalanceRaw18 < 0n || typeof fee.maximumFeeUsdc6 !== "bigint" || fee.maximumFeeUsdc6 < 0n || typeof expected !== "bigint" || typeof originalData?.maximumFeeUsdc6 !== "bigint") add("FEE_UNAVAILABLE", "REVALIDATE", "final.fee");
+    else {
+      if (fee.maximumFeeRaw18 !== expected || fee.maximumFeeUsdc6 !== originalData.maximumFeeUsdc6) add("FEE_CHANGED", "REQUOTE", "final.fee.maximumFeeRaw18");
+      if (fee.gasBalanceRaw18 < fee.maximumFeeRaw18 || prepared.inputAsset === "usdc" && balance !== undefined && balance < prepared.inputAmount + fee.maximumFeeUsdc6) add("BALANCE_INSUFFICIENT", "BLOCK", "final.fee/gasBalance");
+    }
+  } else if (input.action === "BRIDGE") {
+    if (typeof fee.cctpMaximumFee !== "bigint" || typeof fee.cctpSourceDebit !== "bigint" || fee.cctpMaximumFee < 0n || fee.cctpSourceDebit <= 0n) add("FEE_UNAVAILABLE", "REVALIDATE", "final.fee");
+    else if (fee.cctpMaximumFee !== originalData?.maximumFee || fee.cctpSourceDebit !== originalData?.sourceDebit) add("FEE_CHANGED", "REQUOTE", "final.fee");
+  }
+
+  const simulation = input.current.simulation;
+  if (simulation.status === "reverted") add("SIMULATION_FAILED", "BLOCK", "final.simulation.status");
+  else if (simulation.status !== "passed") add("SIMULATION_UNAVAILABLE", "REVALIDATE", "final.simulation.status");
+  const latestRead = Math.max(balances.observedAt ?? 0, input.current.allowance?.observedAt ?? 0, fee.observedAt, fresh.observedAt, input.current.wallet.capturedAt, input.current.network.capturedAt);
+  if (!Number.isFinite(simulation.observedAt) || simulation.observedAt < latestRead || simulation.observedAt > input.now) add("STALE_EVIDENCE", "REVALIDATE", "final.simulation.observedAt");
+  if (!matchesAddress(simulation.account, prepared.account) || simulation.chainId !== prepared.chainId || simulation.quoteFingerprint !== prepared.quoteFingerprint || !simulation.request || !step.request || !sameRequest(simulation.request, step.request)) add("SIMULATION_MISMATCH", "BLOCK", "final.simulation.request");
+  return policyResult(findings);
+}
+
+function sameRequest(left: NormalizedTransactionRequest, right: NormalizedTransactionRequest): boolean {
+  return left.to === right.to && left.data === right.data && left.value === right.value && left.chainId === right.chainId && left.gas === right.gas && left.maxFeePerGas === right.maxFeePerGas && left.maxPriorityFeePerGas === right.maxPriorityFeePerGas;
 }

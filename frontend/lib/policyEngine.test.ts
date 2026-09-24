@@ -9,7 +9,7 @@ import { createAgentContextSnapshot } from "./agent/context.ts";
 import { runPrepareTool } from "./agent/prepareTools.ts";
 import { runQuoteTool, type SendQuote } from "./agent/quoteTools.ts";
 import { runReadTool } from "./agent/readTools.ts";
-import { evaluatePolicy, type PolicyInput } from "./policyEngine.ts";
+import { evaluateFinalPolicy, evaluatePolicy, type FinalPolicyInput, type PolicyInput } from "./policyEngine.ts";
 
 const account = getAddress("0x1111111111111111111111111111111111111111");
 const other = getAddress("0x2222222222222222222222222222222222222222");
@@ -204,4 +204,83 @@ test("9C Xylo slippage and minimum output fail closed and compose with 9B preced
   assert.equal(evaluatePolicy({ ...changedQuote(swap, {}, { router: other }), now: now + 60_001 }).decision, "BLOCK");
   assert.equal(evaluatePolicy({ ...send, now: now + 60_001 }).decision, "REQUOTE");
   assert.equal(evaluatePolicy({ ...send, chainId: baseSepolia.id }).decision, "BLOCK");
+});
+
+async function finalEvidence(action: "SEND" | "SWAP" | "BRIDGE" = "SEND", allowance = 0n): Promise<FinalPolicyInput> {
+  const input = await evidence(action, { allowance });
+  if (input.preparation?.status !== "PREPARED" || input.quote?.status !== "AVAILABLE") throw Error("final fixture requires prepared action and quote");
+  const prepared = input.preparation.data;
+  const quoteData = input.quote.data as Record<string, unknown>;
+  const amount = action === "BRIDGE" ? 100_000_000n : action === "SWAP" ? 100_000_000n : 100_000_000n;
+  const balancesRead = { tool: "assets.balances", account, chainId: arcTestnet.id, capturedAt: now, observedAt: now, freshness: "live", source: ["arc-rpc"], status: "AVAILABLE", data: { usdc: amount, eurc: 50_000_000n, cirbtc: 200_000_000n } } as const;
+  const spender = action === "SWAP" ? XYLO_ROUTER : CCTP_TOKEN_MESSENGER_V2;
+  const allowanceRead = { tool: "token.allowance", account, chainId: arcTestnet.id, capturedAt: now, observedAt: now, freshness: "live", source: ["arc-rpc"], status: "AVAILABLE", data: { assetId: action === "BRIDGE" ? "usdc" : prepared.inputAsset, token: getAssetById(prepared.inputAsset)!.address, owner: account, spender, amount: allowance } } as const;
+  const fee = action === "SEND"
+    ? { status: "available", observedAt: now, maximumFeeRaw18: quoteData.maximumFeeRaw18 as bigint, maximumFeeUsdc6: quoteData.maximumFeeUsdc6 as bigint, gasBalanceRaw18: 10_000_000_000_000_000n }
+    : action === "BRIDGE" ? { status: "available", observedAt: now, cctpMaximumFee: quoteData.maximumFee as bigint, cctpSourceDebit: quoteData.sourceDebit as bigint }
+    : { status: "not-estimated", observedAt: now };
+  return { ...input, stepIndex: 0, current: { wallet: input.wallet!, network: input.network!, balances: balancesRead, ...(action === "SEND" ? {} : { allowance: allowanceRead }), quote: input.quote, fee: fee as FinalPolicyInput["current"]["fee"], simulation: { status: "passed", account, chainId: arcTestnet.id, request: prepared.steps[0].request, quoteFingerprint: prepared.quoteFingerprint, observedAt: now } } };
+}
+function finalFinding(input: FinalPolicyInput, code: string, decision: string): void {
+  const result = evaluateFinalPolicy(input);
+  assert.equal(result.decision, decision, code);
+  assert.ok(result.findings.some((finding) => finding.code === code), code);
+}
+
+test("9D final gate accepts current evidence for one reviewed step and is deterministic", async () => {
+  for (const action of ["SEND", "SWAP", "BRIDGE"] as const) {
+    const input = await finalEvidence(action);
+    const result = evaluateFinalPolicy(input);
+    assert.equal(result.mustStop, false, action);
+    assert.equal(result.requiresUserReview, true, action);
+    assert.deepEqual(evaluateFinalPolicy(input), result);
+  }
+});
+
+test("9D account, chain, balance, expiry and absent evidence fail closed", async () => {
+  const send = await finalEvidence();
+  finalFinding({ ...send, current: { ...send.current, wallet: { ...send.current.wallet, account: other } } }, "ACCOUNT_MISMATCH", "BLOCK");
+  finalFinding({ ...send, current: { ...send.current, network: { ...send.current.network, data: { chainId: baseSepolia.id, isArc: false, requiredChainId: arcTestnet.id } } as FinalPolicyInput["current"]["network"] } }, "CHAIN_MISMATCH", "BLOCK");
+  finalFinding({ ...send, current: { ...send.current, balances: { ...send.current.balances, account: other } } }, "PREPARATION_MISMATCH", "BLOCK");
+  finalFinding({ ...send, current: { ...send.current, network: { ...send.current.network, account: other } } }, "PREPARATION_MISMATCH", "BLOCK");
+  finalFinding({ ...send, current: { ...send.current, balances: { ...send.current.balances, data: { usdc: 1n } } as FinalPolicyInput["current"]["balances"] } }, "BALANCE_INSUFFICIENT", "BLOCK");
+  const balanceUnavailable = { tool: "assets.balances", account, chainId: arcTestnet.id, capturedAt: now, observedAt: now, freshness: "live", source: ["arc-rpc"], status: "UNAVAILABLE", error: "PROVIDER_FAILURE" } as const;
+  finalFinding({ ...send, current: { ...send.current, balances: balanceUnavailable } }, "UNAVAILABLE_EVIDENCE", "REVALIDATE");
+  finalFinding({ ...send, now: now + 60_001 }, "EXPIRED_QUOTE", "REQUOTE");
+  finalFinding({ ...send, current: { ...send.current, quote: { ...send.current.quote, observedAt: now + 1 } as FinalPolicyInput["current"]["quote"] }, now: now + 1 }, "QUOTE_MISMATCH", "REQUOTE");
+  const prepared = send.preparation as Extract<PolicyInput["preparation"], { status: "PREPARED" }>;
+  finalFinding({ ...send, now: now + 2, preparation: { ...prepared, data: { ...prepared.data, expiresAt: now + 1 } } }, "EXPIRED_QUOTE", "REQUOTE");
+});
+
+test("9D Send fee refresh and exact simulation fail safely", async () => {
+  const send = await finalEvidence();
+  finalFinding({ ...send, current: { ...send.current, fee: { ...send.current.fee, status: "unavailable" } } }, "FEE_UNAVAILABLE", "REVALIDATE");
+  finalFinding({ ...send, current: { ...send.current, fee: { ...send.current.fee, maximumFeeRaw18: (send.current.fee.maximumFeeRaw18 ?? 0n) + 1n } } }, "FEE_CHANGED", "REQUOTE");
+  finalFinding({ ...send, current: { ...send.current, fee: { ...send.current.fee, observedAt: now - 1 } } }, "FEE_UNAVAILABLE", "REVALIDATE");
+  finalFinding({ ...send, current: { ...send.current, simulation: { ...send.current.simulation, status: "reverted" } } }, "SIMULATION_FAILED", "BLOCK");
+  finalFinding({ ...send, current: { ...send.current, simulation: { ...send.current.simulation, status: "unavailable" } } }, "SIMULATION_UNAVAILABLE", "REVALIDATE");
+  finalFinding({ ...send, current: { ...send.current, simulation: { ...send.current.simulation, observedAt: now - 1 } } }, "STALE_EVIDENCE", "REVALIDATE");
+  finalFinding({ ...send, current: { ...send.current, simulation: { ...send.current.simulation, account: other } } }, "SIMULATION_MISMATCH", "BLOCK");
+  finalFinding({ ...send, current: { ...send.current, simulation: { ...send.current.simulation, request: { ...send.current.simulation.request, to: other } } } }, "SIMULATION_MISMATCH", "BLOCK");
+});
+
+test("9D Swap revalidates allowance, route and simulation after state changes", async () => {
+  const swap = await finalEvidence("SWAP");
+  finalFinding({ ...swap, current: { ...swap.current, allowance: { ...swap.current.allowance!, data: { ...(swap.current.allowance as Extract<typeof swap.current.allowance, { status: "AVAILABLE" }>).data, amount: 10_000_000n } } as FinalPolicyInput["current"]["allowance"] } }, "ALLOWANCE_CHANGED", "REVALIDATE");
+  finalFinding({ ...swap, current: { ...swap.current, quote: { ...swap.current.quote, route: "cctp-direct-forwarding" } as FinalPolicyInput["current"]["quote"] } }, "UNSUPPORTED_ROUTE", "BLOCK");
+  finalFinding({ ...swap, current: { ...swap.current, simulation: { ...swap.current.simulation, status: "reverted" } } }, "SIMULATION_FAILED", "BLOCK");
+  finalFinding({ ...swap, current: { ...swap.current, balances: { ...swap.current.balances, data: { usdc: 1n } } as FinalPolicyInput["current"]["balances"] } }, "BALANCE_INSUFFICIENT", "BLOCK");
+  const prepared = swap.preparation as Extract<PolicyInput["preparation"], { status: "PREPARED" }>;
+  finalFinding({ ...swap, stepIndex: 1, priorStepConfirmed: false, current: { ...swap.current, simulation: { ...swap.current.simulation, request: prepared.data.steps[1].request } } }, "STALE_EVIDENCE", "REVALIDATE");
+});
+
+test("9D Direct CCTP requires current matching fee, allowance and simulation", async () => {
+  const bridge = await finalEvidence("BRIDGE");
+  finalFinding({ ...bridge, current: { ...bridge.current, fee: { ...bridge.current.fee, status: "unavailable" } } }, "FEE_UNAVAILABLE", "REVALIDATE");
+  finalFinding({ ...bridge, current: { ...bridge.current, fee: { ...bridge.current.fee, cctpMaximumFee: (bridge.current.fee.cctpMaximumFee ?? 0n) + 1n } } }, "FEE_CHANGED", "REQUOTE");
+  finalFinding({ ...bridge, current: { ...bridge.current, fee: { ...bridge.current.fee, observedAt: now - 1 } } }, "FEE_UNAVAILABLE", "REVALIDATE");
+  finalFinding({ ...bridge, current: { ...bridge.current, balances: { ...bridge.current.balances, data: { usdc: 1n } } as FinalPolicyInput["current"]["balances"] } }, "BALANCE_INSUFFICIENT", "BLOCK");
+  finalFinding({ ...bridge, current: { ...bridge.current, allowance: { ...bridge.current.allowance!, data: { ...(bridge.current.allowance as Extract<typeof bridge.current.allowance, { status: "AVAILABLE" }>).data, amount: 1n } } as FinalPolicyInput["current"]["allowance"] } }, "ALLOWANCE_CHANGED", "REVALIDATE");
+  finalFinding({ ...bridge, current: { ...bridge.current, simulation: { ...bridge.current.simulation, status: "reverted" } } }, "SIMULATION_FAILED", "BLOCK");
+  finalFinding({ ...bridge, current: { ...bridge.current, quote: { ...bridge.current.quote, destinationChainId: arcTestnet.id } as FinalPolicyInput["current"]["quote"] } }, "UNSUPPORTED_CHAIN", "BLOCK");
 });
