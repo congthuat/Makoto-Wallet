@@ -24,6 +24,7 @@ import { arcTestnet } from "viem/chains";
 import { translate, type Locale, type TranslationKey } from "@/i18n";
 import { agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import styles from "./MakotoAgentPage.module.css";
+import { PolicyDecisionNotice } from "./PolicyDecisionNotice";
 
 export function MakotoAgentPage() {
   const { locale } = usePreferences(), wallet = useWalletReadContext();
@@ -127,8 +128,9 @@ export function AgentOperation({ message, locale, current }: { message: AgentMes
     {context.status !== "current" && <p className={styles.historicalContext} role="status">{t(context.status === "historical" ? "agent.workspace.historical" : "agent.workspace.originUnknown")}</p>}
     {mode === "action" && <section className={styles.plan}><h3>{t("agent.workspace.plan")}</h3><p>{t("agent.workspace.planCopy")}</p><ol><li>{t("agent.workspace.planIntent")}</li><li>{t("agent.workspace.planReview")}</li><li>{t("agent.workspace.planWallet")}</li></ol></section>}
     <section className={styles.answer}><h3>{t(mode === "result" ? "agent.workspace.reportedResult" : mode === "action" ? "agent.workspace.understanding" : "agent.workspace.answer")}</h3><p>{message.text}</p></section>
-    {(mode === "action" || planning || message.intelligence || message.quote || message.prepared) && <section className={styles.operationEvidence}><h3>{t("agent.workspace.evidence")}</h3>
+    {(mode === "action" || planning || message.intelligence || message.quote || message.prepared || message.policy) && <section className={styles.operationEvidence}><h3>{t("agent.workspace.evidence")}</h3>
       <p>{t("agent.workspace.capturedEvidence")}</p>
+      {message.policy && <PolicyDecisionNotice result={message.policy} locale={locale} />}
       {planning && <dl><div><dt>{t("agent.workspace.planningData")}</dt><dd>{t(planning.status === "unavailable" ? "agent.workspace.unavailable" : "agent.workspace.estimated")}{" · "}{t(planning.completeness === "complete" ? "agent.workspace.complete" : "agent.workspace.incomplete")}</dd></div><div><dt>{t("agent.workspace.asOf")}</dt><dd><time dateTime={new Date(planning.dataTimestamp).toISOString()}>{new Date(planning.dataTimestamp).toLocaleString(vi ? "vi-VN" : "en-US")}</time></dd></div></dl>}
       {message.quote && <dl><div><dt>{t("agent.workspace.quoteEvidence")}</dt><dd>{message.quote.provider} · {message.quote.status}</dd></div><div><dt>{t("agent.workspace.asOf")}</dt><dd><time dateTime={new Date(message.quote.observedAt).toISOString()}>{new Date(message.quote.observedAt).toLocaleString(vi ? "vi-VN" : "en-US")}</time></dd></div></dl>}
       {message.prepared?.status === "PREPARED" && <dl><div><dt>{t("agent.workspace.preparedEvidence")}</dt><dd>{message.prepared.data.provider}</dd></div><div><dt>{t("agent.workspace.expiresAt")}</dt><dd><time dateTime={new Date(message.prepared.data.expiresAt).toISOString()}>{new Date(message.prepared.data.expiresAt).toLocaleString(vi ? "vi-VN" : "en-US")}</time></dd></div></dl>}

@@ -20,6 +20,7 @@ import * as React from "react";
 import { usePreferences } from "@/hooks/usePreferences";
 import { WalletPanel } from "@/components/WalletPanel";
 import { TransactionSafetyReview } from "@/components/TransactionSafetyReview";
+import { PolicyDecisionNotice } from "@/components/PolicyDecisionNotice";
 import { formatAssetAmount, getAssetById, SUPPORTED_ASSETS } from "@/lib/assets";
 import { shortAddress } from "@/lib/format";
 import { validateAssetSend, normalizeRecipient, arcScanAddressUrl, arcScanTransactionUrl } from "@/lib/wallet";
@@ -49,7 +50,7 @@ export function SendFixture(options = {}) {
   const reviewSnapshot = undefined;
   const feeEstimate = options.fee ?? {status:"ready",rawFee:1000000000000n};
   const feeCost = {totalUsdc6:1234568n, feeUsdc6:1n, remainingUsdc6:122222221n};
-  const large = options.large ?? false, error = options.error;
+  const large = options.large ?? false, error = options.error, policyResult = options.policyResult;
   const hash = options.hash, confirmedActivity = undefined;
   const ARC_MEMO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const onClose = options.onClose ?? (() => { if(typeof window !== "undefined") window.fixtureClosed = true; });

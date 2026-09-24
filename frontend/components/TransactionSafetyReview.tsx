@@ -5,6 +5,9 @@ import type { TransactionSafetyAssessment } from "@/lib/transactionSafety";
 import { expectedTransactionChanges, type TransactionIntent } from "@/lib/transactionSafety";
 import { formatAssetAmount, getAssetById } from "@/lib/assets";
 import type { TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import type { PolicyResult } from "@/lib/policyEngine";
+import { mapPolicyResultToUX } from "@/lib/policyUX";
+import { PolicyDecisionNotice } from "./PolicyDecisionNotice";
 
 export type ReviewDetail = { label: string; value: ReactNode; presentation?: "value" | "prose" };
 
@@ -16,10 +19,11 @@ function effectiveReviewAssessment(assessment?: TransactionSafetyAssessment, sna
   return priority[assessment.status] > priority[snapshotAssessment.status] ? assessment : snapshotAssessment;
 }
 
-export function TransactionSafetyReview({ title, summary, details, costDetails = [], compactDetails, technicalDetails = [], technicalDetailIndexes = [], technicalContent, compact = false, checks, assessment, review, walletNotice, onBack, onContinue, backDisabled = false, continueDisabled = false, continueLabel, children }: { title: string; summary: string; details: readonly ReviewDetail[]; costDetails?: readonly ReviewDetail[]; compactDetails?: readonly ReviewDetail[]; technicalDetails?: readonly ReviewDetail[]; technicalDetailIndexes?: readonly number[]; technicalContent?: ReactNode; compact?: boolean; checks: readonly SafetyCheck[]; assessment?: TransactionSafetyAssessment; review?: TransactionReviewSnapshot; walletNotice: string; onBack(): void; onContinue(): void; backDisabled?: boolean; continueDisabled?: boolean; continueLabel?: string; children?: ReactNode }) {
-  const { t } = usePreferences();
+export function TransactionSafetyReview({ title, summary, details, costDetails = [], compactDetails, technicalDetails = [], technicalDetailIndexes = [], technicalContent, compact = false, checks, assessment, review, policyResult, walletNotice, onBack, onContinue, backDisabled = false, continueDisabled = false, continueLabel, children }: { title: string; summary: string; details: readonly ReviewDetail[]; costDetails?: readonly ReviewDetail[]; compactDetails?: readonly ReviewDetail[]; technicalDetails?: readonly ReviewDetail[]; technicalDetailIndexes?: readonly number[]; technicalContent?: ReactNode; compact?: boolean; checks: readonly SafetyCheck[]; assessment?: TransactionSafetyAssessment; review?: TransactionReviewSnapshot; policyResult?: PolicyResult; walletNotice: string; onBack(): void; onContinue(): void; backDisabled?: boolean; continueDisabled?: boolean; continueLabel?: string; children?: ReactNode }) {
+  const { t, locale } = usePreferences();
+  const policyBlocked = policyResult ? mapPolicyResultToUX(policyResult, locale).blocksProgression : false;
   const effectiveAssessment = effectiveReviewAssessment(assessment, review?.assessment);
-  const blocked = hasBlockingChecks(checks) || effectiveAssessment?.status === "blocked" || effectiveAssessment?.status === "unknown";
+  const blocked = policyBlocked || hasBlockingChecks(checks) || effectiveAssessment?.status === "blocked" || effectiveAssessment?.status === "unknown";
   const attentionChecks = checks.filter((check) => check.status === "attention" || check.status === "blocking");
   const simulationNotPerformed = effectiveAssessment?.checks.some((check) => check.code === "request-simulation-not-performed") ?? false;
   const visibleDetails = compactDetails ?? details.filter((_, index) => !technicalDetailIndexes.includes(index));
@@ -33,6 +37,7 @@ export function TransactionSafetyReview({ title, summary, details, costDetails =
         <ReviewSection id="compact-review-summary" title={t("review.intent")} compact><ReviewDetailList details={visibleDetails} className="compact-review-summary" /></ReviewSection>
         {costDetails.length > 0 && <ReviewSection id="compact-review-cost" title={t("review.cost")} compact><ReviewDetailList details={costDetails} className="compact-review-summary" /></ReviewSection>}
         <CompactSafetySummary checks={checks} assessment={effectiveAssessment} />
+        {policyResult && <PolicyDecisionNotice result={policyResult} locale={locale} />}
         <ReviewLimitations assessment={effectiveAssessment} simulationNotPerformed={simulationNotPerformed} />
         {attentionChecks.length > 0 && (
           <div className="compact-safety-issues">
@@ -86,6 +91,7 @@ export function TransactionSafetyReview({ title, summary, details, costDetails =
       {costDetails.length > 0 && <ReviewSection id="review-cost" title={t("review.cost")}><ReviewDetailList details={costDetails} /></ReviewSection>}
       {review && <TransactionExpectedChanges intent={review.intent} />}
       <ReviewSection id="review-evidence" title={t("review.safetyEvidence")}><TransactionSafetyChecks checks={checks} />{effectiveAssessment && <TransactionSafetyAssessmentView assessment={effectiveAssessment} />}</ReviewSection>
+      {policyResult && <PolicyDecisionNotice result={policyResult} locale={locale} />}
       <ReviewLimitations assessment={effectiveAssessment} simulationNotPerformed={simulationNotPerformed} />
       {review && (
         <p className="review-validity">

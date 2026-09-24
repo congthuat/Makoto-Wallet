@@ -27,6 +27,9 @@ import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, prepareFlowReview, swapIntent } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 import { evaluateFinalWalletSwapPolicy } from "@/lib/policyEngine";
+import type { PolicyResult } from "@/lib/policyEngine";
+import { existingGateOutcome } from "@/lib/policyUX";
+import { PolicyDecisionNotice } from "./PolicyDecisionNotice";
 import { storeAgentResult } from "@/lib/agent/actions";
 import { classifySwapConfirmation, swapBackAllowed, swapContinueAllowed, swapModalBusy, swapStatusAfterConfirmation, type SwapReceiptStatus, type SwapSubmissionStatus } from "@/lib/swapSubmissionState";
 
@@ -106,6 +109,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   const [approvalReview, setApprovalReview] = useState<TransactionReviewSnapshot>(),
     [swapReview, setSwapReview] = useState<TransactionReviewSnapshot>();
   const [swapReviewedFunds, setSwapReviewedFunds] = useState<{ balance: bigint; allowance: bigint }>();
+  const [policyResult, setPolicyResult] = useState<PolicyResult>();
   const submissionGuard = useRef(new ReviewSubmissionGuard()),
     executionInFlightRef = useRef(false),
     executionAttemptRef = useRef(0),
@@ -178,6 +182,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     setApprovalReview(undefined);
     setSwapReview(undefined);
     setSwapReviewedFunds(undefined);
+    setPolicyResult(undefined);
     setPreparedSwap(undefined);
     setError(undefined);
     setQuickFeedback(undefined);
@@ -493,6 +498,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   }
   async function review() {
     if (swapIsInFlight()) return;
+    setPolicyResult(undefined);
     if (!wallet.address || !client || !parsed) return setError(vi ? "Nhập số tiền hợp lệ." : "Enter a valid amount.");
     if (parsed > balance) return setError(vi ? "Số dư không đủ." : "Insufficient balance.");
     const attempt = ++reviewAttempt.current,
@@ -763,6 +769,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   }
   async function execute() {
     if (executionInFlightRef.current) return;
+    if (policyResult?.mustStop) return;
     if (submittedHash || !swapContinueAllowed(submissionStatus, reviewStage, Boolean(pending))) return;
     if (!wallet.address || !client || !execution || !quote || !route || !swapReview || !swapReviewedFunds || !swapEnvelope || !preparedSwap || reviewStage !== "swap" || pending) return;
     if (!reviewedAccount || wallet.address.toLowerCase() !== reviewedAccount.toLowerCase()) {
@@ -770,9 +777,8 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       return setError(vi ? "Chi tiết giao dịch đã thay đổi. Vui lòng kiểm tra lại." : "Transaction details changed. Please review again.");
     }
     if (!isSwapQuoteFresh(quote.quotedAt)) {
-      setQuote(undefined);
-      setReviewStage(undefined);
-      return setError(vi ? "Báo giá đã hết hạn." : "Quote expired. Get a fresh quote.");
+      setPolicyResult(existingGateOutcome("REQUOTE", "EXPIRED_QUOTE", "swap.quote.quotedAt"));
+      return;
     }
     if (gasUnavailable || !gasCost?.sufficientGasBalance) return setError(vi ? "Không đủ số dư USDC đã tính cả phí Arc, hoặc chưa thể ước tính phí an toàn." : "USDC balance including Arc gas is insufficient, or a safe fee estimate is unavailable.");
     let submitted = false;
@@ -802,8 +808,8 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
       });
       if (!ownsExecution()) return;
       if (allowance < quote.amountIn) {
-        setReviewStage(undefined);
-        return setError(vi ? "Allowance đã thay đổi. Vui lòng kiểm tra lại." : "Allowance changed. Please review again.");
+        setPolicyResult(existingGateOutcome("REVALIDATE", "ALLOWANCE_CHANGED", "swap.allowance"));
+        return;
       }
       if (!(await verifyArcExecution())) throw new Error("arc");
       if (!ownsExecution()) return;
@@ -893,7 +899,9 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         return setError(vi ? "Báo giá, mức tối thiểu, tuyến hoặc chi tiết giao dịch đã thay đổi. Hãy kiểm tra lại." : "Quote, minimum receive, route, or transaction details changed. Review again.");
       }
       setPending(vi ? "Đang chờ bạn xác nhận swap trong ví…" : "Waiting for swap confirmation in your wallet…");
-      const simulation = await client.simulateContract(preparedRequest);
+      let simulation;
+      try { simulation = await client.simulateContract(preparedRequest); }
+      catch { setPolicyResult(existingGateOutcome("BLOCK", "SIMULATION_FAILED", "swap.simulation")); return; }
       if (!ownsExecution()) return;
       const simulatedReview = revalidateTransactionReview(swapReview, {
           intent: finalIntent,
@@ -922,6 +930,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         reviewedAllowance: swapReviewedFunds.allowance, liveOutput: freshOutput, slippage,
         feeValid: isSwapFeeWithinEnvelope(swapEnvelope, freshEnvelope), simulation: "passed", now: reviewNow(),
       });
+      setPolicyResult(finalPolicy);
       if (finalPolicy.mustStop) {
         setSwapReview(undefined);
         setReviewStage(undefined);
@@ -1255,6 +1264,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     return (
       <TransactionSafetyReview
         compact
+        policyResult={policyResult}
         technicalDetailIndexes={[]}
         technicalContent={<div className="compact-route-details"><p>XyloNet StableSwap · {vi ? "khả dụng trong ví" : "wallet-executable"}</p><p>Circle App Kit Swap · {vi ? "không khả dụng trên trình duyệt" : CIRCLE_BROWSER_SWAP_STATUS.reason}</p></div>}
         title={vi ? "Kiểm tra hoán đổi" : "Review Swap"}
@@ -1316,9 +1326,10 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
           if (typeof reviewAttempt !== "undefined") reviewAttempt.current += 1;
           setReviewStage(undefined);
           setQuote(undefined);
+          setPolicyResult(undefined);
         }}
         onContinue={() => void execute()}
-        continueDisabled={swapLocked || Boolean(pending) || gasUnavailable || !gasCost?.sufficientGasBalance || !execution}
+        continueDisabled={Boolean(policyResult?.mustStop) || swapLocked || Boolean(pending) || gasUnavailable || !gasCost?.sufficientGasBalance || !execution}
       >
         {pending && (
           <p className="transaction-progress" role="status">
@@ -1341,6 +1352,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         void review();
       }}
     >
+      {policyResult && <PolicyDecisionNotice result={policyResult} locale={locale} />}
       <div className="swap-asset-grid">
         <label>
           {vi ? "Từ tài sản" : "From asset"}

@@ -23,6 +23,9 @@ import { arcFeeMateriallyChanged, calculateArcFee, formatArcFeeEstimate, maxSend
 import { assessTransaction, transactionFingerprint, type TransactionIntent } from "@/lib/transactionSafety";
 import { prepareTransactionReview, revalidateTransactionReview, ReviewSubmissionGuard, submitReviewedTransaction, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 import { refreshReviewedSendFee } from "@/lib/walletFinalGate";
+import type { PolicyResult } from "@/lib/policyEngine";
+import { existingGateOutcome } from "@/lib/policyUX";
+import { PolicyDecisionNotice } from "./PolicyDecisionNotice";
 import { useWalletAccount } from "@/hooks/useWalletAccount";
 import { storeAgentResult } from "@/lib/agent/actions";
 import "./SendReceive.css";
@@ -77,6 +80,7 @@ export function SendFlow({
     status: "idle",
   });
   const [reviewSnapshot, setReviewSnapshot] = useState<TransactionReviewSnapshot>();
+  const [policyResult, setPolicyResult] = useState<PolicyResult>();
   const [reviewPreparedAt, setReviewPreparedAt] = useState(0);
   const submittingRef = useRef(false);
   const { read: wallet, execution } = useWalletAccount();
@@ -243,6 +247,7 @@ export function SendFlow({
 
   async function review() {
     if (reviewInFlight.current) return;
+    setPolicyResult(undefined);
     const message = validationMessage();
     if (message) return setError(message);
     if (memoNote.error) return setError(copy.memoInvalid);
@@ -257,6 +262,7 @@ export function SendFlow({
     setStage("idle");
     setFeeEstimate({ status: "loading" });
     setReviewSnapshot(undefined);
+    setPolicyResult(undefined);
     try {
       const networkVerified = await verifyArc();
       if (!isCurrent()) return;
@@ -335,6 +341,7 @@ export function SendFlow({
     setReviewNetworkVerified(false);
     setFeeEstimate({ status: "idle" });
     setReviewSnapshot(undefined);
+    setPolicyResult(undefined);
     setError(undefined);
   }
 
@@ -415,6 +422,7 @@ export function SendFlow({
   async function submit() {
     if (submittingRef.current || pending || "error" in validated || !wallet.address || !client || !execution || memoNote.error || (memoNote.note && memoCompatibility !== "compatible") || (large && !largeAcknowledged)) return;
     if (!reviewedAccount || reviewedAccount.toLowerCase() !== wallet.address.toLowerCase()) {
+      setPolicyResult(existingGateOutcome("BLOCK", "ACCOUNT_MISMATCH", "send.account"));
       setReviewing(false);
       setError(copy.detailsChanged);
       return;
@@ -446,6 +454,7 @@ export function SendFlow({
     let submittedHash: `0x${string}` | undefined;
     try {
       if (!(await verifyArc())) {
+        setPolicyResult(existingGateOutcome("BLOCK", "CHAIN_MISMATCH", "send.chain"));
         setReviewNetworkVerified(false);
         throw new Error("Wrong network: Arc Testnet is required");
       }
@@ -481,6 +490,7 @@ export function SendFlow({
       });
       const freshFee = await refreshReviewedSendFee(feeEstimate, () => estimateSendFee(validated.amount));
       if (freshFee === undefined || feeEstimate.status !== "ready" || arcFeeMateriallyChanged(feeEstimate.rawFee, freshFee)) {
+        setPolicyResult(existingGateOutcome("REVALIDATE", "FEE_UNAVAILABLE", "send.fee"));
         setReviewing(false);
         setError(copy.detailsChanged);
         setStage("idle");
@@ -488,6 +498,7 @@ export function SendFlow({
         return;
       }
       if (validated.amount > freshBalance || (assetId === "usdc" && sendCostWithArcFee(validated.amount, freshBalance, freshFee).remainingUsdc6 === undefined)) {
+        setPolicyResult(existingGateOutcome("BLOCK", "BALANCE_INSUFFICIENT", "send.balance"));
         setError(copy.freshInsufficient);
         setStage("failed");
         submittingRef.current = false;
@@ -496,14 +507,16 @@ export function SendFlow({
       const finalIntent = currentSafetyIntent(reviewSnapshot.intent.preparedAt);
       if (!finalIntent) throw new Error(copy.detailsChanged);
       if (memoTransfer) {
-        await client.simulateContract({
-          address: ARC_MEMO_ADDRESS,
-          abi: arcMemoAbi,
-          functionName: "memo",
-          args: memoTransfer.args,
-          account: wallet.address,
-        });
-        await simulateSendIntent(finalIntent);
+        try {
+          await client.simulateContract({
+            address: ARC_MEMO_ADDRESS,
+            abi: arcMemoAbi,
+            functionName: "memo",
+            args: memoTransfer.args,
+            account: wallet.address,
+          });
+          await simulateSendIntent(finalIntent);
+        } catch { throw new Error("send-simulation-failed"); }
         const finalRevalidation = revalidateTransactionReview(reviewSnapshot, {
           intent: finalIntent,
           context: { connectedAccount: wallet.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
@@ -527,14 +540,16 @@ export function SendFlow({
           })),
         });
       } else {
-        await client.simulateContract({
-          address: asset.address,
-          abi: erc20BalanceAbi,
-          functionName: "transfer",
-          args: [validated.address, validated.amount],
-          account: wallet.address,
-        });
-        await simulateSendIntent(finalIntent);
+        try {
+          await client.simulateContract({
+            address: asset.address,
+            abi: erc20BalanceAbi,
+            functionName: "transfer",
+            args: [validated.address, validated.amount],
+            account: wallet.address,
+          });
+          await simulateSendIntent(finalIntent);
+        } catch { throw new Error("send-simulation-failed"); }
         const finalRevalidation = revalidateTransactionReview(reviewSnapshot, {
           intent: finalIntent,
           context: { connectedAccount: wallet.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
@@ -592,6 +607,7 @@ export function SendFlow({
       recordRecentRecipient(wallet.address, arcTestnet.id, validated.address);
       setStage("confirmed");
     } catch (caught) {
+      if (!submittedHash && caught instanceof Error && caught.message === "send-simulation-failed") setPolicyResult(existingGateOutcome("BLOCK", "SIMULATION_FAILED", "send.simulation"));
       const failure = classifyWalletFailure(caught, Boolean(submittedHash));
       if (origin === "agent" && wallet.address)
         storeAgentResult(window.sessionStorage, {
@@ -660,6 +676,7 @@ export function SendFlow({
       {reviewing && !("error" in validated) ? (
         <TransactionSafetyReview
           compact
+          policyResult={policyResult}
           title={copy.review}
           summary=""
           details={[
@@ -821,6 +838,7 @@ export function SendFlow({
             void review();
           }}
         >
+          {policyResult && <PolicyDecisionNotice result={policyResult} locale={locale} />}
           <div className="send-source-context">
             <div>
               <span>{copy.from}</span>

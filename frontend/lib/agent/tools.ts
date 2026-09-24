@@ -10,12 +10,13 @@ import { runReadTool } from "./readTools.ts";
 import type { QuoteContext } from "./quoteTools.ts";
 import { runCanonicalIntent, type CanonicalQuote } from "./canonicalIntegration.ts";
 import type { PrepareResult } from "./prepareTools.ts";
+import type { PolicyResult } from "../policyEngine.ts";
 
 export type AgentCapabilityPermission = "READ_ONLY" | "PREPARE_ONLY";
 export const AGENT_EXECUTION_POLICY = "EXECUTION_FORBIDDEN" as const;
 export type AgentOutcomeCategory = "NEEDS_CLARIFICATION" | "WALLET_NOT_CONNECTED" | "WRONG_NETWORK" | "INSUFFICIENT_BALANCE" | "QUOTE_UNAVAILABLE" | "ROUTE_UNAVAILABLE" | "PROVIDER_UNAVAILABLE" | "STALE_DATA" | "PLANNING_FAILED";
 export type AgentCapabilityContext = Readonly<{ snapshot: AgentContextSnapshot; planningServices?: AgentPlanningServices; quoteContext?: QuoteContext; onchainServices?: OnchainIntelligenceServices; research?: (sourceId: string, subject?: "bridging") => Promise<AgentIntelligenceResult>; now: number; binding: AgentBindingMetadata }>;
-export type AgentCapabilityOutput = Readonly<{ result?: AgentToolResult; planning?: AgentPlanningResult; quote?: CanonicalQuote; prepared?: PrepareResult; intelligence?: AgentIntelligenceResult; category?: AgentOutcomeCategory; error?: string }>;
+export type AgentCapabilityOutput = Readonly<{ result?: AgentToolResult; planning?: AgentPlanningResult; quote?: CanonicalQuote; prepared?: PrepareResult; policy?: PolicyResult; intelligence?: AgentIntelligenceResult; category?: AgentOutcomeCategory; error?: string }>;
 export type AgentCapabilityDefinition<I extends AgentIntent = AgentIntent, O extends AgentCapabilityOutput = AgentCapabilityOutput> = Readonly<{
   id: AgentCapabilityId; topic: AgentOrchestrationDecision["topic"]; mode: AgentOrchestrationDecision["mode"]; permission: AgentCapabilityPermission; execution: typeof AGENT_EXECUTION_POLICY; requiresWallet: boolean; requiresArc: boolean;
   validateInput(input: AgentIntent, decision: AgentOrchestrationDecision): input is I;
@@ -110,7 +111,7 @@ function outcomeFor(value: AgentPlanningResult): AgentOutcomeCategory | undefine
   if (value.blockingReasons.includes("provider-unavailable")) return "PROVIDER_UNAVAILABLE";
   return value.status === "unavailable" ? "PLANNING_FAILED" : undefined;
 }
-function validOutput(value: unknown): value is AgentCapabilityOutput { return typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).every((key) => ["result", "planning", "quote", "prepared", "intelligence", "category", "error"].includes(key)); }
+function validOutput(value: unknown): value is AgentCapabilityOutput { return typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).every((key) => ["result", "planning", "quote", "prepared", "policy", "intelligence", "category", "error"].includes(key)); }
 function canonicalOutput(value: Awaited<ReturnType<typeof runCanonicalIntent>>): AgentCapabilityOutput {
   if (value.error) return Object.freeze({ error: value.error, category: value.error === "WALLET_UNAVAILABLE" ? "WALLET_NOT_CONNECTED" : value.error === "INVALID_INPUT" ? "NEEDS_CLARIFICATION" : "PLANNING_FAILED" });
   const status = value.prepared?.status ?? value.quote?.status;

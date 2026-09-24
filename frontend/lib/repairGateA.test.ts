@@ -87,6 +87,7 @@ function swapHarness(initialAllowance = 0n) {
     "@/lib/walletActivity": {},
     "@/lib/agent/actions": { storeAgentResult: () => {} },
     "./TransactionSafetyReview": { TransactionSafetyReview: "controlled-review" },
+    "./PolicyDecisionNotice": { PolicyDecisionNotice: "policy-notice" },
     "@/lib/transactionFlowReview": { ...flowReview, prepareFlowReview: (...args: Parameters<typeof flowReview.prepareFlowReview>) => {
       const snapshot = flowReview.prepareFlowReview(...args);
       observations.snapshots.push(snapshot);
@@ -191,7 +192,7 @@ function nodes(element: any): any[] {
   if (typeof element.type === "function") return nodes(element.type(element.props));
   return [element, ...nodes(element.props?.children)];
 }
-const Review = component("TransactionSafetyReview", { "@/hooks/usePreferences": preferences });
+const Review = component("TransactionSafetyReview", { "@/hooks/usePreferences": preferences, "./PolicyDecisionNotice": { PolicyDecisionNotice: "policy-notice" } });
 const circleIntent = flowReview.bridgeIntent({ id: "circle-review", account, chainId: baseSepolia.id, target: usdc.address, calldata: "0x", preparedAt: 1_000, expiresAt: 46_000, assetId: "usdc", amount: 1_000_000n, recipient: account, destinationChainId: arcTestnet.id, route: "circle-app-kit-cctp", circleManaged: true });
 const circleContext: SafetyContext = { connectedAccount: account, connectedChainId: baseSepolia.id, balances: { usdc: 2_000_000n }, simulation: "not-performed", simulationPolicy: { requirement: "externally-managed", provider: "circle-app-kit" }, now: 1_000, managedTarget: { label: "Circle App Kit", category: "circle" } };
 const circleSnapshot = flowReview.prepareFlowReview(circleIntent, circleContext);

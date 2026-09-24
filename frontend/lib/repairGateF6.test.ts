@@ -18,6 +18,7 @@ function invokeBack(status: SwapSubmissionStatus, executionInFlight: boolean) {
   const setters = {
     setReviewStage(value: "swap" | undefined) { reviewStage = value; },
     setQuote(value: unknown) { quote = value; },
+    setPolicyResult() {},
   };
   new Function(...Object.keys(setters), "submissionStatus", "swapBackAllowed", "executionInFlightRef", backBody)(...Object.values(setters), status, swapBackAllowed, { current: executionInFlight });
   return { reviewStage, quote };

@@ -3,6 +3,7 @@ import { arcTestnet } from "viem/chains";
 import { translate, type TranslationKey } from "../../i18n/index.ts";
 import type { WalletActivity } from "../wallet.ts";
 import { getAssetById } from "../assets.ts";
+import { mapPolicyResultToUX } from "../policyUX.ts";
 import type { AgentContextSnapshot, AgentIntent, AgentResponse, AgentToolResult } from "./types.ts";
 import { blockingExplanation, formatPlanningAmount, type AgentPlanningResult } from "./planning.ts";
 import { createAgentActionDraft, type AgentOrchestrationDecision } from "./orchestration.ts";
@@ -34,15 +35,16 @@ export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: Agen
 }
 
 function formatCanonicalResponse(intent: AgentIntent, output: AgentCapabilityOutput): AgentResponse {
-  const quote = output.quote, prepared = output.prepared;
+  const quote = output.quote, prepared = output.prepared, policy = output.policy;
   const error = output.error ?? (prepared && prepared.status !== "PREPARED" ? prepared.error : undefined) ?? (quote && quote.status !== "AVAILABLE" && quote.status !== "PARTIAL" ? quote.error : undefined);
   const vi = intent.locale === "vi";
-  if (error) return { intent, quote, prepared, text: vi ? `Không thể chuẩn bị hoặc báo giá: ${error}. Không có giao dịch nào được gửi.` : `Quote or preparation unavailable: ${error}. No transaction was submitted.` };
+  if (error) return { intent, quote, prepared, policy, text: policy ? mapPolicyResultToUX(policy, intent.locale).summary : vi ? `Không thể chuẩn bị hoặc báo giá: ${error}. Không có giao dịch nào được gửi.` : `Quote or preparation unavailable: ${error}. No transaction was submitted.` };
   if (prepared?.status === "PREPARED") {
     const handoff = prepared.data.handoff;
     const displayPlan: AgentPlanningResult = { kind: prepared.tool === "send.prepare" ? "send-affordability" : prepared.tool === "swap.prepare" ? "swap-affordability" : "bridge-estimate", status: "ready", dataTimestamp: prepared.data.preparedAt, expiresAt: prepared.data.expiresAt, refreshRequired: false, completeness: "complete", blockingReasons: [] };
-    const actionDraft = handoff ? createAgentActionDraft(intent, displayPlan) : undefined;
-    return { intent, quote, prepared, ...(actionDraft ? { actionDraft } : {}), text: `${prepared.data.reviewSummary.join(". ")}. ${vi ? "Đã chuẩn bị; ví cần kiểm tra lại và xác nhận." : "Prepared only; review and confirmation in the wallet are required."}${!handoff ? vi ? " Chưa có đường chuyển an toàn tới ví cho hành động này." : " No compatible wallet handoff is available for this action." : ""}` };
+    const actionDraft = handoff && !policy?.mustStop ? createAgentActionDraft(intent, displayPlan) : undefined;
+    if (policy?.mustStop) return { intent, quote, prepared, policy, text: mapPolicyResultToUX(policy, intent.locale).summary };
+    return { intent, quote, prepared, policy, ...(actionDraft ? { actionDraft } : {}), text: `${prepared.data.reviewSummary.join(". ")}. ${vi ? "Đã chuẩn bị; ví cần kiểm tra lại và xác nhận." : "Prepared only; review and confirmation in the wallet are required."}${!handoff ? vi ? " Chưa có đường chuyển an toàn tới ví cho hành động này." : " No compatible wallet handoff is available for this action." : ""}` };
   }
   if (!quote || quote.status !== "AVAILABLE" && quote.status !== "PARTIAL") return { intent, quote, prepared, text: vi ? "Báo giá hiện không khả dụng." : "Quote unavailable." };
   const asset = getAssetById(quote.inputAsset)!;

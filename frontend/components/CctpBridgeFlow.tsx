@@ -24,6 +24,9 @@ import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, bridgeIntent, prepareFlowReview } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
 import { refreshReviewedCctpBurnFee } from "@/lib/walletFinalGate";
+import type { PolicyResult } from "@/lib/policyEngine";
+import { existingGateOutcome } from "@/lib/policyUX";
+import { PolicyDecisionNotice } from "./PolicyDecisionNotice";
 import type { TransactionIntent } from "@/lib/transactionSafety";
 import type { WalletAccountKind } from "@/lib/walletAccount";
 
@@ -54,6 +57,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
   const [pending, setPending] = useState<string>();
   const [statusMessage, setStatusMessage] = useState<string>();
   const [error, setError] = useState<string>();
+  const [policyResult, setPolicyResult] = useState<PolicyResult>();
   const [checking, setChecking] = useState(false);
   const submissionGuard = useRef(new ReviewSubmissionGuard());
   const reviewAttempt = useRef(0);
@@ -184,7 +188,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
     return () => window.clearInterval(interval);
   }, [monitorOperation, operation]);
 
-  function invalidateReview(clearError = true) { reviewAttempt.current += 1; setPrepared(undefined); if (clearError) setError(undefined); setPending(undefined); }
+  function invalidateReview(clearError = true) { reviewAttempt.current += 1; setPrepared(undefined); setPolicyResult(undefined); if (clearError) setError(undefined); setPending(undefined); }
   function reset() { invalidateReview(); setOperation(undefined); setAmount(""); setStatusMessage(undefined); }
 
   async function verifyArcRead() {
@@ -260,6 +264,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
 
   async function review() {
     if (pending) return;
+    setPolicyResult(undefined);
     if (!parsed) return setError(vi ? "Nhập số USDC hợp lệ." : "Enter a valid USDC amount.");
     const attempt = ++reviewAttempt.current;
     setPending(vi ? "Đang lấy phí CCTP hiện tại…" : "Loading current CCTP fees…"); setError(undefined); setPrepared(undefined);
@@ -279,6 +284,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
 
   async function executePrepared() {
     if (!prepared || !operation || !arcClient || pending) return;
+    if (policyResult?.mustStop) return;
     const review = prepared;
     let submittedHash: Hash | undefined;
     let sourceReverted = false;
@@ -287,14 +293,15 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       const adapter = await verifyArcExecution(review);
       if (Date.now() > review.snapshot.expiresAt || Date.now() - review.fee.quotedAt > FEE_MAX_AGE_MS) throw new Error("expired");
       if (review.stage === "burn") {
-        if (!(await refreshReviewedCctpBurnFee(review.amounts, loadFee, Date.now(), FEE_MAX_AGE_MS))) throw new Error("changed");
+        if (!(await refreshReviewedCctpBurnFee(review.amounts, loadFee, Date.now(), FEE_MAX_AGE_MS))) throw new Error("fee-changed");
       }
       const [balance, allowance] = await Promise.all([arcClient.readContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "balanceOf", args: [review.account] }), arcClient.readContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "allowance", args: [review.account, CCTP_TOKEN_MESSENGER_V2] })]);
       if (balance < review.amounts.totalAmount) throw new Error("balance");
       if (review.stage === "approval" && allowance >= review.amounts.totalAmount) { setPrepared(undefined); await prepareFreshBurn(operation, review.amounts.transferAmount); return; }
       if (review.stage === "approval" && allowance !== review.allowance) throw new Error("allowance-changed");
       if (review.stage === "burn" && allowance < review.amounts.totalAmount) throw new Error("allowance");
-      await simulateExact(review.intent, review.envelope);
+      try { await simulateExact(review.intent, review.envelope); }
+      catch { throw new Error("simulation-failed"); }
       const context = { connectedAccount: review.account, connectedChainId: arcTestnet.id, balances: { usdc: balance }, allowance, simulation: "passed" as const, expectedTarget: review.stage === "approval" ? usdc.address : CCTP_TOKEN_MESSENGER_V2 };
       const exactRequest = cctpReviewedRequest(review.intent, review.envelope);
       const checked = revalidateTransactionReview(review.snapshot, { intent: review.intent, context, request: exactRequest, now: Date.now() });
@@ -341,8 +348,15 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       void monitorOperation(next);
     } catch (caught) {
       if (submittedHash && !sourceReverted) return;
+      const gateCode = caught instanceof Error ? caught.message : "";
+      if (gateCode === "fee-changed" || gateCode === "expired") setPolicyResult(existingGateOutcome("REQUOTE", gateCode === "expired" ? "EXPIRED_QUOTE" : "FEE_CHANGED", "cctp.fee"));
+      else if (gateCode === "simulation-failed") setPolicyResult(existingGateOutcome("BLOCK", "SIMULATION_FAILED", "cctp.simulation"));
+      else if (gateCode === "allowance" || gateCode === "allowance-changed") setPolicyResult(existingGateOutcome("REVALIDATE", "ALLOWANCE_CHANGED", "cctp.allowance"));
+      else if (gateCode === "changed") setPolicyResult(existingGateOutcome("REVALIDATE", "STALE_EVIDENCE", "cctp.review"));
+      else if (gateCode === "balance") setPolicyResult(existingGateOutcome("BLOCK", "BALANCE_INSUFFICIENT", "cctp.balance"));
+      else if (gateCode === "arc" || gateCode === "account" || gateCode === "account-kind") setPolicyResult(existingGateOutcome("BLOCK", gateCode === "arc" ? "CHAIN_MISMATCH" : "ACCOUNT_MISMATCH", "cctp.wallet"));
       setError(executionError(caught, vi, review.stage));
-      if (!submittedHash && ["expired", "changed", "account", "account-kind", "allowance", "allowance-changed"].includes(caught instanceof Error ? caught.message : "")) setPrepared(undefined);
+      if (!submittedHash && ["expired", "fee-changed", "changed", "account", "account-kind", "allowance", "allowance-changed"].includes(gateCode)) setPrepared(undefined);
     } finally { setPending(undefined); }
   }
 
@@ -358,6 +372,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       { label: vi ? "Nguồn" : "Source", value: `Arc Testnet · ${arcTestnet.id}` }, { label: vi ? "Đích" : "Destination", value: `Base Sepolia · ${baseSepolia.id}` }, { label: vi ? "Tài sản" : "Asset", value: "USDC" }, { label: vi ? "Số tiền yêu cầu" : "Requested amount", value: `${formatUnits(prepared.amounts.transferAmount, 6)} USDC` }, { label: vi ? "Phí CCTP" : "CCTP fee", value: `${formatUnits(prepared.amounts.protocolFee, 6)} USDC` }, { label: vi ? "Phí forwarding" : "Forwarding fee", value: `${formatUnits(prepared.amounts.forwardingFee, 6)} USDC` }, { label: vi ? "Tổng trừ nguồn" : "Total source debit", value: `${formatUnits(prepared.amounts.totalAmount, 6)} USDC` }, { label: vi ? "Người nhận" : "Recipient", value: <span className="full-address">{prepared.account}</span> }, { label: "Finality", value: `Standard · ${CCTP_STANDARD_FINALITY}` },
     ];
     return <TransactionSafetyReview
+      policyResult={policyResult}
       title={approval ? (vi ? "Kiểm tra Approval CCTP" : "Review CCTP Approval") : (vi ? "Kiểm tra CCTP Burn" : "Review CCTP Burn")}
       summary={approval ? (vi ? "Approval hữu hạn này là giao dịch riêng. Burn chỉ xuất hiện trong Review mới sau khi approval xác nhận." : "This finite approval is a separate transaction. Burn appears only in a new Review after approval confirms.") : (vi ? "Xác nhận riêng để burn USDC trên Arc. Forwarding đích không cần chữ ký Base." : "Explicitly confirm the Arc USDC burn. Destination forwarding does not require a Base signature.")}
       details={details}
@@ -366,7 +381,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       checks={[...globalReviewChecks({ connected: wallet.status === "connected", account: wallet.address, reviewedAccount: prepared.account, isArc: wallet.isArc, amount: prepared.amounts.totalAmount, balance: balances.usdc.data }), { code: "route", status: "verified", label: "Arc Testnet → Base Sepolia · Circle CCTP V2" }, { code: "approval", status: "info", label: approval ? (vi ? "Approval đúng tổng số tiền hiện tại; không vô hạn" : "Exact current total approval; never unlimited") : (vi ? "Allowance đã được đọc lại trước Burn Review" : "Allowance re-read before Burn Review") }]}
       review={prepared.snapshot}
       walletNotice={wallet.kind === "local" ? (wallet.status === "connected" ? (vi ? "Makoto Local Wallet chỉ ký sau khi bạn bấm xác nhận." : "Makoto Local Wallet signs only after you explicitly confirm.") : (vi ? "Ví local đang khóa. Bạn vẫn có thể xem Review, nhưng phải mở khóa để ký." : "The local wallet is locked. You can inspect this Review, but must unlock before signing.")) : (vi ? "Reown/Wagmi sẽ yêu cầu xác nhận giao dịch chính xác này." : "Reown/Wagmi will request confirmation for this exact transaction.")}
-      onBack={() => { if (!pending) invalidateReview(); }} onContinue={() => void executePrepared()} continueDisabled={Boolean(pending) || !execution || wallet.status !== "connected"} continueLabel={approval ? (vi ? "Xác nhận Approval" : "Confirm Approval") : (vi ? "Xác nhận Burn" : "Confirm Burn")}>
+      onBack={() => { if (!pending) invalidateReview(); }} onContinue={() => void executePrepared()} continueDisabled={Boolean(policyResult?.mustStop) || Boolean(pending) || !execution || wallet.status !== "connected"} continueLabel={approval ? (vi ? "Xác nhận Approval" : "Confirm Approval") : (vi ? "Xác nhận Burn" : "Confirm Burn")}>
       {statusMessage && <p className="wallet-notice" role="status" aria-live="polite">{statusMessage}</p>}
       {pending && <p className="transaction-progress" role="status" aria-live="polite" aria-atomic="true">{pending}</p>}
       {error && <p className="field-error" role="alert">{error}</p>}
@@ -375,6 +390,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
 
   const balance = balances.usdc.data ?? 0n;
   return <form className="create-form wallet-flow" onSubmit={(event) => { event.preventDefault(); void review(); }}>
+    {policyResult && <PolicyDecisionNotice result={policyResult} locale={vi ? "vi" : "en"} />}
     <label>{vi ? "Số USDC muốn nhận trên Base Sepolia" : "USDC to receive on Base Sepolia"}<div className="wallet-field-with-action amount"><input inputMode="decimal" value={amount} disabled={Boolean(pending)} onChange={(event) => { setAmount(event.target.value); invalidateReview(); }} placeholder="0.00" /><span>USDC</span><button type="button" disabled={Boolean(pending)} onClick={() => { setAmount(formatAssetAmount(balance, usdc)); invalidateReview(); }}>MAX</button></div><small>{vi ? "Khả dụng trên Arc" : "Available on Arc"}: {formatAssetAmount(balance, usdc)} USDC</small></label>
     <dl className="bridge-context-grid">
       <div><dt>{vi ? "Tuyến" : "Route"}</dt><dd>Arc Testnet → Base Sepolia</dd></div>
@@ -416,6 +432,8 @@ function executionError(caught: unknown, vi: boolean, stage: ReviewStage) {
   if (code === "account" || code === "account-kind") return vi ? "Tài khoản hoặc loại ví đã thay đổi. Cần Review mới." : "The account or wallet kind changed. A fresh Review is required.";
   if (code === "arc") return vi ? "Cần Arc Testnet. Chưa có giao dịch nào được gửi." : "Arc Testnet is required. Nothing was submitted.";
   if (code === "expired") return vi ? "Review hoặc báo giá đã hết hạn. Cần làm mới." : "The Review or fee quote expired. Refresh it.";
+  if (code === "fee-changed") return vi ? "Phí CCTP đã thay đổi hoặc không khả dụng. Cần Review mới." : "CCTP fee changed or is unavailable. A fresh Review is required.";
+  if (code === "simulation-failed") return vi ? "Mô phỏng giao dịch không thành công. Chưa gửi giao dịch." : "Transaction simulation did not pass. Nothing was submitted.";
   if (code === "allowance" || code === "allowance-changed") return vi ? "Allowance đã thay đổi. Cần Review mới." : "Allowance changed. A fresh Review is required.";
   if (code === "balance") return vi ? "Số dư đã thay đổi và không còn đủ." : "The balance changed and is no longer sufficient.";
   if (code === "reverted") return stage === "burn" ? (vi ? "Burn đã revert; bridge thất bại ở nguồn." : "The burn reverted; the bridge failed at source.") : (vi ? "Approval đã revert. Burn chưa được gửi." : "The approval reverted. No burn was submitted.");

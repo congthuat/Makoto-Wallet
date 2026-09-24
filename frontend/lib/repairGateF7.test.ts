@@ -77,6 +77,7 @@ function harness(componentSource = source) {
     "@/lib/walletActivity": { createAssetActivity: () => ({}), recordWalletActivity: () => {} },
     "@/lib/agent/actions": { storeAgentResult: () => {} },
     "./TransactionSafetyReview": { TransactionSafetyReview: "controlled-review" },
+    "./PolicyDecisionNotice": { PolicyDecisionNotice: "policy-notice" },
     "@/lib/transactionOrchestrator": { ...orchestrator, revalidateTransactionReview: (...args: Parameters<typeof orchestrator.revalidateTransactionReview>) => {
       const result = orchestrator.revalidateTransactionReview(...args);
       o.revalidations.push({ args, result });

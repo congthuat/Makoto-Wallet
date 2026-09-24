@@ -14,6 +14,7 @@ function seam(file,start,end){const s=readFileSync(path.join(root,'components',f
 const imports=`import * as React from 'react';
 import {usePreferences} from '@/hooks/usePreferences';
 import {TransactionSafetyReview} from '@/components/TransactionSafetyReview';
+import {PolicyDecisionNotice} from '@/components/PolicyDecisionNotice';
 import {WalletPanel} from '@/components/WalletPanel';
 import {formatAssetAmount,getAssetById,SUPPORTED_ASSETS} from '@/lib/assets';
 import {formatArcFeeEstimate} from '@/lib/arcFees';
@@ -37,9 +38,9 @@ export function SwapFixture(options={}) {
  const balance=10000000n,connection={address:'${account}',isConnected:true},wallet={kind:'external',address:connection.address,status:'connected',isArc:true},execution={kind:'external'},chain={isArc:true},reviewedAccount=wallet.address;
  const approvalGasCovered=true,maxApprovalGasCovered=true;
  const pending=options.state==='preflight'?(vi?'Đang kiểm tra cuối cùng…':'Running final preflight…'):options.state==='awaiting'?(vi?'Chờ xác nhận trong ví…':'Waiting for wallet confirmation…'):options.state==='pending'?(vi?'Đang chờ xác nhận trên Arc…':'Waiting for Arc confirmation…'):undefined;
- const error=options.error;
+ const error=options.error,policyResult=options.policyResult;
  const [amount,setAmount]=React.useState('1.234567'),mode='smart',safeMax=undefined,quickFeedback=undefined;
- const reset=noop,setReviewStage=noop,setQuote=noop,setMaxApproval=noop,setFromId=noop,setMode=noop,setSlippage=noop,invalidate=noop;
+ const reset=noop,setReviewStage=noop,setQuote=noop,setPolicyResult=noop,setMaxApproval=noop,setFromId=noop,setMode=noop,setSlippage=noop,invalidate=noop;
  const review=noop,execute=forbidden,approveThenReview=forbidden,approveForMax=forbidden,chooseQuickAmount=noop,changeAmount=setAmount;
  const swapIsInFlight=()=>swapLocked,swapBackAllowed=()=>!swapLocked;
  const globalReviewChecks=()=>[],isSwapQuoteFresh=()=>options.state!=='expired';

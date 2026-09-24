@@ -88,4 +88,4 @@ export type AgentIntent = Readonly<{
 
 export type AgentRequest = Readonly<{ text: string; locale: AgentLocale; account?: Address; previousIntent?: AgentIntent; sessionContext?: AgentSessionContext }>;
 export type AgentToolResult<T = unknown> = Readonly<{ tool: string; ok: boolean; data?: T; unavailable?: string; partial?: boolean; read?: ReadResult<unknown> }>;
-export type AgentResponse = Readonly<{ text: string; intent: AgentIntent; result?: AgentToolResult; planning?: AgentPlanningResult; quote?: CanonicalQuote; prepared?: PrepareResult; actionDraft?: AgentActionDraft; intelligence?: AgentIntelligenceResult }>;
+export type AgentResponse = Readonly<{ text: string; intent: AgentIntent; result?: AgentToolResult; planning?: AgentPlanningResult; quote?: CanonicalQuote; prepared?: PrepareResult; policy?: import("../policyEngine.ts").PolicyResult; actionDraft?: AgentActionDraft; intelligence?: AgentIntelligenceResult }>;
