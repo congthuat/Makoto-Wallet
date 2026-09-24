@@ -4,10 +4,10 @@
 
 ## Current
 - **Major phase:** Phase 8 — Makoto Tool Layer
-- **Sub-phase:** 8C — Quote Tools
+- **Sub-phase:** 8D — Prepare/Write Tools
 - **Status:** NOT STARTED
-- **Next:** 8C — Quote Tools
-- **After 8B:** 8C — Quote Tools
+- **Next:** 8D — Prepare/Write Tools
+- **After 8C:** 8D — Prepare/Write Tools
 - **Phase 8 branch:** phase8-tool-layer
 - **Phase 8 base commit:** `7ae32e081e64126892721a46b39a0f460f146971`
 - **Branch captured at setup:** phase7-astra-ledger-calm
@@ -57,4 +57,4 @@ Never claim tests passed if they were not run.
 - At the Phase 7J handoff, the next approved sub-phase was **8A — Current-System Audit**.
 - **Phase 8A COMPLETE** — read-only inventory/reuse audit on `phase8-tool-layer`; no product code changed or tests rerun. Existing READ capabilities are not yet a canonical Phase 8 tool layer; PREPARE capabilities remain bounded and execution-disabled, and Agent-owned execution is absent. Send, Xylo Swap, Direct CCTP, Circle App Kit Bridge, and Unified Balance already exist. Circle App Kit Swap is a candidate; x402 is an inactive dependency.
 - **Phase 8B COMPLETE — Read Tools.** Added the canonical typed READ tool layer with 9 tools covering wallet identity/state, verified network, balances, activity/load status, allowances, receipt evidence, and bridge operation evidence. Account/chain context, provenance, freshness, partial/unavailable states, truthful receipt/bridge evidence, and local-wallet locked versus disconnected state are preserved. No signing or submission authority was added. Validation: 26/26 focused tests; 1188/1188 full frontend tests; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; git diff --check PASS. Implementation commit: `33a3d2b5939d75e8bc062566b61547bf8e7d957e`.
-- **Phase 8C NEXT — Quote Tools (not started).** Normalize existing Send fee/affordability reads, Xylo Swap quote/allowance planning, bridge route/fee/receive estimates, quote freshness/expiry, and provider provenance. Bounded unsigned transaction preparation/write tools remain 8D, followed by 8E, 8F, and 8G.
+- **Phase 8C COMPLETE — Quote Tools.** Added the canonical typed `send.quote`, `swap.quote`, and `bridge.quote` layer, reusing Phase 8B READ tools and preserving account/chain/provider/amount/route binding, freshness/expiry, provenance, and truthful available/partial/unavailable/unsupported/expired states. Circle App Kit estimates remain unavailable in the current Agent path; Swap and Bridge gas remain unestimated. No prepare/write capability was added. Validation: 10/10 focused tests; 1198/1198 full frontend tests; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; git diff --check PASS. Implementation commit: `4a31a294653f03024689aa3bd934ec4d7b32dd56`. Next approved sub-phase: **8D — Prepare/Write Tools**; then 8E, 8F, and 8G.
