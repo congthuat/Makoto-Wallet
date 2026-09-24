@@ -147,7 +147,10 @@ test("Prepared handoff is account bound, quote bounded and consumed once", async
 });
 
 test("Prepared output is immutable data with no submit authority or arbitrary destination input", async () => {
-  const ctx = context(); const result = await runPrepareTool(ctx, { ...await send(ctx), to: recipient, calldata: "0xdeadbeef" });
+  const ctx = context(); const request = await send(ctx);
+  const rejected = await runPrepareTool(ctx, { ...request, to: recipient, calldata: "0xdeadbeef" });
+  assert.equal(rejected.status, "UNAVAILABLE");
+  const result = await runPrepareTool(ctx, request);
   assert.equal(result.status, "PREPARED"); if (result.status !== "PREPARED") return;
   assert.ok(Object.isFrozen(result.data)); assert.ok(Object.isFrozen(result.data.steps)); assert.ok(Object.isFrozen(result.data.steps[0].request));
   assert.equal("submit" in result.data, false); assert.equal("signer" in result.data, false); assert.equal("sendTransaction" in result.data, false);

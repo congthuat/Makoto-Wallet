@@ -7,6 +7,7 @@ import { createXyloQuote, exactApprovalRequired, isXyloSwappableAssetId, minimum
 import { planSend } from "./planning.ts";
 import { runReadTool, type ReadServices, type ReadSource } from "./readTools.ts";
 import type { AgentContextSnapshot } from "./types.ts";
+import { requireValidTool, validateQuoteRequest, validateQuoteResult } from "./toolSchemas.ts";
 
 export type QuoteToolId = "send.quote" | "swap.quote" | "bridge.quote";
 export type QuoteStatus = "AVAILABLE" | "PARTIAL" | "UNAVAILABLE" | "UNSUPPORTED" | "EXPIRED";
@@ -48,7 +49,9 @@ export function runQuoteTool(context: QuoteContext, request: Extract<QuoteReques
 export function runQuoteTool(context: QuoteContext, request: Extract<QuoteRequest, { tool: "swap.quote" }>): Promise<QuoteResult<SwapQuoteData>>;
 export function runQuoteTool(context: QuoteContext, request: Extract<QuoteRequest, { tool: "bridge.quote" }>): Promise<QuoteResult<BridgeQuoteData>>;
 export async function runQuoteTool(context: QuoteContext, request: QuoteRequest): Promise<QuoteResult<SendQuote | SwapQuoteData | BridgeQuoteData>> {
+  requireValidTool(validateQuoteRequest(request));
   const now = context.now ?? Date.now;
+  const evaluate = async (): Promise<QuoteResult<SendQuote | SwapQuoteData | BridgeQuoteData>> => {
   const provider: QuoteProvider = request.tool === "send.quote" ? "Arc RPC" : request.tool === "swap.quote" ? "XyloNet StableSwap" : request.route === "cctp-direct-forwarding" ? "Circle CCTP V2 Forwarding" : "Circle App Kit";
   const inputAsset = request.tool === "swap.quote" ? request.inputAsset : request.assetId;
   const base: QuoteBase = { tool: request.tool, account: request.account, chainId: request.chainId, provider, inputAsset, inputAmount: request.amount, ...(request.tool === "swap.quote" ? { outputAsset: request.outputAsset, route: "xylonet-stableswap" as const } : { recipient: request.recipient }), ...(request.tool === "bridge.quote" ? { destinationChainId: request.destinationChainId, route: request.route } : {}), observedAt: now(), quotedAt: null, expiresAt: null, validity: "observation-only", provenance: [], warnings: [] };
@@ -107,4 +110,8 @@ export async function runQuoteTool(context: QuoteContext, request: QuoteRequest)
   const data: BridgeQuoteData = { destinationChainId: request.destinationChainId, recipient: request.recipient, route: "cctp-direct-forwarding", expectedReceive: amounts.transferAmount, sourceDebit: amounts.totalAmount, protocolFee: amounts.protocolFee, forwardingFee: amounts.forwardingFee, maximumFee: amounts.maxFee, finalityThreshold: fee.finalityThreshold, spender: CCTP_TOKEN_MESSENGER_V2, ...(allowance.status !== "UNAVAILABLE" ? { allowance: allowance.data.amount, approvalAmount, approvalRequired: approvalAmount !== undefined } : {}), gasFee: "not-estimated" };
   if (now() > expiresAt) return result(quoted, "EXPIRED", undefined, "QUOTE_EXPIRED");
   return result({ ...quoted, provenance: [...quoted.provenance, ...allowance.source], warnings: ["Source gas fee is not estimated.", ...(allowance.status === "UNAVAILABLE" ? ["Allowance evidence unavailable."] : [])] }, allowance.status === "AVAILABLE" ? "AVAILABLE" : "PARTIAL", data, allowance.status === "AVAILABLE" ? undefined : "EVIDENCE_UNAVAILABLE");
+  };
+  const output = await evaluate();
+  requireValidTool(validateQuoteResult(output, now()));
+  return output;
 }

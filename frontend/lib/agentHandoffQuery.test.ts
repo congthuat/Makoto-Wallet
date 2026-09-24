@@ -27,7 +27,7 @@ const script = ts.transpileModule(`(function () {
 const account = "0x1111111111111111111111111111111111111111";
 const now = 2_000;
 function handoff(id = "query-regression", action: AgentActionHandoff["action"] = "send"): AgentActionHandoff {
-  return { id, path: "/", action, account, createdAt: 1_000, expiresAt: 301_000, amount: "5", asset: "USDC", recipient: account, source: "makoto-agent" };
+  return { id, path: "/", action, account, createdAt: 1_000, expiresAt: 301_000, amount: "5", asset: "USDC", ...(action === "swap" ? { outputAsset: "EURC" as const } : {}), recipient: account, source: "makoto-agent" };
 }
 
 function harness(initialQuery = "") {

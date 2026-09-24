@@ -10,6 +10,7 @@ import type { AgentActionHandoff } from "./actions/types.ts";
 import { runQuoteTool, type BridgeQuoteData, type QuoteContext, type QuoteProvider, type QuoteResult, type SendQuote, type SwapQuoteData } from "./quoteTools.ts";
 import { runReadTool } from "./readTools.ts";
 import type { AgentActionDraft } from "./types.ts";
+import { requireValidTool, validatePrepareRequest, validatePrepareResult } from "./toolSchemas.ts";
 
 export type PrepareToolId = "send.prepare" | "swap.prepare" | "bridge.prepare";
 export type PrepareError = "INVALID_INPUT" | "WALLET_UNAVAILABLE" | "WRONG_CONTEXT" | "UNSUPPORTED" | "INSUFFICIENT_BALANCE" | "QUOTE_UNAVAILABLE" | "QUOTE_EXPIRED" | "QUOTE_MISMATCH" | "EVIDENCE_UNAVAILABLE" | "PREPARATION_FAILED";
@@ -32,6 +33,23 @@ const step = (kind: PrepareStep["kind"], account: Address, target: Address, asse
 /** Produces bounded data only. Wallet review must re-read, simulate, and obtain user confirmation. */
 export async function runPrepareTool(context: PrepareContext, request: PrepareRequest): Promise<PrepareResult> {
   const now = context.now ?? Date.now;
+  const input = validatePrepareRequest(request, now());
+  if (!input.valid) {
+    const codes = input.errors.map((item) => item.code);
+    if (!request || !["send.prepare", "swap.prepare", "bridge.prepare"].includes(request.tool)) requireValidTool(input);
+    if (!validAddress(request.account) || typeof request.amount !== "bigint" || request.amount <= 0n || request.amount >= maxUint256 || request.tool !== "swap.prepare" && !validAddress(request.recipient) || !request.quote || typeof request.quote !== "object" || input.errors.some((item) => item.path === "request" && item.code === "INVALID_SCHEMA")) return fail(request.tool, "INVALID_INPUT");
+    if (request.chainId !== arcTestnet.id) return fail(request.tool, "WRONG_CONTEXT");
+    if (!context.snapshot.account || !same(context.snapshot.account, request.account) || context.snapshot.verifiedChainId !== request.chainId || !context.snapshot.isArc) return fail(request.tool, "WRONG_CONTEXT");
+    if (request.tool === "swap.prepare" && (request.inputAsset === "cirbtc" || request.outputAsset === "cirbtc" || request.inputAsset === request.outputAsset || ![0.005, 0.01, 0.03].includes(request.slippage))) return fail(request.tool, "UNSUPPORTED", "UNSUPPORTED");
+    if (codes.includes("QUOTE_EXPIRED")) return fail(request?.tool, "QUOTE_EXPIRED", "EXPIRED");
+    if (codes.includes("UNSUPPORTED")) return fail(request?.tool, "UNSUPPORTED", "UNSUPPORTED");
+    if (request.quote.status === "PARTIAL") return fail(request.tool, "EVIDENCE_UNAVAILABLE");
+    if (request.quote.status === "UNAVAILABLE") return fail(request.tool, "QUOTE_UNAVAILABLE");
+    if (codes.includes("QUOTE_MISMATCH")) return fail(request?.tool, "QUOTE_MISMATCH");
+    return fail(request.tool, "QUOTE_MISMATCH");
+  }
+  let validationQuote: QuoteResult<unknown> | undefined;
+  const evaluate = async (): Promise<PrepareResult> => {
   if (!["send.prepare", "swap.prepare", "bridge.prepare"].includes(request.tool) || !validAddress(request.account) || typeof request.amount !== "bigint" || request.amount <= 0n || request.amount >= maxUint256 || request.tool !== "swap.prepare" && !validAddress(request.recipient) || !request.quote || typeof request.quote !== "object") return fail(request.tool, "INVALID_INPUT");
   if (request.tool !== "swap.prepare" && !getAssetById(request.assetId)) return fail(request.tool, "UNSUPPORTED", "UNSUPPORTED");
   if (request.tool === "bridge.prepare" && request.route === "circle-app-kit-cctp") return fail(request.tool, "UNSUPPORTED", "UNSUPPORTED");
@@ -52,7 +70,6 @@ export async function runPrepareTool(context: PrepareContext, request: PrepareRe
   if (request.tool === "send.prepare" && (!same(expected.recipient ?? "", request.recipient) || expected.provider !== "Arc RPC")) return fail(request.tool, "QUOTE_MISMATCH");
   if (request.tool === "swap.prepare" && (expected.outputAsset !== request.outputAsset || expected.route !== "xylonet-stableswap" || expected.provider !== "XyloNet StableSwap" || (expected.data as SwapQuoteData).slippage !== request.slippage)) return fail(request.tool, "QUOTE_MISMATCH");
   if (request.tool === "bridge.prepare" && (expected.destinationChainId !== request.destinationChainId || !same(expected.recipient ?? "", request.recipient) || expected.route !== request.route || expected.provider !== "Circle CCTP V2 Forwarding")) return fail(request.tool, "QUOTE_MISMATCH");
-
   let live: QuoteResult<SendQuote> | QuoteResult<SwapQuoteData> | QuoteResult<BridgeQuoteData>;
   if (request.tool === "send.prepare") live = await runQuoteTool(context, { tool: "send.quote", account: request.account, chainId: request.chainId, assetId: request.assetId, amount: request.amount, recipient: request.recipient });
   else if (request.tool === "swap.prepare") live = await runQuoteTool(context, { tool: "swap.quote", account: request.account, chainId: request.chainId, inputAsset: request.inputAsset, outputAsset: request.outputAsset, amount: request.amount, slippage: request.slippage });
@@ -60,6 +77,7 @@ export async function runPrepareTool(context: PrepareContext, request: PrepareRe
   if (live.status === "EXPIRED" || live.expiresAt !== null && now() > live.expiresAt) return fail(request.tool, "QUOTE_EXPIRED", "EXPIRED");
   if (live.status === "PARTIAL") return fail(request.tool, "EVIDENCE_UNAVAILABLE");
   if (live.status !== "AVAILABLE" || live.quotedAt === null || live.expiresAt === null) return fail(request.tool, "QUOTE_UNAVAILABLE");
+  validationQuote = live;
   const expiry = Math.min(expected.expiresAt, live.expiresAt, now() + AGENT_HANDOFF_TTL_MS);
   if (now() > expiry) return fail(request.tool, "QUOTE_EXPIRED", "EXPIRED");
   const observedAt = now();
@@ -116,6 +134,9 @@ export async function runPrepareTool(context: PrepareContext, request: PrepareRe
   const burn = encodeFunctionData({ abi: CCTP_TOKEN_MESSENGER_ABI, functionName: "depositForBurnWithHook", args: [current.sourceDebit, BASE_SEPOLIA_CCTP_DOMAIN, addressToBytes32(request.account), usdc.address, zeroHash, current.maximumFee, CCTP_STANDARD_FINALITY, CCTP_FORWARDING_HOOK_DATA] });
   steps.push(step("cctp-burn", request.account, CCTP_TOKEN_MESSENGER_V2, "usdc", current.sourceDebit, burn, { destinationChainId: baseSepolia.id, ...(current.approvalRequired ? { requiresConfirmedPriorStep: true } : {}) }));
   return freeze({ tool: request.tool, status: "PREPARED", data: { ...common, provider: "Circle CCTP V2 Forwarding", inputAsset: "usdc", route: "cctp-direct-forwarding", destinationChainId: baseSepolia.id, recipient: request.account, balanceObservedAt: balances.observedAt ?? observedAt, allowance: current.allowance, steps, reviewSummary: [`Bridge ${formatUnits(request.amount, 6)} USDC to Base Sepolia`, `Total source debit ${formatUnits(current.sourceDebit, 6)} USDC`, `Expected receive ${formatUnits(current.expectedReceive, 6)} USDC`], limitations: ["Current Agent handoff does not select the Direct CCTP wallet flow."], executionEnabled: false } });
+  };
+  const output = await evaluate();
+  return requireValidTool(validatePrepareResult(output, { now: now(), quote: output.status === "PREPARED" ? validationQuote : undefined }));
 }
 
 function makeHandoff(draft: AgentActionDraft, account: Address, now: number, expiry: number): AgentActionHandoff | undefined {

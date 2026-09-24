@@ -24,11 +24,13 @@ import { getAssetById, SUPPORTED_ASSETS, type SupportedAssetId } from "../assets
 import { XYLO_ROUTER, xyloRouterAbi } from "../swap.ts";
 import type { NormalizedTransactionRequest } from "../transactionOrchestrator.ts";
 import type {
+  ReadRequest,
   ReadResult,
   ReadSource,
   ReadToolId,
 } from "./readTools.ts";
 import type {
+  QuoteRequest,
   QuoteError,
   QuoteProvider,
   QuoteResult,
@@ -63,6 +65,12 @@ export type ToolValidationIssue = Readonly<{
 export type ToolValidationResult<T> =
   | Readonly<{ valid: true; value: T }>
   | Readonly<{ valid: false; errors: readonly ToolValidationIssue[] }>;
+
+/** Fails closed at a canonical boundary without leaking provider payloads. */
+export function requireValidTool<T>(result: ToolValidationResult<T>): T {
+  if (!result.valid) throw new Error(`Tool schema validation failed: ${result.errors[0]?.code ?? "INVALID_SCHEMA"}`);
+  return result.value;
+}
 
 export type PreparedValidationOptions = Readonly<{
   now?: number;
@@ -174,6 +182,26 @@ function validateEnvelope(value: unknown, tool: string, path: string, accountReq
   return errors;
 }
 
+/** Checks the READ request boundary before any provider or snapshot access. */
+export function validateReadRequest(value: unknown): ToolValidationResult<ReadRequest> {
+  if (!isObject(value) || !READ_TOOLS.has(value.tool as ReadToolId)) return invalid(issue("request.tool", "INVALID_SCHEMA", "Unknown READ tool."));
+  const allowed = value.tool === "activity.recent" ? ["tool", "filter", "limit"] : value.tool === "token.allowance" ? ["tool", "assetId", "spender"] : value.tool === "transaction.receipt" ? ["tool", "hash"] : value.tool === "bridge.operation" ? ["tool", "operationId"] : ["tool"];
+  const errors = hasExecutionAuthority(value, "request");
+  if (!exactKeys(value, allowed)) errors.push(issue("request", "INVALID_SCHEMA", "READ request contains unsupported fields."));
+  return errors.length ? invalid(...errors) : valid(value as ReadRequest);
+}
+
+/** Checks the QUOTE request shape; operation-specific failures retain their native status. */
+export function validateQuoteRequest(value: unknown): ToolValidationResult<QuoteRequest> {
+  if (!isObject(value) || !QUOTE_TOOLS.has(value.tool as QuoteToolId)) return invalid(issue("request.tool", "INVALID_SCHEMA", "Unknown QUOTE tool."));
+  const allowed = value.tool === "send.quote" ? ["tool", "account", "chainId", "assetId", "amount", "recipient"] : value.tool === "swap.quote" ? ["tool", "account", "chainId", "inputAsset", "outputAsset", "amount", "slippage"] : ["tool", "account", "chainId", "destinationChainId", "assetId", "amount", "recipient", "route"];
+  const errors = hasExecutionAuthority(value, "request");
+  if (!exactKeys(value, allowed)) errors.push(issue("request", "INVALID_SCHEMA", "QUOTE request contains unsupported fields."));
+  if (typeof value.amount !== "bigint" || typeof value.chainId !== "number" || typeof value.account !== "string") errors.push(issue("request", "INVALID_SCHEMA", "QUOTE request fields have invalid runtime types."));
+  if (value.tool === "bridge.quote" && value.route !== "cctp-direct-forwarding" && value.route !== "circle-app-kit-cctp") errors.push(issue("request.route", "UNSUPPORTED", "Unknown bridge route."));
+  return errors.length ? invalid(...errors) : valid(value as QuoteRequest);
+}
+
 function validateReadData(tool: ReadToolId, data: unknown, path: string, account?: Address): ToolValidationIssue[] {
   const errors: ToolValidationIssue[] = [];
   if (!isObject(data) && tool !== "assets.balances" && tool !== "activity.recent") return [issue(path, "INVALID_SCHEMA", "Read data must be an object.")];
@@ -189,7 +217,7 @@ function validateReadData(tool: ReadToolId, data: unknown, path: string, account
       const d = data as Record<string, unknown>;
       if (typeof d.exists !== "boolean" || typeof d.externallyConnected !== "boolean" || typeof d.localSigningLocked !== "boolean") errors.push(issue(path, "INVALID_SCHEMA", "Wallet state flags are required."));
       if (d.status !== "connected" && d.status !== "locked" && d.status !== "unavailable") errors.push(issue(`${path}.status`, "INVALID_SCHEMA", "Wallet state must be connected, locked, or unavailable."));
-      if (d.status === "locked" && d.localSigningLocked !== true) errors.push(issue(`${path}.localSigningLocked`, "INVALID_CONTEXT", "Locked state must remain explicit."));
+      if (d.status === "locked" && (d.exists !== true || d.externallyConnected !== false)) errors.push(issue(`${path}.status`, "INVALID_CONTEXT", "A locked wallet must retain its identity and cannot be externally connected."));
       break;
     }
     case "network.verified": {
@@ -247,7 +275,7 @@ export function validateReadResult(value: unknown): ToolValidationResult<ReadRes
   if (!finite(value.capturedAt) || value.capturedAt < 0) errors.push(issue("read.capturedAt", "INVALID_SCHEMA", "capturedAt must be a finite timestamp."));
   if (value.observedAt !== null && !finite(value.observedAt)) errors.push(issue("read.observedAt", "INVALID_SCHEMA", "observedAt must be null or a finite timestamp."));
   if (!FRESHNESS.has(String(value.freshness))) errors.push(issue("read.freshness", "INVALID_SCHEMA", "Unknown freshness value."));
-  if (!Array.isArray(value.source) || value.source.length === 0 || value.source.some((source) => !READ_SOURCES.has(source as ReadSource))) errors.push(issue("read.source", "UNKNOWN_PROVENANCE", "READ provenance must use known sources."));
+  if (!Array.isArray(value.source) || value.source.some((source) => !READ_SOURCES.has(source as ReadSource))) errors.push(issue("read.source", "UNKNOWN_PROVENANCE", "READ provenance must use known sources."));
   if (value.status !== "AVAILABLE" && value.status !== "PARTIAL" && value.status !== "UNAVAILABLE") errors.push(issue("read.status", "INVALID_SCHEMA", "Unknown READ status."));
   if (value.status === "UNAVAILABLE") {
     if (!READ_ERRORS.has(String(value.error)) || has(value, "data")) errors.push(issue("read", "INVALID_SCHEMA", "UNAVAILABLE READ results require a known error and no data."));
@@ -291,15 +319,16 @@ function validateQuoteData(tool: QuoteToolId, data: unknown, path: string, base:
 export function validateQuoteResult(value: unknown, now = Date.now()): ToolValidationResult<QuoteResult<unknown>> {
   if (!isObject(value) || !QUOTE_TOOLS.has(value.tool as QuoteToolId)) return invalid(issue("tool", "INVALID_SCHEMA", "Unknown QUOTE tool."));
   const tool = value.tool as QuoteToolId;
-  const errors = validateEnvelope(value, tool, "quote", true);
+  const active = value.status === "AVAILABLE" || value.status === "PARTIAL";
+  const errors = validateEnvelope(value, tool, "quote", active);
   if (!PROVIDERS.has(value.provider as QuoteProvider)) errors.push(issue("quote.provider", "UNKNOWN_PROVENANCE", "Unknown quote provider."));
-  if (!ASSETS.has(value.inputAsset as SupportedAssetId) || !positive(value.inputAmount)) errors.push(issue("quote.inputAmount", "INVALID_INPUT", "Quote input asset and amount are invalid."));
-  if (!integer(value.chainId) || value.chainId !== arcTestnet.id) errors.push(issue("quote.chainId", "WRONG_CHAIN", "Quotes are bound to Arc Testnet."));
+  if (active && (!ASSETS.has(value.inputAsset as SupportedAssetId) || !positive(value.inputAmount))) errors.push(issue("quote.inputAmount", "INVALID_INPUT", "Quote input asset and amount are invalid."));
+  if (active && value.chainId !== arcTestnet.id) errors.push(issue("quote.chainId", "WRONG_CHAIN", "Usable quotes are bound to Arc Testnet."));
   if (!finite(value.observedAt) || value.observedAt < 0) errors.push(issue("quote.observedAt", "INVALID_SCHEMA", "Invalid quote observation timestamp."));
   if (value.outputAsset !== undefined && !ASSETS.has(value.outputAsset as SupportedAssetId)) errors.push(issue("quote.outputAsset", "INVALID_SCHEMA", "Unknown output asset."));
   if (value.destinationChainId !== undefined && (!integer(value.destinationChainId) || value.destinationChainId <= 0)) errors.push(issue("quote.destinationChainId", "WRONG_CHAIN", "Invalid destination chain."));
   if (value.recipient !== undefined && !address(value.recipient)) errors.push(issue("quote.recipient", "INVALID_SCHEMA", "Invalid quote recipient."));
-  if (!Array.isArray(value.provenance) || value.provenance.length === 0 || value.provenance.some((source) => !QUOTE_SOURCES.has(source as string))) errors.push(issue("quote.provenance", "UNKNOWN_PROVENANCE", "Quote provenance must use known sources."));
+  if (!Array.isArray(value.provenance) || value.status === "AVAILABLE" && value.provenance.length === 0 || value.provenance.some((source) => !QUOTE_SOURCES.has(source as string))) errors.push(issue("quote.provenance", "UNKNOWN_PROVENANCE", "Quote provenance must use known sources."));
   if (!Array.isArray(value.warnings) || value.warnings.some((warning) => typeof warning !== "string")) errors.push(issue("quote.warnings", "INVALID_SCHEMA", "Quote warnings must be strings."));
   if (!(["local-max-age", "observation-only"] as string[]).includes(String(value.validity))) errors.push(issue("quote.validity", "INVALID_SCHEMA", "Unknown quote validity."));
   if (value.status === "AVAILABLE" || value.status === "PARTIAL") {
@@ -313,6 +342,7 @@ export function validateQuoteResult(value: unknown, now = Date.now()): ToolValid
     if (value.status === "EXPIRED" && value.error !== "QUOTE_EXPIRED") errors.push(issue("quote.error", "QUOTE_EXPIRED", "Expired quote results must carry QUOTE_EXPIRED."));
   }
   if (tool === "send.quote" && value.provider !== "Arc RPC" || tool === "swap.quote" && value.provider !== "XyloNet StableSwap" || tool === "bridge.quote" && value.provider !== "Circle CCTP V2 Forwarding" && value.provider !== "Circle App Kit") errors.push(issue("quote.provider", "QUOTE_MISMATCH", "Provider does not match the quote tool."));
+  if (tool === "swap.quote" && value.route !== "xylonet-stableswap" || tool === "bridge.quote" && (value.route === "cctp-direct-forwarding" ? value.provider !== "Circle CCTP V2 Forwarding" : value.route === "circle-app-kit-cctp" ? value.provider !== "Circle App Kit" : true)) errors.push(issue("quote.route", "QUOTE_MISMATCH", "Quote route and provider must agree."));
   return errors.length ? invalid(...errors) : valid(value as QuoteResult<unknown>);
 }
 

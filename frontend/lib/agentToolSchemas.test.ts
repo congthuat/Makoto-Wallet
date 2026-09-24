@@ -15,7 +15,8 @@ import {
   validateReadResult,
 } from "./agent/toolSchemas.ts";
 import { runQuoteTool, type QuoteServices } from "./agent/quoteTools.ts";
-import type { ReadServices } from "./agent/readTools.ts";
+import { runReadTool, type ReadServices } from "./agent/readTools.ts";
+import { consumeAgentHandoff, storeAgentHandoff } from "./agent/actions/handoff.ts";
 
 const account = getAddress("0x1111111111111111111111111111111111111111");
 const recipient = getAddress("0x2222222222222222222222222222222222222222");
@@ -25,6 +26,42 @@ const snapshot = (overrides: Partial<Parameters<typeof createAgentContextSnapsho
 const reads: ReadServices = { readBalance: async (_owner, asset) => balances[asset], readAllowance: async () => 0n };
 const services: QuoteServices = { estimateSendMaximumFee: async () => 1_000_000_000_000_000n, readXyloOutput: async () => ({ amountOut: 9_000_000n, quotedAt: at }), readDirectCctpFee: async () => ({ finalityThreshold: 2000, minimumFee: 1, forwardFeeMed: "200000", quotedAt: at }) };
 const context = (overrides: Partial<PrepareContext> = {}): PrepareContext => ({ snapshot: snapshot(), reads, services, now: () => at, ...overrides });
+
+test("production READ rejects request authority and malformed provider results", async () => {
+  await assert.rejects(runReadTool({ snapshot: snapshot() }, { tool: "wallet.state", signer: () => undefined } as never), /EXECUTION_AUTHORITY/);
+  await assert.rejects(runReadTool({ snapshot: snapshot(), services: { readBalance: async () => -1n } }, { tool: "assets.balances" }), /INVALID_SCHEMA/);
+});
+
+test("production QUOTE rejects request authority and malformed provider values", async () => {
+  const request = { tool: "send.quote" as const, account, chainId: arcTestnet.id, assetId: "usdc" as const, amount: 10_000_000n, recipient };
+  await assert.rejects(runQuoteTool(context(), { ...request, sendTransaction: () => undefined } as never), /EXECUTION_AUTHORITY/);
+  await assert.rejects(runQuoteTool(context(), { tool: "bridge.quote", account, chainId: arcTestnet.id, destinationChainId: baseSepolia.id, assetId: "usdc", amount: 10_000_000n, recipient, route: "unknown" } as never), /UNSUPPORTED/);
+  await assert.rejects(runQuoteTool(context({ services: { ...services, estimateSendMaximumFee: async () => "bad" as never } }), request));
+});
+
+test("production PREPARE rejects stale, mismatched, and authority-bearing requests", async () => {
+  const ctx = context();
+  const quote = await runQuoteTool(ctx, { tool: "send.quote", account, chainId: arcTestnet.id, assetId: "usdc", amount: 10_000_000n, recipient });
+  const request = { tool: "send.prepare" as const, account, chainId: arcTestnet.id, assetId: "usdc" as const, amount: 10_000_000n, recipient, quote };
+  assert.equal((await runPrepareTool(ctx, { ...request, signer: () => undefined } as never)).status, "UNAVAILABLE");
+  assert.equal((await runPrepareTool(ctx, { ...request, quote: { ...quote, account: recipient } })).error, "QUOTE_MISMATCH");
+  assert.equal((await runPrepareTool(context({ now: () => at + 60_001 }), request)).status, "EXPIRED");
+});
+
+test("production handoff consumer rejects malformed and expired serialized payloads", async () => {
+  const ctx = context();
+  const quote = await runQuoteTool(ctx, { tool: "send.quote", account, chainId: arcTestnet.id, assetId: "usdc", amount: 10_000_000n, recipient });
+  const prepared = await runPrepareTool(ctx, { tool: "send.prepare", account, chainId: arcTestnet.id, assetId: "usdc", amount: 10_000_000n, recipient, quote });
+  assert.equal(prepared.status, "PREPARED");
+  if (prepared.status !== "PREPARED" || !prepared.data.handoff) return;
+  const handoff = prepared.data.handoff;
+  const entries = new Map<string, string>();
+  const store = { getItem: (key: string) => entries.get(key) ?? null, setItem: (key: string, value: string) => { entries.set(key, value); }, removeItem: (key: string) => { entries.delete(key); } };
+  storeAgentHandoff(store, { ...handoff, signer: "injected" } as never);
+  assert.equal(consumeAgentHandoff(store, handoff.id, account, at), undefined);
+  storeAgentHandoff(store, handoff);
+  assert.equal(consumeAgentHandoff(store, handoff.id, account, handoff.expiresAt + 1), undefined);
+});
 
 test("READ schemas accept complete evidence and preserve locked versus disconnected state", () => {
   const locked = { tool: "wallet.state", account, chainId: arcTestnet.id, capturedAt: at, observedAt: at, freshness: "snapshot", source: ["wallet-provider"], status: "AVAILABLE", data: { exists: true, externallyConnected: false, localSigningLocked: true, status: "locked" } };

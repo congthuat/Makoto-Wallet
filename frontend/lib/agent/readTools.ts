@@ -6,6 +6,7 @@ import { loadBridgeOperations, type BridgeOperation } from "../bridgeOperation.t
 import { verifyTransactionReceipt, type MinimalTransactionReceipt } from "../transactionReceipt.ts";
 import type { WalletActivity } from "../wallet.ts";
 import type { AgentActivityFilter, AgentContextSnapshot } from "./types.ts";
+import { requireValidTool, validateReadRequest, validateReadResult } from "./toolSchemas.ts";
 
 export type ReadToolId = "wallet.identity" | "wallet.state" | "network.verified" | "assets.balances" | "activity.recent" | "activity.status" | "token.allowance" | "transaction.receipt" | "bridge.operation";
 export type ReadError = "INVALID_REQUEST" | "UNSUPPORTED" | "WALLET_UNAVAILABLE" | "DATA_UNAVAILABLE" | "PROVIDER_FAILURE";
@@ -58,6 +59,8 @@ export function runReadTool(context: ReadContext, request: { tool: "token.allowa
 export function runReadTool(context: ReadContext, request: { tool: "transaction.receipt"; hash: Hash }): Promise<ReadResult<ReceiptEvidence>>;
 export function runReadTool(context: ReadContext, request: { tool: "bridge.operation"; operationId: string }): Promise<ReadResult<BridgeEvidence>>;
 export async function runReadTool(context: ReadContext, request: ReadRequest): Promise<ReadResult<unknown>> {
+  requireValidTool(validateReadRequest(request));
+  const evaluate = async (): Promise<ReadResult<unknown>> => {
   const { snapshot: s, services } = context;
   const now = context.now ?? Date.now;
   const base = (tool: ReadToolId, source: readonly ReadSource[]): ReadBase => ({ tool, ...(s.account ? { account: s.account } : {}), ...(s.verifiedChainId !== undefined ? { chainId: s.verifiedChainId } : {}), capturedAt: s.timestamp, observedAt: s.timestamp, freshness: "snapshot", source });
@@ -141,6 +144,8 @@ export async function runReadTool(context: ReadContext, request: ReadRequest): P
       } catch { return unavailable(b, "DATA_UNAVAILABLE"); }
     }
   }
+  };
+  return requireValidTool(validateReadResult(await evaluate()));
 }
 
 /** Read-only adapters reuse the wallet asset registry, ERC-20 ABI, receipt verifier, and bridge persistence. */

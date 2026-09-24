@@ -5,7 +5,7 @@
 ## Current
 - **Major phase:** Phase 8 — Makoto Tool Layer
 - **Sub-phase:** 8E — Schemas + Validation
-- **Status:** NOT STARTED
+- **Status:** PENDING REVIEW
 - **Next:** 8E — Schemas + Validation
 - **After 8D:** 8E — Schemas + Validation
 - **Phase 8 branch:** phase8-tool-layer
