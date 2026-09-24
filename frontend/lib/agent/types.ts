@@ -4,6 +4,7 @@ import type { SupportedAssetId } from "../assets.ts";
 import type { AgentBlockingCode, AgentPlanningResult } from "./planning.ts";
 import type { AgentSessionContext } from "./sessionContext.ts";
 import type { AgentIntelligenceResult, OfficialResearchTopic, OnchainIntelligenceOperation } from "./intelligence/types.ts";
+import type { ReadResult } from "./readTools.ts";
 
 export type AgentLocale = "en" | "vi";
 /** Wallet binding captured when an Agent action draft was produced. */
@@ -84,5 +85,5 @@ export type AgentIntent = Readonly<{
 }>;
 
 export type AgentRequest = Readonly<{ text: string; locale: AgentLocale; account?: Address; previousIntent?: AgentIntent; sessionContext?: AgentSessionContext }>;
-export type AgentToolResult<T = unknown> = Readonly<{ tool: string; ok: boolean; data?: T; unavailable?: string; partial?: boolean }>;
+export type AgentToolResult<T = unknown> = Readonly<{ tool: string; ok: boolean; data?: T; unavailable?: string; partial?: boolean; read?: ReadResult<unknown> }>;
 export type AgentResponse = Readonly<{ text: string; intent: AgentIntent; result?: AgentToolResult; planning?: AgentPlanningResult; actionDraft?: AgentActionDraft; intelligence?: AgentIntelligenceResult }>;

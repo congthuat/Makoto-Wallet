@@ -6,6 +6,7 @@ import { routeAgentRequest, type AgentBindingMetadata, type AgentCapabilityId, t
 import type { AgentContextSnapshot, AgentIntent, AgentToolResult } from "./types.ts";
 import type { AgentIntelligenceResult } from "./intelligence/types.ts";
 import type { OnchainIntelligenceServices } from "./intelligence/onchain.ts";
+import { runReadTool } from "./readTools.ts";
 
 export type AgentCapabilityPermission = "READ_ONLY" | "PREPARE_ONLY";
 export const AGENT_EXECUTION_POLICY = "EXECUTION_FORBIDDEN" as const;
@@ -18,10 +19,10 @@ export type AgentCapabilityDefinition<I extends AgentIntent = AgentIntent, O ext
   run(context: AgentCapabilityContext, input: I): Promise<O>;
 }>;
 
-const informational = (id: AgentCapabilityId, topic: AgentOrchestrationDecision["topic"], run: (snapshot: AgentContextSnapshot, intent: AgentIntent) => AgentToolResult): AgentCapabilityDefinition => Object.freeze({
+const informational = (id: AgentCapabilityId, topic: AgentOrchestrationDecision["topic"], run: (snapshot: AgentContextSnapshot, intent: AgentIntent) => AgentToolResult | Promise<AgentToolResult>): AgentCapabilityDefinition => Object.freeze({
   id, topic, mode: "informational", permission: "READ_ONLY", execution: AGENT_EXECUTION_POLICY, requiresWallet: id !== "network_status" && id !== "safety_capabilities", requiresArc: false,
   validateInput: (input, decision): input is AgentIntent => decision.capabilityId === id && routeAgentRequest(input).capabilityId === id,
-  run: async ({ snapshot }, input) => Object.freeze({ result: run(snapshot, input) }),
+  run: async ({ snapshot }, input) => Object.freeze({ result: await run(snapshot, input) }),
 });
 const planning = (id: AgentCapabilityId, topic: AgentOrchestrationDecision["topic"]): AgentCapabilityDefinition => Object.freeze({
   id, topic, mode: "planning", permission: "READ_ONLY", execution: AGENT_EXECUTION_POLICY, requiresWallet: id !== "blocking_explanation", requiresArc: id === "send_planning" || id === "swap_planning",
@@ -63,7 +64,7 @@ export const AGENT_CAPABILITIES: readonly AgentCapabilityDefinition[] = Object.f
 export async function runAgentCapability(context: AgentCapabilityContext, intent: AgentIntent, decision: AgentOrchestrationDecision): Promise<AgentCapabilityOutput> {
   const capability = AGENT_CAPABILITIES.find((item) => item.id === decision.capabilityId);
   if (!capability || capability.mode !== decision.mode || capability.topic !== decision.topic || !capability.validateInput(intent, decision)) return Object.freeze({ category: "NEEDS_CLARIFICATION" });
-  if (capability.requiresWallet && (!context.snapshot.connected || !context.snapshot.account)) {
+  if (capability.requiresWallet && (!context.snapshot.account || !context.snapshot.connected && !(capability.mode === "informational" && context.snapshot.accountKind === "local" && context.snapshot.walletStatus === "locked"))) {
     const unavailable = unavailableWallet(context.snapshot, capability.id);
     return Object.freeze({ category: "WALLET_NOT_CONNECTED", ...(unavailable ? { result: unavailable } : {}) });
   }
@@ -104,12 +105,11 @@ function outcomeFor(value: AgentPlanningResult): AgentOutcomeCategory | undefine
   return value.status === "unavailable" ? "PLANNING_FAILED" : undefined;
 }
 function validOutput(value: unknown): value is AgentCapabilityOutput { return typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).every((key) => ["result", "planning", "intelligence", "category"].includes(key)); }
-function walletOverview(s: AgentContextSnapshot): AgentToolResult { return unavailableWallet(s, "wallet_overview") ?? result("wallet_overview", { connected: true, account: s.account, network: s.verifiedChainId, usdc: s.balances.usdc, eurc: s.balances.eurc, cirbtc: s.balances.cirbtc }); }
+async function walletOverview(s: AgentContextSnapshot): Promise<AgentToolResult> { const read = await runReadTool({ snapshot: s }, { tool: "assets.balances" }); if (read.status === "UNAVAILABLE" && !s.account) return unavailableWallet(s, "wallet_overview")!; const balances = read.status === "UNAVAILABLE" ? {} : read.data as AgentContextSnapshot["balances"]; return { tool: "wallet_overview", ok: true, data: { connected: s.connected, account: s.account, network: s.verifiedChainId, walletStatus: s.walletStatus, usdc: balances.usdc, eurc: balances.eurc, cirbtc: balances.cirbtc }, partial: read.status !== "AVAILABLE", read }; }
 function vaultSummary(s: AgentContextSnapshot): AgentToolResult { return unavailableWallet(s, "vault_summary") ?? (!s.vault.available ? { tool: "vault_summary", ok: false, unavailable: "Vault data is unavailable." } : result("vault_summary", s.vault)); }
-function networkStatus(s: AgentContextSnapshot): AgentToolResult { return result("network_status", { connected: s.connected, currentChainId: s.verifiedChainId, requiredChainId: arcTestnet.id, arcActionsAvailable: s.connected && s.isArc }); }
+async function networkStatus(s: AgentContextSnapshot): Promise<AgentToolResult> { const read = await runReadTool({ snapshot: s }, { tool: "network.verified" }); return { tool: "network_status", ok: true, data: { connected: s.connected, walletStatus: s.walletStatus, accountKind: s.accountKind, currentChainId: s.verifiedChainId, requiredChainId: arcTestnet.id, arcActionsAvailable: s.connected && s.isArc }, partial: read.status !== "AVAILABLE", read }; }
 function safetyCapabilities(s: AgentContextSnapshot): AgentToolResult { return result("safety_capabilities", s.safetyCapabilities); }
-function recentActivity(s: AgentContextSnapshot, intent: AgentIntent): AgentToolResult { const missing = unavailableWallet(s, "recent_activity"); if (missing) return missing; const data = s.activity.filter((item) => matches(item, intent.activityFilter ?? "all")).slice(0, intent.limit ?? 5); return { tool: "recent_activity", ok: true, data, partial: s.activityPartial || s.activityUnavailable }; }
-function explainActivity(s: AgentContextSnapshot, intent: AgentIntent): AgentToolResult { const missing = unavailableWallet(s, "activity_explanation"); if (missing) return missing; const item = s.activity.find((activity) => (!intent.transactionHash || activity.hash.toLowerCase() === intent.transactionHash.toLowerCase()) && matches(activity, intent.activityFilter ?? "all")); return item ? result("activity_explanation", item) : { tool: "activity_explanation", ok: false, unavailable: s.activityPartial ? "A matching loaded activity is unavailable; history is partial." : "No matching loaded activity is available." }; }
-function unavailableWallet(s: AgentContextSnapshot, tool: string): AgentToolResult | undefined { return s.connected ? undefined : { tool, ok: false, unavailable: "Connect your wallet to inspect balances and activity." }; }
-function matches(item: WalletActivity, filter: string) { return filter === "all" || filter === "swap" && item.kind === "swap" || filter === "bridge" && item.kind === "bridge" || filter === "vault" && item.kind.startsWith("vault-") || filter === "send" && item.direction === "send" || filter === "receive" && item.direction === "receive"; }
+async function recentActivity(s: AgentContextSnapshot, intent: AgentIntent): Promise<AgentToolResult> { const missing = unavailableWallet(s, "recent_activity"); if (missing) return missing; const read = await runReadTool({ snapshot: s }, { tool: "activity.recent", filter: intent.activityFilter, limit: intent.limit }); return read.status === "UNAVAILABLE" ? { tool: "recent_activity", ok: false, unavailable: "Activity data is unavailable.", read } : { tool: "recent_activity", ok: true, data: read.data, partial: read.status === "PARTIAL", read }; }
+async function explainActivity(s: AgentContextSnapshot, intent: AgentIntent): Promise<AgentToolResult> { const missing = unavailableWallet(s, "activity_explanation"); if (missing) return missing; const read = await runReadTool({ snapshot: s }, { tool: "activity.recent", filter: intent.activityFilter, limit: 100 }); const item = read.status === "UNAVAILABLE" ? undefined : (read.data as WalletActivity[]).find((activity) => !intent.transactionHash || activity.hash.toLowerCase() === intent.transactionHash.toLowerCase()); return item ? { ...result("activity_explanation", item), read } : { tool: "activity_explanation", ok: false, unavailable: read.status === "UNAVAILABLE" ? "Activity data is unavailable." : read.status === "PARTIAL" ? "A matching loaded activity is unavailable; history is partial." : "No matching loaded activity is available.", read }; }
+function unavailableWallet(s: AgentContextSnapshot, tool: string): AgentToolResult | undefined { return s.account && (s.connected || s.accountKind === "local" && s.walletStatus === "locked") ? undefined : { tool, ok: false, unavailable: "Connect your wallet to inspect balances and activity." }; }
 function result<T>(tool: string, data: T): AgentToolResult<T> { return { tool, ok: true, data }; }
