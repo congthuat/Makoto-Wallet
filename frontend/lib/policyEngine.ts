@@ -1,4 +1,8 @@
-import { getAddress, isAddress, zeroAddress } from "viem";
+import { getAddress, isAddress, maxUint256, zeroAddress } from "viem";
+import { arcTestnet, baseSepolia } from "viem/chains";
+import { getAssetById } from "./assets.ts";
+import { CCTP_TOKEN_MESSENGER_V2 } from "./cctp.ts";
+import { minimumSwapOutput, SWAP_SLIPPAGE_OPTIONS, XYLO_ROUTER } from "./swap.ts";
 import type { PrepareResult } from "./agent/prepareTools.ts";
 import type { QuoteResult } from "./agent/quoteTools.ts";
 import type { ReadResult, VerifiedNetwork, WalletState } from "./agent/readTools.ts";
@@ -10,7 +14,10 @@ export type PolicyReason =
   | "INVALID_CONTEXT" | "ACCOUNT_MISMATCH" | "CHAIN_MISMATCH" | "WALLET_UNAVAILABLE"
   | "MISSING_EVIDENCE" | "MALFORMED_EVIDENCE" | "UNAVAILABLE_EVIDENCE"
   | "UNSUPPORTED_ACTION" | "EXPIRED_QUOTE" | "QUOTE_MISMATCH" | "PREPARATION_MISMATCH"
-  | "EXECUTION_AUTHORITY" | "REQUIRES_REVIEW" | "QUOTE_WARNING" | "PREPARATION_LIMITATION";
+  | "EXECUTION_AUTHORITY" | "REQUIRES_REVIEW" | "QUOTE_WARNING" | "PREPARATION_LIMITATION"
+  | "UNSUPPORTED_CHAIN" | "UNSUPPORTED_TOKEN" | "UNSUPPORTED_PAIR" | "UNSUPPORTED_ROUTE"
+  | "UNTRUSTED_TARGET" | "SPENDER_MISMATCH" | "APPROVAL_UNBOUNDED" | "APPROVAL_AMOUNT_MISMATCH"
+  | "SLIPPAGE_UNSUPPORTED" | "MIN_OUTPUT_INVALID";
 export type PolicyFinding = Readonly<{ code: PolicyReason; decision: PolicyDecision; evidence: string }>;
 export type PolicyInput = Readonly<{
   action: PolicyAction;
@@ -41,6 +48,8 @@ const tools: Record<PolicyAction, { quote: string; prepare: string }> = {
   BRIDGE: { quote: "bridge.quote", prepare: "bridge.prepare" },
 };
 const sameAddress = (a: string, b: string) => getAddress(a) === getAddress(b);
+const matchesAddress = (value: unknown, expected: string) => typeof value === "string" && isAddress(value) && sameAddress(value, expected);
+const record = (value: unknown): Record<string, unknown> | undefined => value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
 
 /** Pure assessment of already obtained canonical evidence. ALLOW never authorizes execution.
  * mustStop prevents progression to wallet review; a non-stopping decision still needs user consent.
@@ -52,6 +61,7 @@ export function evaluatePolicy(input: PolicyInput): PolicyResult {
   const route = tools[input.action];
   if (!route) add("UNSUPPORTED_ACTION", "BLOCK", "action");
   if (typeof input.account !== "string" || !isAddress(input.account) || input.account.toLowerCase() === zeroAddress || !Number.isSafeInteger(input.chainId) || input.chainId <= 0) add("INVALID_CONTEXT", "BLOCK", "account/chainId");
+  if (Number.isSafeInteger(input.chainId) && input.chainId > 0 && input.chainId !== arcTestnet.id) add("UNSUPPORTED_CHAIN", "BLOCK", "chainId");
   if (!input.wallet) add("MISSING_EVIDENCE", "BLOCK", "wallet.state");
   else if (!validateReadResult(input.wallet).valid || input.wallet.tool !== "wallet.state") add("MALFORMED_EVIDENCE", "BLOCK", "wallet.state");
   else if (input.wallet.status === "UNAVAILABLE") add("UNAVAILABLE_EVIDENCE", "REVALIDATE", "wallet.state");
@@ -67,6 +77,32 @@ export function evaluatePolicy(input: PolicyInput): PolicyResult {
   else if (input.network.data.chainId !== input.chainId) add("CHAIN_MISMATCH", "BLOCK", "network.verified.data.chainId");
 
   const quote = input.quote;
+  // Static product rules use supplied evidence only. Schema validation below remains the structural gate.
+  const quoteData = quote?.status === "AVAILABLE" ? record(quote.data) : undefined;
+  if (quote) {
+    if (quote.chainId !== arcTestnet.id) add("UNSUPPORTED_CHAIN", "BLOCK", "quote.chainId");
+    const asset = getAssetById(quote.inputAsset);
+    if (!asset || asset.chainId !== arcTestnet.id) add("UNSUPPORTED_TOKEN", "BLOCK", "quote.inputAsset");
+    if (input.action === "SEND") {
+      if (quote.provider !== "Arc RPC" || quote.route !== undefined || quote.destinationChainId !== undefined) add("UNSUPPORTED_ROUTE", "BLOCK", "quote.provider/route");
+    } else if (input.action === "SWAP") {
+      if (quote.provider !== "XyloNet StableSwap" || quote.route !== "xylonet-stableswap") add("UNSUPPORTED_ROUTE", "BLOCK", "quote.provider/route");
+      if (!((quote.inputAsset === "usdc" && quote.outputAsset === "eurc") || (quote.inputAsset === "eurc" && quote.outputAsset === "usdc"))) add("UNSUPPORTED_PAIR", "BLOCK", "quote.inputAsset/outputAsset");
+      if (quoteData) {
+        if (!matchesAddress(quoteData.router, XYLO_ROUTER)) add("UNTRUSTED_TARGET", "BLOCK", "quote.data.router");
+        if (quoteData.route !== "xylonet-stableswap" || quoteData.outputAsset !== quote.outputAsset) add("UNSUPPORTED_ROUTE", "BLOCK", "quote.data.route/outputAsset");
+        const slippage = quoteData.slippage;
+        if (typeof slippage !== "number" || !Number.isFinite(slippage) || !SWAP_SLIPPAGE_OPTIONS.includes(slippage as typeof SWAP_SLIPPAGE_OPTIONS[number])) add("SLIPPAGE_UNSUPPORTED", "BLOCK", "quote.data.slippage");
+        const expected = quoteData.expectedOutput, minimum = quoteData.minimumReceived;
+        if (typeof expected !== "bigint" || expected <= 0n || typeof minimum !== "bigint" || minimum <= 0n || minimum > expected || typeof slippage === "number" && SWAP_SLIPPAGE_OPTIONS.includes(slippage as typeof SWAP_SLIPPAGE_OPTIONS[number]) && minimum !== minimumSwapOutput(expected, slippage as typeof SWAP_SLIPPAGE_OPTIONS[number])) add("MIN_OUTPUT_INVALID", "BLOCK", "quote.data.minimumReceived");
+      }
+    } else if (input.action === "BRIDGE") {
+      if (quote.inputAsset !== "usdc") add("UNSUPPORTED_TOKEN", "BLOCK", "quote.inputAsset");
+      if (quote.destinationChainId !== baseSepolia.id) add("UNSUPPORTED_CHAIN", "BLOCK", "quote.destinationChainId");
+      if (quote.provider !== "Circle CCTP V2 Forwarding" || quote.route !== "cctp-direct-forwarding") add("UNSUPPORTED_ROUTE", "BLOCK", "quote.provider/route");
+      if (quoteData && !matchesAddress(quoteData.spender, CCTP_TOKEN_MESSENGER_V2)) add("SPENDER_MISMATCH", "BLOCK", "quote.data.spender");
+    }
+  }
   if (!quote) add("MISSING_EVIDENCE", "BLOCK", "quote");
   else {
     // Validate structure at a neutral time; expiry is a policy outcome below.
@@ -84,6 +120,40 @@ export function evaluatePolicy(input: PolicyInput): PolicyResult {
   }
 
   const preparation = input.preparation;
+  if (preparation?.status === "PREPARED") {
+    const prepared = record(preparation.data);
+    if (prepared) {
+      if (prepared.chainId !== arcTestnet.id) add("UNSUPPORTED_CHAIN", "BLOCK", "preparation.data.chainId");
+      if (!getAssetById(String(prepared.inputAsset)) || input.action === "BRIDGE" && prepared.inputAsset !== "usdc") add("UNSUPPORTED_TOKEN", "BLOCK", "preparation.data.inputAsset");
+      if (input.action === "SWAP" && (prepared.provider !== "XyloNet StableSwap" || prepared.route !== "xylonet-stableswap") || input.action === "BRIDGE" && (prepared.provider !== "Circle CCTP V2 Forwarding" || prepared.route !== "cctp-direct-forwarding") || input.action === "SEND" && (prepared.provider !== "Arc RPC" || prepared.route !== undefined || prepared.destinationChainId !== undefined)) add("UNSUPPORTED_ROUTE", "BLOCK", "preparation.data.provider/route");
+      if (input.action === "BRIDGE" && prepared.destinationChainId !== baseSepolia.id) add("UNSUPPORTED_CHAIN", "BLOCK", "preparation.data.destinationChainId");
+      const steps = Array.isArray(prepared.steps) ? prepared.steps : [];
+      const expectedSpender = input.action === "SWAP" ? XYLO_ROUTER : input.action === "BRIDGE" ? CCTP_TOKEN_MESSENGER_V2 : undefined;
+      const required = input.action === "BRIDGE" ? quoteData?.sourceDebit : quote?.inputAmount;
+      const allowance = quoteData?.allowance;
+      const approvalRequired = typeof allowance === "bigint" && typeof required === "bigint" ? allowance < required : undefined;
+      const approvals = steps.map(record).filter((step) => step?.kind === "finite-approval");
+      if (expectedSpender && (approvalRequired === undefined || prepared.allowance !== allowance || quoteData?.approvalRequired !== approvalRequired || approvalRequired && quoteData?.approvalAmount !== required || !approvalRequired && quoteData?.approvalAmount !== undefined)) add("APPROVAL_AMOUNT_MISMATCH", "BLOCK", "quote.data.allowance/approvalAmount");
+      if (expectedSpender && approvalRequired !== undefined && (approvalRequired ? approvals.length !== 1 : approvals.length !== 0)) add("APPROVAL_AMOUNT_MISMATCH", "BLOCK", "preparation.data.steps");
+      for (const [index, rawStep] of steps.entries()) {
+        const step = record(rawStep);
+        if (!step) continue;
+        const path = `preparation.data.steps[${index}]`;
+        if (step.chainId !== arcTestnet.id) add("UNSUPPORTED_CHAIN", "BLOCK", `${path}.chainId`);
+        const asset = getAssetById(String(step.assetId));
+        if (!asset || step.assetId !== prepared.inputAsset || step.assetId !== quote?.inputAsset || input.action === "BRIDGE" && step.assetId !== "usdc") add("UNSUPPORTED_TOKEN", "BLOCK", `${path}.assetId`);
+        const target = step.kind === "send" || step.kind === "finite-approval" ? asset?.address : step.kind === "swap" ? XYLO_ROUTER : step.kind === "cctp-burn" ? CCTP_TOKEN_MESSENGER_V2 : undefined;
+        if (!target || !matchesAddress(step.target, target)) add("UNTRUSTED_TARGET", "BLOCK", `${path}.target`);
+        if (expectedSpender && step.kind === "finite-approval") {
+          if (!matchesAddress(step.spender, expectedSpender)) add("SPENDER_MISMATCH", "BLOCK", `${path}.spender`);
+          if (typeof step.amount !== "bigint" || step.amount <= 0n || step.amount >= maxUint256) add("APPROVAL_UNBOUNDED", "BLOCK", `${path}.amount`);
+          else if (typeof required !== "bigint" || step.amount !== required || quoteData?.approvalAmount !== required || prepared.allowance !== allowance) add("APPROVAL_AMOUNT_MISMATCH", "BLOCK", `${path}.amount`);
+        }
+        if (step.kind === "swap" && (typeof step.minimumOutput !== "bigint" || step.minimumOutput !== quoteData?.minimumReceived)) add("MIN_OUTPUT_INVALID", "BLOCK", `${path}.minimumOutput`);
+        if (step.kind === "cctp-burn" && step.destinationChainId !== baseSepolia.id) add("UNSUPPORTED_CHAIN", "BLOCK", `${path}.destinationChainId`);
+      }
+    }
+  }
   if (!preparation) add("MISSING_EVIDENCE", "BLOCK", "preparation");
   else if (preparation.status === "PREPARED" && preparation.data && typeof preparation.data === "object" && (preparation.data as { executionEnabled?: unknown }).executionEnabled !== false) add("EXECUTION_AUTHORITY", "BLOCK", "preparation.data.executionEnabled");
   else {
