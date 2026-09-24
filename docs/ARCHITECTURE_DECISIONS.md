@@ -62,3 +62,6 @@ External intelligence and Circle Agent Marketplace services may inform plans or 
 
 ## ADR-018 - Phase 17 remains FLOP / Technocore
 FLOP/Technocore remains the planned Phase 17 optional ecosystem integration. x402, Agent Marketplace, Onramp, Earn, or other new Arc/Circle references do not rename, replace, or silently expand Phase 17.
+
+## ADR-019 - Phase 11A planner intent boundary
+`PlannerIntent` is a resolved, JSON-safe transaction goal distinct from the current Agent request model `AgentIntent`. It is upstream of Phase 10 `Strategy`; 11A validates supported Send, Swap, and Bridge goals but does not classify user text, generate Strategy steps, or execute. Later planning may introduce implementation steps such as approval. Phase 9 remains transaction safety authority, and the user wallet remains final signing authority.
