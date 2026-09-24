@@ -4,9 +4,13 @@
 
 ## Current
 - **Major phase:** Phase 10 — Sequential Strategy Engine (Phase 9 COMPLETE / CLOSED).
-- **Sub-phase:** 10D — state re-read/requote/revalidation after receipt COMPLETE.
-- **Status:** 10D COMPLETE; Phase 10 remains OPEN.
-- **Next:** 10E — controlled multi-step continuation NEXT / NOT STARTED.
+- **Sub-phase:** 10E — controlled multi-step continuation PENDING REVIEW.
+- **Status:** 10E implementation committed; Phase 10 remains OPEN. Do not start 10F before review.
+- **Next:** 10E review; 10F — interruption/rejection/expiry/retry/recovery remains NOT STARTED.
+- **Phase 10E implementation commit:** `6b136a507b3863f4d756b8431b4f69b7450602e2` (`feat(strategy): add controlled continuation`).
+- **Phase 10E verification:** 6/6 focused 10E tests; 44/44 Phase 10A–10E strategy tests; 45/45 relevant Phase 8/9 tool/policy regression tests (51/51 combined with 10E); 1319/1319 frontend tests; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; root contract compile PASS; staged git diff --check PASS. No live transaction or push.
+- **Phase 10E boundary:** A provider-free evaluator validates Strategy structure, 10C confirmed receipt bindings, 10D fresh revalidation bindings, and explicit `dependsOn` prerequisites. It reports ordered ready ACTIONs, receipt wait, revalidation need, policy stop, completion, invalid evidence, or unsupported wallet handoff; it never calls 10B, 10C, or 10D, signs, submits, polls, or retries. Phase 9 remains the safety authority and the user wallet remains final signing authority.
+- **Phase 10E limitations:** Domain API only; no Strategy UI or caller wiring. Readiness is graph eligibility for a separate 10B invocation, whose final policy and wallet-review checks remain mandatory. Caller supplies genuine canonical 10C/10D results and current Phase 9 policy evidence; 10E does not acquire them. Direct CCTP Agent wallet handoff remains unsupported. Interruption, rejection, expiry recovery, and retry behavior belong to 10F and were not started.
 - **Phase 10D implementation commit:** `f500f1308df63bff8784c1234c4b8664bcfbba65` (`feat(strategy): add post-receipt revalidation`).
 - **Phase 10D pending-review state commit:** `3c6fe2ac9fca7f021157eaf6b1b5cabdd0ee5c28`.
 - **Phase 10D verification:** 12/12 focused 10D tests; 38/38 Phase 10A–10D strategy tests; 133/133 relevant Phase 8/9 READ/QUOTE/receipt/policy regression tests; 171/171 combined tests; 1313/1313 frontend tests; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; root contract compile PASS; git diff --check PASS. No live transaction or push.
