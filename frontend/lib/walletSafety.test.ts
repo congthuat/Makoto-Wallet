@@ -17,6 +17,12 @@ describe("classifyWalletFailure", () => {
   it("treats every error after a hash as unknown confirmation status", () => {
     assert.equal(classifyWalletFailure({ code: 4001 }, true), "confirmation-unknown");
   });
+
+  it("keeps rejection, pre-hash submission failure and post-hash timeout distinct", () => {
+    assert.equal(classifyWalletFailure(new Error("User rejected the request")), "rejected");
+    assert.equal(classifyWalletFailure(new Error("RPC submission failed")), "rpc");
+    assert.equal(classifyWalletFailure(new Error("receipt timed out"), true), "confirmation-unknown");
+  });
 });
 
 describe("isLargeSend", () => {

@@ -38,11 +38,12 @@ function harness(componentSource = source) {
     read: async () => {}, envelope: async () => {},
     write: async () => hash,
     receipt: async (): Promise<any> => ({ status: "success", transactionHash: hash, blockNumber: 1n, logs: [] }),
+    readValue: (request: any) => request.functionName === "getAmountOut" ? 1_000_000n : 10_000_000n,
     invalidateReview: false,
     afterRevalidation: () => {},
   };
   const client = {
-    readContract: async (request: any) => { await o.read(); return request.functionName === "getAmountOut" ? 1_000_000n : 10_000_000n; },
+    readContract: async (request: any) => { await o.read(); return o.readValue(request); },
     estimateContractGas: async () => { await o.envelope(); return 50_000n; },
     estimateFeesPerGas: async () => ({ maxFeePerGas: 1_000_000n, maxPriorityFeePerGas: 1n }),
     simulateContract: async (request: any) => { o.simulations.push(request); await o.simulate(); return { request }; },
@@ -205,8 +206,27 @@ for (const failure of ["simulation reverted", "simulation unavailable", "revalid
     assert.equal(h.o.writes.length, failure === "wallet rejected" ? 1 : 0);
     assert.equal(nodes(ui).some(node => node.type === "a" && String(node.props.href).includes(hash)), false);
     assert.notEqual(ui.props["data-status"], "submitted-unknown");
+    if (failure.startsWith("simulation")) assert.equal(ui.props.policyResult?.decision, "BLOCK");
   });
 }
+
+test("9F production Swap handler stops changed allowance before any wallet write", async () => {
+  const h = harness(); await h.review();
+  h.o.readValue = (request: any) => request.functionName === "getAmountOut" ? 1_000_000n : request.functionName === "allowance" ? 0n : 10_000_000n;
+  h.start(); await tick();
+  const review = h.render();
+  assert.equal(h.o.writes.length, 0);
+  assert.equal(review.props.policyResult?.decision, "REVALIDATE");
+  assert.equal(review.props.continueDisabled, true);
+});
+
+test("9F production Swap handler stops changed balance before any wallet write", async () => {
+  const h = harness(); await h.review();
+  h.o.readValue = (request: any) => request.functionName === "getAmountOut" ? 1_000_000n : request.functionName === "balanceOf" ? 0n : 10_000_000n;
+  h.start(); await tick();
+  assert.equal(h.o.writes.length, 0);
+  assert.notEqual(h.render().props["data-status"], "submitted-unknown");
+});
 
 for (const outcome of ["unknown", "reverted"] as const) {
   test(`F7 post-hash ${outcome} preserves F2/F3 recovery evidence`, async () => {

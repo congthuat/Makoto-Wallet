@@ -284,3 +284,66 @@ test("9D Direct CCTP requires current matching fee, allowance and simulation", a
   finalFinding({ ...bridge, current: { ...bridge.current, simulation: { ...bridge.current.simulation, status: "reverted" } } }, "SIMULATION_FAILED", "BLOCK");
   finalFinding({ ...bridge, current: { ...bridge.current, quote: { ...bridge.current.quote, destinationChainId: arcTestnet.id } as FinalPolicyInput["current"]["quote"] } }, "UNSUPPORTED_CHAIN", "BLOCK");
 });
+
+test("9F malformed canonical evidence never becomes ALLOW", async () => {
+  const send = await evidence(), swap = await evidence("SWAP"), bridge = await evidence("BRIDGE");
+  const attacks: PolicyInput[] = [
+    { ...send, account: "0x1234" }, { ...send, chainId: Number.NaN },
+    { ...send, chainId: Number.POSITIVE_INFINITY }, { ...send, chainId: -1 },
+    changedQuote(send, { inputAmount: 0n }), changedQuote(send, { inputAmount: -1n }),
+    changedQuote(send, { inputAmount: Number.NaN }), changedQuote(send, { quotedAt: Number.NaN }),
+    changedQuote(send, { provider: "forged" }), changedQuote(send, { inputAsset: "unknown" }),
+    changedStep(send, 0, { kind: "arbitrary-call" }), changedStep(send, 0, { amount: -1n }),
+    changedStep(swap, 0, { spender: other }), changedStep(swap, 0, { amount: maxUint256 }),
+    changedStep(bridge, 1, { destinationChainId: arcTestnet.id }),
+  ];
+  for (const [index, attack] of attacks.entries()) {
+    const result = evaluatePolicy(attack);
+    assert.equal(result.mustStop, true, `attack ${index}: ${result.decision}`);
+    assert.notEqual(result.decision, "ALLOW", `attack ${index}`);
+  }
+});
+
+test("9F token, pair, route, target, approval and slippage substitutions stay blocked", async () => {
+  const send = await evidence(), swap = await evidence("SWAP"), bridge = await evidence("BRIDGE");
+  for (const attack of [
+    changedStep(send, 0, { target: getAssetById("eurc")!.address }),
+    changedStep(send, 0, { assetId: "usdc", target: other }),
+    changedQuote(swap, { outputAsset: "usdc" }), changedQuote(swap, { inputAsset: "cirbtc" }),
+    changedQuote(swap, {}, { router: other }),
+    changedStep(swap, 0, { spender: other }), changedStep(swap, 0, { amount: 20_000_000n }),
+    changedStep(swap, 0, { assetId: "eurc" }),
+    changedQuote(bridge, { inputAsset: "eurc" }), changedQuote(bridge, { inputAsset: "cirbtc" }),
+    changedQuote(bridge, { destinationChainId: arcTestnet.id }), changedStep(bridge, 1, { target: other }),
+    changedStep(bridge, 0, { spender: other }),
+    ...[0, -1, 0.5, Number.NaN, Number.POSITIVE_INFINITY].map((slippage) => changedQuote(swap, {}, { slippage })),
+    changedQuote(swap, {}, { minimumReceived: undefined }), changedQuote(swap, {}, { minimumReceived: 99_000_000n }),
+    changedStep(swap, 1, { minimumOutput: 1n }),
+  ].entries()) assert.equal(evaluatePolicy(attack[1]).decision, "BLOCK", `substitution ${attack[0]}`);
+  assert.equal(evaluatePolicy(send).decision, "ALLOW", "ordinary Send recipient remains user controlled");
+});
+
+test("9F quote and preparation mutations retain REQUOTE, REVALIDATE and BLOCK precedence", async () => {
+  const send = await evidence();
+  const prepared = send.preparation as Extract<PolicyInput["preparation"], { status: "PREPARED" }>;
+  const staleNetwork = { tool: "network.verified", account, chainId: arcTestnet.id, capturedAt: now, observedAt: now, freshness: "snapshot", source: ["wallet-provider"], status: "UNAVAILABLE", error: "PROVIDER_FAILURE" } as const;
+  const expired = { ...send, now: now + 60_001 };
+  assert.equal(evaluatePolicy(expired).decision, "REQUOTE");
+  assert.equal(evaluatePolicy({ ...send, network: staleNetwork }).decision, "REVALIDATE");
+  assert.equal(evaluatePolicy({ ...expired, network: staleNetwork }).decision, "REQUOTE");
+  assert.equal(evaluatePolicy({ ...expired, chainId: baseSepolia.id }).decision, "BLOCK");
+  assert.equal(evaluatePolicy({ ...send, network: staleNetwork, preparation: { ...prepared, data: { ...prepared.data, steps: [{ ...prepared.data.steps[0], target: other }] } } }).decision, "BLOCK");
+  assert.equal(evaluatePolicy({ ...send, preparation: { ...prepared, data: { ...prepared.data, executionEnabled: true } } as PolicyInput["preparation"] }).decision, "BLOCK");
+  assert.equal(evaluatePolicy({ ...send, preparation: { ...prepared, data: { ...prepared.data, quoteFingerprint: `0x${"00".repeat(32)}` } } }).decision, "REQUOTE");
+});
+
+test("9F final gate rejects unavailable identity, stale reads and dependent-step shortcuts", async () => {
+  const send = await finalEvidence(), swap = await finalEvidence("SWAP"), bridge = await finalEvidence("BRIDGE");
+  const unavailableWallet = { ...send.current.wallet, status: "UNAVAILABLE", error: "WALLET_UNAVAILABLE" } as FinalPolicyInput["current"]["wallet"];
+  assert.equal(evaluateFinalPolicy({ ...send, current: { ...send.current, wallet: unavailableWallet } }).mustStop, true);
+  assert.equal(evaluateFinalPolicy({ ...send, current: { ...send.current, balances: { ...send.current.balances, observedAt: null, freshness: "unknown" } as FinalPolicyInput["current"]["balances"] } }).decision, "REVALIDATE");
+  assert.equal(evaluateFinalPolicy({ ...send, current: { ...send.current, simulation: { ...send.current.simulation, quoteFingerprint: `0x${"00".repeat(32)}` } } }).decision, "BLOCK");
+  assert.equal(evaluateFinalPolicy({ ...swap, stepIndex: 1, priorStepConfirmed: false }).mustStop, true);
+  assert.equal(evaluateFinalPolicy({ ...bridge, stepIndex: 1, priorStepConfirmed: false }).mustStop, true);
+  assert.equal(evaluateFinalPolicy({ ...bridge, current: { ...bridge.current, allowance: { ...bridge.current.allowance!, status: "UNAVAILABLE", error: "PROVIDER_FAILURE" } as FinalPolicyInput["current"]["allowance"] } }).mustStop, true);
+});

@@ -98,3 +98,38 @@ test("real review and Agent surfaces consume policy decisions before progression
   const formatter = readFileSync(new URL("./agent/formatter.ts", import.meta.url), "utf8");
   assert.match(formatter, /handoff && !policy\?\.mustStop/);
 });
+
+test("9F policy UX follows the winning machine decision across locales and review surfaces", () => {
+  for (const locale of ["en", "vi"] as const) for (const decision of ["BLOCK", "REQUOTE", "REVALIDATE"] as const) {
+    const policy = result(decision, decision === "BLOCK" ? "SPENDER_MISMATCH" : decision === "REQUOTE" ? "EXPIRED_QUOTE" : "FEE_UNAVAILABLE");
+    const ux = mapPolicyResultToUX(policy, locale);
+    assert.equal(ux.decision, policy.decision);
+    assert.equal(ux.requiredAction, policy.requiredAction);
+    assert.equal(ux.primaryReason, policy.winningReason);
+    assert.equal(ux.blocksProgression, true);
+    assert.equal(ux.reasons[0]?.evidence, "current.wallet");
+    for (const html of [renderSend({ locale, reviewing: true, policyResult: policy }), renderExchange("swap", { locale, state: "review", policyResult: policy })]) {
+      assert.match(html, new RegExp(`data-policy-decision="${decision}"`));
+      assert.match(html, /role="alert"/);
+      assert.match(html, /class="primary-action" disabled/);
+      assert.ok(html.includes(ux.title));
+      assert.ok(!html.includes(policy.winningReason!));
+    }
+  }
+});
+
+test("9F warning stays a visible non-blocking review and unknown decision fails technically", () => {
+  for (const locale of ["en", "vi"] as const) {
+    const warn = result("WARN", "QUOTE_WARNING");
+    const ux = mapPolicyResultToUX(warn, locale);
+    assert.equal(ux.warningIsNonBlocking, true);
+    assert.equal(ux.requiresExplicitReview, true);
+    const html = renderExchange("swap", { locale, state: "review", policyResult: warn });
+    assert.match(html, /data-policy-decision="WARN"/);
+    assert.match(html, /role="status"/);
+    assert.doesNotMatch(html, /class="primary-action" disabled/);
+    assert.ok(html.includes(ux.title));
+    assert.notEqual(ux.title, mapPolicyResultToUX(result("ALLOW"), locale).title);
+  }
+  assert.throws(() => mapPolicyResultToUX({ ...result("ALLOW"), decision: "UNKNOWN" as PolicyDecision }, "en"));
+});

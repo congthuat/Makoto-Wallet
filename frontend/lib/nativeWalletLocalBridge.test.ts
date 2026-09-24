@@ -205,6 +205,33 @@ test("destination finality requires hash, successful Base receipt, correct chain
   assert.equal(classifyDestinationVerification({ hashKnown: true, receipt: "success", chainMatches: true, recipientEvidence: true, balanceRead: true }), "destination-confirmed");
 });
 
+test("9F CCTP source confirmation never proves destination finality", () => {
+  const source = classifySourceReceipt(burnHash, { status: "success", blockNumber: 10n });
+  assert.equal(source.state, "source-confirmed");
+  for (const evidence of [
+    { hashKnown: false },
+    { hashKnown: true, receipt: "success" as const },
+    { hashKnown: true, receipt: "success" as const, chainMatches: false, recipientEvidence: true, balanceRead: true },
+    { hashKnown: true, receipt: "success" as const, chainMatches: true, recipientEvidence: false, balanceRead: true },
+    { hashKnown: true, receipt: "success" as const, chainMatches: true, recipientEvidence: true, balanceRead: false },
+  ]) assert.equal(classifyDestinationVerification(evidence), "destination-verification-pending");
+  assert.equal(classifyDestinationVerification({ hashKnown: true, receipt: "reverted" }), "destination-failed");
+  const unresolved = updateBridgeOperation(operation("burn-review"), { state: "source-confirmed" }, 110);
+  assert.equal(isBridgeOperationTerminal(unresolved.state), false);
+  assert.equal(unresolved.state, "source-confirmed");
+});
+
+test("9F unresolved CCTP source receipt persists without an automatic replacement burn", () => {
+  const storage = new MemoryStorage();
+  const unresolved = upsertBridgeTransaction(updateBridgeOperation(operation("burn-review"), { state: "source-confirmation-unknown" }, 110), { role: "burn", chainId: 5_042_002, hash: burnHash, status: "unknown", explorerUrl: "arc" }, 120);
+  saveBridgeOperation(unresolved, storage);
+  const replacement = createBridgeOperation({ id: "replacement", sender, requestedAmount: 1_000_000n, totalSourceDebit: 1_010_000n, protocolFee: 2_000n, forwardingFee: 8_000n, state: "burn-review", now: 130 });
+  saveBridgeOperation(replacement, storage);
+  const restored = loadBridgeOperations(sender, storage);
+  assert.equal(restored.filter((item) => item.transactions.some((transaction) => transaction.role === "burn" && transaction.hash === burnHash)).length, 1);
+  assert.equal(latestMonitorableBridgeOperation(sender, storage)?.state, "source-confirmation-unknown");
+});
+
 test("destination USDC evidence must match token, recipient, transaction, and exact requested amount", () => {
   const topics = encodeEventTopics({ abi: [{ type: "event", name: "Transfer", inputs: [{ indexed: true, name: "from", type: "address" }, { indexed: true, name: "to", type: "address" }, { indexed: false, name: "value", type: "uint256" }] }] as const, eventName: "Transfer", args: { from: CCTP_TOKEN_MESSENGER_V2, to: sender } });
   const log = { address: baseUsdc, topics, data: encodeAbiParameters([{ type: "uint256" }], [1_000_000n]), logIndex: 4, transactionHash: forwardHash };

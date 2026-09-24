@@ -60,3 +60,41 @@ test("production confirmation handlers call the tested gates before wallet submi
   assert.ok(swap.indexOf("const finalPolicy = evaluateFinalWalletSwapPolicy") < swap.indexOf("const hash = await submissionGuard.current.run(swapReview.fingerprint"));
   assert.ok(cctp.indexOf("refreshReviewedCctpBurnFee(review.amounts") < cctp.indexOf("submittedHash = await submissionGuard.current.run"));
 });
+
+test("9F production Swap gate blocks target, pool, pair, slippage and minimum substitution", () => {
+  const input = swapEvidence();
+  const attacks = [
+    { ...input, quote: { ...input.quote, pool: account } },
+    { ...input, quote: { ...input.quote, router: account } },
+    { ...input, quote: { ...input.quote, toAssetId: "usdc" as typeof input.quote.toAssetId } },
+    { ...input, prepared: { ...input.prepared, request: { ...input.prepared.request, address: account } } },
+    ...[0, -1, 0.5, Number.NaN, Number.POSITIVE_INFINITY].map((slippage) => ({ ...input, slippage })),
+    { ...input, prepared: { ...input.prepared, minimumReceive: input.prepared.minimumReceive + 1n } },
+  ];
+  for (const [index, attack] of attacks.entries()) assert.equal(evaluateFinalWalletSwapPolicy(attack).decision, "BLOCK", `attack ${index}`);
+  assert.equal(evaluateFinalWalletSwapPolicy({ ...input, liveOutput: input.prepared.minimumReceive - 1n }).decision, "REQUOTE");
+});
+
+test("9F production Swap gate preserves precedence and never turns absent simulation into ALLOW", () => {
+  const input = swapEvidence();
+  assert.equal(evaluateFinalWalletSwapPolicy({ ...input, feeValid: false }).decision, "REQUOTE");
+  assert.equal(evaluateFinalWalletSwapPolicy({ ...input, simulation: "unavailable" }).decision, "BLOCK");
+  assert.equal(evaluateFinalWalletSwapPolicy({ ...input, simulation: "reverted", now: now + 45_001 }).decision, "BLOCK");
+  assert.equal(evaluateFinalWalletSwapPolicy({ ...input, quote: { ...input.quote, pool: account }, feeValid: false, allowance: input.allowance + 1n }).decision, "BLOCK");
+  assert.equal(evaluateFinalWalletSwapPolicy({ ...input, allowance: input.allowance + 1n, feeValid: false }).decision, "REQUOTE");
+});
+
+test("9F reviewed Send and Direct CCTP fees fail closed on stale, malformed and unavailable refresh", async () => {
+  const reviewedSend = { status: "ready", rawFee: 1_000_000n };
+  for (const load of [async () => undefined, async () => { throw Error("rpc"); }, async () => 10_000_000n]) assert.equal(await refreshReviewedSendFee(reviewedSend, load), undefined);
+  assert.equal(await refreshReviewedSendFee({ status: "unavailable" }, async () => 1_000_000n), undefined);
+  const fee: CctpForwardingFee = { finalityThreshold: 2000, minimumFee: 1, forwardFeeMed: "200000", quotedAt: now };
+  const reviewed = calculateCctpForwardingAmounts(10_000_000n, fee);
+  for (const load of [
+    async () => { throw Error("circle"); },
+    async () => ({ ...fee, quotedAt: now - 46_000 }),
+    async () => ({ ...fee, quotedAt: now + 2_000 }),
+    async () => ({ ...fee, quotedAt: Number.NaN }),
+    async () => ({ ...fee, forwardFeeMed: "200001" }),
+  ]) assert.equal(await refreshReviewedCctpBurnFee(reviewed, load, now + 1_000, 45_000), false);
+});

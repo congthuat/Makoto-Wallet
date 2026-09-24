@@ -146,3 +146,98 @@ test("PREPARE schema rejects execution callbacks and unknown provenance", () => 
   const handoff = { id: "a", path: "/agent", action: "send", account, createdAt: at, expiresAt: at + 1, amount: "1", asset: "USDC", source: "foreign-agent" };
   assert.equal(validateHandoff(handoff, at).valid, false);
 });
+
+test("9F malformed QUOTE requests stop before any provider read", async () => {
+  let calls = 0;
+  const guarded = context({ services: { estimateSendMaximumFee: async () => { calls++; return 1n; } } });
+  const request = { tool: "send.quote", account, chainId: arcTestnet.id, assetId: "usdc", amount: 1_000_000n, recipient };
+  const attacks = [
+    { ...request, amount: undefined }, { ...request, amount: 0 }, { ...request, amount: -1n },
+    { ...request, amount: Number.NaN }, { ...request, amount: Number.POSITIVE_INFINITY },
+    { ...request, account: "0x1234" }, { ...request, chainId: "5042002" },
+    { ...request, chainId: Number.NaN }, { ...request, assetId: "fake" },
+    { ...request, tool: "send.execute" }, { ...request, walletClient: {} },
+  ];
+  for (const attack of attacks) {
+    const result = await runQuoteTool(guarded, attack as never).catch(() => undefined);
+    if (result) assert.notEqual(result.status, "AVAILABLE", JSON.stringify(attack, (_key, value) => typeof value === "bigint" ? value.toString() : value));
+  }
+  assert.equal(calls, 0);
+});
+
+test("9F provider failure remains unavailable or partial at production READ and QUOTE boundaries", async () => {
+  const failedReads = { readBalance: async () => { throw Error("rpc unavailable"); }, readAllowance: async () => { throw Error("rpc unavailable"); } };
+  const read = await runReadTool({ snapshot: snapshot(), services: failedReads, now: () => at }, { tool: "assets.balances" });
+  assert.equal(read.status, "UNAVAILABLE");
+  assert.equal("data" in read, false);
+  const send = await runQuoteTool(context({ reads: failedReads, services: { estimateSendMaximumFee: async () => { throw Error("rpc unavailable"); } } }), { tool: "send.quote", account, chainId: arcTestnet.id, assetId: "usdc", amount: 1_000_000n, recipient });
+  assert.notEqual(send.status, "AVAILABLE");
+  const swap = await runQuoteTool(context({ services: { ...services, readXyloOutput: async () => { throw Error("xylo unavailable"); } } }), { tool: "swap.quote", account, chainId: arcTestnet.id, inputAsset: "usdc", outputAsset: "eurc", amount: 1_000_000n, slippage: 0.005 });
+  assert.notEqual(swap.status, "AVAILABLE");
+  const bridge = await runQuoteTool(context({ services: { ...services, readDirectCctpFee: async () => { throw Error("circle unavailable"); } } }), { tool: "bridge.quote", account, chainId: arcTestnet.id, destinationChainId: baseSepolia.id, assetId: "usdc", amount: 1_000_000n, recipient: account, route: "cctp-direct-forwarding" });
+  assert.notEqual(bridge.status, "AVAILABLE");
+});
+
+test("9F PREPARE rejects altered quote identity and never returns a usable prepared action", async () => {
+  const ctx = context();
+  const quote = await runQuoteTool(ctx, { tool: "send.quote", account, chainId: arcTestnet.id, assetId: "usdc", amount: 10_000_000n, recipient });
+  const request = { tool: "send.prepare" as const, account, chainId: arcTestnet.id, assetId: "usdc" as const, amount: 10_000_000n, recipient, quote };
+  for (const attack of [
+    { ...request, account: recipient }, { ...request, chainId: baseSepolia.id }, { ...request, amount: 11_000_000n },
+    { ...request, quote: { ...quote, account: recipient } }, { ...request, quote: { ...quote, provider: "forged" } },
+    { ...request, quote: { ...quote, inputAmount: 11_000_000n } }, { ...request, submit: () => undefined },
+  ]) assert.notEqual((await runPrepareTool(ctx, attack as never)).status, "PREPARED");
+});
+
+test("9F prepared steps reject unknown kind, ordering, target, calldata, amount and authority", async () => {
+  const ctx = context();
+  const quote = await runQuoteTool(ctx, { tool: "swap.quote", account, chainId: arcTestnet.id, inputAsset: "usdc", outputAsset: "eurc", amount: 10_000_000n, slippage: 0.005 });
+  const prepared = await runPrepareTool(ctx, { tool: "swap.prepare", account, chainId: arcTestnet.id, inputAsset: "usdc", outputAsset: "eurc", amount: 10_000_000n, slippage: 0.005, quote });
+  assert.equal(prepared.status, "PREPARED");
+  if (prepared.status !== "PREPARED") return;
+  const data = prepared.data, [approval, swap] = data.steps;
+  assert.ok(approval && swap);
+  for (const attack of [
+    { ...data, steps: [{ ...swap, kind: "arbitrary-call" }] },
+    { ...data, steps: [swap, approval] },
+    { ...data, steps: [{ ...approval, target: recipient }, swap] },
+    { ...data, steps: [approval, { ...swap, request: { ...swap.request, data: "0xdeadbeef" } }] },
+    { ...data, steps: [{ ...approval, amount: 20_000_000n }, swap] },
+    { ...data, steps: [approval, { ...swap, requiresConfirmedPriorStep: false }] },
+    { ...data, executionEnabled: true }, { ...data, privateKey: "injected" },
+  ]) assert.equal(validatePreparedAction(attack, { now: at, quote }).valid, false);
+});
+
+test("9F handoff corruption is rejected and consumed exactly once", async () => {
+  const ctx = context();
+  const quote = await runQuoteTool(ctx, { tool: "send.quote", account, chainId: arcTestnet.id, assetId: "usdc", amount: 10_000_000n, recipient });
+  const prepared = await runPrepareTool(ctx, { tool: "send.prepare", account, chainId: arcTestnet.id, assetId: "usdc", amount: 10_000_000n, recipient, quote });
+  assert.equal(prepared.status, "PREPARED");
+  if (prepared.status !== "PREPARED" || !prepared.data.handoff) return;
+  const handoff = prepared.data.handoff;
+  const entries = new Map<string, string>();
+  const store = { getItem: (key: string) => entries.get(key) ?? null, setItem: (key: string, value: string) => { entries.set(key, value); }, removeItem: (key: string) => { entries.delete(key); } };
+  for (const attack of [
+    "{bad json", JSON.stringify({ ...handoff, account: recipient }), JSON.stringify({ ...handoff, id: "wrong" }),
+    JSON.stringify({ ...handoff, action: "execute" }), JSON.stringify({ ...handoff, amount: "-1" }),
+    JSON.stringify({ ...handoff, expiresAt: at - 1 }), JSON.stringify({ ...handoff, executionEnabled: true }),
+    JSON.stringify({ ...handoff, quote: { submitter: "injected" } }),
+  ]) {
+    store.setItem("makoto.agent.handoff.v1", attack);
+    assert.equal(consumeAgentHandoff(store, handoff.id, account, at), undefined);
+    assert.equal(consumeAgentHandoff(store, handoff.id, account, at), undefined);
+  }
+  storeAgentHandoff(store, handoff);
+  assert.equal(consumeAgentHandoff(store, handoff.id, account, at)?.id, handoff.id);
+  assert.equal(consumeAgentHandoff(store, handoff.id, account, at), undefined);
+});
+
+test("9F canonical tool requests and serialized handoffs cannot carry execution authority", async () => {
+  const request = { tool: "send.quote", account, chainId: arcTestnet.id, assetId: "usdc", amount: 1_000_000n, recipient };
+  const handoff = { id: "handoff", path: "/", action: "send", account, createdAt: at, expiresAt: at + 1000, amount: "1", asset: "USDC", recipient, source: "makoto-agent" };
+  for (const field of ["signer", "submit", "sendTransaction", "writeContract", "walletClient", "privateKey", "mnemonic", "seed", "password", "unlock", "broadcast"]) {
+    const payload = { [field]: () => undefined };
+    await assert.rejects(runQuoteTool(context(), { ...request, ...payload } as never), undefined, field);
+    assert.equal(validateHandoff({ ...handoff, ...payload }, at).valid, false, field);
+  }
+});
