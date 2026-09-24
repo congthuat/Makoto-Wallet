@@ -3,20 +3,23 @@
 > Current execution pointer. Update after each completed sub-phase.
 
 ## Current
-- **Major phase:** Phase 8 — Makoto Tool Layer
-- **Sub-phase:** 8G — Regression + Closeout
-- **Status:** COMPLETE / CLOSED — Phase 8 and 8G complete.
-- **Next:** Phase 9 — Policy & Risk Engine (NEXT / NOT STARTED).
+- **Major phase:** Phase 9 — Policy & Risk Engine (Phase 8 COMPLETE / CLOSED).
+- **Sub-phase:** 9A — Threat Model + Policy Inventory.
+- **Status:** PENDING REVIEW — Phase 9A audit recorded; no policy engine or production code changed.
+- **Next:** User review of 9A; 9B — Core Deterministic Policy Engine is NOT STARTED.
+- **Phase 9 branch:** phase9-policy-risk
+- **Phase 9 starting HEAD:** `3374cfa124de1aad003e04ee5a0d16836f5e4941`
+- **Phase 9A audit commit:** `7570fc3` (`docs(security): audit phase 9 policy threats`)
 - **Phase 8 branch:** phase8-tool-layer
 - **Phase 8 base commit:** `7ae32e081e64126892721a46b39a0f460f146971`
 - **Branch captured at setup:** phase7-astra-ledger-calm
 - **HEAD captured at setup:** `4fad37b6f479c20a306741e4b08a0cb29a13a8f4`
 - **Handoff branch:** phase7-astra-ledger-calm
 - **Handoff implementation commit:** `3410ed350cbf34b19537f6743799aafb51058d10` (`feat(wallet): complete Ledger Calm and native wallet foundation`)
-- **Verification:** Phase 8G focused 82/82; full frontend 1228/1228; typecheck PASS; production build PASS; lint 0 errors / 7 inherited warnings; Agent workspace browser 504/504; draft/handoff browser 145/145; git diff --check PASS. No live transaction.
+- **Verification:** Phase 9A documentation-only audit: `git diff --cached --check` PASS for the audit document; no tests/builds or live transaction run. Phase 8G focused 82/82; full frontend 1228/1228; typecheck PASS; production build PASS; lint 0 errors / 7 inherited warnings; Agent workspace browser 504/504; draft/handoff browser 145/145 are inherited Phase 8 results.
 - **Native Wallet:** post-7J adjunct scope completed and included in the handoff commit.
 - **Known risks:** Direct CCTP Agent handoff remains unavailable; Circle App Kit canonical preparation is unsupported; Swap/Bridge gas is unestimated. Seven inherited lint warnings and 26 previously disclosed dependency advisories remain; no dependency upgrade was included. Connected funded-wallet browser QA was not performed.
-- **Last refresh:** 2026-09-24 11:27 +07:00
+- **Last refresh:** 2026-09-24 11:52 +07:00
 
 ## Authority note
 Phase 7J completion and handoff are user-confirmed. Branch/HEAD captured at setup above remain historical setup values, not the live HEAD.
@@ -40,6 +43,7 @@ Record files changed, checks actually run, exact results, unresolved risks, comm
 Never claim tests passed if they were not run.
 
 ## State history
+- **Phase 9A PENDING REVIEW — Threat Model + Policy Inventory.** On `phase9-policy-risk` from `3374cfa124de1aad003e04ee5a0d16836f5e4941`, the audit in `docs/phase9a-threat-model.md` maps Agent, canonical tools, runtime validation, handoff, wallet review/signer, providers and receipt boundaries; inventories Send, Swap, Direct CCTP, App Kit/Gateway controls, inputs, duplication, gaps and Phase 9 ownership. Audit commit `7570fc3`. Documentation only; no policy engine, UI, signer or transaction behavior changed; no live transaction. Phase 9B has not started. Phase 8 remains closed. 9A awaits user review.
 - Canonical roadmap/state/architecture memory initialized while Phase 7H is active.
 - **Phase 7H COMPLETE** — branch `phase7-astra-ledger-calm`; implementation commit `947aeceda404ed1aac9e18b9a1099f2fac9084f6` (`feat(ui): complete Phase 7H Ledger Calm hardening`).
 - Completed validation: frontend 1082/1082 PASS; contracts 19/19 PASS; typecheck PASS; production build PASS; git diff --check PASS; lint: 0 errors, 7 existing warnings.
