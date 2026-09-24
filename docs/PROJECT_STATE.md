@@ -5,8 +5,9 @@
 ## Current
 - **Major phase:** Phase 9 — Policy & Risk Engine (Phase 8 COMPLETE / CLOSED).
 - **Sub-phase:** 9B — Core Deterministic Policy Engine.
-- **Status:** NOT STARTED — Phase 9A Threat Model + Policy Inventory is COMPLETE.
-- **Next:** 9B — shared deterministic evidence and decision model; 9C chain/contract/token/approval/slippage controls, 9D simulation/expiry/revalidation gate, 9E block/warn/review UX contract, 9F adversarial/failure-path tests, and 9G robustness audit/closeout remain separate later sub-phases.
+- **Status:** PENDING REVIEW — Phase 9B core engine implemented; Phase 9A is COMPLETE.
+- **Next:** Review 9B; 9C chain/contract/token/approval/slippage controls is NOT STARTED. 9D simulation/expiry/revalidation, 9E block/warn/review UX, 9F adversarial/failure-path tests, and 9G robustness audit/closeout remain separate later sub-phases.
+- **Phase 9B implementation commit:** `da80e19` (`feat(policy): add deterministic policy engine`).
 - **Phase 9 branch:** phase9-policy-risk
 - **Phase 9 starting HEAD:** `3374cfa124de1aad003e04ee5a0d16836f5e4941`
 - **Phase 9A audit commit:** `7570fc37f1bb1f7cc923e24123ccac33971c0f3e` (`docs(security): audit phase 9 policy threats`); pending-review state commit `26f04275582bc80c055d63dceb2b45bee54fbca5`.
@@ -16,10 +17,10 @@
 - **HEAD captured at setup:** `4fad37b6f479c20a306741e4b08a0cb29a13a8f4`
 - **Handoff branch:** phase7-astra-ledger-calm
 - **Handoff implementation commit:** `3410ed350cbf34b19537f6743799aafb51058d10` (`feat(wallet): complete Ledger Calm and native wallet foundation`)
-- **Verification:** Phase 9A documentation-only audit: `git diff --cached --check` PASS for the audit document; no tests/builds or live transaction run. Phase 8G focused 82/82; full frontend 1228/1228; typecheck PASS; production build PASS; lint 0 errors / 7 inherited warnings; Agent workspace browser 504/504; draft/handoff browser 145/145 are inherited Phase 8 results.
+- **Verification:** Phase 9B focused policy tests 7/7; full frontend 1235/1235; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; git diff --check PASS. No live transaction. Phase 8G results in history are inherited baseline evidence.
 - **Native Wallet:** post-7J adjunct scope completed and included in the handoff commit.
 - **Known risks:** Direct CCTP Agent handoff remains unavailable; Circle App Kit canonical preparation is unsupported; Swap/Bridge gas is unestimated. Seven inherited lint warnings and 26 previously disclosed dependency advisories remain; no dependency upgrade was included. Connected funded-wallet browser QA was not performed.
-- **Last refresh:** 2026-09-24 11:55 +07:00
+- **Last refresh:** 2026-09-24 12:16 +07:00
 
 ## Authority note
 Phase 7J completion and handoff are user-confirmed. Branch/HEAD captured at setup above remain historical setup values, not the live HEAD.
@@ -43,6 +44,7 @@ Record files changed, checks actually run, exact results, unresolved risks, comm
 Never claim tests passed if they were not run.
 
 ## State history
+- **Phase 9B PENDING REVIEW — Core Deterministic Policy Engine.** Commit `da80e19` adds pure `evaluatePolicy` for canonical SEND/SWAP/BRIDGE READ, QUOTE and PREPARE evidence, reusing Phase 8 runtime validators. Explicit input time and precedence (`BLOCK > REQUOTE > REVALIDATE > REQUIRE_REVIEW > WARN > ALLOW`) produce machine-readable reasons, evidence paths, a winning reason and required next action. Missing/malformed critical evidence blocks; unavailable or expired evidence requests revalidation/requote; account/chain mismatches and execution-enabled preparation block. `ALLOW` means only that policy permits progression to wallet review; it does not execute. Validation: 7/7 focused, 1235/1235 frontend, typecheck PASS, lint 0 errors / 7 inherited warnings, build PASS, diff check PASS. No route-specific 9C controls, provider/refetch/simulation calls, UI, signer or execution changes; no live transaction. 9C is not started.
 - **Phase 9A COMPLETE — Threat Model + Policy Inventory.** On `phase9-policy-risk` from `3374cfa124de1aad003e04ee5a0d16836f5e4941`, `docs/phase9a-threat-model.md` records existing controls across Agent, Tool Layer, wallet, providers, safety review and revalidation; duplicated account/chain/amount/balance/approval/fee/expiry/simulation checks; and ownership: Agent intent/explanation, Tool Layer canonical data/validation, deterministic policy safety decisions, wallet review/signer consent, receipts confirmation truth. Observed gaps include Send fresh-fee fallback, distributed Xylo spender/slippage rules, Direct CCTP final burn fee not refetched, less independent final-call simulation evidence for App Kit/Gateway, and legacy capabilities outside canonical PREPARE. Audit commit `7570fc37f1bb1f7cc923e24123ccac33971c0f3e`; state commit `26f04275582bc80c055d63dceb2b45bee54fbca5`. `git diff --check` PASS; no tests/builds rerun. Documentation only; no product code or live transaction. 9B is next and NOT STARTED: establish the shared deterministic evidence/decision model without taking 9C route-specific controls or 9D execution-time gates. Phase 8 remains closed.
 - Canonical roadmap/state/architecture memory initialized while Phase 7H is active.
 - **Phase 7H COMPLETE** — branch `phase7-astra-ledger-calm`; implementation commit `947aeceda404ed1aac9e18b9a1099f2fac9084f6` (`feat(ui): complete Phase 7H Ledger Calm hardening`).
