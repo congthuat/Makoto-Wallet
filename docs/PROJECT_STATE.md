@@ -3,10 +3,13 @@
 > Current execution pointer. Update after each completed sub-phase.
 
 ## Current
-- **Major phase:** Phase 10 — Sequential Strategy Engine **COMPLETE / CLOSED** (Phase 9 COMPLETE / CLOSED).
-- **Sub-phase:** 10G — end-to-end regression + closeout **COMPLETE**.
-- **Status:** 10G **COMPLETE**; Phase 10 **COMPLETE / CLOSED**. Final audit classification: **READY_TO_CLOSE**.
-- **Next:** Phase 11 — Intent Planner **NOT STARTED**; 11A has not begun.
+- **Phase 11A — intent schema:** PENDING REVIEW on `phase11-intent-planner`. Implementation and ADR commit `804275edd21451209a8edea1190de2702238a4eb`. Phase 11 remains OPEN; 11B has not started.
+- **11A contract:** `PlannerIntent` is a distinct, resolved JSON-safe SEND/SWAP/BRIDGE goal upstream of Strategy. AgentIntent and Phase 10 execution remain unchanged. Validation checks shape and current capability only; Phase 9 remains safety authority and the user wallet remains final signing authority. Current Bridge schema requires an explicit recipient; the existing downstream Direct CCTP preparation still requires it to match the connected account.
+- **11A verification:** focused intent tests 7/7; selected Agent, Strategy, Phase 8 tool, and Phase 9 policy regression 86/86; full frontend tests 1340/1340; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; root contract compile PASS; staged git diff --check PASS. No live transaction or push. Next handoff after review: 11B classification, which has not begun.
+- **Major phase:** Phase 11 — Intent Planner **OPEN** (Phase 10 COMPLETE / CLOSED).
+- **Sub-phase:** 11A — intent schema **PENDING REVIEW**.
+- **Status:** 11A **PENDING REVIEW**; Phase 11 remains **OPEN**.
+- **Next:** Review 11A; 11B is **NOT STARTED**.
 - **Phase 10G regression/fix commit:** `5227118078494400d8c4accad1d6eea1310c5a0b` (`fix(strategy): preserve policy stop and strict recovery record`).
 - **Phase 10G audit commit:** `1289cd2653676e29fb39b9c7b469b20683e0680c` (`docs(strategy): audit phase 10 end-to-end behavior`).
 - **Phase 10G audit:** `docs/phase10g-end-to-end-audit.md` records 10A–10G acceptance, integrated approval→Swap and Send progression, recovery/restart, fan-in, policy and authority boundaries, two corrected validation/reporting bugs, and limitation classifications. No Strategy UI/caller or autonomous execution was added.
