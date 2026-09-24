@@ -37,7 +37,7 @@ import { mergeWalletActivity, recordWalletActivity } from "@/lib/walletActivity"
 import { consumeAgentHandoff, storeAgentResult, type AgentActionHandoff } from "@/lib/agent/actions";
 import { canConsumeAgentHandoff, deriveFinancialDataState, deriveWalletUiState } from "@/lib/walletHydration";
 import { createAgentContextSnapshot } from "@/lib/agent/context";
-import { createAgentPlanningServices } from "@/lib/agent/planning";
+import { createAgentReadServices, createQuoteServices } from "@/lib/agent/quoteProviders";
 import { createOnchainIntelligenceServices } from "@/lib/agent/intelligence/onchain";
 import { AGENT_SUGGESTION_COUNT, agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import {
@@ -59,7 +59,7 @@ export function WalletDashboard() {
   const wallet = useWalletReadContext();
   const localWallet = useLocalWalletControls();
   const publicClient = usePublicClient({ chainId: arcTestnet.id });
-  const agentPlanningServices = useMemo(() => createAgentPlanningServices(publicClient), [publicClient]);
+  const canonicalServices = useMemo(() => publicClient ? { reads: createAgentReadServices(publicClient), services: createQuoteServices(publicClient) } : undefined, [publicClient]);
   const onchainServices = useMemo(() => createOnchainIntelligenceServices(publicClient), [publicClient]);
   const chain = useVerifiedWalletChain();
   const externalWalletState = deriveWalletUiState({ hydrated, connectionStatus: connection.status, isConnected: connection.isConnected, connectorChainId: chain.connectorChainId, providerChainId: chain.providerChainId, isArc: chain.isArc });
@@ -95,7 +95,7 @@ export function WalletDashboard() {
       const handoff = consumeAgentHandoff(window.sessionStorage, agentHandoffRequestId, wallet.address);
       window.history.replaceState({}, "", window.location.pathname);
       if (!handoff || !["send", "swap", "bridge"].includes(handoff.action)) return;
-      if (wallet.kind === "local" && handoff.action !== "send") return;
+      if (wallet.kind === "local" && handoff.action === "bridge") return;
       setAgentHandoff(handoff);
       setAction(handoff.action === "bridge" ? "bridge" : handoff.action === "swap" ? "swap" : "send");
     }, 0);
@@ -143,7 +143,7 @@ export function WalletDashboard() {
     messages: agentMessages,
     setInput: setAgentInput,
     submit: submitAgent,
-  } = useMakotoAgent(agentSnapshot, locale, wallet.address, agentPlanningServices, onchainServices);
+  } = useMakotoAgent(agentSnapshot, locale, wallet.address, onchainServices, canonicalServices);
 
   useEffect(() => {
     if (!suggestionsOpen) return;
@@ -285,7 +285,7 @@ export function WalletDashboard() {
                   <strong>{message.role === "user" ? t("agentDashboard.you") : "Makoto Agent"}</strong>
                   <p>{message.text}</p>
                   {message.intelligence && <EvidenceBlock value={message.intelligence} locale={locale} />}
-                  {message.draft && <div className={`${styles.agentDraft} ${agentStyles.chat}`}><ActionDraftCard draft={message.draft} draftContext={message.draftContext} vi={locale === "vi"} /></div>}
+                  {message.draft && <div className={`${styles.agentDraft} ${agentStyles.chat}`}><ActionDraftCard draft={message.draft} draftContext={message.draftContext} handoff={message.prepared?.status === "PREPARED" ? message.prepared.data.handoff : undefined} vi={locale === "vi"} /></div>}
                 </article>)}
               </div>}
               <form className={overviewStyles.composer} onSubmit={submitAgent}>
@@ -329,7 +329,7 @@ export function WalletDashboard() {
 
       {action === "send" && (
         <SendFlow
-          initialValues={agentHandoff ? { amount: agentHandoff.amount, asset: agentHandoff.asset.toLowerCase() as "usdc" | "eurc", recipient: agentHandoff.recipient } : undefined}
+          initialValues={agentHandoff ? { amount: agentHandoff.amount, asset: agentHandoff.asset.toLowerCase() as "usdc" | "eurc" | "cirbtc", recipient: agentHandoff.recipient } : undefined}
           origin={agentHandoff?.source === "makoto-agent" ? "agent" : undefined}
           balances={{ usdc: balances.usdc.data ?? 0n, eurc: balances.eurc.data ?? 0n, cirbtc: balances.cirbtc.data ?? 0n }}
           onClose={() => setAction(undefined)}

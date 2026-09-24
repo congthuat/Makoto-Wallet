@@ -500,7 +500,7 @@ export function validateHandoff(value: unknown, now = Date.now()): ToolValidatio
   if (value.sourceChain !== undefined && value.sourceChain !== "Arc Testnet" && value.sourceChain !== "Base Sepolia") errors.push(issue("handoff.sourceChain", "WRONG_CHAIN", "Unknown handoff source chain."));
   if (value.destinationChain !== undefined && value.destinationChain !== "Arc Testnet" && value.destinationChain !== "Base Sepolia") errors.push(issue("handoff.destinationChain", "WRONG_CHAIN", "Unknown handoff destination chain."));
   if (value.action === "swap" && (value.asset !== "USDC" && value.asset !== "EURC" || value.outputAsset !== "USDC" && value.outputAsset !== "EURC")) errors.push(issue("handoff", "UNSUPPORTED", "Swap handoffs require known stablecoins."));
-  if (value.action === "send" && value.asset !== "USDC" && value.asset !== "EURC") errors.push(issue("handoff.asset", "UNSUPPORTED", "Send handoffs require USDC or EURC."));
+  if (value.action === "send" && value.asset !== "USDC" && value.asset !== "EURC" && value.asset !== "cirBTC") errors.push(issue("handoff.asset", "UNSUPPORTED", "Send handoffs require a supported asset."));
   errors.push(...hasExecutionAuthority(value, "handoff"));
   return errors.length ? invalid(...errors) : valid(value as AgentActionHandoff);
 }

@@ -17,7 +17,7 @@ export function consumeAgentHandoff(store: Store, id: string | null, account: st
     if (!validated.valid) return undefined;
     const value = validated.value;
     if (value.id !== id || value.source !== "makoto-agent" || value.account.toLowerCase() !== account.toLowerCase() || value.createdAt > now || value.expiresAt < now || value.expiresAt - value.createdAt > 5 * 60_000) return undefined;
-    if (!/^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(value.amount) || Number(value.amount) <= 0 || !["USDC", "EURC"].includes(value.asset)) return undefined;
+    if (!(value.action === "send" && value.asset === "cirBTC" ? /^(?:0|[1-9]\d*)(?:\.\d{1,8})?$/.test(value.amount) : /^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(value.amount)) || Number(value.amount) <= 0 || !["USDC", "EURC", "cirBTC"].includes(value.asset)) return undefined;
     return Object.freeze(value);
   } catch { return undefined; }
 }

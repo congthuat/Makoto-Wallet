@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { consumeAgentResult } from "@/lib/agent/actions";
 import { formatAgentActionResult } from "@/lib/agent/resultFormatter";
 import { answerAgentRequest } from "@/lib/agent/planner";
-import type { AgentPlanningServices } from "@/lib/agent/planning";
+import type { QuoteContext } from "@/lib/agent/quoteTools";
 import { parseAgentRequest } from "@/lib/agent/parser";
 import { routeAgentRequest } from "@/lib/agent/orchestration";
 import { runAgentCapability, type AgentCapabilityOutput } from "@/lib/agent/tools";
@@ -15,9 +15,9 @@ import type { OnchainIntelligenceServices } from "@/lib/agent/intelligence/oncha
 import { readOfficialResearchResponse } from "@/lib/agent/intelligence/officialSources";
 import { clearAgentSessionContext, createAgentRequestGeneration, readAgentSessionContext, storeAgentSessionContext, updateAgentSessionContext, type AgentSessionContext } from "@/lib/agent/sessionContext";
 
-export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft; draftContext?: AgentDraftContext; intelligence?: AgentIntelligenceResult; presentation?: Readonly<{ request?: string; intent?: AgentResponse["intent"]; planning?: AgentResponse["planning"]; context?: AgentDraftContext; observedAt?: number; result?: true }> };
+export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft; prepared?: AgentResponse["prepared"]; quote?: AgentResponse["quote"]; draftContext?: AgentDraftContext; intelligence?: AgentIntelligenceResult; presentation?: Readonly<{ request?: string; intent?: AgentResponse["intent"]; planning?: AgentResponse["planning"]; context?: AgentDraftContext; observedAt?: number; result?: true }> };
 
-export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string, planningServices?: AgentPlanningServices, onchainServices?: OnchainIntelligenceServices) {
+export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string, onchainServices?: OnchainIntelligenceServices, canonicalServices?: Pick<QuoteContext, "reads" | "services">) {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [hasSessionContext, setHasSessionContext] = useState(false);
   const [input, setInput] = useState("");
@@ -86,7 +86,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     const decision = routeAgentRequest(intent);
     const output: AgentCapabilityOutput = decision.mode === "clarification"
       ? Object.freeze({})
-      : await runAgentCapability({ snapshot, planningServices, onchainServices, research: fetchOfficialResearch, now, binding: { generation, account: binding?.account, chainId: binding?.chainId } }, intent, decision);
+      : await runAgentCapability({ snapshot, quoteContext: { snapshot, ...canonicalServices }, onchainServices, research: fetchOfficialResearch, now, binding: { generation, account: binding?.account, chainId: binding?.chainId } }, intent, decision);
     const bindingKey = binding ? `${binding.account.toLowerCase()}:${binding.chainId}` : undefined;
     if (!requestGeneration.current.isCurrent(generation) || latestBinding.current !== bindingKey) return;
     const response: AgentResponse = answerAgentRequest(snapshot, intent, decision, output);
@@ -101,7 +101,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     setMessages((current) => [
       ...current,
       { id: nextId.current++, role: "user", text: value },
-      { id: nextId.current++, role: "agent", text: response.text, draft: response.actionDraft, draftContext: response.actionDraft && binding ? { account: binding.account, chainId: binding.chainId } : undefined, intelligence: response.intelligence, presentation: { request: value, intent: response.intent, planning: response.planning, context: binding, observedAt: now } },
+      { id: nextId.current++, role: "agent", text: response.text, draft: response.actionDraft, prepared: response.prepared, quote: response.quote, draftContext: response.actionDraft && binding ? { account: binding.account, chainId: binding.chainId } : undefined, intelligence: response.intelligence, presentation: { request: value, intent: response.intent, planning: response.planning, context: binding, observedAt: now } },
     ]);
     setInput("");
     window.requestAnimationFrame(() => inputRef.current?.focus());

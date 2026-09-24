@@ -11,6 +11,8 @@ import type { AgentCapabilityOutput, AgentOutcomeCategory } from "./tools.ts";
 export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: AgentIntent, decision: AgentOrchestrationDecision, output: AgentCapabilityOutput): AgentResponse {
   const vi = intent.locale === "vi";
   const { result, planning, category } = output;
+  if (output.quote || output.prepared) return formatCanonicalResponse(intent, output);
+  if (output.error && (decision.mode === "planning" || decision.mode === "preparation")) return { intent, text: intent.locale === "vi" ? `Dữ liệu hiện không khả dụng: ${output.error}. Chưa có giao dịch nào được gửi.` : `Data unavailable: ${output.error}. No transaction was submitted.` };
   if (output.intelligence) return { intent, result, intelligence: output.intelligence, text: intelligenceText(output.intelligence, intent.locale) };
   if (decision.mode === "preparation") {
     const actionDraft = !category ? createAgentActionDraft(intent, planning) : undefined;
@@ -22,13 +24,42 @@ export function formatAgentResponse(snapshot: AgentContextSnapshot, intent: Agen
   if (intent.kind === "unknown") return { intent, text: vi ? "Mình có thể xem số dư, mạng, hoạt động gần đây, Makoto Vault, giải thích giao dịch và các biện pháp an toàn. Mình cũng có thể chuẩn bị hành động an toàn; bạn luôn kiểm tra và xác nhận trong ví." : "I can show balances, network status, recent activity, Makoto Vault, transaction explanations, and safety capabilities. I can also prepare safe actions; you always review and confirm them in your wallet." };
   if (isPlanningIntent(intent.kind)) return formatPlanningResponse(intent, result, vi);
   if (!result?.ok) return { intent, result, text: localUnavailable(result?.unavailable, vi) };
-  if (intent.kind === "wallet-overview") { const b = snapshot.balances, cirbtcDecimals = getAssetById("cirbtc")?.decimals ?? 8; const prefix = snapshot.accountKind === "local" && snapshot.walletStatus === "locked" ? (vi ? "Ví Makoto đang khóa. " : "Makoto wallet is locked. ") : ""; return { intent, result, text: prefix + (vi ? `Số dư Arc Testnet — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}; cirBTC: ${amount(b.cirbtc, intent.locale, cirbtcDecimals)}.` : `Arc Testnet balances — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}; cirBTC: ${amount(b.cirbtc, intent.locale, cirbtcDecimals)}.`) }; }
+  if (intent.kind === "wallet-overview") { const b = result.data as AgentContextSnapshot["balances"], cirbtcDecimals = getAssetById("cirbtc")?.decimals ?? 8; const prefix = snapshot.accountKind === "local" && snapshot.walletStatus === "locked" ? (vi ? "Ví Makoto đang khóa. " : "Makoto wallet is locked. ") : ""; return { intent, result, text: prefix + (vi ? `Số dư Arc Testnet — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}; cirBTC: ${amount(b.cirbtc, intent.locale, cirbtcDecimals)}.` : `Arc Testnet balances — USDC: ${amount(b.usdc, intent.locale)}; EURC: ${amount(b.eurc, intent.locale)}; cirBTC: ${amount(b.cirbtc, intent.locale, cirbtcDecimals)}.`) }; }
   if (intent.kind === "network-status") return { intent, result, text: networkText(snapshot, vi) };
   if (intent.kind === "vault-summary") return { intent, result, text: vi ? `Makoto Vault: ${amount(snapshot.vault.total, intent.locale)} USDC trong ${snapshot.vault.goalCount ?? "không khả dụng"} mục tiêu; ${snapshot.vault.activeCount ?? "không khả dụng"} đang hoạt động.` : `Makoto Vault: ${amount(snapshot.vault.total, intent.locale)} USDC across ${snapshot.vault.goalCount ?? "unavailable"} goals; ${snapshot.vault.activeCount ?? "unavailable"} active.` };
   if (intent.kind === "safety-capabilities") { const labels = snapshot.safetyCapabilities.map((capability) => safetyCapabilityLabel(capability, intent.locale)); return { intent, result, text: vi ? `Makoto hỗ trợ: ${labels.join(", ")}. Các biện pháp này không phải kiểm toán và không đảm bảo không có rủi ro.` : `Makoto supports: ${labels.join(", ")}. These protections are not an audit and do not guarantee zero risk.` }; }
   if (intent.kind === "activity-explanation") return { intent, result, text: explain(result.data as WalletActivity, vi) };
   const items = result.data as WalletActivity[]; const prefix = result.partial ? (vi ? "Lịch sử đang hiển thị một phần. " : "Activity history is partial. ") : "";
   return { intent, result, text: prefix + (items.length ? items.map((item) => explain(item, vi)).join("\n") : (vi ? "Không có hoạt động phù hợp trong lịch sử đã tải." : "No matching activity exists in the loaded history.")) };
+}
+
+function formatCanonicalResponse(intent: AgentIntent, output: AgentCapabilityOutput): AgentResponse {
+  const quote = output.quote, prepared = output.prepared;
+  const error = output.error ?? (prepared && prepared.status !== "PREPARED" ? prepared.error : undefined) ?? (quote && quote.status !== "AVAILABLE" && quote.status !== "PARTIAL" ? quote.error : undefined);
+  const vi = intent.locale === "vi";
+  if (error) return { intent, quote, prepared, text: vi ? `Không thể chuẩn bị hoặc báo giá: ${error}. Không có giao dịch nào được gửi.` : `Quote or preparation unavailable: ${error}. No transaction was submitted.` };
+  if (prepared?.status === "PREPARED") {
+    const handoff = prepared.data.handoff;
+    const displayPlan: AgentPlanningResult = { kind: prepared.tool === "send.prepare" ? "send-affordability" : prepared.tool === "swap.prepare" ? "swap-affordability" : "bridge-estimate", status: "ready", dataTimestamp: prepared.data.preparedAt, expiresAt: prepared.data.expiresAt, refreshRequired: false, completeness: "complete", blockingReasons: [] };
+    const actionDraft = handoff ? createAgentActionDraft(intent, displayPlan) : undefined;
+    return { intent, quote, prepared, ...(actionDraft ? { actionDraft } : {}), text: `${prepared.data.reviewSummary.join(". ")}. ${vi ? "Đã chuẩn bị; ví cần kiểm tra lại và xác nhận." : "Prepared only; review and confirmation in the wallet are required."}${!handoff ? vi ? " Chưa có đường chuyển an toàn tới ví cho hành động này." : " No compatible wallet handoff is available for this action." : ""}` };
+  }
+  if (!quote || quote.status !== "AVAILABLE" && quote.status !== "PARTIAL") return { intent, quote, prepared, text: vi ? "Báo giá hiện không khả dụng." : "Quote unavailable." };
+  const asset = getAssetById(quote.inputAsset)!;
+  const input = `${formatUnits(quote.inputAmount, asset.decimals)} ${asset.symbol}`;
+  let detail: string;
+  if (quote.tool === "send.quote") {
+    const data = quote.data as import("./quoteTools.ts").SendQuote;
+    detail = `${input} → ${quote.recipient}. ${vi ? "Phí tối đa" : "Maximum fee"}: ${data.maximumFeeUsdc6 === undefined ? vi ? "không khả dụng" : "unavailable" : `${formatUnits(data.maximumFeeUsdc6, 6)} USDC`}.`;
+  } else if (quote.tool === "swap.quote") {
+    const data = quote.data as import("./quoteTools.ts").SwapQuoteData;
+    detail = `${input} → ${formatUnits(data.expectedOutput, 6)} ${data.outputAsset.toUpperCase()}. ${vi ? "Nhận tối thiểu" : "Minimum received"}: ${formatUnits(data.minimumReceived, 6)} ${data.outputAsset.toUpperCase()}.`;
+    if (intent.kind === "swap-allowance") detail += ` ${data.allowance === undefined ? "Allowance unavailable." : data.approvalRequired ? `Finite approval required: ${formatUnits(data.approvalAmount!, 6)} ${asset.symbol}.` : "Current allowance is sufficient."}`;
+  } else {
+    const data = quote.data as import("./quoteTools.ts").BridgeQuoteData;
+    detail = `${input} → Base Sepolia. ${vi ? "Dự kiến nhận" : "Expected receive"}: ${formatUnits(data.expectedReceive, 6)} USDC. ${vi ? "Phí giao thức" : "Protocol fee"}: ${formatUnits(data.protocolFee, 6)} USDC; ${vi ? "phí chuyển tiếp" : "forwarding fee"}: ${formatUnits(data.forwardingFee, 6)} USDC.`;
+  }
+  return { intent, quote, prepared, text: `${detail} ${quote.status === "PARTIAL" ? vi ? "Dữ liệu một phần." : "Evidence is partial." : ""} ${vi ? "Chỉ là báo giá; chưa gửi giao dịch." : "Quote only; no transaction was submitted."}`.trim() };
 }
 
 function intelligenceText(value: NonNullable<AgentResponse["intelligence"]>, locale: AgentIntent["locale"]) {

@@ -34,7 +34,8 @@ test("Send prepares bounded USDC, EURC, and cirBTC transfers without a signer", 
     assert.equal(result.data.steps.length, 1); assert.equal(result.data.steps[0].target, getAssetById(asset)!.address); assert.equal(result.data.steps[0].request.value, "0");
     assert.deepEqual(decodeFunctionData({ abi: erc20BalanceAbi, data: result.data.steps[0].request.data }), { functionName: "transfer", args: [recipient, 10_000_000n] });
     assert.equal(result.data.expiresAt, at + 60_000); assert.equal(result.data.steps[0].requiresFreshReview, true);
-    assert.equal(Boolean(result.data.handoff), asset !== "cirbtc");
+    assert.equal(Boolean(result.data.handoff), true);
+    if (asset === "cirbtc") { assert.equal(result.data.handoff?.asset, "cirBTC"); assert.equal(result.data.handoff?.amount, "0.1"); }
   }
 });
 
@@ -81,10 +82,10 @@ test("Swap omits approval when allowance covers input", async () => {
   assert.equal(result.status, "PREPARED"); if (result.status === "PREPARED") assert.deepEqual(result.data.steps.map((item) => item.kind), ["swap"]);
 });
 
-test("Swap leaves out handoff for local wallets, which the current wallet route cannot consume", async () => {
+test("Swap handoff is available to the local wallet review route", async () => {
   const ctx = context({ snapshot: snapshot({ accountKind: "local" }) });
   const result = await runPrepareTool(ctx, await swap(ctx));
-  assert.equal(result.status, "PREPARED"); if (result.status === "PREPARED") assert.equal(result.data.handoff, undefined);
+  assert.equal(result.status, "PREPARED"); if (result.status === "PREPARED") assert.equal(result.data.handoff?.action, "swap");
 });
 
 test("Swap rejects unsupported pair, expired or mismatched quote and missing allowance", async () => {

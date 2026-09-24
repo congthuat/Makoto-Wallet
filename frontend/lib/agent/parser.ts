@@ -63,10 +63,10 @@ function parsePlanningIntent(raw: string, text: string, locale: AgentIntent["loc
   if (blockingCode && has(text, ["why", "can't", "cannot", "blocked", "không thể", "tại sao"])) return { kind: "blocking-explanation", locale, blockingCode };
   const sendQuestion = has(text, ["send", "gửi"]);
   const amount = text.match(AMOUNT)?.[1]?.replace(",", ".");
-  const assetId = /\beurc\b/.test(text) ? "eurc" : "usdc";
+  const assetId = /\bcirbtc\b/.test(text) ? "cirbtc" : /\beurc\b/.test(text) ? "eurc" : "usdc";
   const recipient = raw.match(ADDRESS)?.[0] as AgentIntent["recipient"] | undefined;
   const swapQuestion = has(text, ["swap", "đổi", "hoán đổi"]);
-  const assets = [...text.matchAll(/\b(usdc|eurc)\b/g)].map((match) => match[1] as "usdc" | "eurc");
+  const assets = [...text.matchAll(/\b(usdc|eurc|cirbtc)\b/g)].map((match) => match[1] as "usdc" | "eurc" | "cirbtc");
   const swapInput = assets[0] ?? assetId;
   const swapOutput = assets[1] ?? (swapInput === "usdc" ? "eurc" : "usdc");
   if (swapQuestion && has(text, ["do i need approval", "allowance enough", "need approve", "cần approve", "cần phê duyệt", "allowance đủ"])) return { kind: "swap-allowance", locale, amount, assetId: swapInput, outputAssetId: swapOutput };
@@ -137,7 +137,7 @@ export function parseActionDraft(raw: string, text = normalize(raw)): AgentPrepa
   else if (has(text, ["bridge", "chuyển chuỗi", "chuyển sang base"])) kind = "bridge";
   if (!kind) return undefined;
   const amount = text.match(AMOUNT)?.[1]?.replace(",", ".");
-  const assets = [...text.matchAll(/\b(usdc|eurc)\b/g)].map((match) => match[1] as "usdc" | "eurc");
+  const assets = [...text.matchAll(/\b(usdc|eurc|cirbtc)\b/g)].map((match) => match[1] as "usdc" | "eurc" | "cirbtc");
   const validRecipient = raw.match(ADDRESS)?.[0] as AgentIntent["recipient"] | undefined;
   const addressLike = raw.match(ADDRESS_LIKE)?.[0];
   const source = text.match(/(?:from|từ)\s+(base sepolia|arc testnet|base|arc)/)?.[1];

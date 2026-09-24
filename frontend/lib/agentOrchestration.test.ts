@@ -6,6 +6,7 @@ import { createAgentActionDraft, routeAgentRequest, type AgentCapabilityId, type
 import { parseAgentRequest } from "./agent/parser.ts";
 import type { AgentPlanningServices } from "./agent/planning.ts";
 import { AGENT_CAPABILITIES, AGENT_EXECUTION_POLICY, runAgentCapability } from "./agent/tools.ts";
+import { formatAgentResponse } from "./agent/formatter.ts";
 import type { AgentContextSnapshot, AgentIntent } from "./agent/types.ts";
 
 const account = "0x1111111111111111111111111111111111111111" as const;
@@ -40,14 +41,14 @@ test("registry rejects unknown capabilities, mode mismatches, and invalid capabi
   assert.equal((await runAgentCapability(context(), invalidIntent, routed)).category, "NEEDS_CLARIFICATION");
 });
 
-test("fresh Send planning runs before a complete non-executable serializable draft", async () => {
-  let planningCalls = 0;
-  const services: AgentPlanningServices = { estimateSendMaximumFee: async () => { planningCalls++; return 1_000n; } };
+test("fresh Send uses canonical quote and prepare before a serializable draft", async () => {
+  let quoteCalls = 0;
   const intent = parse(`Prepare a send of 1 USDC to ${recipient}`);
   const decision = routeAgentRequest(intent);
-  const output = await runAgentCapability(context(connected, services), intent, decision);
-  const draft = createAgentActionDraft(intent, output.planning);
-  assert.equal(planningCalls, 1);
+  const output = await runAgentCapability({ ...context(), quoteContext: { snapshot: connected, now: () => now, reads: { readBalance: async (_account, asset) => asset === "usdc" ? 50_000_000n : asset === "eurc" ? 20_000_000n : 0n }, services: { estimateSendMaximumFee: async () => { quoteCalls++; return 1_000n; } } } }, intent, decision);
+  const draft = formatAgentResponse(connected, intent, decision, output).actionDraft;
+  assert.equal(quoteCalls, 2);
+  assert.equal(output.prepared?.status, "PREPARED");
   assert.equal(draft?.kind, "send");
   assert.equal(draft?.executionEnabled, false);
   assert.doesNotThrow(() => JSON.stringify(draft));

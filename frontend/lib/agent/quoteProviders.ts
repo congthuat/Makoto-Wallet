@@ -5,6 +5,18 @@ import type { CctpForwardingFee } from "../cctp.ts";
 import { xyloRouterAbi, XYLO_ROUTER } from "../swap.ts";
 import { createAgentPlanningServices } from "./planning.ts";
 import type { QuoteServices } from "./quoteTools.ts";
+import { createReadServices } from "./readTools.ts";
+
+/** Adapts viem's generic client signature to the existing Phase 8B read adapter. */
+export function createAgentReadServices(client: PublicClient) {
+  return createReadServices({
+    chain: client.chain!,
+    readContract: (args) => args.functionName === "balanceOf"
+      ? client.readContract({ address: args.address, abi: args.abi, functionName: "balanceOf", args: [args.args[0]] })
+      : client.readContract({ address: args.address, abi: args.abi, functionName: "allowance", args: [args.args[0], args.args[1]] }),
+    getTransactionReceipt: ({ hash }) => client.getTransactionReceipt({ hash }),
+  });
+}
 
 /** Connects the existing read-only quote sources to canonical 8C tools. */
 export function createQuoteServices(client: PublicClient): QuoteServices {

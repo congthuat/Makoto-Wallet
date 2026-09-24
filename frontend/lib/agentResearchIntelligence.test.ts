@@ -191,7 +191,7 @@ test("official status never supplies Bridge planning truth", async () => {
   const intent = parse("Prepare a bridge of 0.01 USDC from Arc to Base Sepolia"), decision = routeAgentRequest(intent);
   const output = await runAgentCapability({ snapshot, now, binding: { generation: 1, account, chainId: 5_042_002 }, research: async () => research, planningServices: { estimateSendMaximumFee: async () => undefined, planBridge: (request) => requestBridgePlanningData(request, { routeAvailable: async () => { routeCalls++; return true; }, estimateBridge: async () => { feeCalls++; return undefined; }, readSourceBalance: async () => 50_000_000n, readAllowance: async () => undefined }) } }, intent, decision);
   const response = formatAgentResponse(snapshot, intent, decision, output);
-  assert.equal(routeCalls, 1); assert.equal(feeCalls, 1); assert.equal(output.category, "PROVIDER_UNAVAILABLE"); assert.equal(response.actionDraft, undefined); assert.equal("intelligence" in output, false);
+  assert.equal(routeCalls, 0); assert.equal(feeCalls, 0); assert.equal(output.error, "PROVIDER_UNAVAILABLE"); assert.equal(response.actionDraft, undefined); assert.equal("intelligence" in output, false);
 });
 test("transaction core remains outside intelligence imports", () => {
   const tools = readFileSync(new URL("./agent/tools.ts", import.meta.url), "utf8");
@@ -243,7 +243,7 @@ test("Dashboard and Agent page both construct and pass canonical onchain service
   const page = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
   for (const source of [dashboard, page]) {
     assert.match(source, /createOnchainIntelligenceServices\(publicClient\)/);
-    assert.match(source, /useMakotoAgent\([^;]*onchainServices\)/s);
+    assert.match(source, /useMakotoAgent\([^;]*onchainServices(?:, canonicalServices)?\)/s);
   }
 });
 test("Dashboard and Agent page both render structured intelligence evidence", () => {

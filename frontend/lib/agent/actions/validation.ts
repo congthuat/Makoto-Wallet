@@ -12,9 +12,9 @@ export function validateAgentActionDraft(draft: AgentActionDraft): AgentDraftVal
   if (draft.version !== 1 || draft.mode !== "prepare-only" || draft.executionEnabled !== false) errors.push("draft");
   if (!draft.amount) missing.add("amount");
   else if (/^(?:max|all|everything|entire balance)$/i.test(draft.amount)) errors.push("MAX actions require the manual flow.");
-  else if (!AMOUNT.test(draft.amount) || Number(draft.amount) <= 0) errors.push("amount");
+  else if (!(draft.kind === "send" && draft.asset === "cirBTC" ? /^(?:0|[1-9]\d*)(?:\.\d{1,8})?$/.test(draft.amount) : AMOUNT.test(draft.amount)) || Number(draft.amount) <= 0) errors.push("amount");
   const asset = draft.kind === "swap" ? draft.inputAsset : draft.asset;
-  if (!asset || !ASSETS.has(asset.toUpperCase())) errors.push("asset");
+  if (!asset || !ASSETS.has(asset.toUpperCase()) && !(draft.kind === "send" && asset === "cirBTC")) errors.push("asset");
   if (draft.kind === "swap" && !ASSETS.has(draft.outputAsset.toUpperCase())) errors.push("outputAsset");
 
   if (draft.kind === "send") {

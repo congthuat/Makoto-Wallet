@@ -51,7 +51,7 @@ test("actual wrong network remains renderable without pretending balances loaded
 });
 
 test("Agent handoff uses client navigation and never opens a wallet request", () => {
-  assert.match(agent, /router\.push\(handoffUrl\(prepared\.handoff!\)\)/);
+  assert.match(agent, /router\.push\(handoffUrl\(selected\)\)/);
   assert.doesNotMatch(agent, /window\.location\.assign\(handoffUrl/);
   const prepare = agent.slice(agent.indexOf("function prepare()"), agent.indexOf("if (preparing)"));
   for (const forbidden of ["writeContract", "sendTransaction", "sign", "storeAgentResult", "recordWalletActivity"]) assert.equal(prepare.includes(forbidden), false, forbidden);

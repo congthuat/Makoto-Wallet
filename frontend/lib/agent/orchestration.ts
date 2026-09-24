@@ -45,7 +45,7 @@ export function createAgentActionDraft(intent: AgentIntent, planning?: AgentPlan
   }
   const common = { version: 1 as const, mode: "prepare-only" as const, rawUserText: input.rawUserText, executionEnabled: false as const };
   if (input.kind === "send") return Object.freeze({ ...common, kind: "send", asset: assetName(input.assetId), amount: input.amount!, recipient: input.recipient!, sourceChain: "Arc Testnet" });
-  if (input.kind === "swap") return Object.freeze({ ...common, kind: "swap", inputAsset: assetName(input.assetId), outputAsset: assetName(input.outputAssetId), amount: input.amount!, slippage: 0.005, sourceChain: "Arc Testnet" });
+  if (input.kind === "swap") return Object.freeze({ ...common, kind: "swap", inputAsset: input.assetId === "eurc" ? "EURC" : "USDC", outputAsset: input.outputAssetId === "eurc" ? "EURC" : "USDC", amount: input.amount!, slippage: 0.005, sourceChain: "Arc Testnet" });
   if (input.kind === "bridge") {
     const sourceChain = chainName(input.sourceChainId)!;
     const destinationChain = chainName(input.destinationChainId)!;
@@ -56,7 +56,7 @@ export function createAgentActionDraft(intent: AgentIntent, planning?: AgentPlan
 
 export function missingPreparation(input: AgentPreparationInput): readonly AgentPreparationField[] {
   const missing: AgentPreparationField[] = [];
-  if (!input.amount || !/^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(input.amount) || Number(input.amount) <= 0) missing.push("amount");
+  if (!input.amount || !(input.kind === "send" && input.assetId === "cirbtc" ? /^(?:0|[1-9]\d*)(?:\.\d{1,8})?$/.test(input.amount) : /^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(input.amount)) || Number(input.amount) <= 0) missing.push("amount");
   if ((input.kind === "send" || input.kind === "swap") && !input.assetId) missing.push("asset");
   if (input.kind === "send" && !input.recipient) missing.push("recipient");
   if (input.kind === "swap" && !input.outputAssetId) missing.push("outputAsset");
@@ -75,7 +75,7 @@ function planningAllowsDraft(planning: AgentPlanningResult) {
   return planning.blockingReasons.every((reason) => nonFatal.has(reason));
 }
 
-function assetName(value: AgentPreparationInput["assetId"]): "USDC" | "EURC" { return value === "eurc" ? "EURC" : "USDC"; }
+function assetName(value: AgentPreparationInput["assetId"]): "USDC" | "EURC" | "cirBTC" { return value === "cirbtc" ? "cirBTC" : value === "eurc" ? "EURC" : "USDC"; }
 function actionTopic(kind: AgentPreparationInput["kind"]): AgentTopic { return kind.startsWith("vault-") ? "vault" : kind as AgentTopic; }
 function chainName(value: number | undefined): "Arc Testnet" | "Base Sepolia" | undefined { return value === 5_042_002 ? "Arc Testnet" : value === 84_532 ? "Base Sepolia" : undefined; }
 function decision(topic: AgentTopic, mode: AgentRequestMode, capabilityId: AgentCapabilityId, freshDataRequired: boolean, draftAllowed: boolean, clarification?: AgentOrchestrationDecision["clarification"], missingFields?: readonly AgentPreparationField[]): AgentOrchestrationDecision { return Object.freeze({ topic, mode, capabilityId, freshDataRequired, draftAllowed, ...(clarification ? { clarification } : {}), ...(missingFields?.length ? { missingFields: Object.freeze([...missingFields]) } : {}) }); }

@@ -130,8 +130,8 @@ test("current locale controls clarification, planning failure, preparation succe
   const dashboard = readFileSync(new URL("../components/WalletDashboard.tsx", import.meta.url), "utf8");
   assert.match(hook, /useEffect\(\(\) => \{\s*latestLocale\.current = locale;\s*\}, \[locale\]\)/);
   assert.match(hook, /locale: requestLocale/);
-  assert.match(page, /ActionDraftCard draft=\{message\.draft\} draftContext=\{message\.draftContext\} vi=\{vi\}/);
-  assert.match(dashboard, /ActionDraftCard draft=\{message\.draft\} draftContext=\{message\.draftContext\} vi=\{locale === "vi"\}/);
+  assert.match(page, /ActionDraftCard draft=\{message\.draft\} draftContext=\{message\.draftContext\} handoff=\{message\.prepared\?\.status/);
+  assert.match(dashboard, /ActionDraftCard draft=\{message\.draft\} draftContext=\{message\.draftContext\} handoff=\{message\.prepared\?\.status/);
 });
 
 test("shared Agent UI uses translation keys and contains no legacy draft copy", () => {

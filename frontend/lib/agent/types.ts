@@ -5,6 +5,8 @@ import type { AgentBlockingCode, AgentPlanningResult } from "./planning.ts";
 import type { AgentSessionContext } from "./sessionContext.ts";
 import type { AgentIntelligenceResult, OfficialResearchTopic, OnchainIntelligenceOperation } from "./intelligence/types.ts";
 import type { ReadResult } from "./readTools.ts";
+import type { PrepareResult } from "./prepareTools.ts";
+import type { CanonicalQuote } from "./canonicalIntegration.ts";
 
 export type AgentLocale = "en" | "vi";
 /** Wallet binding captured when an Agent action draft was produced. */
@@ -42,7 +44,7 @@ type AgentDraftBase = Readonly<{
   executionEnabled: false;
 }>;
 
-export type SendActionDraft = AgentDraftBase & Readonly<{ kind: "send"; asset: "USDC" | "EURC"; amount: string; recipient: Address; sourceChain: "Arc Testnet" }>;
+export type SendActionDraft = AgentDraftBase & Readonly<{ kind: "send"; asset: "USDC" | "EURC" | "cirBTC"; amount: string; recipient: Address; sourceChain: "Arc Testnet" }>;
 export type SwapActionDraft = AgentDraftBase & Readonly<{ kind: "swap"; inputAsset: "USDC" | "EURC"; outputAsset: "USDC" | "EURC"; amount: string; slippage: 0.005; sourceChain: "Arc Testnet" }>;
 export type BridgeActionDraft = AgentDraftBase & Readonly<{ kind: "bridge"; asset: "USDC"; amount: string; sourceChain: "Arc Testnet" | "Base Sepolia"; destinationChain: "Arc Testnet" | "Base Sepolia"; recipient?: Address; routeMode: "cctp-direct-forwarding" | "circle-app-kit-cctp" }>;
 export type VaultActionDraft = AgentDraftBase & Readonly<{ kind: "vault-deposit" | "vault-withdraw"; asset: "USDC"; amount: string }>;
@@ -86,4 +88,4 @@ export type AgentIntent = Readonly<{
 
 export type AgentRequest = Readonly<{ text: string; locale: AgentLocale; account?: Address; previousIntent?: AgentIntent; sessionContext?: AgentSessionContext }>;
 export type AgentToolResult<T = unknown> = Readonly<{ tool: string; ok: boolean; data?: T; unavailable?: string; partial?: boolean; read?: ReadResult<unknown> }>;
-export type AgentResponse = Readonly<{ text: string; intent: AgentIntent; result?: AgentToolResult; planning?: AgentPlanningResult; actionDraft?: AgentActionDraft; intelligence?: AgentIntelligenceResult }>;
+export type AgentResponse = Readonly<{ text: string; intent: AgentIntent; result?: AgentToolResult; planning?: AgentPlanningResult; quote?: CanonicalQuote; prepared?: PrepareResult; actionDraft?: AgentActionDraft; intelligence?: AgentIntelligenceResult }>;
