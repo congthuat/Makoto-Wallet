@@ -4,9 +4,14 @@
 
 ## Current
 - **Major phase:** Phase 10 — Sequential Strategy Engine (Phase 9 COMPLETE / CLOSED).
-- **Sub-phase:** 10F — interruption/rejection/expiry/retry/recovery COMPLETE.
-- **Status:** 10F COMPLETE; Phase 10 remains OPEN.
-- **Next:** 10G — end-to-end regression + closeout NEXT / NOT STARTED.
+- **Sub-phase:** 10G — end-to-end regression + closeout PENDING REVIEW.
+- **Status:** 10G readiness classification **READY_TO_CLOSE**; Phase 10 remains OPEN / NOT CLOSED.
+- **Next:** User review of 10G readiness; Phase 11 NOT STARTED.
+- **Phase 10G regression/fix commit:** `5227118078494400d8c4accad1d6eea1310c5a0b` (`fix(strategy): preserve policy stop and strict recovery record`).
+- **Phase 10G audit commit:** `1289cd2653676e29fb39b9c7b469b20683e0680c` (`docs(strategy): audit phase 10 end-to-end behavior`).
+- **Phase 10G audit:** `docs/phase10g-end-to-end-audit.md` records 10A–10G acceptance, integrated approval→Swap and Send progression, recovery/restart, fan-in, policy and authority boundaries, two corrected validation/reporting bugs, and limitation classifications. No Strategy UI/caller or autonomous execution was added.
+- **Phase 10G verification:** 4/4 focused integration tests; 58/58 Phase 10 Strategy tests; 46/46 selected Phase 8 Tool Layer tests; 28/28 selected Phase 9 policy/final-gate tests; 1333/1333 frontend tests; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; root contract compile PASS; staged git diff --check PASS. No live transaction, push, or deployment.
+- **Phase 10G readiness:** **READY_TO_CLOSE**, pending user review. No Phase 10 signing, automatic submission, retry, polling, or background runner was found. Receipts, fresh state, Phase 9 policy, and explicit user confirmation remain authoritative. Unwired Strategy UI/caller, unsupported Agent Direct CCTP handoff, separate destination CCTP confirmation, inherited Phase 9 limits, absent funded Strategy QA, and the unpushed branch are documented non-blocking limitations for this domain-engine scope. Do not close Phase 10 or start Phase 11 yet.
 - **Phase 10F implementation commit:** `8e87b14d35bcba8fa035557941ef1fc44e499238` (`feat(strategy): add interruption recovery semantics`).
 - **Phase 10F pending-review state commit:** `90d44327d35bff7f0d44bb562085346adf8b4584`.
 - **Phase 10F verification:** 10/10 focused recovery tests PASS; 54/54 Phase 10A–10F Strategy tests PASS; 74/74 relevant Phase 8/9 regression tests PASS; 1329/1329 frontend tests PASS; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; root contract compile PASS; git diff --check PASS. No live transaction or push.
