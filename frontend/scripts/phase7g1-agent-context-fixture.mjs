@@ -21,13 +21,12 @@ if (start < 0 || end < start) throw new Error("ActionDraftCard fixture seam chan
 export const fixtureSource = `
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
-import { useConnection } from "wagmi";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { handoffUrl, prepareAgentActionHandoff, storeAgentHandoff, validateAgentActionDraft } from "@/lib/agent/actions";
 import { assessAgentDraftContext } from "@/lib/agent/draftContext";
 import { translate, type Locale, type TranslationKey } from "@/i18n";
 const styles = new Proxy({}, { get: (_target, key) => String(key) });
+const useWalletReadContext = () => ({kind:"external",status:"connected",address:window.fixtureConnection.address,providerChainId:window.fixtureChain,isArc:window.fixtureChain===${arc}});
 ${component.slice(start, end)}
 `;
 

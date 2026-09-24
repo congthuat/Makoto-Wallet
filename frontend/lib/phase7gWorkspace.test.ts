@@ -60,6 +60,13 @@ for (const locale of ["en","vi"] as const) {
     assert.ok(html.includes(translate(locale,"agent.workspace.capturedEvidence")));
     assert.ok(html.includes(translate(locale,"agent.workspace.draftBoundary")));
   });
+  test(`${locale}: canonical quote and preparation appear as evidence`,()=>{
+    const html=renderWorkspace({locale,scenario:"canonical"});
+    assert.ok(html.includes(translate(locale,"agent.workspace.quoteEvidence")));
+    assert.ok(html.includes(translate(locale,"agent.workspace.preparedEvidence")));
+    assert.ok(html.includes(translate(locale,"agent.workspace.expiresAt")));
+    assert.ok(!html.includes(translate(locale,"agent.workspace.noEvidence")));
+  });
   test(`${locale}: returned unknown result retains formatter status without a new action`,()=>{
     const html=renderWorkspace({locale,scenario:"result"});
     assert.match(html,/data-operation-mode="result"/);

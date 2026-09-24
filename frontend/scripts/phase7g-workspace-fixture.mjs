@@ -50,6 +50,7 @@ export function Fixture({options = {}}) {
     message = {...message, draft:undefined, text:translate(locale,scenario === "insufficient" ? "agent.outcome.INSUFFICIENT_BALANCE" : "agent.outcome.PROVIDER_UNAVAILABLE"),presentation:{...message.presentation,planning:{kind:"send-affordability",status:scenario === "insufficient" ? "blocked" : "unavailable",dataTimestamp:observedAt,refreshRequired:true,completeness:"unavailable",blockingReasons:[scenario === "insufficient" ? "insufficient-token-balance" : "provider-unavailable"]}}};
   }
   if (scenario === "ready") message.presentation.planning = {kind:"send-affordability",status:"ready",dataTimestamp:observedAt,refreshRequired:false,completeness:"complete",blockingReasons:[]};
+  if (scenario === "canonical") message = {...message, quote:{provider:"Arc RPC",status:"AVAILABLE",observedAt},prepared:{status:"PREPARED",data:{provider:"Arc RPC",expiresAt:observedAt+300000}}};
   if (scenario === "invalid") message.draft = {...draft,amount:"0"};
   if (scenario === "result") message = {id:1,role:"agent",text:formatAgentActionResult({status:"unknown",action:"send",account:"${accountA}",createdAt:observedAt,transactionHash:"0x"+"a".repeat(64)},locale),presentation:{result:true,observedAt,context:{account:"${accountA}"}}};
   const messages = cleared || scenario === "empty" ? [] : scenario === "history" ? [{...message,id:0},message] : [message];
