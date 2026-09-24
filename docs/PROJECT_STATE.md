@@ -4,9 +4,9 @@
 
 ## Current
 - **Major phase:** Phase 8 — Makoto Tool Layer
-- **Sub-phase:** 8B — Read Tools
+- **Sub-phase:** 8C — Quote Tools
 - **Status:** NOT STARTED
-- **Next:** 8B — Read Tools
+- **Next:** 8C — Quote Tools
 - **After 8B:** 8C — Quote Tools
 - **Phase 8 branch:** phase8-tool-layer
 - **Phase 8 base commit:** `7ae32e081e64126892721a46b39a0f460f146971`
@@ -56,4 +56,5 @@ Never claim tests passed if they were not run.
 - Native Wallet was completed as a post-7J adjunct scope and included in the handoff commit. No live transaction was triggered during verification.
 - At the Phase 7J handoff, the next approved sub-phase was **8A — Current-System Audit**.
 - **Phase 8A COMPLETE** — read-only inventory/reuse audit on `phase8-tool-layer`; no product code changed or tests rerun. Existing READ capabilities are not yet a canonical Phase 8 tool layer; PREPARE capabilities remain bounded and execution-disabled, and Agent-owned execution is absent. Send, Xylo Swap, Direct CCTP, Circle App Kit Bridge, and Unified Balance already exist. Circle App Kit Swap is a candidate; x402 is an inactive dependency.
-- **Phase 8B NEXT — Read Tools (not started).** Normalize existing wallet identity/type/lock, verified chain, balances, activity load state, allowances, receipts, and bridge operation evidence into account- and chain-bound READ outputs. Preserve freshness, partial/unavailable states, provider provenance, and source-confirmed versus destination-confirmed truth. Reuse existing transaction engines. Quote tools remain 8C; prepare/write tools remain 8D, followed by 8E, 8F, and 8G.
+- **Phase 8B COMPLETE — Read Tools.** Added the canonical typed READ tool layer with 9 tools covering wallet identity/state, verified network, balances, activity/load status, allowances, receipt evidence, and bridge operation evidence. Account/chain context, provenance, freshness, partial/unavailable states, truthful receipt/bridge evidence, and local-wallet locked versus disconnected state are preserved. No signing or submission authority was added. Validation: 26/26 focused tests; 1188/1188 full frontend tests; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; git diff --check PASS. Implementation commit: `33a3d2b5939d75e8bc062566b61547bf8e7d957e`.
+- **Phase 8C NEXT — Quote Tools (not started).** Normalize existing Send fee/affordability reads, Xylo Swap quote/allowance planning, bridge route/fee/receive estimates, quote freshness/expiry, and provider provenance. Bounded unsigned transaction preparation/write tools remain 8D, followed by 8E, 8F, and 8G.
