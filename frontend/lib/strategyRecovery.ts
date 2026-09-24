@@ -54,7 +54,7 @@ const sameReference = (a: PreparedActionReference, b: PreparedActionReference) =
 function validRecord(value: unknown): value is StrategyRecoveryRecord {
   if (!object(value) || !keys(value, ["version", "attemptId", "strategyId", "stepId", "action", "account", "chainId", "preparedAction", "event"], ["submittedHash"])) return false;
   if (value.version !== 1 || typeof value.attemptId !== "string" || !/^[a-zA-Z0-9_-]{8,128}$/.test(value.attemptId) || typeof value.strategyId !== "string" || typeof value.stepId !== "string" || !isAddress(value.account as string) || value.chainId !== arcTestnet.id || !["APPROVE", "SEND", "SWAP", "BRIDGE"].includes(value.action as string)) return false;
-  if (!["USER_REJECTED", "PRE_SUBMISSION_FAILURE", "SUBMISSION_OUTCOME_UNKNOWN", "SUBMITTED"].includes(value.event as string) || (value.event === "SUBMITTED") !== (typeof value.submittedHash === "string" && isHash(value.submittedHash))) return false;
+  if (!["USER_REJECTED", "PRE_SUBMISSION_FAILURE", "SUBMISSION_OUTCOME_UNKNOWN", "SUBMITTED"].includes(value.event as string) || (value.event === "SUBMITTED") !== Object.hasOwn(value, "submittedHash") || value.event === "SUBMITTED" && (typeof value.submittedHash !== "string" || !isHash(value.submittedHash))) return false;
   const ref = value.preparedAction;
   return object(ref) && keys(ref, ["kind", "tool", "quoteFingerprint", "stepIndex"]) && ref.kind === "PREPARED_ACTION" && ["send.prepare", "swap.prepare", "bridge.prepare"].includes(ref.tool as string) && isHash(ref.quoteFingerprint as string) && Number.isSafeInteger(ref.stepIndex) && (ref.stepIndex as number) >= 0;
 }

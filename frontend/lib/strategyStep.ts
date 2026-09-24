@@ -106,9 +106,9 @@ export function executeStrategyStep(input: StrategyStepInput): StrategyStepResul
   collect(selected.id);
   const prior = index !== undefined && index > 0 && strategy.steps.some((step) => step.kind === "ACTION" && ancestors.has(step.id) && step.preparedAction && sameReference(step.preparedAction, { ...reference, stepIndex: index - 1 }) && dependencies.some((item) => receiptMatches(item, strategy.id, step, policyInput.account, policyInput.chainId)));
   const policy = evaluateFinalPolicy({ ...policyInput, priorStepConfirmed: Boolean(prior) });
+  if (policy.mustStop) return { status: "POLICY_STOP", stepId: selected.id, policy };
   const failure = dependencyFailure(strategy, selected, dependencies, policyInput, policy);
   if (failure) return { status: "DEPENDENCY_NOT_SATISFIED", stepId: selected.id, dependencyStepId: failure };
-  if (policy.mustStop) return { status: "POLICY_STOP", stepId: selected.id, policy };
   const handoff = preparation.data.handoff;
   if (!handoff || selected.action === "BRIDGE" || selected.action === "APPROVE" && preparation.tool !== "swap.prepare") return { status: "UNSUPPORTED", stepId: selected.id, reason: "NO_WALLET_HANDOFF" };
   if (!handoffMatches(handoff, preparation.data, quote, selected.action, policyInput.now)) return { status: "INVALID_EVIDENCE", stepId: selected.id, reason: "ARTIFACT_MISMATCH" };
