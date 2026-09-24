@@ -10,7 +10,7 @@ import { validateStrategy, type ActionStep, type PreparedActionReference, type S
 
 /** Supplied canonical READ evidence; this module never fetches or verifies a receipt itself. */
 export type StrategyDependencyEvidence =
-  | Readonly<{ kind: "CONFIRMED_RECEIPT"; stepId: string; actionStepId: string; preparedAction: PreparedActionReference; submittedHash: Hash; receipt: ReadResult<ReceiptEvidence> }>
+  | Readonly<{ kind: "CONFIRMED_RECEIPT"; strategyId: string; stepId: string; actionStepId: string; preparedAction: PreparedActionReference; submittedHash: Hash; receipt: ReadResult<ReceiptEvidence> }>
   | Readonly<{ kind: "CURRENT_REVALIDATION"; stepId: string; quoteFingerprint: `0x${string}`; policyResultId?: string }>;
 
 export type StrategyStepResult =
@@ -33,8 +33,8 @@ const same = (left: string, right: string) => isAddress(left) && isAddress(right
 const sameReference = (left: PreparedActionReference | undefined, right: PreparedActionReference) => left?.kind === right.kind && left.tool === right.tool && left.quoteFingerprint === right.quoteFingerprint && left.stepIndex === right.stepIndex;
 const actionMatches = (step: ActionStep, kind: string) => step.action === "APPROVE" ? kind === "finite-approval" : step.action === "SEND" ? kind === "send" : step.action === "SWAP" ? kind === "swap" : kind === "cctp-burn";
 
-function receiptMatches(evidence: StrategyDependencyEvidence | undefined, action: ActionStep, account: string, chainId: number): boolean {
-  if (!evidence || evidence.kind !== "CONFIRMED_RECEIPT" || evidence.actionStepId !== action.id || !action.preparedAction || !sameReference(action.preparedAction, evidence.preparedAction)) return false;
+function receiptMatches(evidence: StrategyDependencyEvidence | undefined, strategyId: string, action: ActionStep, account: string, chainId: number): boolean {
+  if (!evidence || evidence.kind !== "CONFIRMED_RECEIPT" || evidence.strategyId !== strategyId || evidence.actionStepId !== action.id || !action.preparedAction || !sameReference(action.preparedAction, evidence.preparedAction)) return false;
   const receipt = evidence.receipt;
   return isHash(evidence.submittedHash) && validateReadResult(receipt).valid && receipt.tool === "transaction.receipt" && receipt.status === "AVAILABLE" && receipt.freshness === "live" && receipt.source.includes("arc-rpc") && same(receipt.account ?? "", account) && receipt.chainId === chainId && receipt.data.verified === true && receipt.data.state === "confirmed" && receipt.data.hash.toLowerCase() === evidence.submittedHash.toLowerCase();
 }
@@ -59,10 +59,10 @@ function dependencyFailure(strategy: Strategy, selected: ActionStep, evidence: r
     }
     const item = byId.get(stepId);
     if (step.kind === "ACTION") {
-      if (!receiptMatches(item, step, policyInput.account, policyInput.chainId)) return stepId;
+      if (!receiptMatches(item, strategy.id, step, policyInput.account, policyInput.chainId)) return stepId;
     } else if (step.kind === "WAIT_RECEIPT") {
       const action = steps.get(step.receipt.actionStepId);
-      if (!action || action.kind !== "ACTION" || !receiptMatches(item, action, policyInput.account, policyInput.chainId)) return stepId;
+      if (!action || action.kind !== "ACTION" || !receiptMatches(item, strategy.id, action, policyInput.account, policyInput.chainId)) return stepId;
     } else {
       const fresh = policyInput.current.quote;
       if (!item || item.kind !== "CURRENT_REVALIDATION" || item.quoteFingerprint !== quoteFingerprint(fresh) || step.quote && (step.quote.tool !== fresh.tool || step.quote.fingerprint !== item.quoteFingerprint) || step.policy && step.policy.id !== item.policyResultId || policy.mustStop) return stepId;
@@ -104,7 +104,7 @@ export function executeStrategyStep(input: StrategyStepInput): StrategyStepResul
   const ancestors = new Set<string>();
   const collect = (stepId: string) => { for (const dependency of strategy.steps.find((step) => step.id === stepId)!.dependsOn) { if (!ancestors.has(dependency)) { ancestors.add(dependency); collect(dependency); } } };
   collect(selected.id);
-  const prior = index !== undefined && index > 0 && strategy.steps.some((step) => step.kind === "ACTION" && ancestors.has(step.id) && step.preparedAction && sameReference(step.preparedAction, { ...reference, stepIndex: index - 1 }) && dependencies.some((item) => receiptMatches(item, step, policyInput.account, policyInput.chainId)));
+  const prior = index !== undefined && index > 0 && strategy.steps.some((step) => step.kind === "ACTION" && ancestors.has(step.id) && step.preparedAction && sameReference(step.preparedAction, { ...reference, stepIndex: index - 1 }) && dependencies.some((item) => receiptMatches(item, strategy.id, step, policyInput.account, policyInput.chainId)));
   const policy = evaluateFinalPolicy({ ...policyInput, priorStepConfirmed: Boolean(prior) });
   const failure = dependencyFailure(strategy, selected, dependencies, policyInput, policy);
   if (failure) return { status: "DEPENDENCY_NOT_SATISFIED", stepId: selected.id, dependencyStepId: failure };

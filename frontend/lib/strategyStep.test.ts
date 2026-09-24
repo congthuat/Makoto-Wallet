@@ -49,7 +49,7 @@ function actionStep(id: string, action: ActionStep["action"], input: FinalPolicy
 }
 const strategy = (steps: Strategy["steps"]): Strategy => ({ version: 1, id: "strategy-10b", createdAt: now, steps });
 const run = (input: FinalPolicyInput, steps: Strategy["steps"], stepId = steps[0].id, dependencies: StrategyDependencyEvidence[] = []) => executeStrategyStep({ strategy: strategy(steps), stepId, policyInput: input, dependencies });
-const receipt = (stepId: string, action: ActionStep, overrides: Partial<ReadResult<ReceiptEvidence>> = {}): StrategyDependencyEvidence => ({ kind: "CONFIRMED_RECEIPT", stepId, actionStepId: action.id, preparedAction: action.preparedAction!, submittedHash: `0x${"a".repeat(64)}`, receipt: { tool: "transaction.receipt", account, chainId: arcTestnet.id, capturedAt: now, observedAt: now, freshness: "live", source: ["arc-rpc"], status: "AVAILABLE", data: { hash: `0x${"a".repeat(64)}`, state: "confirmed", verified: true, blockNumber: 1n }, ...overrides } as ReadResult<ReceiptEvidence> });
+const receipt = (stepId: string, action: ActionStep, overrides: Partial<ReadResult<ReceiptEvidence>> = {}): StrategyDependencyEvidence => ({ kind: "CONFIRMED_RECEIPT", strategyId: "strategy-10b", stepId, actionStepId: action.id, preparedAction: action.preparedAction!, submittedHash: `0x${"a".repeat(64)}`, receipt: { tool: "transaction.receipt", account, chainId: arcTestnet.id, capturedAt: now, observedAt: now, freshness: "live", source: ["arc-rpc"], status: "AVAILABLE", data: { hash: `0x${"a".repeat(64)}`, state: "confirmed", verified: true, blockNumber: 1n }, ...overrides } as ReadResult<ReceiptEvidence> });
 
 test("one Send reaches only the existing wallet review handoff", async () => {
   const input = await evidence("SEND");
@@ -81,6 +81,7 @@ test("Swap with receipt and revalidation dependencies requires bound canonical e
   assert.equal(run(input, steps, "swap", [receipt("approve", approval), { ...good[1], actionStepId: "wrong" }, good[2]]).status, "DEPENDENCY_NOT_SATISFIED");
   assert.equal(run(input, steps, "swap", [{ ...good[0], stepId: "wrong" }, good[1], good[2]]).status, "DEPENDENCY_NOT_SATISFIED");
   assert.equal(run(input, steps, "swap", [{ ...good[0], submittedHash: `0x${"b".repeat(64)}` }, good[1], good[2]]).status, "DEPENDENCY_NOT_SATISFIED");
+  assert.equal(run(input, steps, "swap", [{ ...good[0], strategyId: "other" }, good[1], good[2]]).status, "DEPENDENCY_NOT_SATISFIED");
   const result = run(input, steps, "swap", good);
   assert.equal(result.status, "READY_FOR_WALLET_REVIEW");
   if (result.status === "READY_FOR_WALLET_REVIEW") { assert.equal(result.stepId, "swap"); assert.equal(result.action, "SWAP"); }
