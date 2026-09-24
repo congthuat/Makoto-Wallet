@@ -4,9 +4,13 @@
 
 ## Current
 - **Major phase:** Phase 10 — Sequential Strategy Engine (Phase 9 COMPLETE / CLOSED).
-- **Sub-phase:** 10E — controlled multi-step continuation COMPLETE.
-- **Status:** 10E COMPLETE; Phase 10 remains OPEN.
-- **Next:** 10F — interruption/rejection/expiry/retry/recovery NEXT / NOT STARTED.
+- **Sub-phase:** 10F — interruption/rejection/expiry/retry/recovery PENDING REVIEW.
+- **Status:** 10F implementation committed; Phase 10 remains OPEN.
+- **Next:** 10F review; 10G — end-to-end regression + closeout NOT STARTED.
+- **Phase 10F implementation commit:** `8e87b14d35bcba8fa035557941ef1fc44e499238` (`feat(strategy): add interruption recovery semantics`).
+- **Phase 10F verification:** 10/10 focused recovery tests; 54/54 Phase 10A–10F Strategy tests; 74/74 relevant Phase 8/9 regression tests; 1329/1329 frontend tests; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; root contract compile PASS; staged git diff --check PASS. No live transaction or push.
+- **Phase 10F boundary:** A provider-free evaluator consumes a JSON-safe attempt record bound to Strategy, ACTION, account, chain, prepared artifact, attempt ID, and known hash when submitted. User rejection, proven pre-submission failure, ambiguous submission, pending/unavailable receipt, confirmed receipt, revert, and expiry remain distinct. Known or ambiguous submissions cannot become blind retries. A confirmed approval still needs fresh 10D allowance/state evidence; a confirmed CCTP source burn is not destination confirmation. Phase 9 BLOCK/REQUOTE/REVALIDATE remains authoritative. Retry eligibility means only a new explicit user-controlled 10B invocation with normal final checks, never automatic execution.
+- **Phase 10F limitations:** Domain API only; no Strategy UI/caller wiring, receipt acquisition, polling, background recovery, automatic retry, or continuation. The caller must truthfully distinguish failure before entering the wallet submission call from an ambiguous thrown submission call and supply genuine canonical 10C receipt and current Phase 9 evidence. Freshness summaries do not replace full 10B final review. Direct CCTP Agent wallet handoff remains unsupported; destination status requires its existing separate flow. Existing Phase 9 limitations remain.
 - **Phase 10E implementation commit:** `6b136a507b3863f4d756b8431b4f69b7450602e2` (`feat(strategy): add controlled continuation`).
 - **Phase 10E pending-review state commit:** `831ee69324c8a456de908724b58ada7ba2278157`.
 - **Phase 10E verification:** 6/6 focused 10E tests PASS; 44/44 Phase 10A–10E strategy tests PASS; 45/45 relevant Phase 8/9 tool/policy regression tests PASS (51/51 combined with 10E); 1319/1319 frontend tests PASS; typecheck PASS; lint 0 errors / 7 inherited warnings; production build PASS; root contract compile PASS; staged git diff --check PASS. No live transaction or push.
