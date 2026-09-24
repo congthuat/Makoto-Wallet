@@ -22,6 +22,7 @@ import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { arcFeeMateriallyChanged, calculateArcFee, formatArcFeeEstimate, maxSendAmountAfterArcFee, sendCostWithArcFee } from "@/lib/arcFees";
 import { assessTransaction, transactionFingerprint, type TransactionIntent } from "@/lib/transactionSafety";
 import { prepareTransactionReview, revalidateTransactionReview, ReviewSubmissionGuard, submitReviewedTransaction, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import { refreshReviewedSendFee } from "@/lib/walletFinalGate";
 import { useWalletAccount } from "@/hooks/useWalletAccount";
 import { storeAgentResult } from "@/lib/agent/actions";
 import "./SendReceive.css";
@@ -478,7 +479,7 @@ export function SendFlow({
         functionName: "balanceOf",
         args: [wallet.address],
       });
-      const freshFee = await estimateSendFee(validated.amount).catch(() => undefined);
+      const freshFee = await refreshReviewedSendFee(feeEstimate, () => estimateSendFee(validated.amount));
       if (freshFee === undefined || feeEstimate.status !== "ready" || arcFeeMateriallyChanged(feeEstimate.rawFee, freshFee)) {
         setReviewing(false);
         setError(copy.detailsChanged);
@@ -510,6 +511,7 @@ export function SendFlow({
         });
         if (!finalRevalidation.valid) throw new Error(copy.detailsChanged);
         if (!(await verifyArc())) throw new Error("Wrong network: Arc Testnet is required");
+        if (currentAccount.current?.toLowerCase() !== wallet.address.toLowerCase()) throw new Error(copy.detailsChanged);
         submittedHash = await submitReviewedTransaction(reviewSnapshot, {
           intent: finalIntent,
           context: { connectedAccount: wallet.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },
@@ -540,6 +542,7 @@ export function SendFlow({
         });
         if (!finalRevalidation.valid) throw new Error(copy.detailsChanged);
         if (!(await verifyArc())) throw new Error("Wrong network: Arc Testnet is required");
+        if (currentAccount.current?.toLowerCase() !== wallet.address.toLowerCase()) throw new Error(copy.detailsChanged);
         submittedHash = await submitReviewedTransaction(reviewSnapshot, {
           intent: finalIntent,
           context: { connectedAccount: wallet.address, connectedChainId: arcTestnet.id, balances: { ...balances, [assetId]: freshBalance }, simulation: "passed", expectedTarget: finalIntent.target },

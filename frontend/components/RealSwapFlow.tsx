@@ -26,6 +26,7 @@ import { findUniqueSwapReceive } from "@/lib/transactionReceipt";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, prepareFlowReview, swapIntent } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import { evaluateFinalWalletSwapPolicy } from "@/lib/policyEngine";
 import { storeAgentResult } from "@/lib/agent/actions";
 import { classifySwapConfirmation, swapBackAllowed, swapContinueAllowed, swapModalBusy, swapStatusAfterConfirmation, type SwapReceiptStatus, type SwapSubmissionStatus } from "@/lib/swapSubmissionState";
 
@@ -104,6 +105,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   const [maxApproval, setMaxApproval] = useState<MaxApprovalReview>();
   const [approvalReview, setApprovalReview] = useState<TransactionReviewSnapshot>(),
     [swapReview, setSwapReview] = useState<TransactionReviewSnapshot>();
+  const [swapReviewedFunds, setSwapReviewedFunds] = useState<{ balance: bigint; allowance: bigint }>();
   const submissionGuard = useRef(new ReviewSubmissionGuard()),
     executionInFlightRef = useRef(false),
     executionAttemptRef = useRef(0),
@@ -175,6 +177,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
     setReviewStage(undefined);
     setApprovalReview(undefined);
     setSwapReview(undefined);
+    setSwapReviewedFunds(undefined);
     setPreparedSwap(undefined);
     setError(undefined);
     setQuickFeedback(undefined);
@@ -590,6 +593,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
                 expectedTarget: XYLO_ROUTER,
               })
             );
+            setSwapReviewedFunds({ balance, allowance });
           }
         }
       } catch {
@@ -735,6 +739,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
             expectedTarget: XYLO_ROUTER,
           })
         );
+        setSwapReviewedFunds({ balance: nextBalance, allowance });
       }
       setApprovalReview(undefined);
       setQuote(freshQuote);
@@ -759,7 +764,7 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
   async function execute() {
     if (executionInFlightRef.current) return;
     if (submittedHash || !swapContinueAllowed(submissionStatus, reviewStage, Boolean(pending))) return;
-    if (!wallet.address || !client || !execution || !quote || !route || !swapReview || !swapEnvelope || !preparedSwap || reviewStage !== "swap" || pending) return;
+    if (!wallet.address || !client || !execution || !quote || !route || !swapReview || !swapReviewedFunds || !swapEnvelope || !preparedSwap || reviewStage !== "swap" || pending) return;
     if (!reviewedAccount || wallet.address.toLowerCase() !== reviewedAccount.toLowerCase()) {
       setReviewStage(undefined);
       return setError(vi ? "Chi tiết giao dịch đã thay đổi. Vui lòng kiểm tra lại." : "Transaction details changed. Please review again.");
@@ -909,8 +914,22 @@ export function RealSwapFlow({ locale, initialValues, onBusyChange, onConfirmed 
         setReviewStage(undefined);
         return setError(vi ? "Báo giá, mức tối thiểu, tuyến hoặc chi tiết giao dịch đã thay đổi. Hãy kiểm tra lại." : "Quote, minimum receive, route, or transaction details changed. Review again.");
       }
+      const finalPolicy = evaluateFinalWalletSwapPolicy({
+        snapshot: swapReview, intent: finalIntent, prepared: preparedSwap, quote,
+        request: { to: XYLO_ROUTER, data: finalIntent.calldata, value: 0n, chainId: arcTestnet.id, gas: swapEnvelope.gasLimit, maxFeePerGas: swapEnvelope.maxFeePerGas, maxPriorityFeePerGas: swapEnvelope.maxPriorityFeePerGas },
+        account: currentAccount.current ?? "", chainId: wallet.chainId ?? 0, balance: freshBalance,
+        usdcBalance: freshUsdcBalance, allowance, reviewedBalance: swapReviewedFunds.balance,
+        reviewedAllowance: swapReviewedFunds.allowance, liveOutput: freshOutput, slippage,
+        feeValid: isSwapFeeWithinEnvelope(swapEnvelope, freshEnvelope), simulation: "passed", now: reviewNow(),
+      });
+      if (finalPolicy.mustStop) {
+        setSwapReview(undefined);
+        setReviewStage(undefined);
+        return setError(vi ? "Báº±ng chá»©ng giao dá»‹ch Ä‘Ã£ thay Ä‘á»•i. HÃ£y kiá»ƒm tra láº¡i." : "Swap evidence changed. Review again.");
+      }
       if (!ownsExecution()) return;
       if (!(await verifyArcExecution())) throw new Error("arc");
+      if (currentAccount.current?.toLowerCase() !== wallet.address.toLowerCase()) throw new Error("Review again.");
       const hash = await submissionGuard.current.run(swapReview.fingerprint, () => execution.submitReviewed(swapReview.request, () => writer.writeContractAsync(simulation.request)));
       submitted = true;
       submittedHashLocal = hash;

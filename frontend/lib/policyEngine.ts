@@ -2,12 +2,13 @@ import { getAddress, isAddress, maxUint256, zeroAddress } from "viem";
 import { arcTestnet, baseSepolia } from "viem/chains";
 import { getAssetById } from "./assets.ts";
 import { CCTP_TOKEN_MESSENGER_V2 } from "./cctp.ts";
-import { minimumSwapOutput, SWAP_SLIPPAGE_OPTIONS, XYLO_ROUTER } from "./swap.ts";
+import { isSwapQuoteFresh, minimumSwapOutput, SWAP_SLIPPAGE_OPTIONS, XYLO_POOL, XYLO_ROUTER, type PreparedXyloSwapRequest, type SwapQuote } from "./swap.ts";
 import type { PrepareResult } from "./agent/prepareTools.ts";
 import type { QuoteResult } from "./agent/quoteTools.ts";
 import type { Allowance, Balances, ReadResult, VerifiedNetwork, WalletState } from "./agent/readTools.ts";
 import { quoteFingerprint, validatePrepareResult, validateQuoteResult, validateReadResult } from "./agent/toolSchemas.ts";
-import type { NormalizedTransactionRequest } from "./transactionOrchestrator.ts";
+import { revalidateTransactionReview, type NormalizedTransactionRequest, type TransactionRequestInput, type TransactionReviewSnapshot } from "./transactionOrchestrator.ts";
+import type { TransactionIntent } from "./transactionSafety.ts";
 
 export type PolicyAction = "SEND" | "SWAP" | "BRIDGE";
 export type PolicyDecision = "ALLOW" | "WARN" | "REQUIRE_REVIEW" | "REVALIDATE" | "REQUOTE" | "BLOCK";
@@ -297,6 +298,51 @@ export function evaluateFinalPolicy(input: FinalPolicyInput): PolicyResult {
   const latestRead = Math.max(balances.observedAt ?? 0, input.current.allowance?.observedAt ?? 0, fee.observedAt, fresh.observedAt, input.current.wallet.capturedAt, input.current.network.capturedAt);
   if (!Number.isFinite(simulation.observedAt) || simulation.observedAt < latestRead || simulation.observedAt > input.now) add("STALE_EVIDENCE", "REVALIDATE", "final.simulation.observedAt");
   if (!matchesAddress(simulation.account, prepared.account) || simulation.chainId !== prepared.chainId || simulation.quoteFingerprint !== prepared.quoteFingerprint || !simulation.request || !step.request || !sameRequest(simulation.request, step.request)) add("SIMULATION_MISMATCH", "BLOCK", "final.simulation.request");
+  return policyResult(findings);
+}
+
+/** Phase 9D final gate for the production wallet Swap review format. Provider reads stay with the caller. */
+export function evaluateFinalWalletSwapPolicy(input: Readonly<{
+  snapshot: TransactionReviewSnapshot;
+  intent: TransactionIntent;
+  prepared: PreparedXyloSwapRequest;
+  quote: SwapQuote;
+  request: TransactionRequestInput;
+  account: string;
+  chainId: number;
+  balance: bigint;
+  usdcBalance: bigint;
+  allowance: bigint;
+  reviewedBalance: bigint;
+  reviewedAllowance: bigint;
+  liveOutput: bigint;
+  slippage: number;
+  feeValid: boolean;
+  simulation: "passed" | "reverted" | "unavailable";
+  now: number;
+}>): PolicyResult {
+  const findings: PolicyFinding[] = [];
+  const add = (code: PolicyReason, decision: PolicyDecision, evidence: string) => findings.push({ code, decision, evidence });
+  const from = getAssetById(input.quote.fromAssetId);
+  const to = getAssetById(input.quote.toAssetId);
+  if (!isAddress(input.account) || !matchesAddress(input.account, input.snapshot.intent.account) || !matchesAddress(input.prepared.recipient, input.snapshot.intent.account)) add("ACCOUNT_MISMATCH", "BLOCK", "wallet.account");
+  if (input.chainId !== arcTestnet.id || input.quote.chainId !== input.chainId) add("CHAIN_MISMATCH", "BLOCK", "wallet.chainId");
+  if (!isSwapQuoteFresh(input.quote.quotedAt, input.now) || input.now > input.snapshot.expiresAt || BigInt(Math.floor(input.now / 1000)) >= input.prepared.deadline) add("EXPIRED_QUOTE", "REQUOTE", "swap.quote.expiresAt");
+  const preparedQuote = input.prepared.quote;
+  if (input.quote.fromAssetId !== preparedQuote.fromAssetId || input.quote.toAssetId !== preparedQuote.toAssetId || input.quote.amountIn !== preparedQuote.amountIn || input.quote.amountOut !== preparedQuote.amountOut || input.quote.quotedAt !== preparedQuote.quotedAt) add("QUOTE_MISMATCH", "REQUOTE", "swap.prepared.quote");
+  if (!from || !to || from.id === to.id || !matchesAddress(input.quote.router, XYLO_ROUTER) || !matchesAddress(input.quote.pool, XYLO_POOL) || !matchesAddress(input.prepared.request.address, XYLO_ROUTER) || input.intent.metadata?.route !== "xylonet") add("UNSUPPORTED_ROUTE", "BLOCK", "swap.route");
+  if (!SWAP_SLIPPAGE_OPTIONS.includes(input.slippage as typeof SWAP_SLIPPAGE_OPTIONS[number]) || input.intent.metadata?.slippageBps !== Math.round(input.slippage * 10_000)) add("SLIPPAGE_UNSUPPORTED", "BLOCK", "swap.slippage");
+  if (input.prepared.minimumReceive !== minimumSwapOutput(input.quote.amountOut, input.slippage as typeof SWAP_SLIPPAGE_OPTIONS[number]) || input.intent.assetIn?.minimumAmount !== input.prepared.minimumReceive) add("MIN_OUTPUT_INVALID", "BLOCK", "swap.minimumReceive");
+  if (input.liveOutput < input.prepared.minimumReceive) add("MIN_OUTPUT_INVALID", "REQUOTE", "swap.liveOutput");
+  if (input.intent.assetOut?.assetId !== input.quote.fromAssetId || input.intent.assetOut.amount !== input.quote.amountIn || input.intent.assetIn?.assetId !== input.quote.toAssetId) add("PREPARATION_MISMATCH", "BLOCK", "swap.amountPair");
+  if (input.balance !== input.reviewedBalance || input.allowance !== input.reviewedAllowance) add("STALE_EVIDENCE", "REVALIDATE", "swap.balanceAllowance");
+  if (input.balance < input.quote.amountIn || input.quote.fromAssetId === "usdc" && input.usdcBalance < input.quote.amountIn + (input.intent.gas?.maxFeeUsdc6 ?? 0n)) add("BALANCE_INSUFFICIENT", "BLOCK", "swap.balance");
+  if (input.allowance < input.quote.amountIn) add("ALLOWANCE_CHANGED", "REVALIDATE", "swap.allowance");
+  if (!input.feeValid) add("FEE_CHANGED", "REQUOTE", "swap.fee");
+  if (input.simulation === "reverted") add("SIMULATION_FAILED", "BLOCK", "swap.simulation");
+  else if (input.simulation !== "passed") add("SIMULATION_UNAVAILABLE", "REVALIDATE", "swap.simulation");
+  const checked = revalidateTransactionReview(input.snapshot, { intent: input.intent, context: { connectedAccount: isAddress(input.account) ? getAddress(input.account) : undefined, connectedChainId: input.chainId, balances: { [input.quote.fromAssetId]: input.balance, usdc: input.usdcBalance }, allowance: input.allowance, simulation: input.simulation, expectedTarget: XYLO_ROUTER }, request: input.request, now: input.now });
+  if (!checked.valid) add(checked.reason === "expired" ? "EXPIRED_QUOTE" : "PREPARATION_MISMATCH", checked.reason === "expired" ? "REQUOTE" : "BLOCK", "swap.reviewSnapshot");
   return policyResult(findings);
 }
 

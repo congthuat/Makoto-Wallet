@@ -23,6 +23,7 @@ import { classifyWalletFailure } from "@/lib/walletSafety";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
 import { approvalIntent, bridgeIntent, prepareFlowReview } from "@/lib/transactionFlowReview";
 import { revalidateTransactionReview, ReviewSubmissionGuard, type TransactionReviewSnapshot } from "@/lib/transactionOrchestrator";
+import { refreshReviewedCctpBurnFee } from "@/lib/walletFinalGate";
 import type { TransactionIntent } from "@/lib/transactionSafety";
 import type { WalletAccountKind } from "@/lib/walletAccount";
 
@@ -286,12 +287,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       const adapter = await verifyArcExecution(review);
       if (Date.now() > review.snapshot.expiresAt || Date.now() - review.fee.quotedAt > FEE_MAX_AGE_MS) throw new Error("expired");
       if (review.stage === "burn") {
-        const currentFee = await loadFee().catch(() => undefined);
-        if (!currentFee || !Number.isFinite(currentFee.quotedAt) || currentFee.quotedAt > Date.now() || Date.now() - currentFee.quotedAt > FEE_MAX_AGE_MS) throw new Error("changed");
-        let currentAmounts: CctpTransferAmounts;
-        try { currentAmounts = calculateCctpForwardingAmounts(review.amounts.transferAmount, currentFee); }
-        catch { throw new Error("changed"); }
-        if (currentAmounts.totalAmount !== review.amounts.totalAmount || currentAmounts.maxFee !== review.amounts.maxFee || currentAmounts.protocolFee !== review.amounts.protocolFee || currentAmounts.forwardingFee !== review.amounts.forwardingFee) throw new Error("changed");
+        if (!(await refreshReviewedCctpBurnFee(review.amounts, loadFee, Date.now(), FEE_MAX_AGE_MS))) throw new Error("changed");
       }
       const [balance, allowance] = await Promise.all([arcClient.readContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "balanceOf", args: [review.account] }), arcClient.readContract({ address: usdc.address, abi: erc20BalanceAbi, functionName: "allowance", args: [review.account, CCTP_TOKEN_MESSENGER_V2] })]);
       if (balance < review.amounts.totalAmount) throw new Error("balance");
@@ -303,6 +299,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       const exactRequest = cctpReviewedRequest(review.intent, review.envelope);
       const checked = revalidateTransactionReview(review.snapshot, { intent: review.intent, context, request: exactRequest, now: Date.now() });
       if (!checked.valid) throw new Error(checked.reason === "expired" ? "expired" : "changed");
+      if (currentWallet.current.address?.toLowerCase() !== review.account.toLowerCase() || currentWallet.current.kind !== review.accountKind || currentWallet.current.chainId !== arcTestnet.id) throw new Error("changed");
       setPending(review.stage === "approval" ? (vi ? "Đang chờ xác nhận approval hữu hạn…" : "Waiting for explicit finite approval confirmation…") : (vi ? "Đang chờ xác nhận burn CCTP…" : "Waiting for explicit CCTP burn confirmation…"));
       const legacySubmit = review.stage === "approval"
         ? () => writer.writeContractAsync({ address: usdc.address, abi: erc20BalanceAbi, functionName: "approve", args: [CCTP_TOKEN_MESSENGER_V2, review.amounts.totalAmount], account: review.account, chainId: arcTestnet.id, gas: review.envelope.gasLimit, maxFeePerGas: review.envelope.maxFeePerGas, ...(review.envelope.maxPriorityFeePerGas === undefined ? {} : { maxPriorityFeePerGas: review.envelope.maxPriorityFeePerGas }) })
