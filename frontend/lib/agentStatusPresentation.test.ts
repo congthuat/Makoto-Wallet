@@ -3,6 +3,9 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { presentAgentStatus } from "./agentStatusPresentation.ts";
 import { translate } from "../i18n/index.ts";
+// The fixture renders the production TSX component with isolated wallet hooks.
+// @ts-expect-error Test-only JavaScript renderer.
+import { renderAgentStatus, renderWorkspace } from "../scripts/phase7g-workspace-fixture.mjs";
 
 const identity = { version: 2, sessionId: "session:12f", stateId: "state:12f" } as const;
 const hash = `0x${"a".repeat(64)}`;
@@ -45,6 +48,7 @@ test("12F never promotes a plan, hash or structural success into current transac
   assert.equal(presentAgentStatus({ kind: "GUARDED_TRANSITION", result: { allowed: false, reason: "MISSING_CANONICAL_STRATEGY_BINDING" } }).status, "UNAVAILABLE");
   assert.equal(presentAgentStatus({ kind: "GUARDED_TRANSITION", result: { allowed: true, state: states[2] } }).status, "UNAVAILABLE");
   assert.equal(presentAgentStatus({ kind: "GUARDED_TRANSITION", result: { allowed: true, state: planned } }).status, "PLAN_READY");
+  for (const state of states.slice(3)) assert.equal(presentAgentStatus({ kind: "GUARDED_TRANSITION", result: { allowed: true, state } }).status, "UNAVAILABLE");
   assert.equal(presentAgentStatus({ kind: "RESTORED", result: { status: "HISTORICAL", state: states[6] } }).historical, true);
 });
 
@@ -55,6 +59,7 @@ test("12F keeps pending and unavailable recovery separate from success and failu
   assert.equal(unknown.status, "UNKNOWN");
   assert.equal(pending.historical, true);
   assert.equal(unknown.historical, true);
+  assert.equal(presentAgentStatus({ kind: "RECOVERY_EVALUATION", result: { status: "RECEIPT_VERIFICATION_REQUIRED" } }).status, "UNKNOWN");
   assert.equal(presentAgentStatus({ kind: "RECOVERY_EVALUATION", result: { status: "LEGAL_TRANSITION_REQUIRED", target: "SUCCESS" } }).status, "UNAVAILABLE");
   assert.equal(presentAgentStatus({ kind: "RECOVERY_EVALUATION", result: { status: "GUARDED_TRANSITION", state: states[6], sourceOnly: true } }).status, "UNAVAILABLE");
 });
@@ -68,11 +73,42 @@ test("12F source-chain outcomes never claim destination arrival or failure", () 
 });
 
 test("12F fails closed on malformed status input and adds no execution controls", () => {
-  for (const input of [null, {}, [], { kind: "UNKNOWN" }, { kind: "UNAVAILABLE", state: requested }, { kind: "RESTORED", result: { status: "HISTORICAL", state: { ...requested, version: 1 } } }, { kind: "GUARDED_TRANSITION", result: { allowed: true, state: { ...states[6], receipt: null } } }]) {
+  const throwing = new Proxy({}, { get() { throw new Error("untrusted getter"); } });
+  const accessor = Object.defineProperty({ kind: "RESTORED" }, "result", { enumerable: true, get() { throw new Error("getter"); } });
+  for (const input of [null, undefined, {}, [], throwing, accessor, { kind: "UNKNOWN" }, { kind: "UNAVAILABLE", state: requested }, { kind: "CURRENT_REQUEST", state: requested, extra: true }, { kind: "RESTORED", result: { status: "HISTORICAL", state: requested, now: 0 } }, { kind: "RECOVERY_EVALUATION", result: { status: "PENDING_CONFIRMATION", retry: true } }, { kind: "GUARDED_TRANSITION", result: { allowed: true, state: planned, extra: true } }, { kind: "RESTORED", result: { status: "HISTORICAL", state: { ...requested, version: 1 } } }, { kind: "RESTORED", result: { status: "HISTORICAL", state: { ...requested, kind: "UNKNOWN" } } }, { kind: "RESTORED", result: { status: "HISTORICAL", state: { ...transaction, status: "UNKNOWN" } } }, { kind: "GUARDED_TRANSITION", result: { allowed: true, state: { ...states[6], receipt: null } } }]) {
     assert.equal(presentAgentStatus(input).status, "UNAVAILABLE");
   }
   const component = readFileSync(new URL("../components/AgentStatusSurface.tsx", import.meta.url), "utf8");
   const page = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
   assert.match(page, /<AgentStatusSurface input=\{\{ kind: "UNAVAILABLE" \}\}/);
   assert.doesNotMatch(component, /<button|<a\s|onClick|sendTransaction|writeContract|signMessage|setInterval|retry/i);
+});
+
+test("12F rendered history stays visibly recorded and never opens action controls", () => {
+  for (const locale of ["en", "vi"] as const) for (const state of states) {
+    const html = renderAgentStatus({ kind: "RESTORED", result: { status: "HISTORICAL", state } }, locale);
+    assert.match(html, /data-historical="true"/);
+    assert.match(html, /role="status"/);
+    assert.ok(html.includes(translate(locale, "agent.status.recorded", { label: translate(locale, `agent.status.${state.kind === "TRANSACTION" ? state.status : state.kind}`) })));
+    assert.ok(html.includes(translate(locale, "agent.status.historicalDetail")));
+    assert.doesNotMatch(html, /<button|<a\s|<form|<input|onClick/);
+    assert.ok(!html.includes(hash), "historical hash is not displayed as current evidence");
+  }
+});
+
+test("12F rendered source outcomes explicitly leave destination unverified", () => {
+  for (const locale of ["en", "vi"] as const) for (const state of [states[6], states[9]]) {
+    const html = renderAgentStatus({ kind: "RESTORED", result: { status: "HISTORICAL", state } }, locale);
+    assert.ok(html.includes(translate(locale, "agent.status.sourceOnly")));
+    assert.doesNotMatch(html, /bridge complete|funds arrived|destination confirmed|destination failed/i);
+  }
+});
+
+test("12F production action drafts report unavailable in both locales", () => {
+  for (const locale of ["en", "vi"] as const) {
+    const html = renderWorkspace({ locale, scenario: "fresh" });
+    assert.match(html, /data-agent-status="UNAVAILABLE" data-historical="false"/);
+    assert.ok(html.includes(translate(locale, "agent.status.detail.UNAVAILABLE")));
+    assert.doesNotMatch(html, /agent\.status\./);
+  }
 });

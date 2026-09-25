@@ -57,6 +57,7 @@ export function Fixture({options = {}}) {
   const messages = cleared || scenario === "empty" ? [] : scenario === "history" ? [{...message,id:0},message] : [message];
   return <AgentWorkspace locale={locale} account={account} chainId={chainId} messages={messages} hasSessionContext={false} clearConversation={()=>{setCleared(true);inputRef.current?.focus();}} input={input} setInput={setInput} inputRef={inputRef} ask={setInput} submit={(e)=>e.preventDefault()}/>;
 }
+export function StatusFixture({input, locale}) { return <AgentStatusSurface input={input} locale={locale}/>; }
 `;
 
 const cache = new Map();
@@ -78,8 +79,11 @@ function compile(source, filename) {
   },mod,mod.exports);
   return mod.exports;
 }
-const {Fixture} = compile(fixtureSource,path.join(root,"scripts/WorkspaceFixture.tsx"));
+const {Fixture,StatusFixture} = compile(fixtureSource,path.join(root,"scripts/WorkspaceFixture.tsx"));
 export function renderWorkspace(options={}) {
   binding = {address:options.account ?? (["account","prepare"].includes(options.scenario) ? accountB : accountA),chainId:options.chainId ?? (options.scenario === "chain" ? 84532 : arc)};
   return renderToStaticMarkup(React.createElement(Fixture,{options}));
+}
+export function renderAgentStatus(input,locale="en") {
+  return renderToStaticMarkup(React.createElement(StatusFixture,{input,locale}));
 }

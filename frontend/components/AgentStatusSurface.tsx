@@ -8,10 +8,9 @@ export function AgentStatusSurface({ input, locale }: { input: AgentStatusInput;
   const label = translate(locale, `agent.status.${status.status}` as TranslationKey);
   const detail = translate(locale, `agent.status.detail.${status.status}` as TranslationKey);
   return <section className={styles.agentStatus} role="status" aria-label={translate(locale, "agent.status.heading")} data-agent-status={status.status} data-historical={status.historical}>
-    <strong>{label}</strong>
+    <strong>{status.historical ? translate(locale, "agent.status.recorded", { label }) : label}</strong>
     {status.historical && <span>{translate(locale, "agent.status.historical")}</span>}
-    <p>{detail}</p>
-    {status.historical && <p>{translate(locale, "agent.status.historicalDetail")}</p>}
+    <p>{status.historical ? translate(locale, "agent.status.historicalDetail") : detail}</p>
     {status.sourceOnly && <p>{translate(locale, "agent.status.sourceOnly")}</p>}
     {status.hash && <p className={styles.statusHash}>{translate(locale, "agent.status.hash")}: {status.hash}</p>}
   </section>;
