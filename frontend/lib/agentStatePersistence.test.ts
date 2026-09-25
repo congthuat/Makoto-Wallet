@@ -7,13 +7,13 @@ import { evaluateAgentTransition } from "./agentTransition.ts";
 const account = "0x1111111111111111111111111111111111111111";
 const other = "0x2222222222222222222222222222222222222222";
 const binding = { account, chainId: 5_042_002 } as const;
-const identity = { version: 1, sessionId: "session:1", stateId: "state:1" } as const;
+const identity = { version: 2, sessionId: "session:1", stateId: "state:1" } as const;
 const step = { kind: "STRATEGY_STEP", strategyId: "strategy:1", stepId: "burn" } as const;
 const attempt = { kind: "TRANSACTION_ATTEMPT", id: "attempt_123" } as const;
 const receipt = { kind: "RECEIPT", chainId: binding.chainId, transactionHash: `0x${"a".repeat(64)}` } as const;
 const requested = { ...identity, kind: "REQUESTED" } as const;
 const planned = { ...identity, kind: "PLAN_READY", plan: { kind: "PLANNER_PLAN", id: "plan:1" } } as const;
-const transaction = (status: string, extra = {}) => ({ ...identity, kind: "TRANSACTION", step, scope: "SOURCE_CHAIN", status, ...extra });
+const transaction = (status: string, extra = {}) => ({ ...identity, kind: "TRANSACTION", step, scope: "SOURCE_CHAIN", binding: { account: "0x1111111111111111111111111111111111111111", chainId: 5042002, action: "BRIDGE", preparedAction: { kind: "PREPARED_ACTION", tool: "bridge.prepare", quoteFingerprint: `0x${"b".repeat(64)}`, stepIndex: 1 }, quoteExpiresAt: 2000, preparationExpiresAt: 2000, handoffExpiresAt: null }, status, ...(["SUBMITTED", "CONFIRMING", "SUCCESS", "FAILED"].includes(status) ? { submittedHash: receipt.transactionHash } : {}), ...extra });
 const key = agentStateStorageKey(identity.sessionId, binding)!;
 
 class MemoryStore {
@@ -49,18 +49,18 @@ test("12C isolates sessions, accounts, and chains in keys and stored bindings", 
   assert.deepEqual(restoreAgentState(store, "session:missing", binding), { status: "ABSENT" });
   assert.equal(store.values.size, 2);
   assert.equal(key.startsWith(`${AGENT_STATE_STORAGE_PREFIX}:${account.toLowerCase()}:${binding.chainId}:`), true);
-  store.values.set(key, JSON.stringify({ version: 1, account: other, chainId: binding.chainId, state: requested }));
+  store.values.set(key, JSON.stringify({ version: 2, account: other, chainId: binding.chainId, state: requested }));
   assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "INVALID" });
-  store.values.set(key, JSON.stringify({ version: 1, account, chainId: 84_532, state: requested }));
+  store.values.set(key, JSON.stringify({ version: 2, account, chainId: 84_532, state: requested }));
   assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "INVALID" });
-  store.values.set(key, JSON.stringify({ version: 1, account, chainId: binding.chainId, state: second }));
+  store.values.set(key, JSON.stringify({ version: 2, account, chainId: binding.chainId, state: second }));
   assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "INVALID" });
 });
 
 test("12C rejects invalid JSON, versions, shapes, extra fields, and corrupted references", () => {
   const store = new MemoryStore();
-  const envelope = { version: 1, account, chainId: binding.chainId, state: transaction("SUCCESS", { attempt, receipt }) };
-  const invalid = ["{", "null", "[]", "42", JSON.stringify({ ...envelope, version: 2 }), JSON.stringify({ ...envelope, extra: true }), JSON.stringify({ ...envelope, state: { ...requested, version: 2 } }), JSON.stringify({ ...envelope, state: { ...requested, signer: "wallet" } }), JSON.stringify({ ...envelope, state: { ...envelope.state, receipt: { ...receipt, transactionHash: "bad" } } }), JSON.stringify({ ...envelope, state: { ...envelope.state, attempt: { ...attempt, id: "bad id" } } }), JSON.stringify({ ...envelope, state: { ...envelope.state, step: { ...step, stepId: "" } } })];
+  const envelope = { version: 2, account, chainId: binding.chainId, state: transaction("SUCCESS", { attempt, receipt }) };
+  const invalid = ["{", "null", "[]", "42", JSON.stringify({ ...envelope, version: 99 }), JSON.stringify({ ...envelope, extra: true }), JSON.stringify({ ...envelope, state: { ...requested, version: 99 } }), JSON.stringify({ ...envelope, state: { ...requested, signer: "wallet" } }), JSON.stringify({ ...envelope, state: { ...envelope.state, receipt: { ...receipt, transactionHash: "bad" } } }), JSON.stringify({ ...envelope, state: { ...envelope.state, attempt: { ...attempt, id: "bad id" } } }), JSON.stringify({ ...envelope, state: { ...envelope.state, step: { ...step, stepId: "" } } })];
   for (const raw of invalid) {
     store.values.set(key, raw);
     assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "INVALID" }, raw);
@@ -70,7 +70,7 @@ test("12C rejects invalid JSON, versions, shapes, extra fields, and corrupted re
 
 test("12C never stores invalid runtime state or uses incomplete wallet binding", () => {
   const store = new MemoryStore();
-  for (const state of [null, { ...requested, version: 2 }, { ...requested, sign: () => undefined }, { ...planned, plan: { kind: "PLANNER_PLAN", id: "" } }, { ...transaction("SUCCESS", { attempt, receipt }), receipt: { ...receipt, privateKey: "forbidden" } }]) assert.equal(storeAgentState(store, state, binding), false);
+  for (const state of [null, { ...requested, version: 99 }, { ...requested, sign: () => undefined }, { ...planned, plan: { kind: "PLANNER_PLAN", id: "" } }, { ...transaction("SUCCESS", { attempt, receipt }), receipt: { ...receipt, privateKey: "forbidden" } }]) assert.equal(storeAgentState(store, state, binding), false);
   for (const context of [{ account: undefined, chainId: binding.chainId }, { account, chainId: undefined }, { account: "not-an-address", chainId: binding.chainId }, { account, chainId: 0 }]) {
     assert.equal(storeAgentState(store, requested, context), false);
     assert.deepEqual(restoreAgentState(store, identity.sessionId, context), { status: "INVALID" });
@@ -136,10 +136,10 @@ test("12C rejects copied records even when their inner state is valid", () => {
   ];
   for (const { context, state } of cases) {
     assert.equal(validateAgentState(state).valid, true);
-    store.values.set(key, JSON.stringify({ version: 1, ...context, state }));
+    store.values.set(key, JSON.stringify({ version: 2, ...context, state }));
     assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "INVALID" });
   }
-  store.values.set(key, JSON.stringify({ version: 1, ...binding, state: requested }));
+  store.values.set(key, JSON.stringify({ version: 2, ...binding, state: requested }));
   assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "HISTORICAL", state: requested });
 });
 
@@ -184,4 +184,20 @@ test("12C restores transaction labels and references without fresh authority", (
   }
   assert.equal(store.reads, states.length + 1);
   assert.equal(store.writes, states.length);
+});
+
+test("prerequisite v2 persistence rejects legacy identity and envelope account substitution", () => {
+  const store = new MemoryStore();
+  const state = transaction("AWAITING_SIGNATURE");
+  assert.equal(storeAgentState(store, state, { account: other, chainId: binding.chainId }), false);
+  assert.equal(storeAgentState(store, state, { account, chainId: 84532 }), false);
+  store.values.set(key, JSON.stringify({ version: 2, account, chainId: binding.chainId, state: { ...state, binding: { ...state.binding, account: other } } }));
+  assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "INVALID" });
+  store.values.set(key, JSON.stringify({ version: 1, account, chainId: binding.chainId, state: { ...state, version: 1 } }));
+  assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "INVALID" });
+  assert.equal(storeAgentState(store, { ...state, version: 1 }, binding), false);
+  assert.equal(storeAgentState(store, state, binding), true);
+  const restored = restoreAgentState(store, identity.sessionId, binding);
+  assert.equal(restored.status, "HISTORICAL");
+  if (restored.status === "HISTORICAL") assert.equal(evaluateAgentTransition(restored.state, { ...state, status: "REJECTED", stateId: "next", attempt }, restored).allowed, false);
 });

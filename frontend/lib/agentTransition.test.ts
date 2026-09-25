@@ -6,8 +6,9 @@ import { createAgentContextSnapshot } from "./agent/context.ts";
 import { runPrepareTool } from "./agent/prepareTools.ts";
 import { runQuoteTool } from "./agent/quoteTools.ts";
 import { runReadTool } from "./agent/readTools.ts";
-import { evaluateAgentTransition } from "./agentTransition.ts";
-import { validateAgentState } from "./agentState.ts";
+import { createAgentTransitionEvaluator } from "./agentTransition.ts";
+import { bindAgentTransaction } from "./agentTransactionBinding.ts";
+import { createPreparedAgentState, validateAgentState } from "./agentState.ts";
 import type { FinalPolicyInput } from "./policyEngine.ts";
 import type { Strategy, ActionStep } from "./strategyModel.ts";
 import type { StrategyRecoveryRecord } from "./strategyRecovery.ts";
@@ -18,11 +19,14 @@ const recipient = getAddress("0x2222222222222222222222222222222222222222");
 const hash = `0x${"a".repeat(64)}` as Hash;
 const fingerprint = `0x${"b".repeat(64)}` as Hash;
 const now = 1_000_000;
-const identity = { version: 1, sessionId: "session:1" } as const;
+const evaluateAgentTransition = createAgentTransitionEvaluator(() => now);
+const identity = { version: 2, sessionId: "session:1" } as const;
 const stepRef = { kind: "STRATEGY_STEP", strategyId: "strategy:1", stepId: "send" } as const;
 const attemptRef = { kind: "TRANSACTION_ATTEMPT", id: "attempt_123" } as const;
 const receiptRef = { kind: "RECEIPT", chainId: arcTestnet.id, transactionHash: hash } as const;
-const state = (status: string, stateId: string, extra = {}) => ({ ...identity, stateId, kind: "TRANSACTION", step: stepRef, scope: "SINGLE_CHAIN", status, ...extra });
+const canonical = await fixture();
+const binding = bindAgentTransaction({ strategy: canonical.strategy, stepId: "send", quote: canonical.policyInput.quote, preparation: canonical.policyInput.preparation })!;
+const state = (status: string, stateId: string, extra = {}) => ({ ...identity, stateId, kind: "TRANSACTION", step: stepRef, scope: "SINGLE_CHAIN", binding, status, ...(["SUBMITTED", "CONFIRMING", "SUCCESS", "FAILED"].includes(status) ? { submittedHash: hash } : {}), ...extra });
 const prepared = state("PREPARED", "state:1");
 const awaiting = state("AWAITING_SIGNATURE", "state:2");
 const submitted = state("SUBMITTED", "state:3", { attempt: attemptRef });
@@ -61,7 +65,7 @@ async function bridgeFixture() {
   const request = preparation.data.steps[1].request;
   const receipt = verifyStrategyReceipt({ strategy, submitted: { strategyId: strategy.id, stepId: step.id, action: "BRIDGE", preparedAction: step.preparedAction!, hash, account, chainId: arcTestnet.id }, preparation, observation: { status: "FOUND", observedAt: now, chainId: arcTestnet.id, receipt: { hash, status: "success", blockNumber: "123" }, transaction: { hash, from: account, to: request.to, input: request.data, value: request.value, chainId: arcTestnet.id } } });
   assert.equal(receipt.status, "CONFIRMED");
-  return { strategy, record, receipt };
+  return { strategy, record, receipt, binding: bindAgentTransaction({ strategy, stepId: step.id, quote, preparation })! };
 }
 
 test("12B accepts a validated plan, but denies unbound Plan to Strategy preparation", () => {
@@ -117,11 +121,11 @@ test("12B requires pending then canonical confirmed receipt and exact transitive
   assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, strategyId: "other" } })), "IDENTITY_MISMATCH");
   assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, stepId: "other" } })), "IDENTITY_MISMATCH");
   assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, attemptId: "attempt_other" } })), "IDENTITY_MISMATCH");
-  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, account: recipient } })), "INVALID_EVIDENCE");
-  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, action: "SWAP" } })), "INVALID_EVIDENCE");
-  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, preparedAction: { ...f.record.preparedAction, quoteFingerprint: fingerprint } } })), "INVALID_EVIDENCE");
-  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, chainId: baseSepolia.id } })), "INVALID_EVIDENCE");
-  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, submittedHash: fingerprint } })), "INVALID_EVIDENCE");
+  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, account: recipient } })), "IDENTITY_MISMATCH");
+  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, action: "SWAP" } })), "IDENTITY_MISMATCH");
+  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, preparedAction: { ...f.record.preparedAction, quoteFingerprint: fingerprint } } })), "IDENTITY_MISMATCH");
+  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, chainId: baseSepolia.id } })), "IDENTITY_MISMATCH");
+  assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, record: { ...f.record, submittedHash: fingerprint } })), "IDENTITY_MISMATCH");
 });
 
 test("12B rejects malformed requests, terminal mappings, cross scope, and structural-only proof", async () => {
@@ -148,7 +152,7 @@ test("12D requires Phase 10F explicit rejection before submission", async () => 
   const { submittedHash: _hash, ...base } = f.record;
   assert.equal(_hash, hash);
   const rejected = state("REJECTED", "state:rejected", { attempt: attemptRef });
-  const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "USER_REJECTED" }, now });
+  const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "USER_REJECTED" } });
   assert.equal(evaluateAgentTransition(awaiting, rejected, evidence).allowed, true);
   assert.equal(reason(evaluateAgentTransition(awaiting, rejected, { ...evidence, record: f.record })), "TERMINAL_NOT_PROVEN");
   assert.equal(reason(evaluateAgentTransition(awaiting, rejected, { ...evidence, record: { ...base, event: "SUBMISSION_OUTCOME_UNKNOWN" } })), "TERMINAL_NOT_PROVEN");
@@ -162,25 +166,26 @@ test("12D expires only a bound pre-submission attempt with elapsed artifacts", a
   const f = await fixture();
   const { submittedHash: _hash, ...base } = f.record;
   assert.equal(_hash, hash);
-  const ref = f.record.preparedAction;
-  const artifacts = {
-    quote: { tool: "send.quote", account, chainId: arcTestnet.id, fingerprint: ref.quoteFingerprint, expiresAt: now + 1 },
-    preparation: { tool: ref.tool, account, chainId: arcTestnet.id, quoteFingerprint: ref.quoteFingerprint, stepIndex: ref.stepIndex, expiresAt: now + 1 },
-    handoff: { account, expiresAt: now + 1 },
-  };
+  const artifacts = expiryArtifacts();
   const expired = state("EXPIRED", "state:expired", { attempt: attemptRef });
-  const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, now, artifacts });
-  assert.equal(reason(evaluateAgentTransition(awaiting, expired, evidence)), "TERMINAL_NOT_PROVEN");
-  for (const changed of [
-    { ...artifacts, quote: { ...artifacts.quote, expiresAt: now - 1 } },
-    { ...artifacts, preparation: { ...artifacts.preparation, expiresAt: now - 1 } },
-    { ...artifacts, handoff: { ...artifacts.handoff, expiresAt: now - 1 } },
-  ]) assert.equal(evaluateAgentTransition(awaiting, expired, { ...evidence, artifacts: changed }).allowed, true);
-  assert.equal(reason(evaluateAgentTransition(awaiting, expired, { ...evidence, artifacts: { quote: artifacts.quote, preparation: artifacts.preparation } })), "TERMINAL_NOT_PROVEN");
-  assert.equal(reason(evaluateAgentTransition(awaiting, expired, { ...evidence, artifacts: { ...artifacts, quote: { ...artifacts.quote, account: recipient, expiresAt: now - 1 } } })), "INVALID_EVIDENCE");
-  assert.equal(reason(evaluateAgentTransition(awaiting, expired, { ...evidence, record: { ...base, event: "SUBMISSION_OUTCOME_UNKNOWN" } })), "TERMINAL_NOT_PROVEN");
-  assert.equal(reason(evaluateAgentTransition(submitted, expired, { ...evidence, stateId: submitted.stateId, record: f.record })), "ILLEGAL_TRANSITION");
+  const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, artifacts });
+  const boundary = Math.min(binding.quoteExpiresAt, binding.preparationExpiresAt, binding.handoffExpiresAt ?? Infinity);
+  for (const time of [boundary - 1, boundary]) assert.equal(createAgentTransitionEvaluator(() => time)(awaiting, expired, evidence).allowed, false);
+  assert.equal(createAgentTransitionEvaluator(() => boundary + 1)(awaiting, expired, evidence).allowed, true);
+  assert.equal(evaluateAgentTransition(awaiting, expired, { ...evidence, now: boundary + 1 }).allowed, false);
+  for (const field of ["quote", "preparation", "handoff"] as const) {
+    assert.equal(createAgentTransitionEvaluator(() => boundary + 1)(awaiting, expired, { ...evidence, artifacts: { ...artifacts, [field]: { ...artifacts[field], expiresAt: 0 } } }).allowed, false);
+  }
 });
+
+function expiryArtifacts() {
+  const ref = binding.preparedAction;
+  return {
+    quote: { tool: "send.quote", account, chainId: binding.chainId, fingerprint: ref.quoteFingerprint, expiresAt: binding.quoteExpiresAt },
+    preparation: { tool: ref.tool, account, chainId: binding.chainId, quoteFingerprint: ref.quoteFingerprint, stepIndex: ref.stepIndex, expiresAt: binding.preparationExpiresAt },
+    handoff: { account, expiresAt: binding.handoffExpiresAt! },
+  };
+}
 
 test("12D FAILED requires bound Phase 10C REVERTED through Phase 10F", async () => {
   const f = await fixture();
@@ -203,7 +208,7 @@ test("12D FAILED requires bound Phase 10C REVERTED through Phase 10F", async () 
   }
   const { submittedHash: _hash, ...base } = f.record;
   assert.equal(_hash, hash);
-  const pre = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, now });
+  const pre = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" } });
   assert.equal(reason(evaluateAgentTransition(awaiting, failed, pre)), "ILLEGAL_TRANSITION");
   const throwing = new Proxy({}, { getPrototypeOf() { throw Error("malformed"); } });
   assert.equal(reason(evaluateAgentTransition(submitted, failed, { ...bind("RECEIPT", submitted.stateId, { strategy: f.strategy, record: f.record, receipt: reverted, now }), receipt: throwing })), "INVALID_EVIDENCE");
@@ -211,7 +216,7 @@ test("12D FAILED requires bound Phase 10C REVERTED through Phase 10F", async () 
 
 test("12D source CCTP revert remains source-only and historical state is not fresh evidence", async () => {
   const f = await bridgeFixture();
-  const source = { ...submitted, step: { kind: "STRATEGY_STEP", strategyId: f.strategy.id, stepId: "bridge" }, scope: "SOURCE_CHAIN", attempt: { kind: "TRANSACTION_ATTEMPT", id: f.record.attemptId } };
+  const source = { ...submitted, binding: f.binding, step: { kind: "STRATEGY_STEP", strategyId: f.strategy.id, stepId: "bridge" }, scope: "SOURCE_CHAIN", attempt: { kind: "TRANSACTION_ATTEMPT", id: f.record.attemptId } };
   const failure = { ...source, stateId: "state:bridge-failed", status: "FAILED" };
   const reverted: StrategyReceiptResult = { status: "REVERTED", strategyId: f.strategy.id, stepId: "bridge", action: "BRIDGE", account, preparedAction: f.record.preparedAction, hash, chainId: arcTestnet.id, blockNumber: "123", scope: "SOURCE_TRANSACTION" };
   const evidence = bind("RECEIPT", source.stateId, { strategy: f.strategy, record: f.record, receipt: reverted, now });
@@ -255,8 +260,8 @@ test("12B keeps a Phase 10C CCTP source receipt within source scope", async () =
   const f = await bridgeFixture();
   const bridgeStep = { kind: "STRATEGY_STEP", strategyId: f.strategy.id, stepId: "bridge" };
   const bridgeAttempt = { kind: "TRANSACTION_ATTEMPT", id: f.record.attemptId };
-  const source = { ...confirming, step: bridgeStep, attempt: bridgeAttempt, scope: "SOURCE_CHAIN" };
-  const sourceSuccess = { ...success, step: bridgeStep, attempt: bridgeAttempt, scope: "SOURCE_CHAIN" };
+  const source = { ...confirming, binding: f.binding, step: bridgeStep, attempt: bridgeAttempt, scope: "SOURCE_CHAIN" };
+  const sourceSuccess = { ...success, binding: f.binding, step: bridgeStep, attempt: bridgeAttempt, scope: "SOURCE_CHAIN" };
   const evidence = bind("RECEIPT", source.stateId, { strategy: f.strategy, record: f.record, receipt: f.receipt, now });
   assert.equal(evaluateAgentTransition(source, sourceSuccess, evidence).allowed, true);
   const destination = { ...source, scope: "DESTINATION_CHAIN" };
@@ -273,4 +278,82 @@ test("12B evaluates only the requested edge and leaves its input state untouched
   assert.equal(JSON.stringify(awaiting), before);
   assert.equal(result.allowed && result.state.kind === "TRANSACTION" && result.state.status, "SUBMITTED");
   assert.equal(validateAgentState(submitted).valid, true);
+});
+
+test("prerequisite rejects another account's USER_REJECTED record", async () => {
+  const f = await fixture();
+  const { submittedHash: _hash, ...base } = f.record;
+  assert.equal(_hash, hash);
+  const rejected = state("REJECTED", "state:rejected", { attempt: attemptRef });
+  const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, account: recipient, event: "USER_REJECTED" } });
+  assert.equal(evaluateAgentTransition(awaiting, rejected, evidence).allowed, false);
+});
+
+test("prerequisite establishes immutable identity from canonical preparation", async () => {
+  const f = await fixture();
+  const context = { strategy: f.strategy, stepId: "send", quote: f.policyInput.quote, preparation: f.policyInput.preparation };
+  assert.deepEqual(createPreparedAgentState({ sessionId: identity.sessionId, stateId: prepared.stateId }, context), prepared);
+  for (const change of [{ stepId: "other" }, { quote: null }, { preparation: null }, { strategy: {} }]) assert.equal(createPreparedAgentState({ sessionId: identity.sessionId, stateId: prepared.stateId }, { ...context, ...change }), undefined);
+  const review = bind("REVIEW", prepared.stateId, { input: { strategy: f.strategy, stepId: "send", policyInput: f.policyInput } });
+  assert.equal(evaluateAgentTransition({ ...prepared, binding: { ...binding, account: recipient } }, { ...awaiting, binding: { ...binding, account: recipient } }, review).allowed, false);
+  assert.equal(evaluateAgentTransition(prepared, { ...awaiting, binding: { ...binding, account: recipient } }, review).allowed, false);
+  assert.equal(Object.isFrozen(binding), true);
+  assert.equal(Object.isFrozen(binding.preparedAction), true);
+});
+
+test("prerequisite binds every transaction edge to original account and artifact", async () => {
+  const f = await fixture();
+  const { submittedHash: _hash, ...base } = f.record;
+  assert.equal(_hash, hash);
+  // Use exact 10C reverted shape (CONFIRMED carries additional read evidence).
+  const failedReceipt = { status: "REVERTED", strategyId: f.strategy.id, stepId: "send", action: "SEND", account, preparedAction: f.record.preparedAction, hash, chainId: arcTestnet.id, blockNumber: "123", scope: "SOURCE_TRANSACTION" };
+  const pending = { status: "PENDING", strategyId: f.strategy.id, stepId: "send", hash };
+  const cases = [
+    { from: awaiting, to: state("REJECTED", "rejected", { attempt: attemptRef }), evidence: bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "USER_REJECTED" } }) },
+    { from: awaiting, to: state("EXPIRED", "expired", { attempt: attemptRef }), evidence: bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, artifacts: expiryArtifacts() }) },
+    { from: awaiting, to: submitted, evidence: bind("ATTEMPT", awaiting.stateId, { strategy: f.strategy, record: f.record, now }) },
+    { from: submitted, to: confirming, evidence: bind("RECEIPT", submitted.stateId, { strategy: f.strategy, record: f.record, receipt: pending, now }) },
+    { from: confirming, to: success, evidence: bind("RECEIPT", confirming.stateId, { strategy: f.strategy, record: f.record, receipt: f.receipt, now }) },
+    ...[submitted, confirming].map((from) => ({ from, to: state("FAILED", "failed", { attempt: attemptRef }), evidence: bind("RECEIPT", from.stateId, { strategy: f.strategy, record: f.record, receipt: failedReceipt, now }) })),
+  ];
+  const evaluate = createAgentTransitionEvaluator(() => binding.quoteExpiresAt + 1);
+  for (const { from, to, evidence } of cases) {
+    assert.equal(evaluate(from, to, evidence).allowed, true, to.status);
+    const record = (evidence as unknown as { record: StrategyRecoveryRecord }).record;
+    for (const change of [{ account: recipient }, { chainId: baseSepolia.id }, { strategyId: "other" }, { stepId: "other" }, { action: "SWAP" }, { preparedAction: { ...record.preparedAction, quoteFingerprint: fingerprint } }, { preparedAction: { ...record.preparedAction, stepIndex: 1 } }, { attemptId: "attempt_other" }]) {
+      assert.equal(evaluate(from, to, { ...evidence, record: { ...record, ...change } }).allowed, false, `${to.status}: ${JSON.stringify(change)}`);
+    }
+    assert.equal(evaluate(from, { ...to, binding: { ...binding, account: recipient } }, evidence).allowed, false);
+    assert.equal(evaluate(from, { ...to, scope: "DESTINATION_CHAIN" }, evidence).allowed, false);
+    if (from.status === "SUBMITTED" || from.status === "CONFIRMING") {
+      const receipt = (evidence as unknown as { receipt: object }).receipt;
+      for (const change of [{ account: recipient }, { submittedHash: fingerprint }]) {
+        assert.equal(evaluate(from, to, { ...evidence, record: { ...record, ...change }, receipt: { ...receipt, ...(change.account ? { account: recipient } : { hash: fingerprint }) } }).allowed, false);
+      }
+    }
+  }
+});
+
+test("prerequisite expiry rejects spoofed time, unrelated artifacts, malformed clocks and runtime objects", async () => {
+  const f = await fixture();
+  const { submittedHash: _hash, ...base } = f.record;
+  assert.equal(_hash, hash);
+  const expired = state("EXPIRED", "expired", { attempt: attemptRef });
+  const artifacts = expiryArtifacts();
+  const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, artifacts });
+  const evaluate = createAgentTransitionEvaluator(() => binding.quoteExpiresAt + 1);
+  for (const invalid of [NaN, Infinity, -1, 1.1, Number.MAX_SAFE_INTEGER + 1]) assert.equal(createAgentTransitionEvaluator(() => invalid)(awaiting, expired, evidence).allowed, false);
+  assert.equal(createAgentTransitionEvaluator(() => { throw Error("clock unavailable"); })(awaiting, expired, evidence).allowed, false);
+  for (const callerTime of [binding.quoteExpiresAt + 1, NaN, Infinity, -1]) assert.equal(evaluateAgentTransition(awaiting, expired, { ...evidence, now: callerTime }).allowed, false);
+  for (const field of ["quote", "preparation", "handoff"] as const) {
+    for (const change of [{ account: recipient }, { expiresAt: NaN }, { expiresAt: Infinity }, { expiresAt: -1 }, { expiresAt: binding.quoteExpiresAt + 1000 }]) assert.equal(evaluate(awaiting, expired, { ...evidence, artifacts: { ...artifacts, [field]: { ...artifacts[field], ...change } } }).allowed, false);
+  }
+  for (const change of [{ fingerprint }, { chainId: baseSepolia.id }, { tool: "swap.quote" }]) assert.equal(evaluate(awaiting, expired, { ...evidence, artifacts: { ...artifacts, quote: { ...artifacts.quote, ...change } } }).allowed, false);
+  assert.equal(evaluate(awaiting, expired, { ...evidence, artifacts: { ...artifacts, preparation: { ...artifacts.preparation, stepIndex: 1 } } }).allowed, false);
+  const throwing = new Proxy({}, { get() { throw Error("malformed"); }, getPrototypeOf() { throw Error("malformed"); } });
+  for (const changed of [{ record: throwing }, { artifacts: throwing }, { strategy: throwing }]) assert.equal(evaluate(awaiting, expired, { ...evidence, ...changed }).allowed, false);
+  assert.equal(evaluate(awaiting, expired, { status: "HISTORICAL", state: expired }).allowed, false);
+  let calls = 0;
+  assert.equal(createAgentTransitionEvaluator(() => { calls++; return binding.quoteExpiresAt + 1; })(awaiting, expired, evidence).allowed, true);
+  assert.equal(calls, 1);
 });

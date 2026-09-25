@@ -1,3 +1,4 @@
+import { bindAgentTransaction, sameAgentBinding } from "./agentTransactionBinding.ts";
 import { validateAgentState, type AgentState } from "./agentState.ts";
 import { validatePlannerPlan } from "./plannerPlan.ts";
 import type { PlannerPlanGenerationResult } from "./plannerPlanGenerator.ts";
@@ -11,7 +12,7 @@ export type AgentTransitionEvidence = EvidenceBase & (
   | Readonly<{ kind: "REVIEW"; input: StrategyStepInput }>
   | Readonly<{ kind: "ATTEMPT"; strategy: unknown; record: StrategyRecoveryRecord; now: number }>
   | Readonly<{ kind: "RECEIPT"; strategy: unknown; record: StrategyRecoveryRecord; receipt: StrategyReceiptResult; now: number }>
-  | Readonly<{ kind: "OUTCOME"; strategy: unknown; record: StrategyRecoveryRecord; now: number; artifacts?: RecoveryArtifacts }>
+  | Readonly<{ kind: "OUTCOME"; strategy: unknown; record: StrategyRecoveryRecord; artifacts?: RecoveryArtifacts }>
 );
 export type AgentTransitionRejection =
   | "INVALID_STATE" | "INVALID_EVIDENCE" | "IDENTITY_MISMATCH" | "ILLEGAL_TRANSITION"
@@ -28,7 +29,7 @@ const status = (state: AgentState) => state.kind === "TRANSACTION" ? state.statu
 const transaction = (state: AgentState): state is TransactionState => state.kind === "TRANSACTION";
 const exactEvidence = (value: Record<string, unknown>) => {
   if (value.kind === "OUTCOME") {
-    const required = ["kind", "sessionId", "stateId", "strategy", "record", "now"];
+    const required = ["kind", "sessionId", "stateId", "strategy", "record"];
     return required.every((field) => Object.hasOwn(value, field)) && Reflect.ownKeys(value).every((field) => typeof field === "string" && [...required, "artifacts"].includes(field) && Object.getOwnPropertyDescriptor(value, field)?.enumerable === true && Object.hasOwn(Object.getOwnPropertyDescriptor(value, field)!, "value"));
   }
   const fields = value.kind === "PLAN" ? ["kind", "sessionId", "stateId", "result"]
@@ -38,12 +39,15 @@ const exactEvidence = (value: Record<string, unknown>) => {
   return fields.length > 0 && Reflect.ownKeys(value).length === fields.length && fields.every((field) => Object.hasOwn(value, field) && Object.getOwnPropertyDescriptor(value, field)?.enumerable === true && Object.hasOwn(Object.getOwnPropertyDescriptor(value, field)!, "value"));
 };
 const recordMatches = (state: TransactionState, record: StrategyRecoveryRecord) =>
+  (!("submittedHash" in state) || typeof record.submittedHash === "string" && sameHash(state.submittedHash, record.submittedHash)) &&
+  record.account.toLowerCase() === state.binding.account.toLowerCase() && record.chainId === state.binding.chainId && record.action === state.binding.action &&
+  record.preparedAction.kind === state.binding.preparedAction.kind && record.preparedAction.tool === state.binding.preparedAction.tool && record.preparedAction.quoteFingerprint === state.binding.preparedAction.quoteFingerprint && record.preparedAction.stepIndex === state.binding.preparedAction.stepIndex &&
   record.strategyId === state.step.strategyId && record.stepId === state.step.stepId &&
   ("attempt" in state ? state.attempt?.id === record.attemptId : true);
 
 /** Classifies one requested 12D outcome using the existing 10F guard. */
-function terminalTransition(from: TransactionState, to: TransactionState, evidence: Record<string, unknown>): AgentTransitionResult {
-  if ((evidence.kind !== "OUTCOME" && evidence.kind !== "RECEIPT") || !evidence.record || typeof evidence.record !== "object" || !Number.isSafeInteger(evidence.now) || (evidence.now as number) < 0) return deny("INVALID_EVIDENCE");
+function terminalTransition(from: TransactionState, to: TransactionState, evidence: Record<string, unknown>, observedNow: number): AgentTransitionResult {
+  if ((evidence.kind !== "OUTCOME" && evidence.kind !== "RECEIPT") || !evidence.record || typeof evidence.record !== "object" || !Number.isSafeInteger(observedNow) || observedNow < 0) return deny("INVALID_EVIDENCE");
   if (evidence.kind === "RECEIPT" && evidence.receipt === undefined) return deny("INVALID_EVIDENCE");
   const record = evidence.record as StrategyRecoveryRecord;
   if (!recordMatches(from, record) || !recordMatches(to, record) || !("attempt" in to) || to.attempt?.id !== record.attemptId) return deny("IDENTITY_MISMATCH");
@@ -53,7 +57,8 @@ function terminalTransition(from: TransactionState, to: TransactionState, eviden
   if (!beforeSubmission && !submitted) return deny("TERMINAL_NOT_PROVEN");
   const receipt = evidence.kind === "RECEIPT" ? evidence.receipt as StrategyReceiptResult : undefined;
   const artifacts = evidence.kind === "OUTCOME" ? evidence.artifacts as RecoveryArtifacts | undefined : undefined;
-  const now = evidence.now as number;
+  const now = observedNow;
+  if (artifacts && (artifacts.quote.expiresAt !== from.binding.quoteExpiresAt || artifacts.preparation.expiresAt !== from.binding.preparationExpiresAt || (artifacts.handoff?.expiresAt ?? null) !== from.binding.handoffExpiresAt)) return deny("INVALID_EVIDENCE");
   const recovery = evaluateStrategyRecovery({ strategy: evidence.strategy, record, now, ...(receipt === undefined ? {} : { receipt }), ...(artifacts === undefined ? {} : { artifacts }) });
   if (recovery.status === "INVALID_STRATEGY" || recovery.status === "INVALID_EVIDENCE") return deny("INVALID_EVIDENCE");
   if (!("attemptId" in recovery) || recovery.attemptId !== record.attemptId) return deny("IDENTITY_MISMATCH");
@@ -67,7 +72,7 @@ function terminalTransition(from: TransactionState, to: TransactionState, eviden
 }
 
 /** Evaluates one requested edge. No state is stored, signed, submitted, or advanced again. */
-function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, evidenceInput: unknown): AgentTransitionResult {
+function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, evidenceInput: unknown, clock: () => number): AgentTransitionResult {
   const current = validateAgentState(currentInput), next = validateAgentState(nextInput);
   if (!current.valid || !next.valid) return deny("INVALID_STATE");
   const from = current.value, to = next.value;
@@ -90,8 +95,8 @@ function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, 
     return checked.valid && checked.value.id === to.plan.id ? { allowed: true, state: to } : deny("INVALID_EVIDENCE");
   }
 
-  if (!transaction(from) || !transaction(to) || from.step.strategyId !== to.step.strategyId || from.step.stepId !== to.step.stepId || from.scope !== to.scope) return deny("IDENTITY_MISMATCH");
-  if (terminal) return terminalTransition(from, to, evidence);
+  if (!transaction(from) || !transaction(to) || from.step.strategyId !== to.step.strategyId || from.step.stepId !== to.step.stepId || from.scope !== to.scope || !sameAgentBinding(from.binding, to.binding)) return deny("IDENTITY_MISMATCH");
+  if (terminal) return terminalTransition(from, to, evidence, clock());
   if (edge === "PREPARED>AWAITING_SIGNATURE") {
     if (evidence.kind !== "REVIEW" || !evidence.input || typeof evidence.input !== "object") return deny("INVALID_EVIDENCE");
     let result;
@@ -101,6 +106,9 @@ function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, 
     if (result.status !== "READY_FOR_WALLET_REVIEW" || result.strategyId !== from.step.strategyId || result.stepId !== from.step.stepId || result.confirmation !== "EXPLICIT_USER_CONFIRMATION") return deny("INVALID_EVIDENCE");
     if (result.policy.mustStop || !result.policy.requiresUserReview || !["ALLOW", "WARN", "REQUIRE_REVIEW"].includes(result.policy.decision)) return deny("POLICY_STOP");
     if (result.action === "BRIDGE" ? from.scope !== "SOURCE_CHAIN" : from.scope !== "SINGLE_CHAIN") return deny("SCOPE_MISMATCH");
+    const input = evidence.input as StrategyStepInput;
+    const bound = bindAgentTransaction({ strategy: input.strategy, stepId: input.stepId, quote: input.policyInput?.quote, preparation: input.policyInput?.preparation });
+    if (!bound || !sameAgentBinding(from.binding, bound)) return deny("IDENTITY_MISMATCH");
     return { allowed: true, state: to };
   }
 
@@ -122,8 +130,14 @@ function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, 
   return { allowed: true, state: to };
 }
 
-/** Malformed runtime objects must deny the requested edge rather than escape the guard. */
-export function evaluateAgentTransition(currentInput: unknown, nextInput: unknown, evidenceInput: unknown): AgentTransitionResult {
-  try { return evaluateAgentTransitionCore(currentInput, nextInput, evidenceInput); }
-  catch { return deny("INVALID_EVIDENCE"); }
+/** Runtime wiring owns this function dependency; it is never read from evidence JSON.
+ * Sample once per terminal edge. Phase 10F defines elapsed as now > expiresAt.
+ */
+export function createAgentTransitionEvaluator(clock: () => number = () => Date.now()) {
+  return (currentInput: unknown, nextInput: unknown, evidenceInput: unknown): AgentTransitionResult => {
+    try { return evaluateAgentTransitionCore(currentInput, nextInput, evidenceInput, clock); }
+    catch { return deny("INVALID_EVIDENCE"); }
+  };
 }
+
+export const evaluateAgentTransition = createAgentTransitionEvaluator();

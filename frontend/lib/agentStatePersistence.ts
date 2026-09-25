@@ -1,7 +1,7 @@
 import { validateAgentState, type AgentState } from "./agentState.ts";
 import type { AgentSessionBinding } from "./agent/sessionContext.ts";
 
-export const AGENT_STATE_STORAGE_PREFIX = "makoto.agent.state.v1";
+export const AGENT_STATE_STORAGE_PREFIX = "makoto.agent.state.v2";
 
 /** A restored record is historical application data, never current execution evidence. */
 export type AgentStateRestoreResult =
@@ -11,11 +11,11 @@ export type AgentStateRestoreResult =
 type ReadStore = Pick<Storage, "getItem">;
 type WriteStore = Pick<Storage, "setItem">;
 type BoundContext = Readonly<{ account: string; chainId: number }>;
-type StoredAgentState = Readonly<{ version: 1; account: string; chainId: number; state: AgentState }>;
+type StoredAgentState = Readonly<{ version: 2; account: string; chainId: number; state: AgentState }>;
 
 const account = (value: unknown): value is string => typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value) && !/^0x0{40}$/i.test(value);
 const chain = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) > 0;
-const validSession = (value: unknown): value is string => validateAgentState({ version: 1, sessionId: value, stateId: "identity-check", kind: "REQUESTED" }).valid;
+const validSession = (value: unknown): value is string => validateAgentState({ version: 2, sessionId: value, stateId: "identity-check", kind: "REQUESTED" }).valid;
 const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 const exact = (value: Record<string, unknown>, fields: readonly string[]) => Reflect.ownKeys(value).length === fields.length && fields.every((field) => Object.hasOwn(value, field) && Object.getOwnPropertyDescriptor(value, field)?.enumerable === true && Object.hasOwn(Object.getOwnPropertyDescriptor(value, field)!, "value"));
 
@@ -38,8 +38,8 @@ export function storeAgentState(store: WriteStore, state: unknown, binding: Agen
     const checked = validateAgentState(state);
     if (!checked.valid) return false;
     const context = normalized(binding), key = agentStateStorageKey(checked.value.sessionId, binding);
-    if (!context || !key) return false;
-    const record: StoredAgentState = { version: 1, ...context, state: checked.value };
+    if (!context || !key || !matchesContext(checked.value, context)) return false;
+    const record: StoredAgentState = { version: 2, ...context, state: checked.value };
     store.setItem(key, JSON.stringify(record));
     return true;
   } catch { return false; }
@@ -53,11 +53,13 @@ export function restoreAgentState(store: ReadStore, sessionId: unknown, binding:
     const raw = store.getItem(key);
     if (raw === null) return { status: "ABSENT" };
     const parsed: unknown = JSON.parse(raw);
-    if (!object(parsed) || !exact(parsed, ["version", "account", "chainId", "state"]) || parsed.version !== 1) return { status: "INVALID" };
+    if (!object(parsed) || !exact(parsed, ["version", "account", "chainId", "state"]) || parsed.version !== 2) return { status: "INVALID" };
     const context = normalized(binding);
     if (!context || parsed.account !== context.account || parsed.chainId !== context.chainId) return { status: "INVALID" };
     const checked = validateAgentState(parsed.state);
-    if (!checked.valid || checked.value.sessionId !== sessionId) return { status: "INVALID" };
+    if (!checked.valid || checked.value.sessionId !== sessionId || !matchesContext(checked.value, context)) return { status: "INVALID" };
     return { status: "HISTORICAL", state: checked.value };
   } catch { return { status: "INVALID" }; }
 }
+
+const matchesContext = (state: AgentState, context: BoundContext) => state.kind !== "TRANSACTION" || state.binding.account.toLowerCase() === context.account && state.binding.chainId === context.chainId;
