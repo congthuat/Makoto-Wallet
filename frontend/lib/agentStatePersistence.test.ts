@@ -201,3 +201,14 @@ test("prerequisite v2 persistence rejects legacy identity and envelope account s
   assert.equal(restored.status, "HISTORICAL");
   if (restored.status === "HISTORICAL") assert.equal(evaluateAgentTransition(restored.state, { ...state, status: "REJECTED", stateId: "next", attempt }, restored).allowed, false);
 });
+
+test("review: every restored v2 terminal label remains historical", () => {
+  const store = new MemoryStore();
+  for (const status of ["SUCCESS", "FAILED", "REJECTED", "EXPIRED"] as const) {
+    const state = status === "SUCCESS" ? transaction(status, { attempt, receipt }) : transaction(status, { attempt });
+    assert.equal(storeAgentState(store, state, binding), true);
+    const historical = restoreAgentState(store, identity.sessionId, binding);
+    assert.deepEqual(historical, { status: "HISTORICAL", state });
+    assert.equal(evaluateAgentTransition(state, transaction("AWAITING_SIGNATURE", { stateId: "next" }), historical).allowed, false);
+  }
+});

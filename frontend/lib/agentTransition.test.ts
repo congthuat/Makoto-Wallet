@@ -6,12 +6,13 @@ import { createAgentContextSnapshot } from "./agent/context.ts";
 import { runPrepareTool } from "./agent/prepareTools.ts";
 import { runQuoteTool } from "./agent/quoteTools.ts";
 import { runReadTool } from "./agent/readTools.ts";
-import { createAgentTransitionEvaluator } from "./agentTransition.ts";
+import * as transitionModule from "./agentTransition.ts";
+import { evaluateAgentTransition as runtimeEvaluateAgentTransition } from "./agentTransition.ts";
 import { bindAgentTransaction } from "./agentTransactionBinding.ts";
 import { createPreparedAgentState, validateAgentState } from "./agentState.ts";
 import type { FinalPolicyInput } from "./policyEngine.ts";
 import type { Strategy, ActionStep } from "./strategyModel.ts";
-import type { StrategyRecoveryRecord } from "./strategyRecovery.ts";
+import { evaluateStrategyRecovery, type StrategyRecoveryRecord } from "./strategyRecovery.ts";
 import { verifyStrategyReceipt, type StrategyReceiptResult } from "./strategyReceipt.ts";
 
 const account = getAddress("0x1111111111111111111111111111111111111111");
@@ -19,7 +20,14 @@ const recipient = getAddress("0x2222222222222222222222222222222222222222");
 const hash = `0x${"a".repeat(64)}` as Hash;
 const fingerprint = `0x${"b".repeat(64)}` as Hash;
 const now = 1_000_000;
-const evaluateAgentTransition = createAgentTransitionEvaluator(() => now);
+function withRuntimeTime<T>(clock: () => number, run: () => T): T {
+  const original = Date.now;
+  try { Date.now = clock; return run(); }
+  finally { Date.now = original; }
+}
+const evaluateAt = (clock: () => number) => (...args: Parameters<typeof runtimeEvaluateAgentTransition>) =>
+  withRuntimeTime(clock, () => runtimeEvaluateAgentTransition(...args));
+const evaluateAgentTransition = evaluateAt(() => now);
 const identity = { version: 2, sessionId: "session:1" } as const;
 const stepRef = { kind: "STRATEGY_STEP", strategyId: "strategy:1", stepId: "send" } as const;
 const attemptRef = { kind: "TRANSACTION_ATTEMPT", id: "attempt_123" } as const;
@@ -35,7 +43,8 @@ const success = state("SUCCESS", "state:5", { attempt: attemptRef, receipt: rece
 const bind = (kind: string, stateId: string, extra = {}) => ({ kind, sessionId: identity.sessionId, stateId, ...extra });
 const reason = (result: ReturnType<typeof evaluateAgentTransition>) => result.allowed ? "ALLOWED" : result.reason;
 
-async function fixture() {
+async function fixture(selectedAccount = account, selectedHash = hash, receiptStatus: "success" | "reverted" = "success") {
+  const account = selectedAccount, hash = selectedHash;
   const balances = { usdc: 100_000_000n, eurc: 0n, cirbtc: 0n };
   const snapshot = createAgentContextSnapshot({ connected: true, account, walletStatus: "connected", accountKind: "external", verifiedChainId: arcTestnet.id, isArc: true, balances, activity: [], activityLoadState: "loaded", vault: { available: false }, timestamp: now });
   const context = { snapshot, now: () => now, reads: { readBalance: async (_owner: typeof account, asset: keyof typeof balances) => balances[asset], readAllowance: async () => 0n }, services: { estimateSendMaximumFee: async () => 1_000_000_000_000_000n, readXyloOutput: async () => ({ amountOut: 9_000_000n, quotedAt: now }), readDirectCctpFee: async () => ({ finalityThreshold: 2000 as const, minimumFee: 1, forwardFeeMed: "200000", quotedAt: now }) } };
@@ -49,8 +58,8 @@ async function fixture() {
   const policyInput: FinalPolicyInput = { action: "SEND", account, chainId: arcTestnet.id, now, wallet, network, quote, preparation, stepIndex: 0, current: { wallet, network, balances: { tool: "assets.balances", account, chainId: arcTestnet.id, capturedAt: now, observedAt: now, freshness: "live", source: ["arc-rpc"], status: "AVAILABLE", data: balances }, quote, fee: { status: "available", observedAt: now, maximumFeeRaw18: (quote.data as { maximumFeeRaw18: bigint }).maximumFeeRaw18, maximumFeeUsdc6: (quote.data as { maximumFeeUsdc6: bigint }).maximumFeeUsdc6, gasBalanceRaw18: 10_000_000_000_000_000n }, simulation: { status: "passed", account, chainId: arcTestnet.id, request: preparation.data.steps[0].request, quoteFingerprint: preparation.data.quoteFingerprint, observedAt: now } } };
   const record: StrategyRecoveryRecord = { version: 1, attemptId: attemptRef.id, strategyId: strategy.id, stepId: step.id, action: step.action, account, chainId: arcTestnet.id, preparedAction: step.preparedAction!, event: "SUBMITTED", submittedHash: hash };
   const request = preparation.data.steps[0].request;
-  const receipt = verifyStrategyReceipt({ strategy, submitted: { strategyId: strategy.id, stepId: step.id, action: step.action, preparedAction: step.preparedAction!, hash, account, chainId: arcTestnet.id }, preparation, observation: { status: "FOUND", observedAt: now, chainId: arcTestnet.id, receipt: { hash, status: "success", blockNumber: "123" }, transaction: { hash, from: account, to: request.to, input: request.data, value: request.value, chainId: arcTestnet.id } } });
-  assert.equal(receipt.status, "CONFIRMED");
+  const receipt = verifyStrategyReceipt({ strategy, submitted: { strategyId: strategy.id, stepId: step.id, action: step.action, preparedAction: step.preparedAction!, hash, account, chainId: arcTestnet.id }, preparation, observation: { status: "FOUND", observedAt: now, chainId: arcTestnet.id, receipt: { hash, status: receiptStatus, blockNumber: "123" }, transaction: { hash, from: account, to: request.to, input: request.data, value: request.value, chainId: arcTestnet.id } } });
+  assert.equal(receipt.status, receiptStatus === "success" ? "CONFIRMED" : "REVERTED");
   return { strategy, policyInput, record, receipt, context };
 }
 
@@ -170,11 +179,11 @@ test("12D expires only a bound pre-submission attempt with elapsed artifacts", a
   const expired = state("EXPIRED", "state:expired", { attempt: attemptRef });
   const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, artifacts });
   const boundary = Math.min(binding.quoteExpiresAt, binding.preparationExpiresAt, binding.handoffExpiresAt ?? Infinity);
-  for (const time of [boundary - 1, boundary]) assert.equal(createAgentTransitionEvaluator(() => time)(awaiting, expired, evidence).allowed, false);
-  assert.equal(createAgentTransitionEvaluator(() => boundary + 1)(awaiting, expired, evidence).allowed, true);
+  for (const time of [boundary - 1, boundary]) assert.equal(evaluateAt(() => time)(awaiting, expired, evidence).allowed, false);
+  assert.equal(evaluateAt(() => boundary + 1)(awaiting, expired, evidence).allowed, true);
   assert.equal(evaluateAgentTransition(awaiting, expired, { ...evidence, now: boundary + 1 }).allowed, false);
   for (const field of ["quote", "preparation", "handoff"] as const) {
-    assert.equal(createAgentTransitionEvaluator(() => boundary + 1)(awaiting, expired, { ...evidence, artifacts: { ...artifacts, [field]: { ...artifacts[field], expiresAt: 0 } } }).allowed, false);
+    assert.equal(evaluateAt(() => boundary + 1)(awaiting, expired, { ...evidence, artifacts: { ...artifacts, [field]: { ...artifacts[field], expiresAt: 0 } } }).allowed, false);
   }
 });
 
@@ -316,7 +325,7 @@ test("prerequisite binds every transaction edge to original account and artifact
     { from: confirming, to: success, evidence: bind("RECEIPT", confirming.stateId, { strategy: f.strategy, record: f.record, receipt: f.receipt, now }) },
     ...[submitted, confirming].map((from) => ({ from, to: state("FAILED", "failed", { attempt: attemptRef }), evidence: bind("RECEIPT", from.stateId, { strategy: f.strategy, record: f.record, receipt: failedReceipt, now }) })),
   ];
-  const evaluate = createAgentTransitionEvaluator(() => binding.quoteExpiresAt + 1);
+  const evaluate = evaluateAt(() => binding.quoteExpiresAt + 1);
   for (const { from, to, evidence } of cases) {
     assert.equal(evaluate(from, to, evidence).allowed, true, to.status);
     const record = (evidence as unknown as { record: StrategyRecoveryRecord }).record;
@@ -341,9 +350,9 @@ test("prerequisite expiry rejects spoofed time, unrelated artifacts, malformed c
   const expired = state("EXPIRED", "expired", { attempt: attemptRef });
   const artifacts = expiryArtifacts();
   const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, artifacts });
-  const evaluate = createAgentTransitionEvaluator(() => binding.quoteExpiresAt + 1);
-  for (const invalid of [NaN, Infinity, -1, 1.1, Number.MAX_SAFE_INTEGER + 1]) assert.equal(createAgentTransitionEvaluator(() => invalid)(awaiting, expired, evidence).allowed, false);
-  assert.equal(createAgentTransitionEvaluator(() => { throw Error("clock unavailable"); })(awaiting, expired, evidence).allowed, false);
+  const evaluate = evaluateAt(() => binding.quoteExpiresAt + 1);
+  for (const invalid of [NaN, Infinity, -1, 1.1, Number.MAX_SAFE_INTEGER + 1]) assert.equal(evaluateAt(() => invalid)(awaiting, expired, evidence).allowed, false);
+  assert.equal(evaluateAt(() => { throw Error("clock unavailable"); })(awaiting, expired, evidence).allowed, false);
   for (const callerTime of [binding.quoteExpiresAt + 1, NaN, Infinity, -1]) assert.equal(evaluateAgentTransition(awaiting, expired, { ...evidence, now: callerTime }).allowed, false);
   for (const field of ["quote", "preparation", "handoff"] as const) {
     for (const change of [{ account: recipient }, { expiresAt: NaN }, { expiresAt: Infinity }, { expiresAt: -1 }, { expiresAt: binding.quoteExpiresAt + 1000 }]) assert.equal(evaluate(awaiting, expired, { ...evidence, artifacts: { ...artifacts, [field]: { ...artifacts[field], ...change } } }).allowed, false);
@@ -354,6 +363,45 @@ test("prerequisite expiry rejects spoofed time, unrelated artifacts, malformed c
   for (const changed of [{ record: throwing }, { artifacts: throwing }, { strategy: throwing }]) assert.equal(evaluate(awaiting, expired, { ...evidence, ...changed }).allowed, false);
   assert.equal(evaluate(awaiting, expired, { status: "HISTORICAL", state: expired }).allowed, false);
   let calls = 0;
-  assert.equal(createAgentTransitionEvaluator(() => { calls++; return binding.quoteExpiresAt + 1; })(awaiting, expired, evidence).allowed, true);
+  assert.equal(evaluateAt(() => { calls++; return binding.quoteExpiresAt + 1; })(awaiting, expired, evidence).allowed, true);
   assert.equal(calls, 1);
+});
+
+test("review: public evaluator cannot accept a caller clock", async () => {
+  assert.equal("createAgentTransitionEvaluator" in transitionModule, false);
+  const f = await fixture();
+  const { submittedHash: _hash, ...base } = f.record;
+  assert.equal(_hash, hash);
+  const expired = state("EXPIRED", "review:expired", { attempt: attemptRef });
+  const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, artifacts: expiryArtifacts() });
+  const boundary = Math.min(binding.quoteExpiresAt, binding.preparationExpiresAt, binding.handoffExpiresAt ?? Infinity);
+  const attemptedInjection = runtimeEvaluateAgentTransition as unknown as (...args: unknown[]) => ReturnType<typeof runtimeEvaluateAgentTransition>;
+  assert.equal(withRuntimeTime(() => boundary, () => attemptedInjection(awaiting, expired, evidence, () => boundary + 1)).allowed, false);
+  assert.equal(evaluateAt(() => boundary + 1)(awaiting, expired, evidence).allowed, true);
+});
+
+test("review: coordinated valid account, attempt, receipt and hash substitutions fail", async () => {
+  const other = await fixture(recipient, fingerprint, "reverted");
+  assert.equal(other.receipt.status, "REVERTED");
+  const otherRecord = { ...other.record, attemptId: "attempt_other" };
+  const acceptedBy10F = evaluateStrategyRecovery({ strategy: other.strategy, record: otherRecord, receipt: other.receipt, now });
+  assert.equal(acceptedBy10F.status, "REVALIDATION_REQUIRED");
+  const failed = state("FAILED", "review:failed", { attempt: attemptRef });
+  const evidence = bind("RECEIPT", submitted.stateId, { strategy: other.strategy, record: otherRecord, receipt: other.receipt, now });
+  assert.equal(evaluateAgentTransition(submitted, failed, evidence).allowed, false);
+  assert.equal(evaluateAgentTransition(confirming, failed, { ...evidence, stateId: confirming.stateId }).allowed, false);
+  const { submittedHash: _hash, ...otherPreSubmission } = otherRecord;
+  assert.equal(_hash, fingerprint);
+  assert.equal(evaluateStrategyRecovery({ strategy: other.strategy, record: { ...otherPreSubmission, event: "USER_REJECTED" }, now }).status, "USER_REJECTED");
+  const rejected = state("REJECTED", "review:rejected", { attempt: attemptRef });
+  assert.equal(evaluateAgentTransition(awaiting, rejected, bind("OUTCOME", awaiting.stateId, { strategy: other.strategy, record: { ...otherPreSubmission, event: "USER_REJECTED" } })).allowed, false);
+  const otherBinding = bindAgentTransaction({ strategy: other.strategy, stepId: "send", quote: other.policyInput.quote, preparation: other.policyInput.preparation })!;
+  const otherArtifacts = { quote: { tool: "send.quote", account: recipient, chainId: otherBinding.chainId, fingerprint: otherBinding.preparedAction.quoteFingerprint, expiresAt: otherBinding.quoteExpiresAt }, preparation: { tool: otherBinding.preparedAction.tool, account: recipient, chainId: otherBinding.chainId, quoteFingerprint: otherBinding.preparedAction.quoteFingerprint, stepIndex: otherBinding.preparedAction.stepIndex, expiresAt: otherBinding.preparationExpiresAt }, handoff: { account: recipient, expiresAt: otherBinding.handoffExpiresAt! } };
+  const expired = state("EXPIRED", "review:expired", { attempt: attemptRef });
+  const expiredEvidence = bind("OUTCOME", awaiting.stateId, { strategy: other.strategy, record: { ...otherPreSubmission, event: "PRE_SUBMISSION_FAILURE" }, artifacts: otherArtifacts });
+  assert.equal(evaluateAt(() => otherBinding.quoteExpiresAt + 1)(awaiting, expired, expiredEvidence).allowed, false);
+  const original = await fixture();
+  const originalArtifacts = expiryArtifacts();
+  const swapped = { ...originalArtifacts, quote: originalArtifacts.preparation, preparation: originalArtifacts.quote };
+  assert.equal(evaluateAt(() => binding.quoteExpiresAt + 1)(awaiting, expired, { ...expiredEvidence, strategy: original.strategy, record: { ...otherPreSubmission, account, attemptId: attemptRef.id, preparedAction: binding.preparedAction, event: "PRE_SUBMISSION_FAILURE" }, artifacts: swapped }).allowed, false);
 });

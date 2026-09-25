@@ -130,14 +130,8 @@ function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, 
   return { allowed: true, state: to };
 }
 
-/** Runtime wiring owns this function dependency; it is never read from evidence JSON.
- * Sample once per terminal edge. Phase 10F defines elapsed as now > expiresAt.
- */
-export function createAgentTransitionEvaluator(clock: () => number = () => Date.now()) {
-  return (currentInput: unknown, nextInput: unknown, evidenceInput: unknown): AgentTransitionResult => {
-    try { return evaluateAgentTransitionCore(currentInput, nextInput, evidenceInput, clock); }
-    catch { return deny("INVALID_EVIDENCE"); }
-  };
+/** Sample the runtime clock once per terminal edge; callers cannot supply it as evidence. */
+export function evaluateAgentTransition(currentInput: unknown, nextInput: unknown, evidenceInput: unknown): AgentTransitionResult {
+  try { return evaluateAgentTransitionCore(currentInput, nextInput, evidenceInput, () => Date.now()); }
+  catch { return deny("INVALID_EVIDENCE"); }
 }
-
-export const evaluateAgentTransition = createAgentTransitionEvaluator();
