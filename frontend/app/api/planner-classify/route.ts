@@ -4,6 +4,7 @@ import { createOpenAIPlannerClassifier } from "../../../lib/openaiPlannerClassif
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  if (process.env.PLANNER_CLASSIFIER_HTTP_ENABLED !== "true") return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
   const raw = await request.text().catch(() => "");
   const input: unknown = raw.length <= 8_192 ? (() => { try { return JSON.parse(raw); } catch { return undefined; } })() : undefined;
   const result = await classifyPlannerRequest(input, createOpenAIPlannerClassifier());
