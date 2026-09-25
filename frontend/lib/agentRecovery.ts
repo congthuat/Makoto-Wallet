@@ -5,7 +5,7 @@ import { evaluateAgentTransition } from "./agentTransition.ts";
 import { evaluateStrategyRecovery, type StrategyRecoveryRecord } from "./strategyRecovery.ts";
 import { verifyStrategyReceipt, type StrategyReceiptObservation } from "./strategyReceipt.ts";
 
-/** Supplied observation must come from a separate, read-only Phase 10C acquisition. */
+/** The caller supplies a read-only observation; this evaluator cannot authenticate its acquisition origin. */
 export type AgentRecoveryInput = Readonly<{
   restored: AgentStateRestoreResult;
   strategy?: unknown;
@@ -32,7 +32,9 @@ const matching = (state: Transaction, record: StrategyRecoveryRecord) =>
 
 /** One finite evaluation. It performs no storage write, RPC call, wallet call, or next edge. */
 function core(input: AgentRecoveryInput): AgentRecoveryResult {
-  if (!input || typeof input !== "object" || !input.restored || input.restored.status !== "HISTORICAL") return { status: "INVALID_EVIDENCE" };
+  if (!input || typeof input !== "object" || Array.isArray(input) ||
+      Object.keys(input).some((key) => !["restored", "strategy", "record", "preparation", "observation", "next"].includes(key)) ||
+      !input.restored || input.restored.status !== "HISTORICAL") return { status: "INVALID_EVIDENCE" };
   const checked = validateAgentState(input.restored.state);
   if (!checked.valid) return { status: "INVALID_EVIDENCE" };
   const state = checked.value;

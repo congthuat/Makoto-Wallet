@@ -166,3 +166,41 @@ test("12E mismatch, invalid receipt, and caller time cannot claim recovery", asy
   assert.equal(at(Infinity, () => evaluateAgentRecovery({ ...base, observation: found }).status), "INVALID_EVIDENCE");
   assert.equal(evaluateAgentRecovery({ ...base, record: { ...f.record, event: "SUBMISSION_OUTCOME_UNKNOWN", submittedHash: undefined } as StrategyRecoveryRecord }).status, "INVALID_EVIDENCE");
 });
+
+test("12E rejects malformed runtime inputs and undeclared authority fields", async () => {
+  const f = await fixture();
+  const base = { restored: historical(f.confirming), strategy: f.strategy, record: f.record, preparation: f.preparation, observation: f.observation, next: f.success };
+  for (const input of [null, [], { restored: [] }, { restored: historical(null) }, { restored: historical({ ...f.confirming, status: "UNKNOWN" }) }, { ...base, authorize: true }, { ...base, now: now + 1 }, new Proxy(base, { ownKeys() { throw Error("hostile"); } })]) {
+    assert.deepEqual(evaluateAgentRecovery(input as never), { status: "INVALID_EVIDENCE" });
+  }
+  const getter = Object.defineProperty({}, "restored", { get() { throw Error("hostile"); }, enumerable: true });
+  assert.deepEqual(evaluateAgentRecovery(getter as never), { status: "INVALID_EVIDENCE" });
+  assert.equal(evaluateAgentRecovery({ ...base, observation: { status: "FOUND", observedAt: now } as StrategyReceiptObservation }).status, "INVALID_EVIDENCE");
+});
+
+test("12E rejects recovery shortcuts across historical states and identities", async () => {
+  const f = await fixture();
+  const base = { strategy: f.strategy, record: f.record, preparation: f.preparation, observation: f.observation };
+  const requested = { version: 2, sessionId, stateId: "requested:12e", kind: "REQUESTED" };
+  const plan = { version: 2, sessionId, stateId: "plan:12e", kind: "PLAN_READY", plan: { kind: "PLANNER_PLAN", id: "plan:12e" } };
+  const proposed = [
+    [plan, f.prepared, "MISSING_PLAN_STRATEGY_BINDING"],
+    [f.prepared, f.submitted, "FRESH_REVIEW_REQUIRED"],
+    [f.prepared, f.success, "FRESH_REVIEW_REQUIRED"],
+    [f.state("AWAITING_SIGNATURE", "awaiting:12e"), f.success, "OUTCOME_UNKNOWN"],
+    [f.success, f.prepared, "TERMINAL_HISTORICAL"],
+    [f.failed, f.submitted, "TERMINAL_HISTORICAL"],
+    [requested, f.prepared, "DESCRIPTIVE_ONLY"],
+  ] as const;
+  for (const [state, next, expected] of proposed) {
+    const result = evaluateAgentRecovery({ ...base, restored: historical(state), next });
+    assert.equal(result.status, expected);
+    assert.equal("state" in result, false);
+  }
+  const confirmed = { ...base, restored: historical(f.confirming), next: f.success };
+  for (const next of [{ ...f.success, sessionId: "session:other" }, { ...f.success, stateId: f.confirming.stateId }]) {
+    assert.equal(evaluateAgentRecovery({ ...confirmed, next }).status, "INVALID_EVIDENCE");
+  }
+  assert.equal(evaluateAgentRecovery({ ...confirmed, record: { ...f.record, submittedHash: otherHash } }).status, "INVALID_EVIDENCE");
+  assert.equal(evaluateAgentRecovery({ ...confirmed, observation: { status: "FOUND", observedAt: now, receiptRef: hash } as unknown as StrategyReceiptObservation }).status, "INVALID_EVIDENCE");
+});
