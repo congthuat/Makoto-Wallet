@@ -49,26 +49,32 @@ const digestShape = (value: unknown): value is Hex => typeof value === "string" 
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0; // Code-point order, never locale order.
 const reject = (reason: PlannerStrategyBindingIssue): PlannerStrategyBindingResult => ({ valid: false, reason });
 
-/** Inspect descriptors rather than reading getters. The exported boundaries catch throwing proxies. */
-function plain(value: unknown, ancestors = new Set<object>(), budget = { nodes: 0 }, depth = 0): boolean {
-  if (++budget.nodes > 4096 || depth > 32) return false;
-  if (value === null || typeof value === "string" || typeof value === "boolean") return true;
-  if (typeof value === "number") return Number.isFinite(value);
-  if (typeof value !== "object" || ancestors.has(value)) return false;
+/** Copy descriptor values once, never reading getters or a proxy's later get trap. */
+const INVALID = Symbol("invalid-plain-data");
+function snapshot(value: unknown, ancestors = new Set<object>(), budget = { nodes: 0 }, depth = 0): unknown | typeof INVALID {
+  if (++budget.nodes > 4096 || depth > 32) return INVALID;
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : INVALID;
+  if (typeof value !== "object" || ancestors.has(value)) return INVALID;
   const array = Array.isArray(value);
-  if (Object.getPrototypeOf(value) !== (array ? Array.prototype : Object.prototype)) return false;
+  if (Object.getPrototypeOf(value) !== (array ? Array.prototype : Object.prototype)) return INVALID;
   const own = Reflect.ownKeys(value);
-  if (own.length > 256) return false;
-  if (array && (own.length !== value.length + 1 || !Number.isSafeInteger(value.length))) return false;
+  if (own.length > 256) return INVALID;
+  const length = array ? Object.getOwnPropertyDescriptor(value, "length")?.value : undefined;
+  if (array && (!Number.isSafeInteger(length) || length < 0 || own.length !== length + 1)) return INVALID;
   ancestors.add(value);
-  const names = array ? Array.from({ length: value.length }, (_, i) => String(i)) : own;
-  const good = names.every((name) => {
-    if (typeof name !== "string") return false;
+  const names = array ? Array.from({ length }, (_, i) => String(i)) : own;
+  const result: Data | unknown[] = array ? [] : {};
+  for (const name of names) {
+    if (typeof name !== "string" || !Object.hasOwn(value, name)) return INVALID;
     const descriptor = Object.getOwnPropertyDescriptor(value, name);
-    return descriptor?.enumerable === true && Object.hasOwn(descriptor, "value") && plain(descriptor.value, ancestors, budget, depth + 1);
-  }) && (!array || names.every((name) => Object.hasOwn(value, name)));
+    if (descriptor?.enumerable !== true || !Object.hasOwn(descriptor, "value")) return INVALID;
+    const child = snapshot(descriptor.value, ancestors, budget, depth + 1);
+    if (child === INVALID) return INVALID;
+    Object.defineProperty(result, name, { value: child, enumerable: true, configurable: true, writable: true });
+  }
   ancestors.delete(value);
-  return good;
+  return result;
 }
 const object = (value: unknown): value is Data => value !== null && typeof value === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 const exact = (value: Data, names: readonly string[]) => Reflect.ownKeys(value).length === names.length && names.every((name) => Object.hasOwn(value, name));
@@ -105,7 +111,8 @@ function bindingDigest(binding: Omit<PlannerStrategyBinding, "digest">): Hex {
 }
 
 function checkedSource(input: unknown): Checked | PlannerStrategyBindingIssue {
-  if (!plain(input) || !object(input) || !exact(input, ["requestId", "sessionId", "plan", "resolution", "strategy", "goalSteps"])) return "INVALID_SCHEMA";
+  input = snapshot(input);
+  if (input === INVALID || !object(input) || !exact(input, ["requestId", "sessionId", "plan", "resolution", "strategy", "goalSteps"])) return "INVALID_SCHEMA";
   if (!id(input.requestId) || !id(input.sessionId)) return "INVALID_ID";
   const planResult = validatePlannerPlan(input.plan);
   if (!planResult.valid) return "INVALID_PLAN";
@@ -179,7 +186,8 @@ export function createPlannerStrategyBinding(input: unknown): PlannerStrategyBin
 /** Recomputes provenance from separately retained authoritative inputs. A digest alone is not proof. */
 export function validatePlannerStrategyBinding(input: unknown, sourceInput: unknown): PlannerStrategyBindingResult {
   try {
-    if (!plain(input) || !object(input) || !exact(input, ["version", "digestVersion", "requestId", "sessionId", "plan", "resolvedIntentsDigest", "strategy", "goalSteps", "digest"])) return reject("INVALID_SCHEMA");
+    input = snapshot(input);
+    if (input === INVALID || !object(input) || !exact(input, ["version", "digestVersion", "requestId", "sessionId", "plan", "resolvedIntentsDigest", "strategy", "goalSteps", "digest"])) return reject("INVALID_SCHEMA");
     if (input.version !== 1 || input.digestVersion !== 1) return reject("UNSUPPORTED_VERSION");
     if (!id(input.requestId) || !id(input.sessionId)) return reject("INVALID_ID");
     if (!object(input.plan) || !exact(input.plan, ["id", "version", "digest"]) || !object(input.strategy) || !exact(input.strategy, ["id", "version", "stage", "digest"])) return reject("INVALID_SCHEMA");

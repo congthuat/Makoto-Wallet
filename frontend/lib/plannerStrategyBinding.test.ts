@@ -128,6 +128,14 @@ test("throwing proxies and malformed runtime values return a rejection instead o
   for (const value of [null, undefined, [], () => 1]) denied(value, "INVALID_SCHEMA");
 });
 
+test("a stateful proxy get trap cannot change descriptor-snapshotted provenance", () => {
+  const source = single(), expected = binding(source);
+  let reads = 0;
+  const proxy = new Proxy(source, { get() { reads++; throw new Error("mutable get trap"); } });
+  assert.deepEqual(binding(proxy), expected);
+  assert.equal(reads, 0);
+});
+
 test("sparse, cyclic and oversized runtime containers fail without partial binding", () => {
   const sparse = multi(); delete sparse.goalSteps[0]; denied(sparse, "INVALID_SCHEMA");
   const cyclic = single() as object & { self?: unknown }; cyclic.self = cyclic; denied(cyclic, "INVALID_SCHEMA");
