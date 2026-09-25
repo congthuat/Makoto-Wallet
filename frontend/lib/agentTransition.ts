@@ -2,7 +2,7 @@ import { validateAgentState, type AgentState } from "./agentState.ts";
 import { validatePlannerPlan } from "./plannerPlan.ts";
 import type { PlannerPlanGenerationResult } from "./plannerPlanGenerator.ts";
 import { executeStrategyStep, type StrategyStepInput } from "./strategyStep.ts";
-import { evaluateStrategyRecovery, type StrategyRecoveryRecord } from "./strategyRecovery.ts";
+import { evaluateStrategyRecovery, type RecoveryArtifacts, type StrategyRecoveryRecord } from "./strategyRecovery.ts";
 import type { StrategyReceiptResult } from "./strategyReceipt.ts";
 
 type EvidenceBase = Readonly<{ sessionId: string; stateId: string }>;
@@ -11,11 +11,12 @@ export type AgentTransitionEvidence = EvidenceBase & (
   | Readonly<{ kind: "REVIEW"; input: StrategyStepInput }>
   | Readonly<{ kind: "ATTEMPT"; strategy: unknown; record: StrategyRecoveryRecord; now: number }>
   | Readonly<{ kind: "RECEIPT"; strategy: unknown; record: StrategyRecoveryRecord; receipt: StrategyReceiptResult; now: number }>
+  | Readonly<{ kind: "OUTCOME"; strategy: unknown; record: StrategyRecoveryRecord; now: number; artifacts?: RecoveryArtifacts }>
 );
 export type AgentTransitionRejection =
   | "INVALID_STATE" | "INVALID_EVIDENCE" | "IDENTITY_MISMATCH" | "ILLEGAL_TRANSITION"
   | "MISSING_CANONICAL_STRATEGY_BINDING" | "DEFERRED_TO_LATER_PHASE"
-  | "POLICY_STOP" | "RECEIPT_NOT_CONFIRMED" | "SCOPE_MISMATCH";
+  | "POLICY_STOP" | "RECEIPT_NOT_CONFIRMED" | "SCOPE_MISMATCH" | "TERMINAL_NOT_PROVEN";
 export type AgentTransitionResult =
   | Readonly<{ allowed: true; state: AgentState }>
   | Readonly<{ allowed: false; reason: AgentTransitionRejection }>;
@@ -26,6 +27,10 @@ const sameHash = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const status = (state: AgentState) => state.kind === "TRANSACTION" ? state.status : state.kind;
 const transaction = (state: AgentState): state is TransactionState => state.kind === "TRANSACTION";
 const exactEvidence = (value: Record<string, unknown>) => {
+  if (value.kind === "OUTCOME") {
+    const required = ["kind", "sessionId", "stateId", "strategy", "record", "now"];
+    return required.every((field) => Object.hasOwn(value, field)) && Reflect.ownKeys(value).every((field) => typeof field === "string" && [...required, "artifacts"].includes(field) && Object.getOwnPropertyDescriptor(value, field)?.enumerable === true && Object.hasOwn(Object.getOwnPropertyDescriptor(value, field)!, "value"));
+  }
   const fields = value.kind === "PLAN" ? ["kind", "sessionId", "stateId", "result"]
     : value.kind === "REVIEW" ? ["kind", "sessionId", "stateId", "input"]
     : value.kind === "ATTEMPT" ? ["kind", "sessionId", "stateId", "strategy", "record", "now"]
@@ -36,17 +41,43 @@ const recordMatches = (state: TransactionState, record: StrategyRecoveryRecord) 
   record.strategyId === state.step.strategyId && record.stepId === state.step.stepId &&
   ("attempt" in state ? state.attempt?.id === record.attemptId : true);
 
+/** Classifies one requested 12D outcome using the existing 10F guard. */
+function terminalTransition(from: TransactionState, to: TransactionState, evidence: Record<string, unknown>): AgentTransitionResult {
+  if ((evidence.kind !== "OUTCOME" && evidence.kind !== "RECEIPT") || !evidence.record || typeof evidence.record !== "object" || !Number.isSafeInteger(evidence.now) || (evidence.now as number) < 0) return deny("INVALID_EVIDENCE");
+  if (evidence.kind === "RECEIPT" && evidence.receipt === undefined) return deny("INVALID_EVIDENCE");
+  const record = evidence.record as StrategyRecoveryRecord;
+  if (!recordMatches(from, record) || !recordMatches(to, record) || !("attempt" in to) || to.attempt?.id !== record.attemptId) return deny("IDENTITY_MISMATCH");
+  if (record.action === "BRIDGE" ? from.scope !== "SOURCE_CHAIN" : from.scope !== "SINGLE_CHAIN") return deny("SCOPE_MISMATCH");
+  const beforeSubmission = from.status === "AWAITING_SIGNATURE" && evidence.kind === "OUTCOME" && record.event !== "SUBMITTED";
+  const submitted = (from.status === "SUBMITTED" || from.status === "CONFIRMING") && evidence.kind === "RECEIPT" && record.event === "SUBMITTED";
+  if (!beforeSubmission && !submitted) return deny("TERMINAL_NOT_PROVEN");
+  const receipt = evidence.kind === "RECEIPT" ? evidence.receipt as StrategyReceiptResult : undefined;
+  const artifacts = evidence.kind === "OUTCOME" ? evidence.artifacts as RecoveryArtifacts | undefined : undefined;
+  const now = evidence.now as number;
+  const recovery = evaluateStrategyRecovery({ strategy: evidence.strategy, record, now, ...(receipt === undefined ? {} : { receipt }), ...(artifacts === undefined ? {} : { artifacts }) });
+  if (recovery.status === "INVALID_STRATEGY" || recovery.status === "INVALID_EVIDENCE") return deny("INVALID_EVIDENCE");
+  if (!("attemptId" in recovery) || recovery.attemptId !== record.attemptId) return deny("IDENTITY_MISMATCH");
+  if (to.status === "REJECTED") return beforeSubmission && record.event === "USER_REJECTED" && artifacts === undefined && recovery.status === "USER_REJECTED" ? { allowed: true, state: to } : deny("TERMINAL_NOT_PROVEN");
+  if (to.status === "EXPIRED") {
+    const expired = artifacts && (now > artifacts.quote.expiresAt || now > artifacts.preparation.expiresAt || artifacts.handoff !== undefined && now > artifacts.handoff.expiresAt);
+    return beforeSubmission && record.event === "PRE_SUBMISSION_FAILURE" && expired && (recovery.status === "REQUOTE_REQUIRED" || recovery.status === "REPREPARE_REQUIRED") ? { allowed: true, state: to } : deny("TERMINAL_NOT_PROVEN");
+  }
+  if (to.status === "FAILED") return submitted && receipt?.status === "REVERTED" && recovery.status === "REVALIDATION_REQUIRED" ? { allowed: true, state: to } : deny("TERMINAL_NOT_PROVEN");
+  return deny("ILLEGAL_TRANSITION");
+}
+
 /** Evaluates one requested edge. No state is stored, signed, submitted, or advanced again. */
 function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, evidenceInput: unknown): AgentTransitionResult {
   const current = validateAgentState(currentInput), next = validateAgentState(nextInput);
   if (!current.valid || !next.valid) return deny("INVALID_STATE");
   const from = current.value, to = next.value;
   if (from.sessionId !== to.sessionId || from.stateId === to.stateId) return deny("IDENTITY_MISMATCH");
-  if (to.kind === "TRANSACTION" && ["REJECTED", "EXPIRED", "FAILED"].includes(to.status)) return deny("DEFERRED_TO_LATER_PHASE");
   if (from.kind === "PLAN_READY" && transaction(to) && to.status === "PREPARED") return deny("MISSING_CANONICAL_STRATEGY_BINDING");
 
   const edge = `${status(from)}>${status(to)}`;
-  if (!["REQUESTED>PLAN_READY", "PREPARED>AWAITING_SIGNATURE", "AWAITING_SIGNATURE>SUBMITTED", "SUBMITTED>CONFIRMING", "CONFIRMING>SUCCESS"].includes(edge)) return deny("ILLEGAL_TRANSITION");
+  const terminal = transaction(to) && ["REJECTED", "EXPIRED", "FAILED"].includes(to.status);
+  if (terminal && (!transaction(from) || !(to.status === "FAILED" ? ["SUBMITTED", "CONFIRMING"].includes(from.status) : from.status === "AWAITING_SIGNATURE"))) return deny("ILLEGAL_TRANSITION");
+  if (!terminal && !["REQUESTED>PLAN_READY", "PREPARED>AWAITING_SIGNATURE", "AWAITING_SIGNATURE>SUBMITTED", "SUBMITTED>CONFIRMING", "CONFIRMING>SUCCESS"].includes(edge)) return deny("ILLEGAL_TRANSITION");
   if (!evidenceInput || typeof evidenceInput !== "object" || Array.isArray(evidenceInput) || Object.getPrototypeOf(evidenceInput) !== Object.prototype) return deny("INVALID_EVIDENCE");
   const evidence = evidenceInput as Record<string, unknown>;
   if (!exactEvidence(evidence)) return deny("INVALID_EVIDENCE");
@@ -60,6 +91,7 @@ function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, 
   }
 
   if (!transaction(from) || !transaction(to) || from.step.strategyId !== to.step.strategyId || from.step.stepId !== to.step.stepId || from.scope !== to.scope) return deny("IDENTITY_MISMATCH");
+  if (terminal) return terminalTransition(from, to, evidence);
   if (edge === "PREPARED>AWAITING_SIGNATURE") {
     if (evidence.kind !== "REVIEW" || !evidence.input || typeof evidence.input !== "object") return deny("INVALID_EVIDENCE");
     let result;

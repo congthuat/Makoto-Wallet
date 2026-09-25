@@ -135,11 +135,90 @@ test("12B rejects malformed requests, terminal mappings, cross scope, and struct
   assert.equal(reason(evaluateAgentTransition(confirming, success, bind("RECEIPT", confirming.stateId, { receipt: receiptRef }))), "INVALID_EVIDENCE");
   assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, sign: () => undefined })), "INVALID_EVIDENCE");
   assert.equal(reason(evaluateAgentTransition(confirming, success, null)), "INVALID_EVIDENCE");
-  for (const terminal of ["REJECTED", "EXPIRED", "FAILED"]) assert.equal(reason(evaluateAgentTransition(confirming, state(terminal, `state:${terminal}`, { attempt: attemptRef }), evidence)), "DEFERRED_TO_LATER_PHASE");
+  for (const terminal of ["REJECTED", "EXPIRED"]) assert.equal(reason(evaluateAgentTransition(confirming, state(terminal, `state:${terminal}`, { attempt: attemptRef }), evidence)), "ILLEGAL_TRANSITION");
+  assert.equal(reason(evaluateAgentTransition(confirming, state("FAILED", "state:FAILED", { attempt: attemptRef }), evidence)), "TERMINAL_NOT_PROVEN");
   assert.equal(reason(evaluateAgentTransition(confirming, { ...success, scope: "DESTINATION_CHAIN" }, evidence)), "IDENTITY_MISMATCH");
   const destination = { ...confirming, scope: "DESTINATION_CHAIN" };
   assert.equal(reason(evaluateAgentTransition(destination, { ...success, scope: "DESTINATION_CHAIN" }, evidence)), "SCOPE_MISMATCH");
   assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, receipt: { ...f.receipt, scope: "DESTINATION_TRANSACTION" } })), "INVALID_EVIDENCE");
+});
+
+test("12D requires Phase 10F explicit rejection before submission", async () => {
+  const f = await fixture();
+  const { submittedHash: _hash, ...base } = f.record;
+  assert.equal(_hash, hash);
+  const rejected = state("REJECTED", "state:rejected", { attempt: attemptRef });
+  const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "USER_REJECTED" }, now });
+  assert.equal(evaluateAgentTransition(awaiting, rejected, evidence).allowed, true);
+  assert.equal(reason(evaluateAgentTransition(awaiting, rejected, { ...evidence, record: f.record })), "TERMINAL_NOT_PROVEN");
+  assert.equal(reason(evaluateAgentTransition(awaiting, rejected, { ...evidence, record: { ...base, event: "SUBMISSION_OUTCOME_UNKNOWN" } })), "TERMINAL_NOT_PROVEN");
+  assert.equal(reason(evaluateAgentTransition(awaiting, rejected, bind("OUTCOME", awaiting.stateId, { reason: "user rejected" }))), "INVALID_EVIDENCE");
+  assert.equal(reason(evaluateAgentTransition(submitted, rejected, { ...evidence, stateId: submitted.stateId })), "ILLEGAL_TRANSITION");
+  assert.equal(reason(evaluateAgentTransition(success, rejected, evidence)), "ILLEGAL_TRANSITION");
+  assert.equal(reason(evaluateAgentTransition(awaiting, { ...rejected, attempt: null }, evidence)), "IDENTITY_MISMATCH");
+});
+
+test("12D expires only a bound pre-submission attempt with elapsed artifacts", async () => {
+  const f = await fixture();
+  const { submittedHash: _hash, ...base } = f.record;
+  assert.equal(_hash, hash);
+  const ref = f.record.preparedAction;
+  const artifacts = {
+    quote: { tool: "send.quote", account, chainId: arcTestnet.id, fingerprint: ref.quoteFingerprint, expiresAt: now + 1 },
+    preparation: { tool: ref.tool, account, chainId: arcTestnet.id, quoteFingerprint: ref.quoteFingerprint, stepIndex: ref.stepIndex, expiresAt: now + 1 },
+    handoff: { account, expiresAt: now + 1 },
+  };
+  const expired = state("EXPIRED", "state:expired", { attempt: attemptRef });
+  const evidence = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, now, artifacts });
+  assert.equal(reason(evaluateAgentTransition(awaiting, expired, evidence)), "TERMINAL_NOT_PROVEN");
+  for (const changed of [
+    { ...artifacts, quote: { ...artifacts.quote, expiresAt: now - 1 } },
+    { ...artifacts, preparation: { ...artifacts.preparation, expiresAt: now - 1 } },
+    { ...artifacts, handoff: { ...artifacts.handoff, expiresAt: now - 1 } },
+  ]) assert.equal(evaluateAgentTransition(awaiting, expired, { ...evidence, artifacts: changed }).allowed, true);
+  assert.equal(reason(evaluateAgentTransition(awaiting, expired, { ...evidence, artifacts: { quote: artifacts.quote, preparation: artifacts.preparation } })), "TERMINAL_NOT_PROVEN");
+  assert.equal(reason(evaluateAgentTransition(awaiting, expired, { ...evidence, artifacts: { ...artifacts, quote: { ...artifacts.quote, account: recipient, expiresAt: now - 1 } } })), "INVALID_EVIDENCE");
+  assert.equal(reason(evaluateAgentTransition(awaiting, expired, { ...evidence, record: { ...base, event: "SUBMISSION_OUTCOME_UNKNOWN" } })), "TERMINAL_NOT_PROVEN");
+  assert.equal(reason(evaluateAgentTransition(submitted, expired, { ...evidence, stateId: submitted.stateId, record: f.record })), "ILLEGAL_TRANSITION");
+});
+
+test("12D FAILED requires bound Phase 10C REVERTED through Phase 10F", async () => {
+  const f = await fixture();
+  const failed = state("FAILED", "state:failed", { attempt: attemptRef });
+  const reverted: StrategyReceiptResult = { status: "REVERTED", strategyId: f.strategy.id, stepId: "send", action: "SEND", account, preparedAction: f.record.preparedAction, hash, chainId: arcTestnet.id, blockNumber: "123", scope: "SOURCE_TRANSACTION" };
+  for (const current of [submitted, confirming]) {
+    const evidence = bind("RECEIPT", current.stateId, { strategy: f.strategy, record: f.record, receipt: reverted, now });
+    assert.equal(evaluateAgentTransition(current, failed, evidence).allowed, true);
+    for (const receipt of [f.receipt, { status: "PENDING", strategyId: f.strategy.id, stepId: "send", hash }, { status: "UNAVAILABLE", strategyId: f.strategy.id, stepId: "send", hash }, { status: "MISMATCH", reason: "HASH" }, { status: "INVALID_EVIDENCE", reason: "OBSERVATION" }, { ...reverted, account: recipient }, { ...reverted, action: "SWAP" }, { ...reverted, chainId: baseSepolia.id }, { ...reverted, preparedAction: { ...reverted.preparedAction, quoteFingerprint: fingerprint } }, { ...reverted, hash: fingerprint }, { ...reverted, scope: "DESTINATION_TRANSACTION" }]) {
+      assert.equal(evaluateAgentTransition(current, failed, { ...evidence, receipt }).allowed, false);
+    }
+    assert.equal(reason(evaluateAgentTransition(current, failed, { ...evidence, receipt: undefined })), "INVALID_EVIDENCE");
+    for (const record of [{ ...f.record, strategyId: "other" }, { ...f.record, stepId: "other" }, { ...f.record, attemptId: "attempt_other" }, { ...f.record, submittedHash: fingerprint }, { ...f.record, account: recipient }, { ...f.record, chainId: baseSepolia.id }, { ...f.record, preparedAction: { ...f.record.preparedAction, quoteFingerprint: fingerprint } }]) {
+      assert.equal(evaluateAgentTransition(current, failed, { ...evidence, record }).allowed, false);
+    }
+    assert.equal(reason(evaluateAgentTransition(current, failed, { ...evidence, sessionId: "other" })), "IDENTITY_MISMATCH");
+    assert.equal(reason(evaluateAgentTransition(current, failed, { ...evidence, stateId: "other" })), "IDENTITY_MISMATCH");
+    assert.equal(reason(evaluateAgentTransition(current, { ...failed, step: { ...stepRef, stepId: "other" } }, evidence)), "IDENTITY_MISMATCH");
+    assert.equal(reason(evaluateAgentTransition(current, { ...failed, attempt: { ...attemptRef, id: "attempt_other" } }, evidence)), "IDENTITY_MISMATCH");
+  }
+  const { submittedHash: _hash, ...base } = f.record;
+  assert.equal(_hash, hash);
+  const pre = bind("OUTCOME", awaiting.stateId, { strategy: f.strategy, record: { ...base, event: "PRE_SUBMISSION_FAILURE" }, now });
+  assert.equal(reason(evaluateAgentTransition(awaiting, failed, pre)), "ILLEGAL_TRANSITION");
+  const throwing = new Proxy({}, { getPrototypeOf() { throw Error("malformed"); } });
+  assert.equal(reason(evaluateAgentTransition(submitted, failed, { ...bind("RECEIPT", submitted.stateId, { strategy: f.strategy, record: f.record, receipt: reverted, now }), receipt: throwing })), "INVALID_EVIDENCE");
+});
+
+test("12D source CCTP revert remains source-only and historical state is not fresh evidence", async () => {
+  const f = await bridgeFixture();
+  const source = { ...submitted, step: { kind: "STRATEGY_STEP", strategyId: f.strategy.id, stepId: "bridge" }, scope: "SOURCE_CHAIN", attempt: { kind: "TRANSACTION_ATTEMPT", id: f.record.attemptId } };
+  const failure = { ...source, stateId: "state:bridge-failed", status: "FAILED" };
+  const reverted: StrategyReceiptResult = { status: "REVERTED", strategyId: f.strategy.id, stepId: "bridge", action: "BRIDGE", account, preparedAction: f.record.preparedAction, hash, chainId: arcTestnet.id, blockNumber: "123", scope: "SOURCE_TRANSACTION" };
+  const evidence = bind("RECEIPT", source.stateId, { strategy: f.strategy, record: f.record, receipt: reverted, now });
+  assert.equal(evaluateAgentTransition(source, failure, evidence).allowed, true);
+  assert.equal(reason(evaluateAgentTransition({ ...source, scope: "DESTINATION_CHAIN" }, { ...failure, scope: "DESTINATION_CHAIN" }, evidence)), "SCOPE_MISMATCH");
+  assert.equal(reason(evaluateAgentTransition(source, failure, { ...evidence, receipt: f.receipt })), "TERMINAL_NOT_PROVEN");
+  assert.equal(reason(evaluateAgentTransition(source, failure, { status: "HISTORICAL", state: failure })), "INVALID_EVIDENCE");
 });
 
 test("12B rejects invalid plans and malformed input without escaping the guard", () => {
