@@ -2,6 +2,7 @@ import { keccak256, stringToHex, type Hex } from "viem";
 import { validatePlannerIntent, type PlannerIntent } from "./plannerIntent.ts";
 import { validatePlannerPlan, type PlannerPlan } from "./plannerPlan.ts";
 import { validateStrategy, type ActionStep, type Strategy } from "./strategyModel.ts";
+import { validatePlannerParameterEvidence } from "./plannerParameterEvidence.ts";
 
 /** AEI-A binds an existing, non-executable skeleton. It never creates Strategy steps. */
 export type PlannerStrategyGoalStep = Readonly<{ goalId: string; actionStepId: string }>;
@@ -16,6 +17,9 @@ export type PlannerStrategyBinding = Readonly<{
   goalSteps: readonly PlannerStrategyGoalStep[];
   digest: Hex;
 }>;
+/** V2 retains every v1 identity field and additionally binds validated per-field evidence. */
+export type PlannerStrategyBindingV2 = Readonly<Omit<PlannerStrategyBinding, "version" | "digestVersion" | "digest"> & {
+  version: 2; digestVersion: 2; parameterEvidenceDigest: Hex; digest: Hex }>;
 
 /** requestId/sessionId must originate at a trusted caller, never at the Planner provider. */
 export type PlannerStrategyBindingSource = Readonly<{
@@ -33,7 +37,7 @@ export type PlannerStrategyBindingIssue =
   | "INVALID_STRATEGY" | "UNSUPPORTED_SKELETON" | "INVALID_MAPPING"
   | "PROVENANCE_MISMATCH" | "INVALID_RUNTIME";
 export type PlannerStrategyBindingResult =
-  | Readonly<{ valid: true; value: PlannerStrategyBinding }>
+  | Readonly<{ valid: true; value: PlannerStrategyBinding | PlannerStrategyBindingV2 }>
   | Readonly<{ valid: false; reason: PlannerStrategyBindingIssue }>;
 
 type Data = Record<string, unknown>;
@@ -194,6 +198,7 @@ export function createPlannerStrategyBinding(input: unknown): PlannerStrategyBin
 export function validatePlannerStrategyBinding(input: unknown, sourceInput: unknown): PlannerStrategyBindingResult {
   try {
     input = snapshot(input);
+    if (object(input) && input.version === 2 && Object.hasOwn(input, "parameterEvidenceDigest")) return validatePlannerStrategyBindingV2(input, sourceInput);
     if (input === INVALID || !object(input) || !exact(input, ["version", "digestVersion", "requestId", "sessionId", "plan", "resolvedIntentsDigest", "strategy", "goalSteps", "digest"])) return reject("INVALID_SCHEMA");
     if (input.version !== 1 || input.digestVersion !== 1) return reject("UNSUPPORTED_VERSION");
     if (!id(input.requestId) || !id(input.sessionId)) return reject("INVALID_ID");
@@ -215,5 +220,47 @@ export function validatePlannerStrategyBinding(input: unknown, sourceInput: unkn
     if (actual.requestId !== expected.requestId || actual.sessionId !== expected.sessionId || actual.plan.id !== expected.plan.id || actual.plan.digest !== expected.plan.digest || actual.resolvedIntentsDigest !== expected.resolvedIntentsDigest || actual.strategy.id !== expected.strategy.id || actual.strategy.digest !== expected.strategy.digest || actual.digest !== expected.digest || actual.goalSteps.length !== expected.goalSteps.length ||
       [...actual.goalSteps].sort((a, b) => compare(a.goalId, b.goalId)).some((item, index) => item.goalId !== expected.goalSteps[index].goalId || item.actionStepId !== expected.goalSteps[index].actionStepId)) return reject("PROVENANCE_MISMATCH");
     return { valid: true, value: freezeBinding(expected) };
+  } catch { return reject("INVALID_RUNTIME"); }
+}
+
+function v2Expected(sourceInput: unknown): PlannerStrategyBindingV2 | PlannerStrategyBindingIssue {
+  const source = snapshot(sourceInput);
+  if (!object(source) || !exact(source, ["requestId", "sessionId", "plan", "resolution", "strategy", "goalSteps", "provenance", "provenanceSource"])) return "INVALID_SCHEMA";
+  const checked = validatePlannerParameterEvidence(source.provenance, source.provenanceSource);
+  if (!checked.valid || checked.value.status !== "RESOLVED_WITH_EVIDENCE") return "UNRESOLVED_INTENTS";
+  if (!object(source.provenanceSource) || source.provenanceSource.requestId !== source.requestId ||
+    source.provenanceSource.sessionId !== source.sessionId || JSON.stringify(source.provenanceSource.plan) !== JSON.stringify(source.plan) ||
+    JSON.stringify(source.provenanceSource.resolution) !== JSON.stringify(source.resolution)) return "PROVENANCE_MISMATCH";
+  const legacy = createPlannerStrategyBinding({ requestId: source.requestId, sessionId: source.sessionId,
+    plan: source.plan, resolution: source.resolution, strategy: source.strategy, goalSteps: source.goalSteps });
+  if (!legacy.valid) return legacy.reason;
+  const legacyDigest = legacy.value.digest;
+  const fields = { requestId: legacy.value.requestId, sessionId: legacy.value.sessionId, plan: legacy.value.plan,
+    resolvedIntentsDigest: legacy.value.resolvedIntentsDigest, strategy: legacy.value.strategy,
+    goalSteps: legacy.value.goalSteps };
+  const parameterEvidenceDigest = checked.value.evidenceDigest;
+  const digest = keccak256(stringToHex(JSON.stringify(["makoto.planner-strategy-binding", 2, "BINDING", legacyDigest, parameterEvidenceDigest])));
+  return { ...fields, version: 2, digestVersion: 2, parameterEvidenceDigest, digest };
+}
+
+export function createPlannerStrategyBindingV2(sourceInput: unknown): Readonly<{ valid: true; value: PlannerStrategyBindingV2 }> | Readonly<{ valid: false; reason: PlannerStrategyBindingIssue }> {
+  try {
+    const expected = v2Expected(sourceInput);
+    if (typeof expected === "string") return { valid: false, reason: expected };
+    return { valid: true, value: Object.freeze({ ...expected, plan: Object.freeze(expected.plan), strategy: Object.freeze(expected.strategy),
+      goalSteps: Object.freeze(expected.goalSteps.map((item) => Object.freeze(item))) }) };
+  } catch { return { valid: false, reason: "INVALID_RUNTIME" }; }
+}
+
+export function validatePlannerStrategyBindingV2(input: unknown, sourceInput: unknown): PlannerStrategyBindingResult {
+  try {
+    const captured = snapshot(input);
+    if (!object(captured) || !exact(captured, ["version", "digestVersion", "requestId", "sessionId", "plan",
+      "resolvedIntentsDigest", "strategy", "goalSteps", "parameterEvidenceDigest", "digest"]) ||
+      captured.version !== 2 || captured.digestVersion !== 2) return reject("INVALID_SCHEMA");
+    const expected = v2Expected(sourceInput);
+    if (typeof expected === "string") return reject(expected);
+    if (JSON.stringify(captured) !== JSON.stringify(expected)) return reject("PROVENANCE_MISMATCH");
+    return { valid: true, value: expected };
   } catch { return reject("INVALID_RUNTIME"); }
 }

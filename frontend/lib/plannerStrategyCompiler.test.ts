@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { compilePlannerStrategy } from "./plannerStrategyCompiler.ts";
-import { validatePlannerStrategyBinding } from "./plannerStrategyBinding.ts";
+import { snapshotPlannerStrategyData, validatePlannerStrategyBinding } from "./plannerStrategyBinding.ts";
 import { evaluateStrategyContinuation } from "./strategyContinuation.ts";
+import { createPlannerParameterEvidence, plannerParameterPlanDigest, plannerParameterRequestDigest } from "./plannerParameterEvidence.ts";
 
 const recipient = "0x1111111111111111111111111111111111111111";
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -22,18 +23,42 @@ const multi = () => ({
   ] },
   resolution: { status: "RESOLVED", planId: "plan-2", intents: [swap("g-swap"), send("g-send")] },
 });
+function withEvidence(input: unknown): unknown {
+  const captured = snapshotPlannerStrategyData(input);
+  if (!captured.valid || !captured.value || typeof captured.value !== "object" || Array.isArray(captured.value)) return input;
+  const value = captured.value as Record<string, unknown>;
+  if (value.version !== 1 || typeof value.requestId !== "string" || typeof value.sessionId !== "string" ||
+    !value.plan || typeof value.plan !== "object") return input;
+  const resolution = value.resolution as { status?: string; planId?: string; intents?: Record<string, unknown>[] };
+  const plan = value.plan as { id?: string };
+  const fields = resolution?.status === "RESOLVED" && Array.isArray(resolution.intents)
+    ? resolution.intents.flatMap((intent) => Object.keys(intent).filter((key) => !["version", "id", "kind"].includes(key))
+      .map((parameterKey) => ({ goalId: intent.id, parameterKey, value: intent[parameterKey] }))) : [];
+  const provenanceSource = { requestId: value.requestId, sessionId: value.sessionId,
+    request: { text: `Fixture ${value.requestId}` }, plan: value.plan, resolution: value.resolution,
+    structuredInput: { version: 1, eventId: "fixture-event", requestId: value.requestId, sessionId: value.sessionId,
+      requestDigest: plannerParameterRequestDigest(value.requestId, value.sessionId, { text: `Fixture ${value.requestId}` }),
+      planId: plan.id, planDigest: plannerParameterPlanDigest(value.plan as Parameters<typeof plannerParameterPlanDigest>[0]), fields } };
+  const checked = createPlannerParameterEvidence(provenanceSource);
+  const v2 = checked.valid && checked.value.status === "RESOLVED_WITH_EVIDENCE" ? checked.value :
+    resolution?.status === "RESOLVED" ? { status: "RESOLVED_WITH_EVIDENCE", version: 2, planId: resolution.planId,
+      intents: resolution.intents, evidence: [], evidenceDigest: `0x${"0".repeat(64)}` } : value.resolution;
+  return { ...value, version: 2, resolution: v2, provenanceSource };
+}
 function compiled(input: unknown) {
-  const result = compilePlannerStrategy(input);
+  const result = compilePlannerStrategy(withEvidence(input));
   assert.equal(result.status, "COMPILED", JSON.stringify(result));
   if (result.status !== "COMPILED") throw new Error("Expected compilation");
   return result;
 }
 function rejected(input: unknown, reason: string) {
-  assert.deepEqual(compilePlannerStrategy(input), { status: "REJECTED", reason });
+  assert.deepEqual(compilePlannerStrategy(withEvidence(input)), { status: "REJECTED", reason });
 }
 function bindingSource(input: ReturnType<typeof single>, output: ReturnType<typeof compiled>) {
+  const enriched = withEvidence(input) as { provenanceSource: unknown; resolution: unknown };
   return { requestId: input.requestId, sessionId: input.sessionId, plan: input.plan,
-    resolution: input.resolution, strategy: output.strategy, goalSteps: output.binding.goalSteps };
+    resolution: input.resolution, strategy: output.strategy, goalSteps: output.binding.goalSteps,
+    provenance: enriched.resolution, provenanceSource: enriched.provenanceSource };
 }
 
 test("single SEND, SWAP and BRIDGE compile to unprepared Phase 10 ACTION skeletons", () => {
@@ -56,7 +81,9 @@ test("fixed SWAP then fixed SEND preserves only the order edge and exact goal ma
   assert.deepEqual(output.strategy.steps[0].dependsOn, [ids.get("g-swap")]);
   assert.deepEqual(output.strategy.steps[1].dependsOn, []);
   assert.equal(validatePlannerStrategyBinding(output.binding, { requestId: source.requestId, sessionId: source.sessionId,
-    plan: source.plan, resolution: source.resolution, strategy: output.strategy, goalSteps: output.binding.goalSteps }).valid, true);
+    plan: source.plan, resolution: source.resolution, strategy: output.strategy, goalSteps: output.binding.goalSteps,
+    provenance: (withEvidence(source) as { resolution: unknown }).resolution,
+    provenanceSource: (withEvidence(source) as { provenanceSource: unknown }).provenanceSource }).valid, true);
 });
 
 test("same input and reordered object properties, goals and intents give identical identities", () => {
@@ -118,7 +145,7 @@ test("invalid plan graph, goal kind and binding substitutions reject without par
 test("unsupported parameters and extra authority fields reject", () => {
   const unsupportedAsset = single(); unsupportedAsset.resolution.intents[0].asset = "fake"; rejected(unsupportedAsset, "UNSUPPORTED_ASSET");
   const badRecipient = single(); badRecipient.resolution.intents[0].recipient = "bad"; rejected(badRecipient, "INVALID_RECIPIENT");
-  rejected({ ...single(), version: 2 }, "UNSUPPORTED_VERSION");
+  rejected({ ...single(), version: 3 }, "UNSUPPORTED_VERSION");
   rejected({ ...single(), signer: true }, "UNEXPECTED_FIELD");
   rejected({ ...single(), text: "Send 5 EURC" }, "UNEXPECTED_FIELD");
   rejected({ ...single(), locale: "en" }, "UNEXPECTED_FIELD");
@@ -245,7 +272,9 @@ test("nested mutations and second-read traps cannot change captured identity or 
   const later = multi(), snapshot = compiled(later);
   later.plan.goals[1].dependsOn = [];
   assert.equal(validatePlannerStrategyBinding(snapshot.binding, { requestId: later.requestId, sessionId: later.sessionId,
-    plan: later.plan, resolution: later.resolution, strategy: snapshot.strategy, goalSteps: snapshot.binding.goalSteps }).valid, false);
+    plan: later.plan, resolution: later.resolution, strategy: snapshot.strategy, goalSteps: snapshot.binding.goalSteps,
+    provenance: (withEvidence(later) as { resolution: unknown }).resolution,
+    provenanceSource: (withEvidence(later) as { provenanceSource: unknown }).provenanceSource }).valid, false);
   const symbol = multi(); Object.defineProperty(symbol.resolution.intents[0], Symbol("extra"), { value: true });
   rejected(symbol, "INVALID_RUNTIME");
 });

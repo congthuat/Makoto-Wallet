@@ -5,6 +5,9 @@ import { validatePlannerIntent, type PlannerIntent } from "./plannerIntent.ts";
 import { validatePlannerPlan, type PlannerPlan, type PlannerPlanValidationIssue } from "./plannerPlan.ts";
 import { validatePlannerClassificationRequest, type PlannerClassificationRequest } from "./plannerSemanticClassifier.ts";
 import { isXyloSwappableAssetId, oppositeAssetId } from "./swap.ts";
+import { createDynamicPlannerParameterEvidence, createPlannerParameterEvidence, type PlannerEvidenceResult,
+  type PlannerStructuredInput } from "./plannerParameterEvidence.ts";
+import { snapshotPlannerStrategyData } from "./plannerStrategyBinding.ts";
 
 export type PlannerParameterRequest = PlannerClassificationRequest & Readonly<{ plan: PlannerPlan }>;
 /** The provider returns unknown extraction data, never a canonical PlannerIntent. */
@@ -124,4 +127,27 @@ function checkIntent(input: unknown, goalId: string, invalid: PlannerParameterIs
   const result = validatePlannerIntent(input);
   if (result.valid) { intents.push(result.value); return; }
   for (const issue of result.errors) invalid.push({ goalId, field: issue.path.replace(/^intent\.?/, "") || "intent", code: issue.code === "UNSUPPORTED" || issue.code === "UNSUPPORTED_KIND" ? "UNSUPPORTED" : "INVALID_FORMAT" });
+}
+
+/** Opt-in v2 boundary. Free-text extraction alone returns UNVERIFIED, never fixed-origin authority. */
+export async function resolvePlannerParametersWithEvidence(textInput: unknown, planInput: unknown,
+  resolver: PlannerParameterResolver, context: Readonly<{ requestId: string; sessionId: string;
+    structuredInput: PlannerStructuredInput | null }>): Promise<PlannerParameterResult | PlannerEvidenceResult> {
+  const captured = snapshotPlannerStrategyData({ textInput, planInput, context });
+  if (!captured.valid || !captured.value || typeof captured.value !== "object" || Array.isArray(captured.value))
+    return { valid: false, reason: "INVALID_RUNTIME" };
+  const stable = captured.value as { textInput: unknown; planInput: unknown; context: unknown };
+  if (!stable.context || typeof stable.context !== "object" || Array.isArray(stable.context) ||
+    Reflect.ownKeys(stable.context).length !== 3 || !["requestId", "sessionId", "structuredInput"].every((key) => Object.hasOwn(stable.context as object, key)))
+    return { valid: false, reason: "INVALID_RUNTIME" };
+  const trusted = stable.context as typeof context;
+  const resolution = await resolvePlannerParameters(stable.textInput, stable.planInput, resolver);
+  if (resolution.status === "NEEDS_CLARIFICATION") {
+    const dynamic = resolution.issues.find((issue) => issue.code === "DYNAMIC_AMOUNT");
+    if (dynamic) return createDynamicPlannerParameterEvidence({ requestId: trusted.requestId, sessionId: trusted.sessionId,
+      request: stable.textInput, plan: stable.planInput }, dynamic.goalId);
+  }
+  if (resolution.status !== "RESOLVED") return resolution;
+  return createPlannerParameterEvidence({ requestId: trusted.requestId, sessionId: trusted.sessionId,
+    request: stable.textInput, plan: stable.planInput, resolution, structuredInput: trusted.structuredInput });
 }

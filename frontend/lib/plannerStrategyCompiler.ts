@@ -1,17 +1,19 @@
 import { keccak256, stringToHex } from "viem";
 import { validatePlannerIntent, type PlannerIntent } from "./plannerIntent.ts";
 import { validatePlannerPlan, type PlannerGoalKind, type PlannerPlanValidationCode } from "./plannerPlan.ts";
-import { createPlannerStrategyBinding, snapshotPlannerStrategyData, type PlannerStrategyBinding } from "./plannerStrategyBinding.ts";
+import { createPlannerStrategyBindingV2, snapshotPlannerStrategyData, type PlannerStrategyBindingV2 } from "./plannerStrategyBinding.ts";
+import { validatePlannerParameterEvidence } from "./plannerParameterEvidence.ts";
 import { validateStrategy, type ActionStep, type Strategy } from "./strategyModel.ts";
 
 /** The caller owns request/session identity and the observed creation time. */
 export type StrategyCompilationInput = Readonly<{
-  version: 1;
+  version: 2;
   requestId: string;
   sessionId: string;
   createdAt: number;
   plan: unknown;
   resolution: unknown;
+  provenanceSource: unknown;
 }>;
 export type StrategyCompilationIssue =
   | "INVALID_RUNTIME" | "INVALID_SCHEMA" | "UNEXPECTED_FIELD" | "UNSUPPORTED_VERSION" | "INVALID_ID"
@@ -20,9 +22,10 @@ export type StrategyCompilationIssue =
   | "UNRESOLVED_PARAMETER" | "DYNAMIC_VALUE_DEPENDENCY_UNSUPPORTED" | "PLAN_RESULT_MISMATCH"
   | "GOAL_BINDING_MISMATCH" | "INVALID_INTENT" | "UNSUPPORTED_CHAIN" | "UNSUPPORTED_ASSET"
   | "INVALID_RECIPIENT" | "AMBIGUOUS_AMOUNT" | "UNSUPPORTED_ACTION_MAPPING"
-  | "INVALID_STRATEGY" | "IDENTITY_COLLISION" | "BINDING_CREATION_FAILED";
+  | "INVALID_STRATEGY" | "IDENTITY_COLLISION" | "BINDING_CREATION_FAILED"
+  | "MISSING_PARAMETER_EVIDENCE" | "INVALID_PARAMETER_EVIDENCE";
 export type StrategyCompilationResult =
-  | Readonly<{ status: "COMPILED"; executionEnabled: false; strategy: Strategy; binding: PlannerStrategyBinding }>
+  | Readonly<{ status: "COMPILED"; executionEnabled: false; strategy: Strategy; binding: PlannerStrategyBindingV2 }>
   | Readonly<{ status: "REJECTED"; reason: StrategyCompilationIssue }>;
 
 type Data = Record<string, unknown>;
@@ -73,10 +76,10 @@ export function compilePlannerStrategy(input: unknown): StrategyCompilationResul
     if (!captured.valid) return reject("INVALID_RUNTIME");
     const source = captured.value;
     if (!object(source)) return reject("INVALID_SCHEMA");
-    const fields = ["version", "requestId", "sessionId", "createdAt", "plan", "resolution"];
+    if (source.version !== 2) return reject("UNSUPPORTED_VERSION");
+    const fields = ["version", "requestId", "sessionId", "createdAt", "plan", "resolution", "provenanceSource"];
     if (Reflect.ownKeys(source).some((key) => !fields.includes(String(key)))) return reject("UNEXPECTED_FIELD");
     if (!exact(source, fields)) return reject("INVALID_SCHEMA");
-    if (source.version !== 1) return reject("UNSUPPORTED_VERSION");
     if (typeof source.requestId !== "string" || !ID.test(source.requestId) || typeof source.sessionId !== "string" || !ID.test(source.sessionId)) return reject("INVALID_ID");
     if (!Number.isSafeInteger(source.createdAt) || (source.createdAt as number) < 0) return reject("INVALID_CREATED_AT");
     const planResult = validatePlannerPlan(source.plan);
@@ -86,11 +89,11 @@ export function compilePlannerStrategy(input: unknown): StrategyCompilationResul
 
     const resolution = source.resolution;
     if (!object(resolution)) return reject("UNRESOLVED_PARAMETER");
-    if (resolution.status !== "RESOLVED") {
+    if (resolution.status !== "RESOLVED_WITH_EVIDENCE") {
       if (Array.isArray(resolution.issues) && resolution.issues.some((issue) => object(issue) && issue.code === "DYNAMIC_AMOUNT")) return reject("DYNAMIC_VALUE_DEPENDENCY_UNSUPPORTED");
-      return reject("UNRESOLVED_PARAMETER");
+      return reject(resolution.status === "RESOLVED" || resolution.status === "UNVERIFIED" ? "MISSING_PARAMETER_EVIDENCE" : "UNRESOLVED_PARAMETER");
     }
-    if (!exact(resolution, ["status", "planId", "intents"]) || resolution.planId !== plan.id || !Array.isArray(resolution.intents)) return reject("PLAN_RESULT_MISMATCH");
+    if (!exact(resolution, ["status", "version", "planId", "intents", "evidence", "evidenceDigest"]) || resolution.planId !== plan.id || !Array.isArray(resolution.intents)) return reject("PLAN_RESULT_MISMATCH");
     if (resolution.intents.length !== plan.goals.length) return reject("GOAL_BINDING_MISMATCH");
     const goals = new Map(plan.goals.map((goal) => [goal.id, goal]));
     const intents = new Map<string, PlannerIntent>();
@@ -102,6 +105,10 @@ export function compilePlannerStrategy(input: unknown): StrategyCompilationResul
       intents.set(intent.id, intent);
     }
     if (intents.size !== goals.size) return reject("GOAL_BINDING_MISMATCH");
+    const provenance = validatePlannerParameterEvidence(resolution, source.provenanceSource);
+    if (!provenance.valid || provenance.value.status !== "RESOLVED_WITH_EVIDENCE") return reject("INVALID_PARAMETER_EVIDENCE");
+    if (!object(source.provenanceSource) || source.provenanceSource.requestId !== source.requestId ||
+      source.provenanceSource.sessionId !== source.sessionId) return reject("INVALID_PARAMETER_EVIDENCE");
 
     const orderedGoals = [...plan.goals].sort((a, b) => compare(a.id, b.id));
     const semanticIdentity = [source.requestId, source.sessionId, plan.version, plan.id, plan.classification,
@@ -120,8 +127,9 @@ export function compilePlannerStrategy(input: unknown): StrategyCompilationResul
     const strategy: Strategy = { version: 1, id: strategyId, createdAt: source.createdAt as number, steps };
     if (!validateStrategy(strategy).valid) return reject("INVALID_STRATEGY");
     const goalSteps = orderedGoals.map((goal) => ({ goalId: goal.id, actionStepId: stepIds.get(goal.id)! }));
-    const bound = createPlannerStrategyBinding({ requestId: source.requestId, sessionId: source.sessionId,
-      plan, resolution, strategy, goalSteps });
+    const bound = createPlannerStrategyBindingV2({ requestId: source.requestId, sessionId: source.sessionId,
+      plan, resolution: source.provenanceSource.resolution, strategy, goalSteps, provenance: resolution,
+      provenanceSource: source.provenanceSource });
     if (!bound.valid) return reject("BINDING_CREATION_FAILED");
     const frozen: Strategy = Object.freeze({ ...strategy, steps: Object.freeze(steps.map((step) => Object.freeze({ ...step, dependsOn: Object.freeze([...step.dependsOn]) }))) });
     return { status: "COMPILED", executionEnabled: false, strategy: frozen, binding: bound.value };
