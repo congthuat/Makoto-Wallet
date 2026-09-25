@@ -50,7 +50,7 @@ function planIssue(code: PlannerPlanValidationCode): StrategyCompilationIssue {
   return "INVALID_PLAN";
 }
 function intentIssue(path: string, code: string): StrategyCompilationIssue {
-  if (path.endsWith("chainId")) return "UNSUPPORTED_CHAIN";
+  if (path.endsWith("chainId") || path.endsWith("ChainId")) return "UNSUPPORTED_CHAIN";
   if (path.endsWith("asset") || path.endsWith("Asset")) return "UNSUPPORTED_ASSET";
   if (path.endsWith("recipient")) return "INVALID_RECIPIENT";
   if (path.endsWith("amount")) return "AMBIGUOUS_AMOUNT";
