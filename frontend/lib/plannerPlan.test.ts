@@ -2,11 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { validatePlannerPlan } from "./plannerPlan.ts";
 
-const recipient = "0x1111111111111111111111111111111111111111";
-const swap = { version: 1, id: "swap", kind: "SWAP", chainId: 5042002, fromAsset: "usdc", toAsset: "eurc", amount: "10" };
-const send = { version: 1, id: "send", kind: "SEND", chainId: 5042002, asset: "eurc", amount: "5", recipient };
-const action = { version: 1, id: "plan", classification: "ACTION", goals: [{ intent: send, dependsOn: [] }] };
-const strategy = { version: 1, id: "plan", classification: "STRATEGY", goals: [{ intent: send, dependsOn: ["swap"] }, { intent: swap, dependsOn: [] }] };
+const swap = { id: "swap", kind: "SWAP", dependsOn: [] };
+const send = { id: "send", kind: "SEND", dependsOn: ["swap"] };
+const action = { version: 1, id: "plan", classification: "ACTION", goals: [swap] };
+const strategy = { version: 1, id: "plan", classification: "STRATEGY", goals: [send, swap] };
 const valid = (value: unknown, expected?: "ACTION" | "STRATEGY") => assert.equal(validatePlannerPlan(value, expected).valid, true);
 const invalid = (value: unknown, code: string) => {
   const result = validatePlannerPlan(value);
@@ -14,46 +13,43 @@ const invalid = (value: unknown, code: string) => {
   if (!result.valid) assert.ok(result.errors.some((issue) => issue.code === code), JSON.stringify(result.errors));
 };
 
-test("ACTION Send and Swap each contain exactly one user goal", () => {
-  valid(action, "ACTION");
-  valid({ ...action, goals: [{ intent: swap, dependsOn: [] }] }, "ACTION");
-  assert.equal(action.goals.length, 1);
+test("ACTION has one SEND, SWAP, or BRIDGE user goal without dependencies", () => {
+  for (const kind of ["SEND", "SWAP", "BRIDGE"]) valid({ ...action, goals: [{ id: "goal", kind, dependsOn: [] }] }, "ACTION");
 });
 
-test("STRATEGY uses explicit dependencies independent of array order and supports fan-in", () => {
+test("STRATEGY dependencies are explicit, order-independent, and support fan-in", () => {
   valid(strategy, "STRATEGY");
   valid({ ...strategy, goals: [...strategy.goals].reverse() });
-  const send2 = { ...send, id: "send2" };
-  valid({ ...strategy, goals: [{ intent: send, dependsOn: ["swap", "send2"] }, { intent: swap, dependsOn: [] }, { intent: send2, dependsOn: [] }] });
+  valid({ ...strategy, goals: [{ id: "bridge", kind: "BRIDGE", dependsOn: ["swap", "send"] }, send, swap] });
 });
 
-test("graph, shape, classification, and authority violations are rejected", () => {
-  invalid({ ...strategy, goals: [{ intent: swap, dependsOn: [] }, { intent: { ...send, id: "swap" }, dependsOn: ["swap"] }] }, "DUPLICATE_INTENT_ID");
-  invalid({ ...strategy, goals: [{ intent: swap, dependsOn: ["swap"] }, { intent: send, dependsOn: [] }] }, "SELF_DEPENDENCY");
-  invalid({ ...strategy, goals: [{ intent: swap, dependsOn: ["missing"] }, { intent: send, dependsOn: [] }] }, "UNKNOWN_DEPENDENCY");
-  invalid({ ...strategy, goals: [{ intent: swap, dependsOn: ["send"] }, { intent: send, dependsOn: ["swap"] }] }, "DEPENDENCY_CYCLE");
+test("graph, shape, classification, and goal-kind violations are rejected", () => {
+  invalid({ ...strategy, goals: [swap, { ...send, id: "swap" }] }, "DUPLICATE_GOAL_ID");
+  invalid({ ...strategy, goals: [{ ...swap, dependsOn: ["swap"] }, send] }, "SELF_DEPENDENCY");
+  invalid({ ...strategy, goals: [{ ...swap, dependsOn: ["missing"] }, send] }, "UNKNOWN_DEPENDENCY");
+  invalid({ ...strategy, goals: [{ ...swap, dependsOn: ["send"] }, send] }, "DEPENDENCY_CYCLE");
   invalid({ ...action, goals: strategy.goals }, "INVALID_GOAL_COUNT");
-  invalid({ ...action, goals: [{ intent: send, dependsOn: ["swap"] }] }, "CLASSIFICATION_MISMATCH");
-  invalid({ ...strategy, goals: [action.goals[0]] }, "INVALID_GOAL_COUNT");
-  invalid({ ...strategy, goals: [{ intent: swap, dependsOn: [] }, { intent: send, dependsOn: [] }] }, "MISSING_COMPOSITION");
-  invalid({ ...strategy, goals: [{ intent: swap, dependsOn: ["send", "send"] }, { intent: send, dependsOn: [] }] }, "DUPLICATE_DEPENDENCY");
-  invalid({ ...strategy, goals: [{ intent: swap, dependsOn: "send" }, { intent: send, dependsOn: [] }] }, "INVALID_SCHEMA");
+  invalid({ ...action, goals: [send] }, "CLASSIFICATION_MISMATCH");
+  invalid({ ...strategy, goals: [swap] }, "INVALID_GOAL_COUNT");
+  invalid({ ...strategy, goals: [swap, { ...send, dependsOn: [] }] }, "MISSING_COMPOSITION");
+  invalid({ ...strategy, goals: [swap, { ...send, dependsOn: ["swap", "swap"] }] }, "DUPLICATE_DEPENDENCY");
+  invalid({ ...strategy, goals: [swap, { ...send, dependsOn: "swap" }] }, "INVALID_SCHEMA");
+  invalid({ ...action, goals: [{ ...swap, kind: "APPROVE" }] }, "INVALID_GOAL_KIND");
   invalid({ ...action, id: " " }, "INVALID_ID");
-  invalid({ ...action, signer: true }, "INVALID_SCHEMA");
-  invalid({ ...action, goals: [{ ...action.goals[0], preparedAction: {} }] }, "INVALID_SCHEMA");
-  invalid({ ...action, goals: [{ intent: { ...send, calldata: "0x" }, dependsOn: [] }] }, "INVALID_INTENT");
-  invalid({ ...action, goals: [{ intent: { ...send, privateKey: "forbidden" }, dependsOn: [] }] }, "INVALID_INTENT");
+  invalid({ ...action, goals: [{ ...swap, id: " " }] }, "INVALID_ID");
   const mismatch = validatePlannerPlan(action, "STRATEGY");
   assert.equal(mismatch.valid, false);
   if (!mismatch.valid) assert.ok(mismatch.errors.some((issue) => issue.code === "CLASSIFICATION_MISMATCH"));
 });
 
-test("11A rejects unsupported or malformed fields without substitution", () => {
-  for (const intent of [
-    { ...send, asset: "eth" }, { ...send, chainId: 1 }, { ...send, amount: "0" }, { ...send, recipient: "bad" },
-    { ...swap, toAsset: "usdc" }, { ...swap, amount: "1.1234567" },
-    { version: 1, id: "bridge", kind: "BRIDGE", sourceChainId: 5042002, destinationChainId: 1, asset: "usdc", amount: "1", recipient },
-  ]) invalid({ ...action, goals: [{ intent, dependsOn: [] }] }, "INVALID_INTENT");
+test("11C refuses resolved parameters, PlannerIntent objects, and execution authority", () => {
+  for (const field of [
+    { amount: "10" }, { asset: "usdc" }, { chainId: 5042002 },
+    { recipient: "0x1111111111111111111111111111111111111111" },
+    { intent: { version: 1, id: "swap", kind: "SWAP" } }, { calldata: "0x" },
+    { privateKey: "forbidden" }, { signer: true }, { preparedAction: {} },
+  ]) invalid({ ...action, goals: [{ ...swap, ...field }] }, "INVALID_SCHEMA");
+  invalid({ ...action, sendTransaction: true }, "INVALID_SCHEMA");
 });
 
 test("ACTION and STRATEGY survive JSON round trips", () => {

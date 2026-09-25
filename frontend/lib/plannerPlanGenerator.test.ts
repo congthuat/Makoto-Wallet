@@ -3,15 +3,16 @@ import test from "node:test";
 import { generatePlannerPlan, type PlannerPlanGenerator } from "./plannerPlanGenerator.ts";
 
 const recipient = "0x1111111111111111111111111111111111111111";
-const swap = { version: 1, id: "swap", kind: "SWAP", chainId: 5042002, fromAsset: "usdc", toAsset: "eurc", amount: "10" };
-const send = { version: 1, id: "send", kind: "SEND", chainId: 5042002, asset: "eurc", amount: "5", recipient };
+const swap = { id: "swap", kind: "SWAP", dependsOn: [] };
+const send = { id: "send", kind: "SEND", dependsOn: ["swap"] };
 const classification = (category: "ACTION" | "STRATEGY") => ({ status: "CLASSIFIED", category });
 
-test("mocked provider yields Send ACTION, Swap ACTION, and dependent Swap then Send STRATEGY", async () => {
+test("mocked provider yields goal kinds and graph without resolving parameters", async () => {
   for (const [text, category, goals] of [
-    [`Send 5 EURC to ${recipient}`, "ACTION", [{ intent: send, dependsOn: [] }]],
-    ["Swap 10 USDC to EURC", "ACTION", [{ intent: swap, dependsOn: [] }]],
-    [`Swap 10 USDC to EURC, then send 5 EURC to ${recipient}`, "STRATEGY", [{ intent: send, dependsOn: ["swap"] }, { intent: swap, dependsOn: [] }]],
+    [`Send 5 EURC to ${recipient}`, "ACTION", [{ id: "send", kind: "SEND", dependsOn: [] }]],
+    ["Swap 10 USDC to EURC", "ACTION", [swap]],
+    [`Swap 10 USDC to EURC, then send 5 EURC to ${recipient}`, "STRATEGY", [send, swap]],
+    [`Bridge 10 USDC from Arc to Base Sepolia to ${recipient}`, "ACTION", [{ id: "bridge", kind: "BRIDGE", dependsOn: [] }]],
   ] as const) {
     let calls = 0;
     const result = await generatePlannerPlan({ text, locale: "en" }, classification(category), {
@@ -37,8 +38,9 @@ test("non-actionable classification, technical failure, and invalid text never i
 
 test("untrusted output and provider failures never fabricate plans", async () => {
   for (const output of [null, {}, { version: 1, id: "x", classification: "OTHER", goals: [] },
-    { version: 1, id: "x", classification: "ACTION", goals: [{ intent: send, dependsOn: [] }], sendTransaction: true },
-    { version: 1, id: "x", classification: "ACTION", goals: [{ intent: send, dependsOn: ["missing"] }] },
-  ]) assert.equal((await generatePlannerPlan({ text: "send" }, classification("ACTION"), { generate: async () => output })).status, "INVALID_PLAN");
-  assert.deepEqual(await generatePlannerPlan({ text: "send" }, classification("ACTION"), { generate: async () => { throw Error("sensitive provider detail"); } }), { status: "PROVIDER_ERROR" });
+    { version: 1, id: "x", classification: "ACTION", goals: [swap], sendTransaction: true },
+    { version: 1, id: "x", classification: "ACTION", goals: [{ ...swap, dependsOn: ["missing"] }] },
+    { version: 1, id: "x", classification: "ACTION", goals: [{ ...swap, amount: "10" }] },
+  ]) assert.equal((await generatePlannerPlan({ text: "swap" }, classification("ACTION"), { generate: async () => output })).status, "INVALID_PLAN");
+  assert.deepEqual(await generatePlannerPlan({ text: "swap" }, classification("ACTION"), { generate: async () => { throw Error("sensitive provider detail"); } }), { status: "PROVIDER_ERROR" });
 });

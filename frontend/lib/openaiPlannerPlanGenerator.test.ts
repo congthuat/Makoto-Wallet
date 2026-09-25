@@ -4,7 +4,7 @@ import { createOpenAIPlannerPlanGenerator } from "./openaiPlannerPlanGenerator.s
 import { generatePlannerPlan } from "./plannerPlanGenerator.ts";
 
 const classification = { status: "CLASSIFIED", category: "ACTION" };
-const plan = { version: 1, id: "p", classification: "ACTION", goals: [{ intent: { version: 1, id: "s", kind: "SWAP", chainId: 5042002, fromAsset: "usdc", toAsset: "eurc", amount: "10" }, dependsOn: [] }] };
+const plan = { version: 1, id: "p", classification: "ACTION", goals: [{ id: "swap", kind: "SWAP", dependsOn: [] }] };
 const envelope = (value: unknown) => ({ status: "completed", output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify(value) }] }] });
 
 test("server adapter sends one bounded Responses request with strict schema and no tools", async () => {
@@ -21,6 +21,10 @@ test("server adapter sends one bounded Responses request with strict schema and 
     assert.deepEqual(body.tools, []);
     assert.equal(body.text.format.strict, true);
     assert.equal(body.text.format.schema.additionalProperties, false);
+    assert.deepEqual(body.text.format.schema.properties.goals.items.required, ["id", "kind", "dependsOn"]);
+    assert.deepEqual(body.text.format.schema.properties.goals.items.properties.kind.enum, ["SEND", "SWAP", "BRIDGE"]);
+    assert.equal(body.text.format.schema.properties.goals.items.additionalProperties, false);
+    assert.equal(body.text.format.schema.properties.goals.items.properties.intent, undefined);
     return new Response(JSON.stringify(envelope(plan)), { status: 200 });
   };
   const generator = createOpenAIPlannerPlanGenerator({ apiKey: "test-only-key", fetcher });
