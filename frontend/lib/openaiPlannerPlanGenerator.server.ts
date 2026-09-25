@@ -10,7 +10,7 @@ const string = { type: "string" };
 export const PLAN_FORMAT = Object.freeze({
   type: "json_schema", name: "planner_user_goal_plan", strict: true,
   schema: { type: "object", additionalProperties: false, required: ["version", "id", "classification", "goals"],
-    properties: { version: { type: "integer" }, id: string, classification: { type: "string", enum: ["ACTION", "STRATEGY"] },
+    properties: { version: { type: "integer", enum: [1] }, id: string, classification: { type: "string", enum: ["ACTION", "STRATEGY"] },
       goals: { type: "array", items: { type: "object", additionalProperties: false, required: ["id", "kind", "dependsOn"],
         properties: { id: string, kind: { type: "string", enum: ["SEND", "SWAP", "BRIDGE"] }, dependsOn: { type: "array", items: string } } } } } },
 } as const);

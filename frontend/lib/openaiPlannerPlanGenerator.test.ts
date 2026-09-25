@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createOpenAIPlannerPlanGenerator } from "./openaiPlannerPlanGenerator.server.ts";
+import { createOpenAIPlannerReplanGenerator } from "./openaiPlannerReplan.server.ts";
 import { generatePlannerPlan } from "./plannerPlanGenerator.ts";
+import { evaluatePlannerReplan } from "./plannerReplan.ts";
 
 const classification = { status: "CLASSIFIED", category: "ACTION" };
 const plan = { version: 1, id: "p", classification: "ACTION", goals: [{ id: "swap", kind: "SWAP", dependsOn: [] }] };
@@ -21,6 +23,7 @@ test("server adapter sends one bounded Responses request with strict schema and 
     assert.deepEqual(body.tools, []);
     assert.equal(body.text.format.strict, true);
     assert.equal(body.text.format.schema.additionalProperties, false);
+    assert.deepEqual(body.text.format.schema.properties.version, { type: "integer", enum: [1] });
     assert.deepEqual(body.text.format.schema.properties.goals.items.required, ["id", "kind", "dependsOn"]);
     assert.deepEqual(body.text.format.schema.properties.goals.items.properties.kind.enum, ["SEND", "SWAP", "BRIDGE"]);
     assert.equal(body.text.format.schema.properties.goals.items.additionalProperties, false);
@@ -30,6 +33,26 @@ test("server adapter sends one bounded Responses request with strict schema and 
   const generator = createOpenAIPlannerPlanGenerator({ apiKey: "test-only-key", fetcher });
   const result = await generatePlannerPlan({ text: "Swap 10 USDC to EURC" }, classification, generator);
   assert.equal(result.status, "GENERATED");
+  assert.equal(calls, 1);
+});
+
+test("replan adapter reuses the exact version-one plan schema", async () => {
+  let calls = 0;
+  const original = { version: 1, id: "original", classification: "STRATEGY", goals: [
+    { id: "swap", kind: "SWAP", dependsOn: [] }, { id: "send", kind: "SEND", dependsOn: ["swap"] },
+  ] };
+  const fetcher: typeof fetch = async (_url, init) => {
+    calls++;
+    const body = JSON.parse(String(init?.body));
+    assert.deepEqual(body.text.format.schema.properties.version, { type: "integer", enum: [1] });
+    return new Response(JSON.stringify(envelope({ ...original, version: 2, id: "replacement", goals: [
+      { id: "swap", kind: "SWAP", dependsOn: ["send"] }, { id: "send", kind: "SEND", dependsOn: [] },
+    ] })), { status: 200 });
+  };
+  const result = await evaluatePlannerReplan({ version: 1, request: { text: "Swap, then send" }, plan: original,
+    trigger: { kind: "CHANGED_STATE", impact: "GOAL_STRUCTURE", affectedGoalId: "send" } },
+    createOpenAIPlannerReplanGenerator({ apiKey: "test-only-key", fetcher }));
+  assert.deepEqual(result, { status: "UNSUPPORTED", reason: "INVALID_REPLACEMENT_PLAN" });
   assert.equal(calls, 1);
 });
 
