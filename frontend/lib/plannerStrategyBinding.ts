@@ -76,6 +76,13 @@ function snapshot(value: unknown, ancestors = new Set<object>(), budget = { node
   ancestors.delete(value);
   return result;
 }
+/** Shared AEI input boundary: one descriptor-safe copy before validation and compilation. */
+export function snapshotPlannerStrategyData(input: unknown): Readonly<{ valid: true; value: unknown }> | Readonly<{ valid: false }> {
+  try {
+    const value = snapshot(input);
+    return value === INVALID ? { valid: false } : { valid: true, value };
+  } catch { return { valid: false }; }
+}
 const object = (value: unknown): value is Data => value !== null && typeof value === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 const exact = (value: Data, names: readonly string[]) => Reflect.ownKeys(value).length === names.length && names.every((name) => Object.hasOwn(value, name));
 
