@@ -127,7 +127,16 @@ test("server adapter makes one bounded Responses request with strict 11C shape a
     assert.equal(body.stream, false);
     assert.deepEqual(body.tools, []);
     assert.equal(body.text.format.strict, true);
-    assert.match(REPLAN_INSTRUCTIONS, /Preserve the supplied classification/);
+    assert.equal(body.instructions, REPLAN_INSTRUCTIONS);
+    for (const rule of [
+      /Preserve the supplied classification and every existing goal ID and kind exactly once/,
+      /Change only dependsOn edges; never add or remove goals/,
+      /Every dependsOn ID must reference one of the supplied goal IDs/,
+      /A goal must not depend on itself/,
+      /dependency graph must have no cycles/,
+      /A STRATEGY replacement must still contain at least one dependency edge/,
+      /Give the replacement a new plan ID/,
+    ]) assert.match(body.instructions, rule);
     assert.deepEqual(JSON.parse(body.input[0].content[0].text).plan, plan);
     return { ok: true, json: async () => ({ status: "completed", output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify(replacement) }] }] }) } as Response;
   } });
