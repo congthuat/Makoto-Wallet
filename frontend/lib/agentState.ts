@@ -53,7 +53,7 @@ function validBinding(value: unknown): boolean {
 }
 
 /** Strict structural check only; receipt authenticity and transitions belong to later phases. */
-export function validateAgentState(input: unknown): AgentStateValidationResult {
+function validateAgentStateCore(input: unknown): AgentStateValidationResult {
   const invalid = (reason: string): AgentStateValidationResult => ({ valid: false, reason });
   if (!record(input)) return invalid("INVALID_SCHEMA");
   if (input.version !== 2) return invalid("UNSUPPORTED_VERSION");
@@ -70,6 +70,12 @@ export function validateAgentState(input: unknown): AgentStateValidationResult {
   if (input.status === "FAILED") return keys(input, [...base, "attempt", "submittedHash"]) && hash(input.submittedHash) && (input.attempt === null || reference(input.attempt, "TRANSACTION_ATTEMPT")) ? { valid: true, value: input as AgentState } : invalid("INVALID_SCHEMA");
   if (input.status === "REJECTED" || input.status === "EXPIRED") return keys(input, [...base, "attempt"]) && (input.attempt === null || reference(input.attempt, "TRANSACTION_ATTEMPT")) ? { valid: true, value: input as AgentState } : invalid("INVALID_SCHEMA");
   return invalid("UNKNOWN_STATUS");
+}
+
+/** Runtime objects may throw while their shape is inspected; never let them escape this boundary. */
+export function validateAgentState(input: unknown): AgentStateValidationResult {
+  try { return validateAgentStateCore(input); }
+  catch { return { valid: false, reason: "INVALID_RUNTIME" }; }
 }
 
 /** Capture identity when an already prepared Strategy step enters Phase 12.

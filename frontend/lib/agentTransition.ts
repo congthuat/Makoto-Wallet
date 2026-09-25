@@ -74,7 +74,7 @@ function terminalTransition(from: TransactionState, to: TransactionState, eviden
 /** Evaluates one requested edge. No state is stored, signed, submitted, or advanced again. */
 function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, evidenceInput: unknown, clock: () => number): AgentTransitionResult {
   const current = validateAgentState(currentInput), next = validateAgentState(nextInput);
-  if (!current.valid || !next.valid) return deny("INVALID_STATE");
+  if (!current.valid || !next.valid) return deny((!current.valid && current.reason === "INVALID_RUNTIME") || (!next.valid && next.reason === "INVALID_RUNTIME") ? "INVALID_EVIDENCE" : "INVALID_STATE");
   const from = current.value, to = next.value;
   if (from.sessionId !== to.sessionId || from.stateId === to.stateId) return deny("IDENTITY_MISMATCH");
   if (from.kind === "PLAN_READY" && transaction(to) && to.status === "PREPARED") return deny("MISSING_CANONICAL_STRATEGY_BINDING");

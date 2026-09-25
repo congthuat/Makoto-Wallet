@@ -67,6 +67,14 @@ test("12A rejects malformed shape, references, versions, runtime values, and aut
   for (const value of cases) invalid(value);
 });
 
+test("12G exported state validation fails closed for throwing runtime objects", () => {
+  const throwing = new Proxy({}, { getPrototypeOf() { throw Error("hostile prototype"); } });
+  const nested = new Proxy({ kind: "PLANNER_PLAN", id: "plan:1" }, { ownKeys() { throw Error("hostile keys"); } });
+  for (const value of [throwing, { ...identity, kind: "PLAN_READY", plan: nested }]) {
+    assert.doesNotThrow(() => invalid(value));
+  }
+});
+
 test("prerequisite v2 state requires complete data-only transaction identity", () => {
   const state = { ...transaction, status: "PREPARED" };
   for (const binding of [undefined, {}, { ...transaction.binding, account: "0x00" }, { ...transaction.binding, chainId: NaN }, { ...transaction.binding, quoteExpiresAt: Infinity }, { ...transaction.binding, preparationExpiresAt: -1 }, { ...transaction.binding, handoffExpiresAt: 1.1 }, { ...transaction.binding, preparedAction: { ...transaction.binding.preparedAction, stepIndex: -1 } }, { ...transaction.binding, now: 123 }]) invalid({ ...state, binding });

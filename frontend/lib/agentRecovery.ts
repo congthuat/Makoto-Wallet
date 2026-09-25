@@ -22,6 +22,13 @@ export type AgentRecoveryResult =
 
 type Transaction = Extract<AgentState, { kind: "TRANSACTION" }>;
 const sameHash = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+const declared = (value: unknown, fields: readonly string[], required: readonly string[]): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype &&
+  required.every((field) => Object.hasOwn(value, field)) && Reflect.ownKeys(value).every((field) => {
+    if (typeof field !== "string" || !fields.includes(field)) return false;
+    const property = Object.getOwnPropertyDescriptor(value, field);
+    return property?.enumerable === true && Object.hasOwn(property, "value");
+  });
 const matching = (state: Transaction, record: StrategyRecoveryRecord) =>
   record.strategyId === state.step.strategyId && record.stepId === state.step.stepId &&
   record.action === state.binding.action && record.account.toLowerCase() === state.binding.account.toLowerCase() && record.chainId === state.binding.chainId &&
@@ -32,9 +39,8 @@ const matching = (state: Transaction, record: StrategyRecoveryRecord) =>
 
 /** One finite evaluation. It performs no storage write, RPC call, wallet call, or next edge. */
 function core(input: AgentRecoveryInput): AgentRecoveryResult {
-  if (!input || typeof input !== "object" || Array.isArray(input) ||
-      Object.keys(input).some((key) => !["restored", "strategy", "record", "preparation", "observation", "next"].includes(key)) ||
-      !input.restored || input.restored.status !== "HISTORICAL") return { status: "INVALID_EVIDENCE" };
+  if (!declared(input, ["restored", "strategy", "record", "preparation", "observation", "next"], ["restored"]) ||
+      !declared(input.restored, ["status", "state"], ["status", "state"]) || input.restored.status !== "HISTORICAL") return { status: "INVALID_EVIDENCE" };
   const checked = validateAgentState(input.restored.state);
   if (!checked.valid) return { status: "INVALID_EVIDENCE" };
   const state = checked.value;

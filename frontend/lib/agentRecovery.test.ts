@@ -178,6 +178,14 @@ test("12E rejects malformed runtime inputs and undeclared authority fields", asy
   assert.equal(evaluateAgentRecovery({ ...base, observation: { status: "FOUND", observedAt: now } as StrategyReceiptObservation }).status, "INVALID_EVIDENCE");
 });
 
+test("12G recovery rejects hidden undeclared authority fields", () => {
+  const base = { restored: historical({ version: 2, sessionId, stateId: "requested:12g", kind: "REQUESTED" }) };
+  assert.equal(evaluateAgentRecovery(base).status, "DESCRIPTIVE_ONLY");
+  const hidden = Object.defineProperty({ ...base }, "now", { value: now + 1_000_000 });
+  const symbolic = { ...base, [Symbol("now")]: now + 1_000_000 };
+  for (const input of [hidden, symbolic]) assert.equal(evaluateAgentRecovery(input).status, "INVALID_EVIDENCE");
+});
+
 test("12E rejects recovery shortcuts across historical states and identities", async () => {
   const f = await fixture();
   const base = { strategy: f.strategy, record: f.record, preparation: f.preparation, observation: f.observation };
