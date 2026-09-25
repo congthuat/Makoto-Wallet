@@ -32,6 +32,8 @@ for (const locale of ["en","vi"] as const) {
     assert.ok(positions.every(position=>position>=0));
     assert.deepEqual(positions,[...positions].sort((a,b)=>a-b));
     assert.ok(html.includes(translate(locale,"agent.workspace.noEvidence")));
+    assert.match(html,/data-agent-status="UNAVAILABLE" data-historical="false"/);
+    assert.ok(html.includes(translate(locale,"agent.status.detail.UNAVAILABLE")));
     assert.ok(html.includes(accountA));
     assert.match(html,/data-context-status="current"/);
   });

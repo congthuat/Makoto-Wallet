@@ -25,6 +25,7 @@ import { translate, type Locale, type TranslationKey } from "@/i18n";
 import { agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import styles from "./MakotoAgentPage.module.css";
 import { PolicyDecisionNotice } from "./PolicyDecisionNotice";
+import { AgentStatusSurface } from "./AgentStatusSurface";
 
 export function MakotoAgentPage() {
   const { locale } = usePreferences(), wallet = useWalletReadContext();
@@ -139,6 +140,7 @@ export function AgentOperation({ message, locale, current }: { message: AgentMes
       {planning?.refreshRequired && <p>{t("agent.workspace.refreshRequired")}</p>}
       {message.intelligence && <EvidenceBlock value={message.intelligence} locale={locale} />}
     </section>}
+    {mode === "action" && <AgentStatusSurface input={{ kind: "UNAVAILABLE" }} locale={locale} />}
     {message.draft && <ActionDraftCard draft={message.draft} draftContext={message.draftContext} handoff={message.prepared?.status === "PREPARED" ? message.prepared.data.handoff : undefined} vi={vi} />}
     {mode === "action" && !message.draft && <p className={styles.historicalContext}>{t("agent.workspace.noDraft")}</p>}
     {mode === "result" && <p className={styles.resultBoundary}>{t("agent.workspace.resultBoundary")}</p>}

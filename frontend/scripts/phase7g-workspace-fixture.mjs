@@ -28,6 +28,7 @@ import { blockingExplanation } from "@/lib/agent/planning";
 import { formatAgentActionResult } from "@/lib/agent/resultFormatter";
 import { agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import { translate } from "@/i18n";
+import { AgentStatusSurface } from "@/components/AgentStatusSurface";
 import { arcTestnet } from "viem/chains";
 const styles = new Proxy({}, { get: (_target, key) => String(key) });
 ${component.slice(start)}
@@ -64,11 +65,12 @@ function compile(source, filename) {
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const mod = { exports: {} };
   new Function("require", "module", "exports", code)((id) => {
+    if (id.endsWith(".module.css")) return new Proxy({}, { get: (_target, key) => String(key) });
     if (id === "next/navigation") return { useRouter: () => ({push:()=>{throw new Error("SSR navigation forbidden");}}), useSearchParams: () => new URLSearchParams() };
     if (id === "@/hooks/useWalletAccount") return {useWalletReadContext:()=>({kind:"external",status:"connected",address:binding.address,providerChainId:binding.chainId,isArc:binding.chainId===arc})};
     if (id.startsWith("@/") || id.startsWith(".")) {
       let target = id.startsWith("@/") ? path.join(root,id.slice(2)) : path.resolve(path.dirname(filename),id);
-      if (!path.extname(target)) target = existsSync(target+".ts") ? target+".ts" : path.join(target,"index.ts");
+      if (!path.extname(target)) target = existsSync(target+".ts") ? target+".ts" : existsSync(target+".tsx") ? target+".tsx" : path.join(target,"index.ts");
       if (!cache.has(target)) cache.set(target,compile(readFileSync(target,"utf8"),target));
       return cache.get(target);
     }

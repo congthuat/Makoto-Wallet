@@ -229,3 +229,9 @@
 @media (prefers-reduced-motion: reduce) {
   .workspace button { transition: none; }
 }
+
+.agentStatus { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--agent-soft-line); border-radius: 12px; background: var(--agent-inset); color: var(--agent-ink); overflow-wrap: anywhere; }
+.agentStatus strong { display: block; font-size: 14px; }
+.agentStatus span { display: inline-block; margin-top: 5px; font-size: 12px; font-weight: 700; color: var(--agent-accent-ink); }
+.agentStatus p { margin: 6px 0 0; color: var(--agent-muted); font-size: 13px; line-height: 1.45; }
+.agentStatus .statusHash { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; }
