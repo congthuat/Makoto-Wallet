@@ -119,7 +119,7 @@ test("restart recovery keeps known and unknown submissions out of retry eligibil
   assert.equal(evaluateStrategyRecovery({ strategy, record: rejected, now }).status, "USER_REJECTED");
   const pending = { status: "PENDING", strategyId: strategy.id, stepId: approve.id, hash } as const;
   assert.equal(evaluateStrategyRecovery({ strategy, record: base, now, receipt: pending }).status, "WAIT_FOR_RECEIPT");
-  const reverted = { status: "REVERTED", strategyId: strategy.id, stepId: approve.id, hash, chainId: arcTestnet.id, blockNumber: "123" } as const;
+  const reverted = { status: "REVERTED", strategyId: strategy.id, stepId: approve.id, action: approve.action, account, preparedAction: approve.preparedAction!, hash, chainId: arcTestnet.id, blockNumber: "123", scope: "SOURCE_TRANSACTION" } as const;
   assert.equal(evaluateStrategyRecovery({ strategy, record: base, now, receipt: reverted }).status, "REVALIDATION_REQUIRED");
   const failed: StrategyRecoveryRecord = { ...unknown, event: "PRE_SUBMISSION_FAILURE" };
   const artifacts = { quote: { tool: "swap.quote", account, chainId: arcTestnet.id, fingerprint: approve.preparedAction!.quoteFingerprint, expiresAt: now - 1 }, preparation: { tool: "swap.prepare", account, chainId: arcTestnet.id, quoteFingerprint: approve.preparedAction!.quoteFingerprint, stepIndex: 0, expiresAt: now + 100 } };

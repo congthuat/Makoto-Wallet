@@ -8,6 +8,7 @@ import { runPrepareTool } from "./agent/prepareTools.ts";
 import { runQuoteTool } from "./agent/quoteTools.ts";
 import { type ActionStep, type Strategy } from "./strategyModel.ts";
 import { acquireStrategyReceipt, verifyStrategyReceipt, type StrategyReceiptObservation, type SubmittedStrategyAction } from "./strategyReceipt.ts";
+import { evaluateStrategyRecovery, type StrategyRecoveryRecord } from "./strategyRecovery.ts";
 
 const account = getAddress("0x1111111111111111111111111111111111111111");
 const recipient = getAddress("0x2222222222222222222222222222222222222222");
@@ -60,6 +61,37 @@ test("reverted, pending and unavailable remain separate stopping states", async 
     const result = verifyStrategyReceipt({ ...input, observation: observation as StrategyReceiptObservation });
     assert.equal(result.status, status);
     assert.equal("dependencies" in result, false);
+  }
+});
+
+test("reverted result retains identity already verified against the transaction", async () => {
+  const input = await fixture("SEND");
+  if (input.observation.status !== "FOUND") throw Error("fixture");
+  const observation = { ...input.observation, receipt: { ...input.observation.receipt, status: "reverted" as const } };
+  const result = verifyStrategyReceipt({ ...input, observation });
+  assert.deepEqual(result, { status: "REVERTED", strategyId: input.submitted.strategyId, stepId: input.submitted.stepId, action: input.submitted.action, account, preparedAction: input.submitted.preparedAction, hash, chainId: arcTestnet.id, blockNumber: "123", scope: "SOURCE_TRANSACTION" });
+  for (const [transaction, reason] of [
+    [{ ...observation.transaction, from: recipient }, "ACCOUNT"],
+    [{ ...observation.transaction, to: account }, "TRANSACTION"],
+    [{ ...observation.transaction, input: "0x" }, "TRANSACTION"],
+    [{ ...observation.transaction, value: "1" }, "TRANSACTION"],
+  ] as const) assert.deepEqual(verifyStrategyReceipt({ ...input, observation: { ...observation, transaction } as StrategyReceiptObservation }), { status: "MISMATCH", reason });
+  assert.deepEqual(verifyStrategyReceipt({ ...input, observation: { ...observation, chainId: baseSepolia.id } }), { status: "MISMATCH", reason: "CHAIN" });
+  assert.deepEqual(verifyStrategyReceipt({ ...input, observation: { ...observation, receipt: { ...observation.receipt, hash: otherHash } } }), { status: "MISMATCH", reason: "HASH" });
+});
+
+test("verified source reverts bind recovery to the exact submitted action", async () => {
+  for (const action of ["SEND", "BRIDGE"] as const) {
+    const input = await fixture(action);
+    if (input.observation.status !== "FOUND") throw Error("fixture");
+    const receipt = verifyStrategyReceipt({ ...input, observation: { ...input.observation, receipt: { ...input.observation.receipt, status: "reverted" } } });
+    assert.equal(receipt.status, "REVERTED");
+    if (receipt.status !== "REVERTED") throw Error("fixture");
+    assert.equal(receipt.scope, "SOURCE_TRANSACTION");
+    const record: StrategyRecoveryRecord = { version: 1, attemptId: "attempt_10c", strategyId: input.submitted.strategyId, stepId: input.submitted.stepId, action, account, chainId: arcTestnet.id, preparedAction: input.submitted.preparedAction, event: "SUBMITTED", submittedHash: hash };
+    assert.equal(evaluateStrategyRecovery({ strategy: input.strategy, record, receipt, now }).status, "REVALIDATION_REQUIRED");
+    assert.equal(evaluateStrategyRecovery({ strategy: input.strategy, record: { ...record, account: recipient }, receipt, now }).status, "INVALID_EVIDENCE");
+    assert.equal(evaluateStrategyRecovery({ strategy: input.strategy, record: { ...record, preparedAction: { ...record.preparedAction, quoteFingerprint: otherHash } }, receipt, now }).status, "INVALID_EVIDENCE");
   }
 });
 

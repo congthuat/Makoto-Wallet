@@ -108,7 +108,7 @@ test("12B requires pending then canonical confirmed receipt and exact transitive
   for (const [current, next] of [[submitted, success], [awaiting, success], [awaiting, confirming]] as const) assert.equal(reason(evaluateAgentTransition(current, next, evidence)), "ILLEGAL_TRANSITION");
   assert.equal(reason(evaluateAgentTransition(confirming, success, bind("RECEIPT", confirming.stateId, { strategy: f.strategy, record: f.record, receipt: pending, now }))), "RECEIPT_NOT_CONFIRMED");
   const unavailable: StrategyReceiptResult = { status: "UNAVAILABLE", strategyId: f.strategy.id, stepId: "send", hash };
-  const reverted: StrategyReceiptResult = { status: "REVERTED", strategyId: f.strategy.id, stepId: "send", hash, chainId: arcTestnet.id, blockNumber: "123" };
+  const reverted: StrategyReceiptResult = { status: "REVERTED", strategyId: f.strategy.id, stepId: "send", action: "SEND", account, preparedAction: f.record.preparedAction, hash, chainId: arcTestnet.id, blockNumber: "123", scope: "SOURCE_TRANSACTION" };
   assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, receipt: unavailable })), "RECEIPT_NOT_CONFIRMED");
   assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, receipt: reverted })), "RECEIPT_NOT_CONFIRMED");
   for (const receipt of [{ status: "MISMATCH", reason: "HASH" }, { status: "INVALID_EVIDENCE", reason: "OBSERVATION" }] as StrategyReceiptResult[]) assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, receipt })), "INVALID_EVIDENCE");

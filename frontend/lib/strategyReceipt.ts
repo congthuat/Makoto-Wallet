@@ -23,7 +23,7 @@ export type StrategyReceiptObservation =
 
 export type StrategyReceiptResult =
   | Readonly<{ status: "CONFIRMED"; strategyId: string; stepId: string; action: ActionStep["action"]; hash: Hash; chainId: number; blockNumber: string; scope: "SOURCE_TRANSACTION"; dependencies: readonly StrategyDependencyEvidence[] }>
-  | Readonly<{ status: "REVERTED"; strategyId: string; stepId: string; hash: Hash; chainId: number; blockNumber: string }>
+  | Readonly<{ status: "REVERTED"; strategyId: string; stepId: string; action: ActionStep["action"]; account: Address; preparedAction: PreparedActionReference; hash: Hash; chainId: number; blockNumber: string; scope: "SOURCE_TRANSACTION" }>
   | Readonly<{ status: "PENDING" | "UNAVAILABLE"; strategyId: string; stepId: string; hash: Hash }>
   | Readonly<{ status: "MISMATCH"; reason: "STRATEGY" | "STEP" | "ACTION" | "ARTIFACT" | "HASH" | "CHAIN" | "ACCOUNT" | "TRANSACTION" }>
   | Readonly<{ status: "INVALID_EVIDENCE"; reason: "STRATEGY" | "SUBMISSION" | "PREPARATION" | "OBSERVATION" }>;
@@ -76,7 +76,7 @@ export function verifyStrategyReceipt(input: Readonly<{ strategy: unknown; submi
   const request = preparedStep.request;
   if (!sameAddress(tx.to!, request.to) || tx.input.toLowerCase() !== request.data.toLowerCase() || BigInt(tx.value) !== BigInt(request.value)) return { status: "MISMATCH", reason: "TRANSACTION" };
   const identity = { strategyId: s.strategyId, stepId: s.stepId, hash: s.hash, chainId: s.chainId, blockNumber: r.blockNumber };
-  if (r.status === "reverted") return { status: "REVERTED", ...identity };
+  if (r.status === "reverted") return { status: "REVERTED", ...identity, action: step.action, account: s.account, preparedAction: s.preparedAction, scope: "SOURCE_TRANSACTION" };
   const dependency: StrategyDependencyEvidence = {
     kind: "CONFIRMED_RECEIPT", strategyId: s.strategyId, stepId: s.stepId, actionStepId: s.stepId, preparedAction: s.preparedAction, submittedHash: s.hash,
     receipt: { tool: "transaction.receipt", account: s.account, chainId: s.chainId, capturedAt: o.observedAt, observedAt: o.observedAt, freshness: "live", source: ["arc-rpc"], status: "AVAILABLE", data: { hash: s.hash, state: "confirmed", verified: true } },

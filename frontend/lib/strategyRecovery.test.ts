@@ -19,6 +19,7 @@ const allow: PolicyResult = { decision: "ALLOW", findings: [], requiredAction: "
 const stopped = (decision: "BLOCK" | "REQUOTE" | "REVALIDATE"): PolicyResult => ({ ...allow, decision, requiredAction: decision === "BLOCK" ? "STOP" : decision, mustStop: true, requiresUserReview: false, requiresFreshQuote: decision === "REQUOTE", requiresRevalidation: decision === "REVALIDATE" });
 const evaluate = (kind: ActionStep["action"], event: StrategyRecoveryRecord["event"], extra = {}) => evaluateStrategyRecovery({ strategy: strategy(kind), record: record(kind, event), now, ...extra });
 const confirmed = (kind: ActionStep["action"] = "SEND"): StrategyReceiptResult => ({ status: "CONFIRMED", strategyId: "strategy", stepId: "action", action: kind, hash, chainId: arcTestnet.id, blockNumber: "123", scope: "SOURCE_TRANSACTION", dependencies: [{ kind: "CONFIRMED_RECEIPT", strategyId: "strategy", stepId: "action", actionStepId: "action", preparedAction: action(kind).preparedAction!, submittedHash: hash, receipt: { tool: "transaction.receipt", account, chainId: arcTestnet.id, capturedAt: now - 100, observedAt: now - 100, freshness: "live", source: ["arc-rpc"], status: "AVAILABLE", data: { hash, state: "confirmed", verified: true } } }] });
+const reverted = (kind: ActionStep["action"] = "SEND"): StrategyReceiptResult => ({ status: "REVERTED", strategyId: "strategy", stepId: "action", action: kind, account, preparedAction: action(kind).preparedAction!, hash, chainId: arcTestnet.id, blockNumber: "123", scope: "SOURCE_TRANSACTION" });
 
 test("user rejection stops without a receipt or implicit retry", () => {
   assert.deepEqual(evaluate("SEND", "USER_REJECTED"), { strategyId: "strategy", stepId: "action", attemptId: "attempt_123", status: "USER_REJECTED", next: "STOP" });
@@ -40,8 +41,27 @@ test("10C confirmation permits separate continuation check; approval needs fresh
 });
 
 test("reverted attempt remains unsatisfied and requires fresh evidence", () => {
-  const receipt = { status: "REVERTED", strategyId: "strategy", stepId: "action", hash, chainId: arcTestnet.id, blockNumber: "123" } as const;
-  assert.equal(evaluate("SEND", "SUBMITTED", { receipt, artifacts: artifacts(), currentPolicy: allow }).status, "REVALIDATION_REQUIRED");
+  assert.equal(evaluate("SEND", "SUBMITTED", { receipt: reverted(), artifacts: artifacts(), currentPolicy: allow }).status, "REVALIDATION_REQUIRED");
+});
+
+test("reverted evidence cannot be reused for another valid account", () => {
+  const otherAccount = "0x2222222222222222222222222222222222222222";
+  assert.equal(evaluateStrategyRecovery({ strategy: strategy(), record: { ...record("SEND", "SUBMITTED"), account: otherAccount }, now, receipt: reverted() }).status, "INVALID_EVIDENCE");
+});
+
+test("reverted evidence binds action, artifact, hash, chain, step, and source scope", () => {
+  const receipt = reverted();
+  if (receipt.status !== "REVERTED") throw Error("fixture");
+  const changes = [
+    { ...receipt, strategyId: "other" }, { ...receipt, stepId: "other" }, { ...receipt, action: "SWAP" },
+    { ...receipt, preparedAction: { ...receipt.preparedAction, quoteFingerprint: `0x${"c".repeat(64)}` } },
+    { ...receipt, hash: `0x${"c".repeat(64)}` }, { ...receipt, chainId: 1 },
+    { ...receipt, scope: "DESTINATION_TRANSACTION" }, { ...receipt, account: "bad" },
+    { ...receipt, preparedAction: { ...receipt.preparedAction, extra: true } },
+  ];
+  for (const changed of changes) assert.equal(evaluate("SEND", "SUBMITTED", { receipt: changed }).status, "INVALID_EVIDENCE");
+  const throwing = new Proxy({}, { getPrototypeOf() { throw Error("malformed receipt"); } });
+  assert.equal(evaluate("SEND", "SUBMITTED", { receipt: throwing }).status, "INVALID_EVIDENCE");
 });
 
 test("expired quote, preparation, and handoff cannot be replayed", () => {

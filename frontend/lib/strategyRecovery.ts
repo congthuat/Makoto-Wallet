@@ -70,7 +70,7 @@ function validReceipt(result: StrategyReceiptResult, record: StrategyRecoveryRec
   if (result.status === "PENDING" || result.status === "UNAVAILABLE") {
     if (!keys(result, ["status", "strategyId", "stepId", "hash"])) return false;
   } else if (result.status === "REVERTED") {
-    if (!keys(result, ["status", "strategyId", "stepId", "hash", "chainId", "blockNumber"])) return false;
+    if (!keys(result, ["status", "strategyId", "stepId", "action", "account", "preparedAction", "hash", "chainId", "blockNumber", "scope"])) return false;
   } else if (result.status === "CONFIRMED") {
     if (!keys(result, ["status", "strategyId", "stepId", "action", "hash", "chainId", "blockNumber", "scope", "dependencies"])) return false;
   } else return false;
@@ -78,7 +78,7 @@ function validReceipt(result: StrategyReceiptResult, record: StrategyRecoveryRec
   if (result.status === "PENDING" || result.status === "UNAVAILABLE") return true;
   if (result.status !== "CONFIRMED" && result.status !== "REVERTED") return false;
   if (result.chainId !== record.chainId || !/^[1-9][0-9]*$/.test(result.blockNumber)) return false;
-  if (result.status === "REVERTED") return true;
+  if (result.status === "REVERTED") return result.action === record.action && result.action === step.action && result.scope === "SOURCE_TRANSACTION" && sameAddress(result.account, record.account) && object(result.preparedAction) && keys(result.preparedAction, ["kind", "tool", "quoteFingerprint", "stepIndex"]) && sameReference(result.preparedAction, record.preparedAction);
   if (result.status !== "CONFIRMED") return false;
   if (!Array.isArray(result.dependencies)) return false;
   const proof = result.dependencies.find((item) => item?.kind === "CONFIRMED_RECEIPT" && item.stepId === step.id);
@@ -97,7 +97,7 @@ function validPolicy(value: PolicyResult): boolean {
 }
 
 /** Evaluates one recorded attempt once; acquisition and every user action stay with separate callers. */
-export function evaluateStrategyRecovery(input: StrategyRecoveryInput): StrategyRecoveryResult {
+function evaluateStrategyRecoveryCore(input: StrategyRecoveryInput): StrategyRecoveryResult {
   const checked = validateStrategy(input.strategy);
   if (!checked.valid) return { status: "INVALID_STRATEGY", errors: checked.errors };
   if (!validRecord(input.record) || !Number.isSafeInteger(input.now) || input.now < 0) return { status: "INVALID_EVIDENCE", reason: "RECOVERY_RECORD" };
@@ -133,4 +133,10 @@ export function evaluateStrategyRecovery(input: StrategyRecoveryInput): Strategy
   if (artifacts.handoff === undefined) return { ...id, status: "REPREPARE_REQUIRED", next: "REQUEST_FRESH_PREPARATION" };
   if (!input.currentPolicy) return { ...id, status: "REVALIDATION_REQUIRED", next: "REQUEST_FRESH_REVALIDATION" };
   return { ...id, status: "RETRY_ELIGIBLE", next: "NEW_USER_CONTROLLED_10B_INVOCATION", confirmation: step.confirmation };
+}
+
+/** Malformed runtime evidence cannot escape the recovery boundary. */
+export function evaluateStrategyRecovery(input: StrategyRecoveryInput): StrategyRecoveryResult {
+  try { return evaluateStrategyRecoveryCore(input); }
+  catch { return { status: "INVALID_EVIDENCE", reason: "RUNTIME_EVIDENCE" }; }
 }
