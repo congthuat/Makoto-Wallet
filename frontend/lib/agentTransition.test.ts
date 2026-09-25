@@ -7,6 +7,7 @@ import { runPrepareTool } from "./agent/prepareTools.ts";
 import { runQuoteTool } from "./agent/quoteTools.ts";
 import { runReadTool } from "./agent/readTools.ts";
 import { evaluateAgentTransition } from "./agentTransition.ts";
+import { validateAgentState } from "./agentState.ts";
 import type { FinalPolicyInput } from "./policyEngine.ts";
 import type { Strategy, ActionStep } from "./strategyModel.ts";
 import type { StrategyRecoveryRecord } from "./strategyRecovery.ts";
@@ -46,7 +47,21 @@ async function fixture() {
   const request = preparation.data.steps[0].request;
   const receipt = verifyStrategyReceipt({ strategy, submitted: { strategyId: strategy.id, stepId: step.id, action: step.action, preparedAction: step.preparedAction!, hash, account, chainId: arcTestnet.id }, preparation, observation: { status: "FOUND", observedAt: now, chainId: arcTestnet.id, receipt: { hash, status: "success", blockNumber: "123" }, transaction: { hash, from: account, to: request.to, input: request.data, value: request.value, chainId: arcTestnet.id } } });
   assert.equal(receipt.status, "CONFIRMED");
-  return { strategy, policyInput, record, receipt };
+  return { strategy, policyInput, record, receipt, context };
+}
+
+async function bridgeFixture() {
+  const { context } = await fixture();
+  const quote = await runQuoteTool(context, { tool: "bridge.quote", account, chainId: arcTestnet.id, destinationChainId: baseSepolia.id, assetId: "usdc", amount: 10_000_000n, recipient: account, route: "cctp-direct-forwarding" });
+  const preparation = await runPrepareTool(context, { tool: "bridge.prepare", account, chainId: arcTestnet.id, destinationChainId: baseSepolia.id, assetId: "usdc", amount: 10_000_000n, recipient: account, route: "cctp-direct-forwarding", quote });
+  if (preparation.status !== "PREPARED") throw Error("fixture requires canonical Bridge preparation");
+  const step: ActionStep = { id: "bridge", kind: "ACTION", action: "BRIDGE", dependsOn: [], confirmation: "EXPLICIT_USER_CONFIRMATION", preparedAction: { kind: "PREPARED_ACTION", tool: "bridge.prepare", quoteFingerprint: preparation.data.quoteFingerprint, stepIndex: 1 } };
+  const strategy: Strategy = { version: 1, id: "strategy:bridge", createdAt: now, steps: [step] };
+  const record: StrategyRecoveryRecord = { version: 1, attemptId: "attempt_bridge", strategyId: strategy.id, stepId: step.id, action: "BRIDGE", account, chainId: arcTestnet.id, preparedAction: step.preparedAction!, event: "SUBMITTED", submittedHash: hash };
+  const request = preparation.data.steps[1].request;
+  const receipt = verifyStrategyReceipt({ strategy, submitted: { strategyId: strategy.id, stepId: step.id, action: "BRIDGE", preparedAction: step.preparedAction!, hash, account, chainId: arcTestnet.id }, preparation, observation: { status: "FOUND", observedAt: now, chainId: arcTestnet.id, receipt: { hash, status: "success", blockNumber: "123" }, transaction: { hash, from: account, to: request.to, input: request.data, value: request.value, chainId: arcTestnet.id } } });
+  assert.equal(receipt.status, "CONFIRMED");
+  return { strategy, record, receipt };
 }
 
 test("12B accepts a validated plan, but denies unbound Plan to Strategy preparation", () => {
@@ -74,7 +89,10 @@ test("12B guards review with 10B and Phase 9, then binds the submitted attempt",
   assert.equal(evaluateAgentTransition(awaiting, submitted, attempt).allowed, true);
   assert.equal(reason(evaluateAgentTransition(awaiting, submitted, { ...attempt, stateId: "other" })), "IDENTITY_MISMATCH");
   assert.equal(reason(evaluateAgentTransition(awaiting, { ...submitted, attempt: { ...attemptRef, id: "other" } }, attempt)), "IDENTITY_MISMATCH");
-  assert.equal(reason(evaluateAgentTransition(awaiting, submitted, { ...attempt, record: { ...f.record, event: "SUBMISSION_OUTCOME_UNKNOWN", submittedHash: undefined } })), "IDENTITY_MISMATCH");
+  assert.equal(reason(evaluateAgentTransition(awaiting, submitted, null)), "INVALID_EVIDENCE");
+  const { submittedHash: _hash, ...unsubmitted } = f.record;
+  assert.equal(_hash, hash);
+  for (const event of ["SUBMISSION_OUTCOME_UNKNOWN", "PRE_SUBMISSION_FAILURE", "USER_REJECTED"] as const) assert.equal(reason(evaluateAgentTransition(awaiting, submitted, { ...attempt, record: { ...unsubmitted, event } })), "IDENTITY_MISMATCH");
   assert.equal(reason(evaluateAgentTransition(prepared, submitted, attempt)), "ILLEGAL_TRANSITION");
   assert.equal(reason(evaluateAgentTransition(prepared, success, attempt)), "ILLEGAL_TRANSITION");
 });
@@ -122,4 +140,58 @@ test("12B rejects malformed requests, terminal mappings, cross scope, and struct
   const destination = { ...confirming, scope: "DESTINATION_CHAIN" };
   assert.equal(reason(evaluateAgentTransition(destination, { ...success, scope: "DESTINATION_CHAIN" }, evidence)), "SCOPE_MISMATCH");
   assert.equal(reason(evaluateAgentTransition(confirming, success, { ...evidence, receipt: { ...f.receipt, scope: "DESTINATION_TRANSACTION" } })), "INVALID_EVIDENCE");
+});
+
+test("12B rejects invalid plans and malformed input without escaping the guard", () => {
+  const requested = { ...identity, stateId: "request:1", kind: "REQUESTED" };
+  const planned = { ...identity, stateId: "plan:state", kind: "PLAN_READY", plan: { kind: "PLANNER_PLAN", id: "plan:1" } };
+  const plan = { version: 1, id: "plan:1", classification: "ACTION", goals: [{ id: "send", kind: "SEND", dependsOn: [] }] };
+  for (const invalidPlan of [{ ...plan, version: 2 }, { ...plan, goals: [] }, { ...plan, goals: [{ ...plan.goals[0], kind: "UNKNOWN" }] }]) {
+    assert.equal(reason(evaluateAgentTransition(requested, planned, bind("PLAN", requested.stateId, { result: { status: "GENERATED", plan: invalidPlan } }))), "INVALID_EVIDENCE");
+  }
+  assert.equal(reason(evaluateAgentTransition(requested, planned, bind("PLAN", requested.stateId, { result: { status: "PROVIDER_ERROR" } }))), "INVALID_EVIDENCE");
+  for (const malformed of [null, [], 42, { ...requested, stateId: "bad id" }]) assert.equal(evaluateAgentTransition(malformed, planned, bind("PLAN", requested.stateId, { result: { status: "GENERATED", plan } })).allowed, false);
+  const throwing = new Proxy({}, { getPrototypeOf() { throw Error("malformed input"); } });
+  assert.equal(reason(evaluateAgentTransition(throwing, planned, null)), "INVALID_EVIDENCE");
+});
+
+test("12B never promotes a hash, receipt reference, or another attempt to SUCCESS", async () => {
+  const f = await fixture();
+  const canonical = bind("RECEIPT", confirming.stateId, { strategy: f.strategy, record: f.record, receipt: f.receipt, now });
+  const cases = [
+    ["reference only", bind("RECEIPT", confirming.stateId, { receipt: receiptRef })],
+    ["hash only", bind("RECEIPT", confirming.stateId, { transactionHash: hash })],
+    ["different attempt record", { ...canonical, record: { ...f.record, attemptId: "attempt_other" } }],
+    ["different state attempt", { ...canonical, stateId: submitted.stateId }],
+    ["different session", { ...canonical, sessionId: "session:other" }],
+    ["missing 10C result", { ...canonical, receipt: undefined }],
+  ] as const;
+  for (const [label, evidence] of cases) assert.equal(evaluateAgentTransition(confirming, success, evidence).allowed, false, label);
+  const accepted = evaluateAgentTransition(confirming, success, canonical);
+  assert.equal(accepted.allowed, true);
+  if (accepted.allowed) assert.equal(validateAgentState(accepted.state).valid, true);
+});
+
+test("12B keeps a Phase 10C CCTP source receipt within source scope", async () => {
+  const f = await bridgeFixture();
+  const bridgeStep = { kind: "STRATEGY_STEP", strategyId: f.strategy.id, stepId: "bridge" };
+  const bridgeAttempt = { kind: "TRANSACTION_ATTEMPT", id: f.record.attemptId };
+  const source = { ...confirming, step: bridgeStep, attempt: bridgeAttempt, scope: "SOURCE_CHAIN" };
+  const sourceSuccess = { ...success, step: bridgeStep, attempt: bridgeAttempt, scope: "SOURCE_CHAIN" };
+  const evidence = bind("RECEIPT", source.stateId, { strategy: f.strategy, record: f.record, receipt: f.receipt, now });
+  assert.equal(evaluateAgentTransition(source, sourceSuccess, evidence).allowed, true);
+  const destination = { ...source, scope: "DESTINATION_CHAIN" };
+  const destinationSuccess = { ...sourceSuccess, scope: "DESTINATION_CHAIN", receipt: { ...receiptRef, chainId: baseSepolia.id } };
+  assert.equal(reason(evaluateAgentTransition(destination, destinationSuccess, evidence)), "SCOPE_MISMATCH");
+  assert.equal(reason(evaluateAgentTransition(source, destinationSuccess, evidence)), "IDENTITY_MISMATCH");
+});
+
+test("12B evaluates only the requested edge and leaves its input state untouched", async () => {
+  const f = await fixture();
+  const before = JSON.stringify(awaiting);
+  const result = evaluateAgentTransition(awaiting, submitted, bind("ATTEMPT", awaiting.stateId, { strategy: f.strategy, record: f.record, now }));
+  assert.deepEqual(result, { allowed: true, state: submitted });
+  assert.equal(JSON.stringify(awaiting), before);
+  assert.equal(result.allowed && result.state.kind === "TRANSACTION" && result.state.status, "SUBMITTED");
+  assert.equal(validateAgentState(submitted).valid, true);
 });

@@ -37,7 +37,7 @@ const recordMatches = (state: TransactionState, record: StrategyRecoveryRecord) 
   ("attempt" in state ? state.attempt?.id === record.attemptId : true);
 
 /** Evaluates one requested edge. No state is stored, signed, submitted, or advanced again. */
-export function evaluateAgentTransition(currentInput: unknown, nextInput: unknown, evidenceInput: unknown): AgentTransitionResult {
+function evaluateAgentTransitionCore(currentInput: unknown, nextInput: unknown, evidenceInput: unknown): AgentTransitionResult {
   const current = validateAgentState(currentInput), next = validateAgentState(nextInput);
   if (!current.valid || !next.valid) return deny("INVALID_STATE");
   const from = current.value, to = next.value;
@@ -88,4 +88,10 @@ export function evaluateAgentTransition(currentInput: unknown, nextInput: unknow
   if (receipt.status !== "CONFIRMED" || to.status !== "SUCCESS" || !("receipt" in to) || !record.submittedHash || !sameHash(receipt.hash, record.submittedHash) || !sameHash(to.receipt.transactionHash, receipt.hash) || to.receipt.chainId !== receipt.chainId || receipt.scope !== "SOURCE_TRANSACTION") return deny("RECEIPT_NOT_CONFIRMED");
   if (!["CONTINUATION_RECHECK_REQUIRED", "REVALIDATION_REQUIRED", "DESTINATION_STATUS_UNRESOLVED"].includes(recovery.status)) return deny("RECEIPT_NOT_CONFIRMED");
   return { allowed: true, state: to };
+}
+
+/** Malformed runtime objects must deny the requested edge rather than escape the guard. */
+export function evaluateAgentTransition(currentInput: unknown, nextInput: unknown, evidenceInput: unknown): AgentTransitionResult {
+  try { return evaluateAgentTransitionCore(currentInput, nextInput, evidenceInput); }
+  catch { return deny("INVALID_EVIDENCE"); }
 }
