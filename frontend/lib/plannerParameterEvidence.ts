@@ -42,17 +42,13 @@ const planHash = (plan: PlannerPlan) => hash("PLAN", [plan.version, plan.id, pla
 export const plannerParameterRequestDigest = (requestId: string, sessionId: string, request: PlannerClassificationRequest): Hex =>
   hash("REQUEST", [requestId, sessionId, request.text, request.locale ?? null]);
 export const plannerParameterPlanDigest = (plan: PlannerPlan): Hex => planHash(plan);
-const eventHash = (event: PlannerStructuredInput) => hash("USER_EVENT", [event.version, event.eventId, event.requestId,
-  event.sessionId, event.requestDigest, event.planId, event.planDigest,
-  [...event.fields].sort((a, b) => compare(`${a.goalId}:${a.parameterKey}`, `${b.goalId}:${b.parameterKey}`))
-    .map((field) => [field.goalId, field.parameterKey, field.value])]);
 const evidenceHash = (item: Omit<ResolvedParameterEvidence, "digest"> | Omit<NonfixedParameterEvidence, "digest">) => hash("FIELD", item.state === "FIXED"
   ? [item.version, item.requestId, item.sessionId, item.requestDigest, item.planId, item.planDigest, item.goalId,
       item.parameterKey, item.state, item.value, item.origin, item.source.kind, item.source.eventId, item.source.eventDigest]
   : [item.version, item.requestId, item.sessionId, item.requestDigest, item.planId, item.planDigest, item.goalId,
       item.parameterKey, item.state, item.origin, item.expressionClass, item.sourceGoalId]);
 
-/** Only a separately retained structured event can establish FIXED_USER_INPUT. */
+/** Structural evidence only. No production boundary can authenticate a user event yet. */
 export function createPlannerParameterEvidence(sourceInput: unknown): PlannerEvidenceResult {
   try {
     const captured = snapshotPlannerStrategyData(sourceInput);
@@ -90,26 +86,9 @@ export function createPlannerParameterEvidence(sourceInput: unknown): PlannerEvi
       });
       return { valid: true, value: { status: "UNVERIFIED", version: 2, evidence } };
     }
-    if (!object(event) || !exact(event, ["version", "eventId", "requestId", "sessionId", "requestDigest", "planId", "planDigest", "fields"]) ||
-      event.version !== 1 || !id(event.eventId) || event.requestId !== source.requestId || event.sessionId !== source.sessionId ||
-      event.requestDigest !== requestDigest || event.planId !== plan.id || event.planDigest !== planDigest ||
-      !Array.isArray(event.fields) || event.fields.length !== allFields.length) return { valid: false, reason: "INVALID_SOURCE" };
-    const seen = new Set<string>();
-    for (const field of event.fields) {
-      if (!object(field) || !exact(field, ["goalId", "parameterKey", "value"]) || !id(field.goalId) || typeof field.parameterKey !== "string" ||
-        !(typeof field.value === "string" || Number.isSafeInteger(field.value)) || seen.has(`${field.goalId}:${field.parameterKey}`) ||
-        !allFields.some((item) => item.goalId === field.goalId && item.parameterKey === field.parameterKey && item.value === field.value)) return { valid: false, reason: "INVALID_SOURCE" };
-      seen.add(`${field.goalId}:${field.parameterKey}`);
-    }
-    const sourceEvidence = { kind: "USER_EVENT" as const, eventId: event.eventId as string, eventDigest: eventHash(event as PlannerStructuredInput) };
-    const evidence = allFields.map((field): ResolvedParameterEvidence => {
-      const base = { version: 1 as const, requestId: source.requestId as string, sessionId: source.sessionId as string,
-        requestDigest, planId: plan.id, planDigest, ...field, state: "FIXED" as const, origin: "FIXED_USER_INPUT" as const,
-        source: sourceEvidence };
-      return { ...base, digest: evidenceHash(base) };
-    });
-    return { valid: true, value: { status: "RESOLVED_WITH_EVIDENCE", version: 2, planId: plan.id, intents,
-      evidence, evidenceDigest: hash("SET", evidence.map((item) => item.digest)) } };
+    // A caller-created object, even with matching digests, is not a captured user action.
+    // A future trusted source needs a separately reviewed authority boundary.
+    return { valid: false, reason: "UNVERIFIED" };
   } catch { return { valid: false, reason: "INVALID_RUNTIME" }; }
 }
 
