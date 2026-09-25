@@ -111,3 +111,77 @@ test("12C handles storage faults and malformed runtime objects fail closed", () 
   assert.equal(storeAgentState(new MemoryStore(), throwing, binding), false);
   assert.equal(agentStateStorageKey(identity.sessionId, throwing), undefined);
 });
+
+test("12C key encoding keeps all valid delimiter-bearing session IDs distinct", () => {
+  const sessions = ["a", "a:b", "a::b", "a:b:c", "a:b:c:", "a.b", "a_b", "a-b", "a:b:5042002", `a:${account}:${binding.chainId}:b`];
+  const keys = sessions.map((sessionId) => agentStateStorageKey(sessionId, binding));
+  assert.equal(new Set(keys).size, sessions.length);
+  for (const sessionId of sessions) {
+    const store = new MemoryStore();
+    const state = { ...requested, sessionId };
+    assert.equal(storeAgentState(store, state, binding), true);
+    assert.deepEqual(restoreAgentState(store, sessionId, binding), { status: "HISTORICAL", state });
+  }
+  assert.notEqual(agentStateStorageKey("a:b", binding), agentStateStorageKey("b", binding));
+  assert.notEqual(agentStateStorageKey("a:b", binding), agentStateStorageKey("a:b", { ...binding, chainId: 1 }));
+  assert.notEqual(agentStateStorageKey("a:b", binding), agentStateStorageKey("a:b", { ...binding, account: other }));
+});
+
+test("12C rejects copied records even when their inner state is valid", () => {
+  const store = new MemoryStore();
+  const cases = [
+    { context: { account: other, chainId: binding.chainId }, state: requested },
+    { context: { account, chainId: 1 }, state: requested },
+    { context: binding, state: { ...requested, sessionId: "session:2" } },
+  ];
+  for (const { context, state } of cases) {
+    assert.equal(validateAgentState(state).valid, true);
+    store.values.set(key, JSON.stringify({ version: 1, ...context, state }));
+    assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "INVALID" });
+  }
+  store.values.set(key, JSON.stringify({ version: 1, ...binding, state: requested }));
+  assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "HISTORICAL", state: requested });
+});
+
+test("12C fails closed for storage and serialization failures", () => {
+  const readFailure = { getItem: () => { throw Error("read failed"); } };
+  const writeFailure = { setItem: () => { throw Error("write failed"); } };
+  assert.deepEqual(restoreAgentState(readFailure, identity.sessionId, binding), { status: "INVALID" });
+  assert.equal(storeAgentState(writeFailure, requested, binding), false);
+
+  const originalStringify = JSON.stringify;
+  try {
+    JSON.stringify = () => { throw Error("serialization failed"); };
+    assert.equal(storeAgentState(new MemoryStore(), requested, binding), false);
+  } finally {
+    JSON.stringify = originalStringify;
+  }
+  const malformed = new Proxy({}, { getPrototypeOf() { throw Error("malformed binding"); } });
+  assert.deepEqual(restoreAgentState(new MemoryStore(), identity.sessionId, malformed), { status: "INVALID" });
+  assert.equal(storeAgentState(new MemoryStore(), requested, malformed), false);
+});
+
+test("12C restores transaction labels and references without fresh authority", () => {
+  const store = new MemoryStore();
+  const states = [
+    transaction("PREPARED"),
+    transaction("AWAITING_SIGNATURE"),
+    transaction("SUBMITTED", { attempt }),
+    transaction("CONFIRMING", { attempt }),
+    transaction("SUCCESS", { attempt, receipt }),
+  ];
+  for (const state of states) {
+    assert.equal(storeAgentState(store, state, binding), true);
+    assert.deepEqual(restoreAgentState(store, identity.sessionId, binding), { status: "HISTORICAL", state });
+  }
+  const historical = restoreAgentState(store, identity.sessionId, binding);
+  assert.equal(historical.status, "HISTORICAL");
+  if (historical.status === "HISTORICAL" && historical.state.kind === "TRANSACTION" && historical.state.status === "SUCCESS") {
+    assert.deepEqual(historical.state.attempt, attempt);
+    assert.deepEqual(historical.state.receipt, receipt);
+    assert.equal(historical.state.scope, "SOURCE_CHAIN");
+    assert.equal("destinationReceipt" in historical.state, false);
+  }
+  assert.equal(store.reads, states.length + 1);
+  assert.equal(store.writes, states.length);
+});
