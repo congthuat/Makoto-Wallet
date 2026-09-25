@@ -65,3 +65,6 @@ FLOP/Technocore remains the planned Phase 17 optional ecosystem integration. x40
 
 ## ADR-019 - Phase 11A planner intent boundary
 `PlannerIntent` is a resolved, JSON-safe transaction goal distinct from the current Agent request model `AgentIntent`. It is upstream of Phase 10 `Strategy`; 11A validates supported Send, Swap, and Bridge goals but does not classify user text, generate Strategy steps, or execute. Later planning may introduce implementation steps such as approval. Phase 9 remains transaction safety authority, and the user wallet remains final signing authority.
+
+## ADR-020 - Phase 11B request classification boundary
+The 11B categories are INFORMATION, ACTION, and STRATEGY, based on user-level goals. Technical prerequisites such as approval, receipt wait, and revalidation do not turn one swap goal into STRATEGY. Classification precedes PlannerIntent resolution and is not transaction safety; Phase 9 remains safety authority. The existing Agent keyword parser loses composed-goal information, and no suitable model classification boundary exists. Its `AgentIntent` output cannot safely serve as authoritative raw-request classification. The 11B typed result validator is available, but raw-text classification remains blocked pending an approved provider boundary.
