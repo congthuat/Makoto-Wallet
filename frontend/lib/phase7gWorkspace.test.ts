@@ -19,6 +19,18 @@ test("workspace distinguishes reads, incomplete actions, drafts and returned rep
 });
 
 for (const locale of ["en","vi"] as const) {
+  test(`${locale}: canonical proposal requires retained request source and remains distinct from a legacy draft`,()=>{
+    const canonical=renderWorkspace({locale,scenario:"planner-proposal"});
+    assert.match(canonical,/data-operation-mode="planner-proposal"/);
+    assert.ok(canonical.includes(translate(locale,"agent.planner.title")));
+    assert.ok(canonical.includes(translate(locale,"agent.planner.field.fromAsset")));
+    assert.doesNotMatch(canonical,/fromAsset|toAsset|sourceChainId|destinationChainId|PREVIOUS_OUTPUT/);
+    assert.doesNotMatch(canonical,/class="prepareButton"|data-agent-status=/);
+    for(const scenario of ["planner-spoof","planner-missing-source"]){
+      const html=renderWorkspace({locale,scenario});
+      assert.doesNotMatch(html,/data-operation-mode="planner-proposal"/);
+    }
+  });
   test(`${locale}: reads render a direct answer without plan, draft or Review workflow`,()=>{
     const html=renderWorkspace({locale,scenario:"read"});
     assert.match(html,/data-operation-mode="read"/);

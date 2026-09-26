@@ -41,7 +41,7 @@ for (const [name, fixture] of Object.entries(fixtures)) test(`${name} proposal p
   if (name === "multi") assert.deepEqual(p.goals.find((goal) => goal.goalId === "send")?.dependsOn, ["swap"]);
 });
 
-for (const text of [`Swap 10 USDC to EURC, then send 50% of previous output to ${recipient}`, `Swap 10 USDC to EURC, then send all EURC received to ${recipient}`, `Swap 10 USDC to EURC, then send amount from receipt to ${recipient}`]) test(`dynamic amount remains unresolved: ${text.slice(0, 55)}`, async () => {
+for (const text of [`Swap 10 USDC to EURC, then send 50% of previous output to ${recipient}`, `Swap 10 USDC to EURC, then send all EURC received to ${recipient}`, `Swap 10 USDC to EURC, then send amount from receipt to ${recipient}`, `Swap 10 USDC to EURC, then send amount from previous transaction to ${recipient}`]) test(`dynamic amount remains unresolved: ${text.slice(0, 55)}`, async () => {
   const fixture = { ...fixtures.multi, text, candidates: [draft("send", { asset: "EURC", amount: "10", recipient }), draft("swap", { fromAsset: "USDC", toAsset: "EURC", amount: "10" })] };
   const result = await run(fixture);
   assert.equal(result.status, "PROPOSAL");
@@ -93,4 +93,44 @@ test("new proposal identity changes on replanning", async () => {
     assert.notEqual(first.proposal.planDigest, second.proposal.planDigest);
     assert.notEqual(first.proposal.proposalDigest, second.proposal.proposalDigest);
   }
+});
+
+test("hostile provider values fail closed at each stage without an uncaught route error", async () => {
+  const hostile = new Proxy({}, { getPrototypeOf() { throw Error("hostile proxy"); } });
+  assert.equal((await run(fixtures.send, { classification: hostile })).status, "CLASSIFICATION_INVALID_OUTPUT");
+  assert.equal((await run(fixtures.send, { plan: hostile })).status, "PLAN_INVALID");
+  assert.equal((await run(fixtures.send, { resolver: hostile })).status, "PARAMETERS_INVALID");
+});
+
+test("the same accepted request and validated plan reach every provider stage", async () => {
+  const seen: unknown[] = [];
+  let id = 0;
+  const result = await runPlannerProposal({ text: `  ${fixtures.send.text}  `, locale: "en", sessionId: "session-1" }, {
+    classifier: { classify: async (value) => { seen.push(value); return { status: "CLASSIFIED", category: "ACTION" }; } },
+    generator: { generate: async (value) => { seen.push(value); return fixtures.send.plan; } },
+    resolver: { resolve: async (value) => { seen.push(value); return { resolutions: fixtures.send.candidates }; } },
+    newId: () => `server-${++id}`,
+  });
+  assert.equal(result.status, "PROPOSAL");
+  assert.equal(seen.length, 3);
+  assert.ok(seen.every((stage) => (stage as { text: string; locale: string }).text === fixtures.send.text && (stage as { locale: string }).locale === "en"));
+  assert.deepEqual((seen[2] as { plan: unknown }).plan, fixtures.send.plan);
+  assert.equal((await run(fixtures.send, { plan: { ...fixtures.send.plan, classification: "STRATEGY" } })).status, "PLAN_INVALID");
+});
+
+test("a provider-owned plan cannot change its dependency graph during resolution", async () => {
+  const providerPlan = JSON.parse(JSON.stringify(fixtures.multi.plan));
+  let id = 0;
+  const result = await runPlannerProposal({ text: fixtures.multi.text, locale: "en", sessionId: "session-1" }, {
+    classifier: { classify: async () => ({ status: "CLASSIFIED", category: "STRATEGY" }) },
+    generator: { generate: async () => providerPlan },
+    resolver: { resolve: async () => {
+      providerPlan.goals[0].dependsOn = [];
+      providerPlan.goals[1].dependsOn = ["send"];
+      return { resolutions: fixtures.multi.candidates };
+    } },
+    newId: () => `server-${++id}`,
+  });
+  assert.equal(result.status, "PROPOSAL");
+  if (result.status === "PROPOSAL") assert.deepEqual(result.proposal.goals.find((goal) => goal.goalId === "send")?.dependsOn, ["swap"]);
 });

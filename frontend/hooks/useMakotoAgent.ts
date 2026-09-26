@@ -14,10 +14,10 @@ import type { AgentIntelligenceResult } from "@/lib/agent/intelligence/types";
 import type { OnchainIntelligenceServices } from "@/lib/agent/intelligence/onchain";
 import { readOfficialResearchResponse } from "@/lib/agent/intelligence/officialSources";
 import { clearAgentSessionContext, createAgentRequestGeneration, readAgentSessionContext, storeAgentSessionContext, updateAgentSessionContext, type AgentSessionContext } from "@/lib/agent/sessionContext";
-import { acceptPlannerProposalResponse, type PlannerProposalReview } from "@/lib/plannerProposal";
+import { acceptPlannerProposalResponse, createPlannerProposalHostSource, type PlannerProposalHostSource, type PlannerProposalReview } from "@/lib/plannerProposal";
 import { translate } from "@/i18n";
 
-export type AgentMessage = { id: number; role: "user" | "agent"; text: string; proposal?: PlannerProposalReview; draft?: AgentActionDraft; prepared?: AgentResponse["prepared"]; quote?: AgentResponse["quote"]; policy?: AgentResponse["policy"]; draftContext?: AgentDraftContext; intelligence?: AgentIntelligenceResult; presentation?: Readonly<{ request?: string; intent?: AgentResponse["intent"]; planning?: AgentResponse["planning"]; context?: AgentDraftContext; observedAt?: number; result?: true }> };
+export type AgentMessage = { id: number; role: "user" | "agent"; text: string; proposal?: PlannerProposalReview; proposalSource?: PlannerProposalHostSource; draft?: AgentActionDraft; prepared?: AgentResponse["prepared"]; quote?: AgentResponse["quote"]; policy?: AgentResponse["policy"]; draftContext?: AgentDraftContext; intelligence?: AgentIntelligenceResult; presentation?: Readonly<{ request?: string; intent?: AgentResponse["intent"]; planning?: AgentResponse["planning"]; context?: AgentDraftContext; observedAt?: number; result?: true }> };
 
 export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string, onchainServices?: OnchainIntelligenceServices, canonicalServices?: Pick<QuoteContext, "reads" | "services">) {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -59,6 +59,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     if (!binding || previousBinding.current && previousBinding.current !== binding) {
       requestGeneration.current.invalidate();
       plannerSession.current = crypto.randomUUID();
+      setMessages((current) => current.filter((message) => !message.proposal));
       clearAgentSessionContext(window.sessionStorage);
       sessionContext.current = undefined;
       setHasSessionContext(false);
@@ -96,9 +97,10 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
       const payload = result && typeof result === "object" ? result as Record<string, unknown> : {};
       const proposal = payload.status === "PROPOSAL" ? acceptPlannerProposalResponse(payload.proposal, sessionId, { text: value, locale: requestLocale }) : undefined;
       const accepted = proposal?.sessionId === sessionId && proposal.requestId ? proposal : undefined;
+      const proposalSource = accepted ? createPlannerProposalHostSource(accepted, sessionId, { text: value, locale: requestLocale }) : undefined;
       setMessages((current) => [...current.filter((message) => !message.proposal),
         { id: nextId.current++, role: "user", text: value },
-        { id: nextId.current++, role: "agent", text: accepted ? "" : translate(requestLocale, "agent.planner.failure"), proposal: accepted, presentation: { request: value, observedAt: Date.now() } },
+        { id: nextId.current++, role: "agent", text: accepted && proposalSource ? "" : translate(requestLocale, "agent.planner.failure"), proposal: proposalSource ? accepted : undefined, proposalSource, presentation: { request: value, observedAt: Date.now() } },
       ]);
       setInput("");
       return;

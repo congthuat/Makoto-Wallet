@@ -26,6 +26,7 @@ import { agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import styles from "./MakotoAgentPage.module.css";
 import { PolicyDecisionNotice } from "./PolicyDecisionNotice";
 import { AgentStatusSurface } from "./AgentStatusSurface";
+import { validatePlannerProposalHostPair } from "@/lib/plannerProposal";
 
 export function MakotoAgentPage() {
   const { locale } = usePreferences(), wallet = useWalletReadContext();
@@ -120,7 +121,10 @@ export function AgentWorkspace({ locale, account, chainId, messages, hasSessionC
 
 export function AgentOperation({ message, locale, current }: { message: AgentMessage; locale: Locale; current: AgentDraftContext }) {
   const vi = locale === "vi", t = (key: TranslationKey) => translate(locale, key);
-  if (message.proposal) return <article className={styles.operation} data-operation-mode="planner-proposal"><header><span className={styles.badge}>{t("agent.planner.title")}</span></header><h2>{t("agent.planner.review")}</h2>{message.presentation?.request && <p className={styles.request}>{message.presentation.request}</p>}<p>{t("agent.planner.boundary")}</p><ol className={styles.proposalGoals}>{message.proposal.goals.map((goal) => <li key={goal.goalId}><h3>{goal.kind} · {goal.goalId}</h3>{goal.dependsOn.length > 0 && <p>{t("agent.planner.dependsOn")}: {goal.dependsOn.join(", ")}</p>}<dl>{goal.parameters.map((field) => <div key={field.key}><dt>{field.key}</dt><dd>{field.state === "FIXED_CANDIDATE" ? `${field.value} · ${t("agent.planner.unverified")}` : `${t("agent.planner.unresolved")} · ${field.expressionClass}`}</dd></div>)}</dl></li>)}</ol><p>{t("agent.planner.noExecution")}</p></article>;
+  const proposal = !message.draft && !message.prepared && !message.quote && !message.policy && !message.intelligence && !message.draftContext &&
+    !message.presentation?.intent && !message.presentation?.planning && !message.presentation?.result &&
+    message.proposal && message.proposalSource ? validatePlannerProposalHostPair(message.proposal, message.proposalSource) : undefined;
+  if (proposal) return <article className={styles.operation} data-operation-mode="planner-proposal"><header><span className={styles.badge}>{t("agent.planner.title")}</span></header><h2>{t("agent.planner.review")}</h2><p className={styles.request}>{message.proposalSource!.request.text}</p><p>{t("agent.planner.boundary")}</p><ol className={styles.proposalGoals}>{proposal.goals.map((goal) => <li key={goal.goalId}><h3>{t(`agent.planner.kind.${goal.kind}`)} · {goal.goalId}</h3>{goal.dependsOn.length > 0 && <p>{t("agent.planner.dependsOn")}: {goal.dependsOn.join(", ")}</p>}<dl>{goal.parameters.map((field) => <div key={field.key}><dt>{t(`agent.planner.field.${field.key}` as TranslationKey)}</dt><dd>{field.state === "FIXED_CANDIDATE" ? `${field.value} · ${t("agent.planner.unverified")}` : `${t(`agent.planner.reason.${field.reason}`)}${field.expressionClass !== "NONE" ? ` · ${t(`agent.planner.expression.${field.expressionClass}`)}` : ""}`}</dd></div>)}</dl></li>)}</ol><p>{t("agent.planner.noExecution")}</p></article>;
   const mode = agentWorkspaceMode(message.presentation?.intent, Boolean(message.draft), message.presentation?.result);
   const origin = message.draftContext ?? message.presentation?.context;
   const context = assessAgentDraftContext(origin, current);

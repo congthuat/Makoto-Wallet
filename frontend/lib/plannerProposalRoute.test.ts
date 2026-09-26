@@ -40,7 +40,14 @@ test("route rejects malformed input before any provider call", async () => {
   let calls = 0;
   globalThis.fetch = async () => { calls++; throw Error("unexpected"); };
   try {
-    for (const body of ["{", JSON.stringify({ text, locale: "en", sessionId: "bad session" }), JSON.stringify({ text, locale: "en", sessionId: "s", requestId: "injected" })]) {
+    for (const body of ["{", "", " ", "x".repeat(9_000),
+      JSON.stringify({ text: " ", locale: "en", sessionId: "s" }),
+      JSON.stringify({ text: "x".repeat(2_001), locale: "en", sessionId: "s" }),
+      JSON.stringify({ text, locale: "fr", sessionId: "s" }),
+      JSON.stringify({ text, locale: "en", sessionId: "bad session" }),
+      JSON.stringify({ text, locale: "en", sessionId: "s", requestId: "injected" }),
+      JSON.stringify({ text, locale: "en", sessionId: "s", proposalId: "injected" }),
+      JSON.stringify({ text, locale: "en", sessionId: "s", requestDigest: "0xdead" })]) {
       const response = await POST(new Request("http://localhost/api/planner-proposal", { method: "POST", body }));
       assert.equal(response.status, 400); assert.deepEqual(await response.json(), { status: "INVALID_REQUEST" });
     }

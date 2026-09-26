@@ -28,6 +28,7 @@ import { blockingExplanation } from "@/lib/agent/planning";
 import { formatAgentActionResult } from "@/lib/agent/resultFormatter";
 import { agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import { translate } from "@/i18n";
+import { createPlannerProposal, createPlannerProposalHostSource, validatePlannerProposalHostPair } from "@/lib/plannerProposal";
 import { AgentStatusSurface } from "@/components/AgentStatusSurface";
 import { arcTestnet } from "viem/chains";
 const styles = new Proxy({}, { get: (_target, key) => String(key) });
@@ -54,7 +55,17 @@ export function Fixture({options = {}}) {
   if (scenario === "canonical") message = {...message, quote:{provider:"Arc RPC",status:"AVAILABLE",observedAt},prepared:{status:"PREPARED",data:{provider:"Arc RPC",expiresAt:observedAt+300000}}};
   if (scenario === "invalid") message.draft = {...draft,amount:"0"};
   if (scenario === "result") message = {id:1,role:"agent",text:formatAgentActionResult({status:"unknown",action:"send",account:"${accountA}",createdAt:observedAt,transactionHash:"0x"+"a".repeat(64)},locale),presentation:{result:true,observedAt,context:{account:"${accountA}"}}};
-  if (scenario === "planner-proposal") message = {id:1,role:"agent",text:"",presentation:{request:vi ? "Hoán đổi 10 USDC sang EURC, sau đó gửi 5 EURC" : "Swap 10 USDC to EURC, then send 5 EURC",observedAt},proposal:{version:1,executionEnabled:false,proposalId:"fixture-proposal",requestId:"fixture-request",sessionId:"fixture-session",requestDigest:"0x"+"1".repeat(64),planId:"fixture-plan",planDigest:"0x"+"2".repeat(64),resolutionStatus:"RESOLVED",resolutionDigest:"0x"+"3".repeat(64),proposalDigest:"0x"+"4".repeat(64),goals:[{goalId:"swap",kind:"SWAP",dependsOn:[],parameters:[{key:"fromAsset",state:"FIXED_CANDIDATE",value:"usdc",origin:"UNVERIFIED_PROVIDER"},{key:"toAsset",state:"FIXED_CANDIDATE",value:"eurc",origin:"UNVERIFIED_PROVIDER"},{key:"amount",state:"FIXED_CANDIDATE",value:"10",origin:"UNVERIFIED_PROVIDER"},{key:"chainId",state:"FIXED_CANDIDATE",value:${arc},origin:"UNVERIFIED_PROVIDER"}]},{goalId:"send",kind:"SEND",dependsOn:["swap"],parameters:[{key:"asset",state:"FIXED_CANDIDATE",value:"eurc",origin:"UNVERIFIED_PROVIDER"},{key:"amount",state:"FIXED_CANDIDATE",value:"5",origin:"UNVERIFIED_PROVIDER"},{key:"recipient",state:"FIXED_CANDIDATE",value:"${accountB}",origin:"UNVERIFIED_PROVIDER"},{key:"chainId",state:"FIXED_CANDIDATE",value:${arc},origin:"UNVERIFIED_PROVIDER"}]}]}};
+  if (["planner-proposal", "planner-spoof", "planner-missing-source"].includes(scenario)) {
+    const plannerText = vi ? "Hoán đổi 10 USDC sang EURC, sau đó gửi 5 EURC" : "Swap 10 USDC to EURC, then send 5 EURC";
+    const plannerRequest = {text:plannerText,locale};
+    const plannerPlan = {version:1,id:"fixture-plan",classification:"STRATEGY",goals:[{id:"swap",kind:"SWAP",dependsOn:[]},{id:"send",kind:"SEND",dependsOn:["swap"]}]};
+    const plannerResolution = {status:"RESOLVED",planId:"fixture-plan",intents:[{version:1,id:"swap",kind:"SWAP",chainId:${arc},fromAsset:"usdc",toAsset:"eurc",amount:"10"},{version:1,id:"send",kind:"SEND",chainId:${arc},asset:"eurc",amount:"5",recipient:"${accountB}"}]};
+    const proposal = createPlannerProposal({requestId:"fixture-request",sessionId:"fixture-session",proposalId:"fixture-proposal",request:plannerRequest,plan:plannerPlan,resolution:plannerResolution});
+    const proposalSource = createPlannerProposalHostSource(proposal,"fixture-session",plannerRequest);
+    message = {id:1,role:"agent",text:"",presentation:{request:plannerText,observedAt},proposal,proposalSource};
+    if (scenario === "planner-spoof") message = {...message,draft,draftContext:origin};
+    if (scenario === "planner-missing-source") message = {...message,proposalSource:undefined};
+  }
   const messages = cleared || scenario === "empty" ? [] : scenario === "history" ? [{...message,id:0},message] : [message];
   return <AgentWorkspace locale={locale} account={account} chainId={chainId} messages={messages} hasSessionContext={false} clearConversation={()=>{setCleared(true);inputRef.current?.focus();}} input={input} setInput={setInput} inputRef={inputRef} ask={setInput} submit={(e)=>e.preventDefault()}/>;
 }
@@ -66,6 +77,7 @@ let binding = { address: accountA, chainId: arc };
 function compile(source, filename) {
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const mod = { exports: {} };
+  cache.set(filename, mod.exports);
   new Function("require", "module", "exports", code)((id) => {
     if (id.endsWith(".module.css")) return new Proxy({}, { get: (_target, key) => String(key) });
     if (id === "next/navigation") return { useRouter: () => ({push:()=>{throw new Error("SSR navigation forbidden");}}), useSearchParams: () => new URLSearchParams() };
@@ -73,11 +85,12 @@ function compile(source, filename) {
     if (id.startsWith("@/") || id.startsWith(".")) {
       let target = id.startsWith("@/") ? path.join(root,id.slice(2)) : path.resolve(path.dirname(filename),id);
       if (!path.extname(target)) target = existsSync(target+".ts") ? target+".ts" : existsSync(target+".tsx") ? target+".tsx" : path.join(target,"index.ts");
-      if (!cache.has(target)) cache.set(target,compile(readFileSync(target,"utf8"),target));
+      if (!cache.has(target)) compile(readFileSync(target,"utf8"),target);
       return cache.get(target);
     }
     return require(id);
   },mod,mod.exports);
+  cache.set(filename, mod.exports);
   return mod.exports;
 }
 const {Fixture,StatusFixture} = compile(fixtureSource,path.join(root,"scripts/WorkspaceFixture.tsx"));

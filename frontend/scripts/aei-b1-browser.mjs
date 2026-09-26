@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { openSync, closeSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -7,8 +8,11 @@ import { tmpdir } from "node:os";
 const binary = process.env.AGENT_BROWSER_BINARY ?? path.join(process.env.APPDATA, "npm/node_modules/agent-browser/bin/agent-browser-win32-x64.exe");
 const session = "makoto-aei-b1-proposal";
 function command(...args) {
-  const output = execFileSync(binary, ["--session", session, "--json", ...args], { encoding: "utf8", timeout: 45_000, windowsHide: true });
-  const parsed = JSON.parse(output);
+  const file = path.join(tmpdir(), "makoto-aei-b1-browser-command.json");
+  const fd = openSync(file, "w");
+  try { execFileSync(binary, ["--session", session, "--json", ...args], { stdio: ["ignore", fd, "inherit"], timeout: 45_000, windowsHide: true }); }
+  finally { closeSync(fd); }
+  const parsed = JSON.parse(readFileSync(file, "utf8"));
   assert.equal(parsed.success, true, parsed.error);
   return parsed.data;
 }
