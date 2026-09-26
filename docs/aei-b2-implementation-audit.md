@@ -1,6 +1,6 @@
-# AEI-B2 implementation and adversarial review evidence — ready to close
+# AEI-B2 implementation and adversarial review evidence — closed
 
-AEI-B2 implementation starts at clean `aa737e63dd097a46b6e4f0a8220461905b7126b1`. Runtime/UI/tests commit `53126f8a8a194b0dc6600f6c89f78ce58109b796` adds a distinct parameter confirmation control to the live B1 Planner card. Adversarial review started at clean `d15d39e1da65ec7ca8109520f83b501358a81546`. B2 is **IMPLEMENTED / PENDING REVIEW / READY_TO_CLOSE**, not complete. AEI-B is not complete; AEI-C and Phase 13 remain unstarted.
+AEI-B2 implementation starts at clean `aa737e63dd097a46b6e4f0a8220461905b7126b1`. Runtime/UI/tests commit `53126f8a8a194b0dc6600f6c89f78ce58109b796` adds a distinct parameter confirmation control to the live B1 Planner card. Adversarial review started at clean `d15d39e1da65ec7ca8109520f83b501358a81546` and reached READY_TO_CLOSE at `634972c56e9313c6c347f875b453755d66df2a76`. This docs-only closeout accepts that reviewed scope: **AEI-B2 COMPLETE / CLOSED**. AEI-B is **IMPLEMENTED / PENDING FINAL ADVERSARIAL REVIEW**, not complete; AEI-C and Phase 13 remain unstarted.
 
 ## Authority and identity
 
