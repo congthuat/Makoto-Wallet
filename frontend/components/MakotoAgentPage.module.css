@@ -151,6 +151,15 @@
 .historyBody .operation { margin-top: 8px; padding: 14px; background: var(--agent-surface-raised); box-shadow: none; }
 
 .operation { min-width: 0; overflow-wrap: anywhere; }
+.modeSwitch { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.modeSwitch button { padding: 6px 10px; border: 1px solid var(--agent-soft-line); border-radius: 8px; font-size: 12px; }
+.modeSwitch button[aria-pressed="true"] { background: var(--agent-accent-soft); color: var(--agent-accent-ink); }
+.proposalGoals { padding-left: 20px; }
+.proposalGoals li { margin: 12px 0; padding: 12px; border: 1px solid var(--agent-soft-line); border-radius: 12px; }
+.proposalGoals h3 { margin: 0 0 8px; font-size: 14px; }
+.proposalGoals dl { margin: 0; }
+.proposalGoals dl div { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr); gap: 8px; padding: 4px 0; font-size: 12px; overflow-wrap: anywhere; }
+.proposalGoals dd { margin: 0; }
 .operation > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
 .operation time { color: var(--agent-muted); font-size: 12px; }
 .badge { display: inline-flex; min-height: 26px; align-items: center; padding: 3px 9px; border: 1px solid var(--agent-soft-line); border-radius: 999px; background: var(--agent-accent-soft); color: var(--agent-accent-ink); font-size: 11px; font-weight: 750; }

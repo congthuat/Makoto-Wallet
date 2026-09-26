@@ -55,7 +55,7 @@ function canonicalChain(value: string): number | string {
   return value.trim();
 }
 function canonicalAddress(value: string): string { return isAddress(value, { strict: true }) ? getAddress(value) : value.trim(); }
-const dynamicAmount = (value: string) => /\b(?:all(?:\s+(?:my|the))?|half|maximum|max|whatever\s+(?:i|we)\s+receive)\b/i.test(value);
+const dynamicAmount = (value: string) => /\b(?:all(?:\s+(?:my|the))?|half|maximum|max|whatever\s+(?:i|we)\s+receive)\b|\d+(?:\.\d+)?\s*%|\b(?:previous|prior)\s+(?:step|output|result)\b|\breceiv(?:e|ed)\b|\breceipt\b|\breturns?\b/i.test(value);
 const quoted = (text: string, value: string) => text.toLowerCase().includes(value.trim().toLowerCase());
 const assetAfterAmount = (text: string) => text.match(/\b\d+(?:\.\d+)?\s+([a-z][a-z0-9]{1,15})\b/i)?.[1];
 const swapTarget = (text: string) => text.match(/\bswap\b[^.;]{0,120}\bto\s+([a-z][a-z0-9]{1,15})\b/i)?.[1];

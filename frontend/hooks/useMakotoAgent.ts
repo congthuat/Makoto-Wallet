@@ -14,8 +14,10 @@ import type { AgentIntelligenceResult } from "@/lib/agent/intelligence/types";
 import type { OnchainIntelligenceServices } from "@/lib/agent/intelligence/onchain";
 import { readOfficialResearchResponse } from "@/lib/agent/intelligence/officialSources";
 import { clearAgentSessionContext, createAgentRequestGeneration, readAgentSessionContext, storeAgentSessionContext, updateAgentSessionContext, type AgentSessionContext } from "@/lib/agent/sessionContext";
+import { acceptPlannerProposalResponse, type PlannerProposalReview } from "@/lib/plannerProposal";
+import { translate } from "@/i18n";
 
-export type AgentMessage = { id: number; role: "user" | "agent"; text: string; draft?: AgentActionDraft; prepared?: AgentResponse["prepared"]; quote?: AgentResponse["quote"]; policy?: AgentResponse["policy"]; draftContext?: AgentDraftContext; intelligence?: AgentIntelligenceResult; presentation?: Readonly<{ request?: string; intent?: AgentResponse["intent"]; planning?: AgentResponse["planning"]; context?: AgentDraftContext; observedAt?: number; result?: true }> };
+export type AgentMessage = { id: number; role: "user" | "agent"; text: string; proposal?: PlannerProposalReview; draft?: AgentActionDraft; prepared?: AgentResponse["prepared"]; quote?: AgentResponse["quote"]; policy?: AgentResponse["policy"]; draftContext?: AgentDraftContext; intelligence?: AgentIntelligenceResult; presentation?: Readonly<{ request?: string; intent?: AgentResponse["intent"]; planning?: AgentResponse["planning"]; context?: AgentDraftContext; observedAt?: number; result?: true }> };
 
 export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLocale, account?: string, onchainServices?: OnchainIntelligenceServices, canonicalServices?: Pick<QuoteContext, "reads" | "services">) {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -29,6 +31,10 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   const requestGeneration = useRef(createAgentRequestGeneration());
   const latestBinding = useRef<string | undefined>(undefined);
   const latestLocale = useRef(locale);
+  const plannerSession = useRef<string | undefined>(undefined);
+  const [requestMode, setRequestMode] = useState<"planner" | "legacy">("legacy");
+  const changeRequestMode = (mode: "planner" | "legacy") => { requestGeneration.current.invalidate(); setRequestMode(mode); setMessages((current) => current.filter((message) => !message.proposal)); };
+  const changeInput = (value: string) => { requestGeneration.current.invalidate(); setInput(value); setMessages((current) => current.filter((message) => !message.proposal)); };
 
   useEffect(() => {
     latestLocale.current = locale;
@@ -36,6 +42,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
 
   const clearConversation = useCallback(() => {
     requestGeneration.current.invalidate();
+    plannerSession.current = crypto.randomUUID();
     setMessages([]);
     previousIntent.current = undefined;
     sessionContext.current = undefined;
@@ -51,6 +58,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     latestBinding.current = binding;
     if (!binding || previousBinding.current && previousBinding.current !== binding) {
       requestGeneration.current.invalidate();
+      plannerSession.current = crypto.randomUUID();
       clearAgentSessionContext(window.sessionStorage);
       sessionContext.current = undefined;
       setHasSessionContext(false);
@@ -73,7 +81,28 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
   async function ask(text: string) {
     const value = text.trim();
     if (!value) return;
+    requestGeneration.current.invalidate();
     const generation = requestGeneration.current.capture();
+    if (requestMode === "planner") {
+      const requestLocale = latestLocale.current;
+      const sessionId = plannerSession.current ?? (plannerSession.current = crypto.randomUUID());
+      setMessages((current) => current.filter((message) => !message.proposal));
+      let result: unknown;
+      try {
+        const response = await fetch("/api/planner-proposal", { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: value, locale: requestLocale, sessionId }) });
+        result = await response.json();
+      } catch { result = { status: "PROPOSAL_FAILED" }; }
+      if (!requestGeneration.current.isCurrent(generation) || plannerSession.current !== sessionId || latestLocale.current !== requestLocale) return;
+      const payload = result && typeof result === "object" ? result as Record<string, unknown> : {};
+      const proposal = payload.status === "PROPOSAL" ? acceptPlannerProposalResponse(payload.proposal, sessionId, { text: value, locale: requestLocale }) : undefined;
+      const accepted = proposal?.sessionId === sessionId && proposal.requestId ? proposal : undefined;
+      setMessages((current) => [...current.filter((message) => !message.proposal),
+        { id: nextId.current++, role: "user", text: value },
+        { id: nextId.current++, role: "agent", text: accepted ? "" : translate(requestLocale, "agent.planner.failure"), proposal: accepted, presentation: { request: value, observedAt: Date.now() } },
+      ]);
+      setInput("");
+      return;
+    }
     const now = Date.now();
     const binding = snapshot.connected && snapshot.account && snapshot.verifiedChainId !== undefined
       ? { account: snapshot.account, chainId: snapshot.verifiedChainId }
@@ -112,7 +141,7 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     void ask(input);
   }
 
-  return { messages, setMessages, hasSessionContext, clearConversation, input, setInput, inputRef, ask, submit };
+  return { messages, setMessages, hasSessionContext, clearConversation, input, setInput: changeInput, inputRef, ask, submit, requestMode, setRequestMode: changeRequestMode };
 }
 
 async function fetchOfficialResearch(sourceId: string, subject?: "bridging"): Promise<AgentIntelligenceResult> {
