@@ -89,6 +89,7 @@ export function B2Fixture() {
   const proposal=createPlannerProposal({requestId:"fixture-b2-request",sessionId:"fixture-b2-session",proposalId:"fixture-b2-proposal",request,plan,resolution});
   const host=createPlannerProposalHostSource(proposal,"fixture-b2-session",request);
   return <PlannerParameterConfirmControl proposal={proposal} host={host} active label="Confirm parameters" onConfirmed={(source)=>{
+    window.fixtureB2ConfirmCount=(window.fixtureB2ConfirmCount??0)+1;
     const result=createPlannerParameterEvidence(source);
     const compiled=result.valid && result.value.status==="RESOLVED_WITH_EVIDENCE" ? compilePlannerStrategy({version:2,requestId:source.requestId,sessionId:source.sessionId,createdAt:1,plan:source.plan,resolution:result.value,provenanceSource:source}) : null;
     window.fixtureB2={source,result,compiled,valid:result.valid&&validatePlannerParameterEvidence(result.value,source).valid,
@@ -96,6 +97,7 @@ export function B2Fixture() {
       live:isLiveConfirmedPlannerSource(source)};
     window.fixtureB2CheckLive=()=>isLiveConfirmedPlannerSource(source);
     window.fixtureB2CheckValid=()=>result.valid&&validatePlannerParameterEvidence(result.value,source).valid;
+    window.fixtureB2Validate=(candidate)=>validatePlannerParameterEvidence(candidate,source).valid;
   }}/>;
 }
 `;

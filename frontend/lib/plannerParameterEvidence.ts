@@ -5,7 +5,7 @@ import { validatePlannerClassificationRequest, type PlannerClassificationRequest
 import { snapshotPlannerStrategyData } from "./plannerStrategyBinding.ts";
 import { isLiveConfirmedPlannerSource } from "./plannerConfirmationAuthority.ts";
 
-/** A host-retained structured user event. There is no production creator yet. */
+/** A host-retained structured user event, created only by the B2 confirmation control. */
 export type PlannerStructuredInput = Readonly<{ version: 1; eventId: string; requestId: string; sessionId: string;
   requestDigest: Hex; planId: string; planDigest: Hex; proposalId: string; proposalDigest: Hex;
   fields: readonly Readonly<{ goalId: string; parameterKey: string; value: string | number }>[] }>;
@@ -50,7 +50,7 @@ const evidenceHash = (item: Omit<ResolvedParameterEvidence, "digest"> | Omit<Non
   : [item.version, item.requestId, item.sessionId, item.requestDigest, item.planId, item.planDigest, item.goalId,
       item.parameterKey, item.state, item.origin, item.expressionClass, item.sourceGoalId]);
 
-/** Structural evidence only. No production boundary can authenticate a user event yet. */
+/** Fixed evidence requires a live source registered by the B2 confirmation control. */
 export function createPlannerParameterEvidence(sourceInput: unknown): PlannerEvidenceResult {
   try {
     const captured = snapshotPlannerStrategyData(sourceInput);

@@ -44,25 +44,43 @@ export function PlannerParameterConfirmControl({ proposal, host, active, label, 
   onConfirmed: (source: PlannerEvidenceSource) => void;
 }) {
   const owned = React.useRef<PlannerEvidenceSource | null>(null);
+  const button = React.useRef<HTMLButtonElement | null>(null);
+  const confirming = React.useRef(false);
   const [done, setDone] = React.useState(false);
   const checked = validatePlannerProposalHostPair(proposal, host);
   const eligible = active && checked?.proposalDigest === proposal.proposalDigest && checked.resolutionStatus === "RESOLVED" &&
     checked.goals.every((goal) => goal.parameters.every((field) => field.state === "FIXED_CANDIDATE"));
-  React.useEffect(() => () => {
+  React.useLayoutEffect(() => () => {
     if (owned.current) { const record = confirmed.get(owned.current); if (record) record.active = false; owned.current = null; }
+    confirming.current = false;
   }, [proposal.proposalDigest, host.sessionId, active]);
   function confirm(event: MouseEvent<HTMLButtonElement>) {
-    if (!eligible || done || !event.nativeEvent.isTrusted || !event.currentTarget.isConnected ||
-      event.currentTarget.dataset.proposalDigest !== checked?.proposalDigest || !checked ||
+    const target = event?.currentTarget;
+    const native = event?.nativeEvent;
+    let dispatchedByBrowser = false;
+    try {
+      dispatchedByBrowser = native instanceof globalThis.MouseEvent && native.isTrusted === true &&
+        Event.prototype.composedPath.call(native).includes(target) &&
+        Object.getOwnPropertyDescriptor(Event.prototype, "target")?.get?.call(native) === target;
+    } catch { /* A fabricated or stale event has no browser dispatch path. */ }
+    if (!eligible || done || confirming.current || !dispatchedByBrowser || target !== button.current || !target.isConnected ||
+      target.dataset.proposalDigest !== checked?.proposalDigest || !checked ||
       validatePlannerProposalHostPair(proposal, host)?.proposalDigest !== checked.proposalDigest) return;
     const source = buildSource(checked, host);
     if (!source) return;
     const copy = snapshotPlannerStrategyData(source);
     if (!copy.valid) return;
+    confirming.current = true;
     confirmed.set(source, { snapshot: JSON.stringify(copy.value), proposalDigest: checked.proposalDigest, active: true });
     owned.current = source;
-    onConfirmed(source);
-    setDone(true);
+    try { onConfirmed(source); setDone(true); }
+    catch (error) {
+      const record = confirmed.get(source);
+      if (record) record.active = false;
+      owned.current = null;
+      confirming.current = false;
+      throw error;
+    }
   }
-  return eligible && !done ? React.createElement("button", { type: "button", className, "data-proposal-digest": checked.proposalDigest, onClick: confirm }, label) : null;
+  return eligible && !done ? React.createElement("button", { ref: button, type: "button", className, "data-proposal-digest": checked.proposalDigest, onClick: confirm }, label) : null;
 }

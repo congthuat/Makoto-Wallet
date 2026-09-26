@@ -67,13 +67,33 @@ try {
   console.log("AEI-B2 dynamic request replaced by fresh fixed proposal PASS");
   const b2Version = evaluate(`window.mountB2()`);
   command("wait", "--fn", `window.fixtureVersion===${b2Version}`);
+  const attack = evaluate(`(()=>{const button=document.querySelector('button');const key=Object.keys(button).find(key=>key.startsWith('__reactProps'));const handler=button[key].onClick;const results=[];for(const event of [undefined,{}, {nativeEvent:{isTrusted:true},currentTarget:button},{nativeEvent:{isTrusted:false},currentTarget:button},{nativeEvent:Object.assign(Object.create(MouseEvent.prototype),{isTrusted:true}),currentTarget:button}]){try{handler(event)}catch{}results.push(!!window.fixtureB2)}button.click();results.push(!!window.fixtureB2);button.dispatchEvent(new MouseEvent('click',{bubbles:true}));results.push(!!window.fixtureB2);window.fixtureB2Handler=handler;document.querySelector('#fixture').addEventListener('click',event=>{window.fixtureB2TrustedEvent=event;handler({nativeEvent:event,currentTarget:button});},{once:true});return results})()`);
+  assert.deepEqual(attack, Array(7).fill(false), "direct, fabricated and synthetic event attacks must fail");
   command("click", "button");
+  const replay = evaluate(`(()=>{const button=document.querySelector('button');try{window.fixtureB2Handler({nativeEvent:window.fixtureB2TrustedEvent,currentTarget:button})}catch{}return {count:window.fixtureB2ConfirmCount,live:window.fixtureB2CheckLive()}})()`);
+  assert.deepEqual(replay, { count: 1, live: true }, "rapid double dispatch and trusted-event replay must not create a second confirmation");
   const evidence = evaluate(`(()=>{const x=window.fixtureB2;return {valid:x.valid,copyValid:x.copyValid,live:x.live,status:x.result?.value?.status,count:x.result?.value?.evidence?.length,proposalIds:x.result?.value?.evidence?.map(e=>e.proposalId),executionEnabled:x.compiled?.executionEnabled,compiled:x.compiled?.status,bindingDigest:x.compiled?.binding?.parameterEvidenceDigest,evidenceDigest:x.result?.value?.evidenceDigest}})()`);
   assert.equal(evidence.valid, true); assert.equal(evidence.copyValid, false); assert.equal(evidence.live, true);
   assert.equal(evidence.status, "RESOLVED_WITH_EVIDENCE"); assert.equal(evidence.count, 4);
   assert.deepEqual(evidence.proposalIds, Array(4).fill("fixture-b2-proposal"));
   assert.equal(evidence.compiled, "COMPILED"); assert.equal(evidence.executionEnabled, false);
   assert.equal(evidence.bindingDigest, evidence.evidenceDigest);
+  const evidenceAttacks = evaluate(`(()=>{const changes=[
+    ["status",x=>x.status="UNVERIFIED"],["version",x=>x.version=1],["planId",x=>x.planId="other"],
+    ["intentAmount",x=>x.intents[0].amount="11"],["intentRecipient",x=>x.intents[0].recipient="0x3333333333333333333333333333333333333333"],
+    ["missing",x=>x.evidence.pop()],["duplicate",x=>x.evidence.push(x.evidence[0])],["reordered",x=>x.evidence.reverse()],
+    ["unexpected",x=>x.evidence.push({...x.evidence[0],parameterKey:"extra"})],["setDigest",x=>x.evidenceDigest="0x"+"0".repeat(64)],
+    ["value",x=>x.evidence[0].value="other"],["field",x=>x.evidence[0].parameterKey="other"],
+    ["goal",x=>x.evidence[0].goalId="other"],["request",x=>x.evidence[0].requestId="other"],
+    ["session",x=>x.evidence[0].sessionId="other"],["requestDigest",x=>x.evidence[0].requestDigest="0x"+"0".repeat(64)],
+    ["plan",x=>x.evidence[0].planId="other"],["planDigest",x=>x.evidence[0].planDigest="0x"+"0".repeat(64)],
+    ["proposal",x=>x.evidence[0].proposalId="other"],["proposalDigest",x=>x.evidence[0].proposalDigest="0x"+"0".repeat(64)],
+    ["event",x=>x.evidence[0].source.eventId="other"],["eventDigest",x=>x.evidence[0].source.eventDigest="0x"+"0".repeat(64)],
+    ["origin",x=>x.evidence[0].origin="UNVERIFIED_PROVIDER"],["itemDigest",x=>x.evidence[0].digest="0x"+"0".repeat(64)],
+    ["extra",x=>x.evidence[0].extra=true],["symbol",x=>x.evidence[0][Symbol("hidden")]=true]
+  ];return changes.map(([name,change])=>{const x=JSON.parse(JSON.stringify(window.fixtureB2.result.value));change(x);return [name,window.fixtureB2Validate(x)]})})()`);
+  assert.equal(evidenceAttacks.length, 26);
+  for (const [name, valid] of evidenceAttacks) assert.equal(valid, false, `serialized evidence attack ${name}`);
   for (const [name, mutation] of [["amount", "s.resolution.intents[0].amount='11'"],
     ["recipient", "s.resolution.intents[0].recipient='0x3333333333333333333333333333333333333333'"],
     ["asset", "s.resolution.intents[0].asset='usdc'"], ["chain", "s.resolution.intents[0].chainId=84532"],
@@ -90,5 +110,16 @@ try {
   const revokedVersion = evaluate(`window.mountWorkspace({scenario:"empty"})`);
   command("wait", "--fn", `window.fixtureVersion===${revokedVersion}`);
   command("wait", "--fn", `window.fixtureB2CheckLive()===false`);
+  for (const scenario of ["planner-spoof", "planner-missing-source", "ready"]) {
+    const version = evaluate(`window.mountWorkspace({scenario:${JSON.stringify(scenario)},locale:"en"})`);
+    command("wait", "--fn", `window.fixtureVersion===${version}`);
+    const isolation = evaluate(`({b2Buttons:[...document.querySelectorAll('[data-operation-mode="planner-proposal"] button')].length,live:window.fixtureB2CheckLive(),mode:document.querySelector('[data-operation-mode]')?.dataset.operationMode})`);
+    assert.equal(isolation.b2Buttons, 0, scenario);
+    assert.equal(isolation.live, false, scenario);
+    if (scenario === "ready") assert.equal(isolation.mode, "action");
+  }
+  command("open", "http://127.0.0.1:3187");
+  command("wait", "--fn", "!!window.fixtureVersion");
+  assert.equal(evaluate(`typeof window.fixtureB2CheckLive`), "undefined", "refresh must discard the old runtime capability");
   console.log("AEI-B2 live evidence, AEI-B skeleton, AEI-A v2 digest and revocation PASS");
 } finally { try { command("close"); } catch { /* preserve primary failure */ } }

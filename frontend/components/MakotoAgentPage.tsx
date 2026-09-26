@@ -127,7 +127,7 @@ export function AgentOperation({ message, locale, current, active = false }: { m
   const proposal = !message.draft && !message.prepared && !message.quote && !message.policy && !message.intelligence && !message.draftContext &&
     !message.presentation?.intent && !message.presentation?.planning && !message.presentation?.result &&
     message.proposal && message.proposalSource ? validatePlannerProposalHostPair(message.proposal, message.proposalSource) : undefined;
-  if (proposal) return <PlannerProposalCard proposal={proposal} source={message.proposalSource!} locale={locale} active={active} />;
+  if (proposal) return <PlannerProposalCard key={proposal.proposalDigest} proposal={proposal} source={message.proposalSource!} locale={locale} active={active} />;
   const mode = agentWorkspaceMode(message.presentation?.intent, Boolean(message.draft), message.presentation?.result);
   const origin = message.draftContext ?? message.presentation?.context;
   const context = assessAgentDraftContext(origin, current);
