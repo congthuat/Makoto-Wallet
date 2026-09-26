@@ -2,6 +2,8 @@
 
 **Status:** design only. AEI-B remains IMPLEMENTED / PENDING REVIEW / BLOCKED. AEI-C and Phase 13 are NOT STARTED. Baseline: `7d27487e70d8a9d96b98173e409c42a193a26538` on `phase12h-planner-strategy-integration`, clean worktree and index. No runtime fix or execution authority is supplied by this document.
 
+**Current approved prerequisite:** **AEI-B2 — Trusted Planner Proposal Confirmation Boundary**, DESIGN APPROVED / NEXT / NOT STARTED, formalized at baseline `17a559e8dcb158c7827bf85db831a3086d1b03f1`. The earlier audit and implementation history below remains historical; the final AEI-B2 section defines the approved next work. The runtime still refuses caller-created fixed-origin evidence. AEI-B remains IMPLEMENTED / PENDING REVIEW / BLOCKED until the production source is implemented, verified, and separately reviewed for AEI-B closeout.
+
 ## Reproduced blocker and current lifecycle
 
 The [AEI-B adversarial review](aei-b-review-audit.md) used a mocked 11D provider. For a Swap followed by “send 50% of actual output EURC” or “send the amount from the receipt in EURC”, 11D returned `RESOLVED` with downstream Send amount `10`; AEI-B returned `COMPILED`. This is the exact known reproduction, not a new live provider call. The 11D `dynamicAmount` pattern misses those expressions. Its `quoted(text, amount)` check searches the whole request, so the earlier Swap's `10` can support an invented downstream `10`. The global dynamic check can also flag unrelated goals. A decimal's validity and occurrence in the request do not prove its meaning for one goal.
@@ -101,3 +103,104 @@ The scoped implementation adds `plannerParameterEvidence.ts`. Its v2 `RESOLVED_W
 AEI-B now requires input version 2, validated v2 field evidence, and the separately retained source. A legacy `RESOLVED` or `UNVERIFIED` result rejects with `MISSING_PARAMETER_EVIDENCE`; malformed or mismatched v2 evidence rejects with `INVALID_PARAMETER_EVIDENCE`. It still emits only the non-executable ACTION skeleton. AEI-A's v1 binding functions and tests remain intact. A new v2 binding adds `parameterEvidenceDigest` to a versioned binding digest over the v1 identities; it validates against separately retained field evidence and its source. A changed request, plan/replan, goal, key, value, origin, event, or digest cannot reuse the old evidence. This is integrity against retained inputs, not authentication of a caller or user action. No production caller or transaction authority was introduced.
 
 **Adversarial re-review correction:** A caller could fabricate the structured event and all matching digests, then compile without a real user action. The public factory therefore no longer mints `FIXED_USER_INPUT` from any plain event; such input returns `UNVERIFIED` failure. Prior positive fixture compilation was structural only and is removed from current acceptance. AEI-B and AEI-A v2 have no positive fixed-origin production path until a separately reviewed trusted capture boundary exists. See `docs/aei-b-provenance-re-review-audit.md`. AEI-B remains pending review and is not ready to close.
+
+## AEI-B2 — Trusted Planner Proposal Confirmation Boundary
+
+**Decision and status:** DESIGN APPROVED / NEXT / NOT STARTED. This is the smallest production input prerequisite between AEI-B implementation and its final review, before AEI-C. It establishes only: “I confirm these structured values represent what I intend.” It does not establish transaction approval, wallet consent, policy approval, execution readiness, submission or retry permission. This section is a design contract; no described model, capability, UI state or production wiring has been implemented by this formalization.
+
+### Confirmed production gap and placement
+
+At baseline `17a559e`, `AgentMessage` in `frontend/hooks/useMakotoAgent.ts` carries a legacy `AgentActionDraft` and optional preparation/quote/policy presentation. `AgentDraftContext` in `frontend/lib/agent/types.ts` binds account/chain only. Neither carries canonical Planner request/session/plan/goal identity or field provenance. `ActionDraftCard.prepare` in `frontend/components/MakotoAgentPage.tsx` selects or creates an `AgentActionHandoff`, stores it, and navigates to wallet review. `frontend/lib/agent/actions/types.ts` and `prepare.ts` define that separate handoff identity and parameter shape. It cannot be treated as a Planner confirmation source.
+
+Extend Makoto Agent with a distinct **Planner proposal review state** in its existing action workspace, using Ledger Calm styling and existing EN/VI conventions. Reuse presentation primitives, but keep the proposal model and parameter-confirmation action separate from `ActionDraftCard`'s wallet Review behavior. The scope includes the missing proposal-only application host and the minimum wiring to carry retained Phase 11 proposal inputs into this state. It must not synthesize a Planner plan from a wallet draft or send this lane through the existing quote/prepare/wallet handoff path. Existing Planner ports may supply untrusted semantic proposals; the host retains their exact validated plan and candidate resolution. A dormant component or test-only factory without a reachable production proposal path does not satisfy AEI-B2.
+
+The host assigns and retains request/session identity when accepting user input, independently of provider output, and keeps the bounded original request bytes/locale and validated plan/resolution together. The required path is:
+
+`request ID → session ID → PlannerPlan ID/digest → goal ID → exact structured parameters → proposal/review surface → explicit user confirmation → field-level provenance evidence`
+
+The request digest additionally binds the original request bytes and locale. IDs are mapped explicitly, never inferred from array position, display labels, UI order, action-name similarity or wallet draft state. Plan identity includes classification, goal kinds and dependency edges. The minimal host ends at confirmed evidence and optional non-executable AEI-B compilation; AEI-F retains full production execution orchestration.
+
+### Canonical proposal/review model
+
+Define a new versioned, closed-schema `PlannerProposalReview` data contract, separate from both `AgentActionDraft` and transaction review. Its v1 semantic content is JSON-safe and validated against separately retained host inputs. The following is the approved field model, not an implemented TypeScript API:
+
+| Field | Required meaning |
+| --- | --- |
+| `version` | Literal `1`; unsupported versions fail closed. |
+| `proposalId` | Host-assigned identity for one immutable review snapshot; any semantic revision creates a new proposal ID. |
+| `requestId`, `sessionId`, `requestDigest` | Retained application request/session and exact request digest; provider-supplied identities cannot replace them. |
+| `planId`, `planDigest` | Exact validated PlannerPlan identity and digest, including goal kinds and dependencies. |
+| `goals` | Complete set of explicit `goalId`, `kind`, `dependsOn` and closed, kind-specific `parameters`; exactly one entry per retained plan goal. |
+| `proposalDigest` | Versioned, domain-separated digest over all declared semantic fields except the digest itself; recomputed from the immutable snapshot. This proves content consistency only. |
+| `executionEnabled` | Literal `false`; neither proposal nor confirmation can enable execution. |
+
+For every required parameter, the model distinguishes a canonical **fixed candidate** (`state: FIXED_CANDIDATE`, `value`) from an **unresolved** expression (`state: UNRESOLVED`, bounded `expression`, closed `expressionClass`). These are mutually exclusive closed variants; unresolved/dynamic records have no `value` or authoritative numeric fallback. Fixed candidates remain untrusted proposals until confirmation. Parameter keys are closed by goal kind and use existing Planner names; duplicate/missing goals or fields, extra properties, malformed IDs/digests, accessors, symbol fields, hostile proxies and non-JSON values fail closed before display or evidence creation. Reuse existing plan/intent bounds and descriptor-safe validation; the implementation must define the exact versioned expression-class enum and bounded serialization contract in its tests. Canonical decimal strings, asset IDs, address values and numeric chain IDs must match the retained intent exactly; display formatting cannot alter them. Proposal digest serialization must declare fixed field order, sort goal/dependency IDs and parameter keys by the existing bounded ASCII convention, and bind every field including parameter state/expression and `executionEnabled`.
+
+The model contains only semantic review content and its provenance envelope. It contains no signer, wallet/RPC client, executable callback, prepared transaction, calldata, quote, receipt, policy approval, submission authority or runtime capability. An immutable copy supplies both the visible review and subsequent evidence input; a later provider result cannot update a displayed snapshot in place. A new request, session, plan, goal kind, dependency or parameter invalidates the active confirmation. Closing/replacing the proposal, changing session or clearing the conversation revokes its live capability. JSON persistence, if used for display, restores an unconfirmed proposal only.
+
+### Exact visible parameter set
+
+Confirm the complete parameter set for the displayed proposal, with evidence retained per goal/field. Each goal's kind and dependencies must be understandable in the review; the values below must be visible before the action is available. A hidden/defaulted field cannot gain evidence through another field's confirmation.
+
+| Goal | Visible canonical fields and evidence keys |
+| --- | --- |
+| SEND | Asset (`asset`), full decimal amount (`amount`), full recipient (`recipient`), chain (`chainId`). |
+| SWAP | Input token (`fromAsset`), output token (`toAsset`), input amount (`amount`), chain (`chainId`). Token-in/token-out labels must have an unambiguous mapping to these keys. |
+| BRIDGE | Asset (`asset`), amount (`amount`), source chain (`sourceChainId`), destination chain (`destinationChainId`), recipient (`recipient`). Current 11A Bridge requires an explicit recipient, so it is always shown for this route. |
+
+Show supported asset labels and unambiguous chain names/IDs corresponding to canonical values. Do not round amounts or truncate addresses in the confirmation surface. Use wrapping for mobile fit. The action should say “Confirm parameters” with an EN/VI explanation that it confirms intended values. Use a semantic button, visible labels, keyboard activation, accessible status/focus handling, and text for unconfirmed/confirmed/unsupported states. It must not be labeled Sign, Execute, Submit or Approve transaction, and must not open a wallet. Browser acceptance must exercise EN desktop around 1440px and VI mobile around 390px, including long values, keyboard access, no raw translation keys and no automatic submission; run the repository's scoped accessibility check where supported.
+
+### Application trust and capability contract
+
+Only the approved interaction boundary for the currently rendered immutable proposal may create a runtime confirmation capability. The host binds that capability to the exact request/session, request/plan/proposal digests, goal/field/canonical value set, and a versioned confirmation event ID. The evidence factory consumes or validates that private authority and emits serializable field evidence. A module-private identity registry, such as a WeakMap holding the retained snapshot, is an acceptable design mechanism. The capability must remain non-serializable and non-persisted, outside provider/RPC/API JSON, and unavailable through public mint functions accepting arbitrary data, shared exported Symbols, or production test helpers.
+
+The browser implementation must verify a genuine native user activation on the approved current confirmation control and bind it to the snapshot actually presented. It must reject fabricated event shapes, synthetic dispatch/programmatic clicks and stale or unrelated events. A native `isTrusted` check may participate alongside control/handler ownership and retained proposal identity; accepting `{ isTrusted: true }` or an arbitrary caller-supplied Event is insufficient. Exact browser event/capability mechanics must be demonstrated in implementation and adversarial browser tests before acceptance; design approval alone supplies no trust.
+
+No caller `trusted: true`, `FIXED_USER_INPUT` claim, JSON event, magic string, digest, frontend/environment secret or TypeScript brand alone authenticates origin. The capability may authorize only creation/revalidation of parameter provenance. A confirmation event cannot be reused to mint evidence for another proposal; retained evidence may validate only against its exact live authoritative source. Serializable evidence/digests are inert without that source, and deserialization cannot reconstruct authority. The existing descriptor-safe JSON snapshot boundaries will require an explicit, separate channel for runtime capability validation; copying a token into a JSON source and then checking its fields is forbidden.
+
+**This protects the application authority boundary. It is not cryptographic proof against a fully compromised browser/XSS runtime.** It assumes trusted application code and browser event integrity. It makes no claim to prove that a person read every field, and provides no transaction consent.
+
+### Dynamic parameters and request revisions
+
+“50% of previous output”, “all received output”, receipt-derived amounts and other runtime dependencies remain unresolved/unsupported. Provider-supplied numeric previews cannot turn them into fixed candidates eligible for the ordinary confirmation path. Unknown or conflicting origin requires clarification. A plain fixed natural-language request such as “Send 10 EURC” may become a candidate proposal, but cannot mint evidence until the user explicitly confirms its exact complete structured set. Provider classification alone cannot erase retained dynamic semantics.
+
+An explicit user edit replacing a dynamic expression with a fixed amount creates a **new structured user input**. The host records that replacement and allocates a new request identity/digest and proposal identity, rebuilds/revalidates parameter resolution, and updates plan identity/digest where goal semantics or graph change. An unchanged structural graph may retain its plan identity only when validated as unchanged; the new request/proposal binding still invalidates all old confirmation. The replacement must be displayed and confirmed anew. Do not rewrite the old request, mutate its evidence, carry a confirmation across a replan, or evaluate prior output/receipt expressions in AEI-B2.
+
+### Integration and authority separation
+
+The eventual positive path is `trusted Planner proposal confirmation → plannerParameterEvidence → FIXED_USER_INPUT field evidence → AEI-B deterministic compiler → non-executable Strategy skeleton`. Every execution-required field must match the retained request/session/plan/goal/value set and accepted confirmation event; one missing, dynamic or unverified field prevents compilation. AEI-A v2 must bind the digest of that exact accepted evidence set. The result remains `executionEnabled: false`. Successful implementation makes AEI-B eligible for renewed final review; it does not itself mark AEI-B complete or weaken the current gate.
+
+Three separate authority boundaries remain explicit: parameter confirmation (“these values represent my intent”), later transaction review (“I reviewed this prepared transaction”), and later wallet signature (“I authorize this wallet transaction”). The current wallet Review click cannot stand in for parameter confirmation without a separately implemented canonical proposal display and capture path. Parameter confirmation grants neither Phase 9 approval nor wallet/signing consent.
+
+AEI-B2 stops before AEI-C Strategy materialization, AEI-D tool/policy orchestration and AEI-E Phase 12 state integration. It adds no quote/preparation, wallet popup, signing, submission, receipt polling, retry/resubmission, automatic transaction execution or authoritative transaction-state transition. AEI-F later composes this proposal source with those separately approved boundaries. Direct CCTP Agent wallet handoff and dynamic output execution remain unsupported.
+
+### Implementation acceptance criteria
+
+All criteria below are requirements for the future implementation, not results of this documentation change.
+
+1. A reachable production proposal path carries retained canonical request/session/plan/goal identity and exact request/plan/proposal digests end to end; no inference from wallet drafts or array/UI order.
+2. The complete canonical semantic parameter set is visibly presented for every goal, including defaults, full amounts/recipients and both Bridge chains; no hidden field gains evidence.
+3. Explicit user confirmation of the currently presented immutable proposal is required; merely rendering or generating it produces no evidence.
+4. A caller fabricating all matching JSON fields, event shape, values and digests cannot mint trusted fixed evidence or compile.
+5. A provider proposing matching fields/digests or self-certifying `FIXED_USER_INPUT` cannot mint capability/evidence; provider input remains untrusted.
+6. An unconfirmed proposal and plain natural-language “Send 10 EURC” cannot compile.
+7. A complete fixed proposal confirmed through the genuine production interaction can create field evidence and pass AEI-B with `executionEnabled: false`; AEI-A v2 binds exactly its accepted evidence-set digest.
+8. Changing amount invalidates confirmation and requires a new proposal/confirmation.
+9. Changing recipient invalidates confirmation and requires a new proposal/confirmation.
+10. Changing asset or either Swap token invalidates confirmation and requires a new proposal/confirmation.
+11. Changing chain, source chain or destination chain invalidates confirmation and requires a new proposal/confirmation.
+12. Replanning, changing plan ID, goal kind or dependency invalidates old confirmation, even if displayed values otherwise match.
+13. Dynamic percentage/output/receipt expressions cannot silently become fixed through a numeric provider preview; explicit fixed replacement has new request/proposal provenance and requires new confirmation.
+14. Parameter confirmation opens no wallet and creates no wallet handoff.
+15. Parameter confirmation does not quote, prepare a transaction or materialize Strategy.
+16. Parameter confirmation grants no signing or submission authority.
+17. Parameter confirmation supplies no policy approval and cannot bypass Phase 9 or later transaction review.
+18. EN/VI labels, boundary explanations and status text are supported without raw translation keys.
+19. Keyboard activation, visible labels/focus and accessible text status work; trust is never conveyed by color alone.
+20. Mobile presentation preserves the complete values without horizontal overflow or truncation; bounded EN desktop/VI mobile browser QA is recorded.
+21. Wrong request/session/goal/key/value, stale proposal, duplicate/missing evidence, malformed input, symbols, getters and hostile proxies fail closed.
+22. Runtime capability cannot be created or restored through JSON, a digest, a public event factory or a test helper; synthetic clicks and stale/unrelated native events fail.
+23. Proposal mutation while review is open, late provider replies, session changes and conversation clearing invalidate capture; evidence cannot transfer across revisions or restored history.
+24. Focused unit and browser tests exercise both genuine confirmation and independent forgery attempts with mocked proposals, and an authority audit shows no new wallet, prepare, sign, submit, retry, receipt-polling or execution path from confirmation. A positive fixture alone is insufficient evidence of a production trust source.
+
+AEI-B remains IMPLEMENTED / PENDING REVIEW / BLOCKED. AEI-B2 is DESIGN APPROVED / NEXT / NOT STARTED; AEI-C and Phase 13 are NOT STARTED. This formalization changes documentation only and requires `git diff --check`, with no tests/builds or live transaction/model/provider calls for this task.
