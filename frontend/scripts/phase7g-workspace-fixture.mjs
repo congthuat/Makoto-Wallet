@@ -82,10 +82,14 @@ export function Fixture({options = {}}) {
   return <AgentWorkspace locale={locale} account={account} chainId={chainId} messages={messages} hasSessionContext={false} clearConversation={()=>{setCleared(true);inputRef.current?.focus();}} input={input} setInput={setInput} inputRef={inputRef} ask={setInput} submit={(e)=>e.preventDefault()}/>;
 }
 export function StatusFixture({input, locale}) { return <AgentStatusSurface input={input} locale={locale}/>; }
-export function B2Fixture() {
-  const request={text:"Send 10 EURC to ${accountB}",locale:"en"};
-  const plan={version:1,id:"fixture-b2-plan",classification:"ACTION",goals:[{id:"send",kind:"SEND",dependsOn:[]}]};
-  const resolution={status:"RESOLVED",planId:plan.id,intents:[{version:1,id:"send",kind:"SEND",asset:"eurc",amount:"10",recipient:"${accountB}",chainId:${arc}}]};
+export function B2Fixture({scenario}) {
+  const multi=scenario==="multi";
+  const request={text:multi?"Swap 10 USDC to EURC, then send 5 EURC to ${accountB}":"Send 10 EURC to ${accountB}",locale:"en"};
+  const plan={version:1,id:"fixture-b2-plan",classification:multi?"STRATEGY":"ACTION",goals:multi?
+    [{id:"swap",kind:"SWAP",dependsOn:[]},{id:"send",kind:"SEND",dependsOn:["swap"]}]:[{id:"send",kind:"SEND",dependsOn:[]}]};
+  const send={version:1,id:"send",kind:"SEND",asset:"eurc",amount:multi?"5":"10",recipient:"${accountB}",chainId:${arc}};
+  const swap={version:1,id:"swap",kind:"SWAP",fromAsset:"usdc",toAsset:"eurc",amount:"10",chainId:${arc}};
+  const resolution={status:"RESOLVED",planId:plan.id,intents:multi?[swap,send]:[send]};
   const proposal=createPlannerProposal({requestId:"fixture-b2-request",sessionId:"fixture-b2-session",proposalId:"fixture-b2-proposal",request,plan,resolution});
   const host=createPlannerProposalHostSource(proposal,"fixture-b2-session",request);
   return <PlannerParameterConfirmControl proposal={proposal} host={host} active label="Confirm parameters" onConfirmed={(source)=>{

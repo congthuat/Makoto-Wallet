@@ -94,6 +94,17 @@ try {
   ];return changes.map(([name,change])=>{const x=JSON.parse(JSON.stringify(window.fixtureB2.result.value));change(x);return [name,window.fixtureB2Validate(x)]})})()`);
   assert.equal(evidenceAttacks.length, 26);
   for (const [name, valid] of evidenceAttacks) assert.equal(valid, false, `serialized evidence attack ${name}`);
+  const multiVersion = evaluate(`window.mountB2("multi")`);
+  command("wait", "--fn", `window.fixtureVersion===${multiVersion}`);
+  command("click", "button");
+  const multi = evaluate(`(()=>{const x=window.fixtureB2;return {compiled:x.compiled?.status,enabled:x.compiled?.executionEnabled,fields:x.result?.value?.evidence?.map(e=>[e.goalId,e.parameterKey,e.value]),edges:x.source.plan.goals.map(g=>[g.id,g.dependsOn]),valid:x.valid}})()`);
+  assert.equal(multi.compiled, "COMPILED"); assert.equal(multi.enabled, false); assert.equal(multi.valid, true);
+  assert.deepEqual(multi.edges, [["send", ["swap"]], ["swap", []]]);
+  assert.deepEqual(multi.fields.filter(([goal])=>goal==="swap").map(([,key])=>key).sort(), ["amount","chainId","fromAsset","toAsset"]);
+  assert.deepEqual(multi.fields.filter(([goal])=>goal==="send").map(([,key])=>key).sort(), ["amount","asset","chainId","recipient"]);
+  assert.equal(multi.fields.find(([goal,key])=>goal==="send"&&key==="amount")[2], "5");
+  assert.equal(multi.fields.find(([goal,key])=>goal==="swap"&&key==="amount")[2], "10");
+  assert.deepEqual(evaluate(`(()=>{window.fixtureB2.source.resolution.intents[1].amount="6";return {live:window.fixtureB2CheckLive(),valid:window.fixtureB2CheckValid()}})()`), {live:false,valid:false});
   for (const [name, mutation] of [["amount", "s.resolution.intents[0].amount='11'"],
     ["recipient", "s.resolution.intents[0].recipient='0x3333333333333333333333333333333333333333'"],
     ["asset", "s.resolution.intents[0].asset='usdc'"], ["chain", "s.resolution.intents[0].chainId=84532"],
