@@ -29,6 +29,9 @@ import { formatAgentActionResult } from "@/lib/agent/resultFormatter";
 import { agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import { translate } from "@/i18n";
 import { createPlannerProposal, createPlannerProposalHostSource, validatePlannerProposalHostPair } from "@/lib/plannerProposal";
+import { PlannerParameterConfirmControl, isLiveConfirmedPlannerSource } from "@/lib/plannerConfirmationAuthority";
+import { createPlannerParameterEvidence, validatePlannerParameterEvidence } from "@/lib/plannerParameterEvidence";
+import { compilePlannerStrategy } from "@/lib/plannerStrategyCompiler";
 import { AgentStatusSurface } from "@/components/AgentStatusSurface";
 import { arcTestnet } from "viem/chains";
 const styles = new Proxy({}, { get: (_target, key) => String(key) });
@@ -55,12 +58,21 @@ export function Fixture({options = {}}) {
   if (scenario === "canonical") message = {...message, quote:{provider:"Arc RPC",status:"AVAILABLE",observedAt},prepared:{status:"PREPARED",data:{provider:"Arc RPC",expiresAt:observedAt+300000}}};
   if (scenario === "invalid") message.draft = {...draft,amount:"0"};
   if (scenario === "result") message = {id:1,role:"agent",text:formatAgentActionResult({status:"unknown",action:"send",account:"${accountA}",createdAt:observedAt,transactionHash:"0x"+"a".repeat(64)},locale),presentation:{result:true,observedAt,context:{account:"${accountA}"}}};
-  if (["planner-proposal", "planner-spoof", "planner-missing-source"].includes(scenario)) {
-    const plannerText = vi ? "Hoán đổi 10 USDC sang EURC, sau đó gửi 5 EURC" : "Swap 10 USDC to EURC, then send 5 EURC";
+  if (["planner-proposal", "planner-spoof", "planner-missing-source", "planner-send", "planner-swap", "planner-bridge", "planner-dynamic"].includes(scenario)) {
+    const plannerText = scenario === "planner-dynamic" ? "Swap 10 USDC to EURC, then send all received EURC" :
+      scenario === "planner-send" ? "Send 10 EURC to ${accountB}" : scenario === "planner-bridge" ? "Bridge 5 USDC to ${accountB}" :
+      vi ? "Hoán đổi 10 USDC sang EURC, sau đó gửi 5 EURC" : "Swap 10 USDC to EURC, then send 5 EURC";
     const plannerRequest = {text:plannerText,locale};
-    const plannerPlan = {version:1,id:"fixture-plan",classification:"STRATEGY",goals:[{id:"swap",kind:"SWAP",dependsOn:[]},{id:"send",kind:"SEND",dependsOn:["swap"]}]};
-    const plannerResolution = {status:"RESOLVED",planId:"fixture-plan",intents:[{version:1,id:"swap",kind:"SWAP",chainId:${arc},fromAsset:"usdc",toAsset:"eurc",amount:"10"},{version:1,id:"send",kind:"SEND",chainId:${arc},asset:"eurc",amount:"5",recipient:"${accountB}"}]};
-    const proposal = createPlannerProposal({requestId:"fixture-request",sessionId:"fixture-session",proposalId:"fixture-proposal",request:plannerRequest,plan:plannerPlan,resolution:plannerResolution});
+    const single = scenario === "planner-send" || scenario === "planner-swap" || scenario === "planner-bridge";
+    const plannerPlan = {version:1,id:"fixture-plan",classification:single?"ACTION":"STRATEGY",goals:scenario === "planner-send" ? [{id:"send",kind:"SEND",dependsOn:[]}] :
+      scenario === "planner-swap" ? [{id:"swap",kind:"SWAP",dependsOn:[]}] : scenario === "planner-bridge" ? [{id:"bridge",kind:"BRIDGE",dependsOn:[]}] :
+      [{id:"swap",kind:"SWAP",dependsOn:[]},{id:"send",kind:"SEND",dependsOn:["swap"]}]};
+    const sendIntent = {version:1,id:"send",kind:"SEND",chainId:${arc},asset:"eurc",amount:scenario === "planner-send"?"10":"5",recipient:"${accountB}"};
+    const swapIntent = {version:1,id:"swap",kind:"SWAP",chainId:${arc},fromAsset:"usdc",toAsset:"eurc",amount:"10"};
+    const bridgeIntent = {version:1,id:"bridge",kind:"BRIDGE",sourceChainId:${arc},destinationChainId:84532,asset:"usdc",amount:"5",recipient:"${accountB}"};
+    const plannerResolution = scenario === "planner-dynamic" ? {status:"NEEDS_CLARIFICATION",issues:[{goalId:"send",field:"amount",code:"DYNAMIC_AMOUNT"}]} :
+      {status:"RESOLVED",planId:"fixture-plan",intents:scenario === "planner-send"?[sendIntent]:scenario === "planner-swap"?[swapIntent]:scenario === "planner-bridge"?[bridgeIntent]:[swapIntent,sendIntent]};
+    const proposal = createPlannerProposal({requestId:"fixture-"+scenario+"-request",sessionId:"fixture-session",proposalId:"fixture-"+scenario+"-proposal",request:plannerRequest,plan:plannerPlan,resolution:plannerResolution});
     const proposalSource = createPlannerProposalHostSource(proposal,"fixture-session",plannerRequest);
     message = {id:1,role:"agent",text:"",presentation:{request:plannerText,observedAt},proposal,proposalSource};
     if (scenario === "planner-spoof") message = {...message,draft,draftContext:origin};
@@ -70,6 +82,22 @@ export function Fixture({options = {}}) {
   return <AgentWorkspace locale={locale} account={account} chainId={chainId} messages={messages} hasSessionContext={false} clearConversation={()=>{setCleared(true);inputRef.current?.focus();}} input={input} setInput={setInput} inputRef={inputRef} ask={setInput} submit={(e)=>e.preventDefault()}/>;
 }
 export function StatusFixture({input, locale}) { return <AgentStatusSurface input={input} locale={locale}/>; }
+export function B2Fixture() {
+  const request={text:"Send 10 EURC to ${accountB}",locale:"en"};
+  const plan={version:1,id:"fixture-b2-plan",classification:"ACTION",goals:[{id:"send",kind:"SEND",dependsOn:[]}]};
+  const resolution={status:"RESOLVED",planId:plan.id,intents:[{version:1,id:"send",kind:"SEND",asset:"eurc",amount:"10",recipient:"${accountB}",chainId:${arc}}]};
+  const proposal=createPlannerProposal({requestId:"fixture-b2-request",sessionId:"fixture-b2-session",proposalId:"fixture-b2-proposal",request,plan,resolution});
+  const host=createPlannerProposalHostSource(proposal,"fixture-b2-session",request);
+  return <PlannerParameterConfirmControl proposal={proposal} host={host} active label="Confirm parameters" onConfirmed={(source)=>{
+    const result=createPlannerParameterEvidence(source);
+    const compiled=result.valid && result.value.status==="RESOLVED_WITH_EVIDENCE" ? compilePlannerStrategy({version:2,requestId:source.requestId,sessionId:source.sessionId,createdAt:1,plan:source.plan,resolution:result.value,provenanceSource:source}) : null;
+    window.fixtureB2={source,result,compiled,valid:result.valid&&validatePlannerParameterEvidence(result.value,source).valid,
+      copyValid:result.valid&&validatePlannerParameterEvidence(result.value,JSON.parse(JSON.stringify(source))).valid,
+      live:isLiveConfirmedPlannerSource(source)};
+    window.fixtureB2CheckLive=()=>isLiveConfirmedPlannerSource(source);
+    window.fixtureB2CheckValid=()=>result.valid&&validatePlannerParameterEvidence(result.value,source).valid;
+  }}/>;
+}
 `;
 
 const cache = new Map();

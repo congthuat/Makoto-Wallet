@@ -3,15 +3,16 @@ import { validatePlannerIntent, type PlannerIntent } from "./plannerIntent.ts";
 import { validatePlannerPlan, type PlannerPlan } from "./plannerPlan.ts";
 import { validatePlannerClassificationRequest, type PlannerClassificationRequest } from "./plannerSemanticClassifier.ts";
 import { snapshotPlannerStrategyData } from "./plannerStrategyBinding.ts";
+import { isLiveConfirmedPlannerSource } from "./plannerConfirmationAuthority.ts";
 
 /** A host-retained structured user event. There is no production creator yet. */
 export type PlannerStructuredInput = Readonly<{ version: 1; eventId: string; requestId: string; sessionId: string;
-  requestDigest: Hex; planId: string; planDigest: Hex;
+  requestDigest: Hex; planId: string; planDigest: Hex; proposalId: string; proposalDigest: Hex;
   fields: readonly Readonly<{ goalId: string; parameterKey: string; value: string | number }>[] }>;
 export type PlannerEvidenceSource = Readonly<{ requestId: string; sessionId: string; request: PlannerClassificationRequest;
   plan: PlannerPlan; resolution: unknown; structuredInput: PlannerStructuredInput | null }>;
 export type ResolvedParameterEvidence = Readonly<{ version: 1; requestId: string; sessionId: string;
-  requestDigest: Hex; planId: string; planDigest: Hex; goalId: string; parameterKey: string;
+  requestDigest: Hex; planId: string; planDigest: Hex; proposalId: string; proposalDigest: Hex; goalId: string; parameterKey: string;
   state: "FIXED"; value: string | number; origin: "FIXED_USER_INPUT";
   source: Readonly<{ kind: "USER_EVENT"; eventId: string; eventDigest: Hex }>; digest: Hex }>;
 export type NonfixedParameterEvidence = Readonly<{ version: 1; requestId: string; sessionId: string;
@@ -44,7 +45,8 @@ export const plannerParameterRequestDigest = (requestId: string, sessionId: stri
 export const plannerParameterPlanDigest = (plan: PlannerPlan): Hex => planHash(plan);
 const evidenceHash = (item: Omit<ResolvedParameterEvidence, "digest"> | Omit<NonfixedParameterEvidence, "digest">) => hash("FIELD", item.state === "FIXED"
   ? [item.version, item.requestId, item.sessionId, item.requestDigest, item.planId, item.planDigest, item.goalId,
-      item.parameterKey, item.state, item.value, item.origin, item.source.kind, item.source.eventId, item.source.eventDigest]
+      item.parameterKey, item.state, item.value, item.origin, item.proposalId, item.proposalDigest,
+      item.source.kind, item.source.eventId, item.source.eventDigest]
   : [item.version, item.requestId, item.sessionId, item.requestDigest, item.planId, item.planDigest, item.goalId,
       item.parameterKey, item.state, item.origin, item.expressionClass, item.sourceGoalId]);
 
@@ -86,9 +88,32 @@ export function createPlannerParameterEvidence(sourceInput: unknown): PlannerEvi
       });
       return { valid: true, value: { status: "UNVERIFIED", version: 2, evidence } };
     }
-    // A caller-created object, even with matching digests, is not a captured user action.
-    // A future trusted source needs a separately reviewed authority boundary.
-    return { valid: false, reason: "UNVERIFIED" };
+    // The serializable event is inert without the exact live source registered by the owned UI control.
+    if (!isLiveConfirmedPlannerSource(sourceInput) || !object(event) ||
+      !exact(event, ["version", "eventId", "requestId", "sessionId", "requestDigest", "planId", "planDigest", "proposalId", "proposalDigest", "fields"]) ||
+      event.version !== 1 || !id(event.eventId) || !id(event.proposalId) ||
+      typeof event.proposalDigest !== "string" || !/^0x[0-9a-f]{64}$/.test(event.proposalDigest) ||
+      event.requestId !== source.requestId || event.sessionId !== source.sessionId || event.requestDigest !== requestDigest ||
+      event.planId !== plan.id || event.planDigest !== planDigest || !Array.isArray(event.fields) ||
+      event.fields.length !== allFields.length) return { valid: false, reason: "UNVERIFIED" };
+    const eventFields = event.fields.map((field) => {
+      if (!object(field) || !exact(field, ["goalId", "parameterKey", "value"])) throw Error("invalid field");
+      return field;
+    }).sort((a, b) => compare(`${a.goalId}:${a.parameterKey}`, `${b.goalId}:${b.parameterKey}`));
+    if (JSON.stringify(eventFields.map((field) => [field.goalId, field.parameterKey, field.value])) !==
+      JSON.stringify(allFields.map((field) => [field.goalId, field.parameterKey, field.value]))) return { valid: false, reason: "PROVENANCE_MISMATCH" };
+    const eventDigest = hash("USER_EVENT", [event.version, event.eventId, event.requestId, event.sessionId,
+      event.requestDigest, event.planId, event.planDigest, event.proposalId, event.proposalDigest,
+      eventFields.map((field) => [field.goalId, field.parameterKey, field.value])]);
+    const evidence = allFields.map((field): ResolvedParameterEvidence => {
+      const base = { version: 1 as const, requestId: source.requestId as string, sessionId: source.sessionId as string,
+        requestDigest, planId: plan.id, planDigest, proposalId: event.proposalId as string, proposalDigest: event.proposalDigest as Hex,
+        goalId: field.goalId, parameterKey: field.parameterKey, state: "FIXED" as const, value: field.value,
+        origin: "FIXED_USER_INPUT" as const, source: { kind: "USER_EVENT" as const, eventId: event.eventId as string, eventDigest } };
+      return { ...base, digest: evidenceHash(base) };
+    });
+    return { valid: true, value: { status: "RESOLVED_WITH_EVIDENCE", version: 2, planId: plan.id,
+      intents, evidence, evidenceDigest: hash("SET", evidence.map((item) => item.digest)) } };
   } catch { return { valid: false, reason: "INVALID_RUNTIME" }; }
 }
 

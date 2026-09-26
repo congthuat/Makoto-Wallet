@@ -160,6 +160,8 @@
 .proposalGoals dl { margin: 0; }
 .proposalGoals dl div { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr); gap: 8px; padding: 4px 0; font-size: 12px; overflow-wrap: anywhere; }
 .proposalGoals dd { margin: 0; }
+.plannerConfirmButton { width: 100%; min-height: 44px; margin: 10px 0; padding: 10px 16px; border: 1px solid var(--agent-accent); border-radius: 10px; background: var(--agent-accent-soft); color: var(--agent-accent-ink); font-weight: 700; white-space: normal; }
+.plannerConfirmButton:focus-visible { outline: 2px solid var(--agent-accent); outline-offset: 3px; }
 .operation > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
 .operation time { color: var(--agent-muted); font-size: 12px; }
 .badge { display: inline-flex; min-height: 26px; align-items: center; padding: 3px 9px; border: 1px solid var(--agent-soft-line); border-radius: 999px; background: var(--agent-accent-soft); color: var(--agent-accent-ink); font-size: 11px; font-weight: 750; }

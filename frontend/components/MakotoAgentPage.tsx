@@ -26,7 +26,10 @@ import { agentSuggestionGroups } from "@/lib/agent/suggestionCatalog";
 import styles from "./MakotoAgentPage.module.css";
 import { PolicyDecisionNotice } from "./PolicyDecisionNotice";
 import { AgentStatusSurface } from "./AgentStatusSurface";
-import { validatePlannerProposalHostPair } from "@/lib/plannerProposal";
+import { validatePlannerProposalHostPair, type PlannerProposalHostSource, type PlannerProposalReview } from "@/lib/plannerProposal";
+import { PlannerParameterConfirmControl } from "@/lib/plannerConfirmationAuthority";
+import { createPlannerParameterEvidence } from "@/lib/plannerParameterEvidence";
+import { compilePlannerStrategy } from "@/lib/plannerStrategyCompiler";
 
 export function MakotoAgentPage() {
   const { locale } = usePreferences(), wallet = useWalletReadContext();
@@ -92,7 +95,7 @@ export function AgentWorkspace({ locale, account, chainId, messages, hasSessionC
       <section className={styles.conversation} aria-labelledby="agent-conversation-title">
         <h2 id="agent-conversation-title" className={styles.conversationTitle}>{t("agent.page.conversation")}</h2>
         <div className={styles.conversationFeed} aria-live="polite" aria-relevant="additions text">
-          {latest ? <AgentOperation key={latest.id} message={latest} locale={locale} current={current} /> : <section className={styles.empty}><h2>{t("agent.workspace.emptyTitle")}</h2><p>{t("agent.workspace.emptyCopy")}</p><div className={styles.starterPrompts}>{starterSuggestions.map((suggestion) => <button key={suggestion.id} type="button" onClick={() => selectSuggestion(suggestion.promptKey)}>{t(suggestion.promptKey)}</button>)}</div></section>}
+          {latest ? <AgentOperation key={latest.id} message={latest} locale={locale} current={current} active /> : <section className={styles.empty}><h2>{t("agent.workspace.emptyTitle")}</h2><p>{t("agent.workspace.emptyCopy")}</p><div className={styles.starterPrompts}>{starterSuggestions.map((suggestion) => <button key={suggestion.id} type="button" onClick={() => selectSuggestion(suggestion.promptKey)}>{t(suggestion.promptKey)}</button>)}</div></section>}
         </div>
         <form className={styles.composer} onSubmit={submit}>
           {setRequestMode && <div className={styles.modeSwitch} role="group" aria-label={t("agent.planner.modeLabel")}><button type="button" aria-pressed={requestMode !== "legacy"} onClick={() => setRequestMode("planner")}>{t("agent.planner.mode")}</button><button type="button" aria-pressed={requestMode === "legacy"} onClick={() => setRequestMode("legacy")}>{t("agent.planner.legacyMode")}</button></div>}
@@ -119,12 +122,12 @@ export function AgentWorkspace({ locale, account, chainId, messages, hasSessionC
   </div>;
 }
 
-export function AgentOperation({ message, locale, current }: { message: AgentMessage; locale: Locale; current: AgentDraftContext }) {
+export function AgentOperation({ message, locale, current, active = false }: { message: AgentMessage; locale: Locale; current: AgentDraftContext; active?: boolean }) {
   const vi = locale === "vi", t = (key: TranslationKey) => translate(locale, key);
   const proposal = !message.draft && !message.prepared && !message.quote && !message.policy && !message.intelligence && !message.draftContext &&
     !message.presentation?.intent && !message.presentation?.planning && !message.presentation?.result &&
     message.proposal && message.proposalSource ? validatePlannerProposalHostPair(message.proposal, message.proposalSource) : undefined;
-  if (proposal) return <article className={styles.operation} data-operation-mode="planner-proposal"><header><span className={styles.badge}>{t("agent.planner.title")}</span></header><h2>{t("agent.planner.review")}</h2><p className={styles.request}>{message.proposalSource!.request.text}</p><p>{t("agent.planner.boundary")}</p><ol className={styles.proposalGoals}>{proposal.goals.map((goal) => <li key={goal.goalId}><h3>{t(`agent.planner.kind.${goal.kind}`)} · {goal.goalId}</h3>{goal.dependsOn.length > 0 && <p>{t("agent.planner.dependsOn")}: {goal.dependsOn.join(", ")}</p>}<dl>{goal.parameters.map((field) => <div key={field.key}><dt>{t(`agent.planner.field.${field.key}` as TranslationKey)}</dt><dd>{field.state === "FIXED_CANDIDATE" ? `${field.value} · ${t("agent.planner.unverified")}` : `${t(`agent.planner.reason.${field.reason}`)}${field.expressionClass !== "NONE" ? ` · ${t(`agent.planner.expression.${field.expressionClass}`)}` : ""}`}</dd></div>)}</dl></li>)}</ol><p>{t("agent.planner.noExecution")}</p></article>;
+  if (proposal) return <PlannerProposalCard proposal={proposal} source={message.proposalSource!} locale={locale} active={active} />;
   const mode = agentWorkspaceMode(message.presentation?.intent, Boolean(message.draft), message.presentation?.result);
   const origin = message.draftContext ?? message.presentation?.context;
   const context = assessAgentDraftContext(origin, current);
@@ -151,6 +154,35 @@ export function AgentOperation({ message, locale, current }: { message: AgentMes
     {message.draft && <ActionDraftCard draft={message.draft} draftContext={message.draftContext} handoff={message.prepared?.status === "PREPARED" ? message.prepared.data.handoff : undefined} vi={vi} />}
     {mode === "action" && !message.draft && <p className={styles.historicalContext}>{t("agent.workspace.noDraft")}</p>}
     {mode === "result" && <p className={styles.resultBoundary}>{t("agent.workspace.resultBoundary")}</p>}
+  </article>;
+}
+function PlannerProposalCard({ proposal, source, locale, active }: { proposal: PlannerProposalReview; source: PlannerProposalHostSource; locale: Locale; active: boolean }) {
+  const t = (key: TranslationKey) => translate(locale, key);
+  const [confirmation, setConfirmation] = useState<"AWAITING" | "CONFIRMED" | "UNAVAILABLE">("AWAITING");
+  const complete = proposal.resolutionStatus === "RESOLVED" && proposal.goals.every((goal) =>
+    goal.parameters.every((field) => field.state === "FIXED_CANDIDATE"));
+  return <article className={styles.operation} data-operation-mode="planner-proposal">
+    <header><span className={styles.badge}>{t("agent.planner.title")}</span></header>
+    <h2>{t("agent.planner.review")}</h2><p className={styles.request}>{source.request.text}</p>
+    <p>{t("agent.planner.confirmExplanation")}</p>
+    <ol className={styles.proposalGoals}>{proposal.goals.map((goal) => <li key={goal.goalId}>
+      <h3>{t(`agent.planner.kind.${goal.kind}`)} · {goal.goalId}</h3>
+      {goal.dependsOn.length > 0 && <p>{t("agent.planner.dependsOn")}: {goal.dependsOn.join(", ")}</p>}
+      <dl>{goal.parameters.map((field) => <div key={field.key}><dt>{t(`agent.planner.field.${field.key}` as TranslationKey)}</dt>
+        <dd>{field.state === "FIXED_CANDIDATE" ? `${field.value} · ${t(confirmation === "CONFIRMED" ? "agent.planner.confirmedValue" : "agent.planner.unverified")}` :
+          `${t(`agent.planner.reason.${field.reason}`)}${field.expressionClass !== "NONE" ? ` · ${t(`agent.planner.expression.${field.expressionClass}`)}` : ""}`}</dd></div>)}</dl>
+    </li>)}</ol>
+    <p role="status" aria-live="polite">{t(confirmation === "CONFIRMED" ? "agent.planner.confirmed" :
+      confirmation === "UNAVAILABLE" ? "agent.planner.confirmUnavailable" : complete ? "agent.planner.awaiting" : "agent.planner.incomplete")}</p>
+    {confirmation === "AWAITING" && <PlannerParameterConfirmControl proposal={proposal} host={source} active={active && complete} className={styles.plannerConfirmButton}
+      label={t("agent.planner.confirmParameters")} onConfirmed={(retained) => {
+        const made = createPlannerParameterEvidence(retained);
+        if (!made.valid || made.value.status !== "RESOLVED_WITH_EVIDENCE") { setConfirmation("UNAVAILABLE"); return; }
+        const compiled = compilePlannerStrategy({ version: 2, requestId: retained.requestId, sessionId: retained.sessionId,
+          createdAt: Date.now(), plan: retained.plan, resolution: made.value, provenanceSource: retained });
+        setConfirmation(compiled.status === "COMPILED" && compiled.executionEnabled === false ? "CONFIRMED" : "UNAVAILABLE");
+      }} />}
+    <p>{t("agent.planner.noExecution")}</p>
   </article>;
 }
 export function EvidenceBlock({ value, locale }: { value: AgentIntelligenceResult; locale: Locale }) {

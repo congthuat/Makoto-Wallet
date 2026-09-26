@@ -3,6 +3,7 @@ import { validatePlannerIntent, type PlannerIntent } from "./plannerIntent.ts";
 import { validatePlannerPlan, type PlannerGoalKind, type PlannerPlanValidationCode } from "./plannerPlan.ts";
 import { createPlannerStrategyBindingV2, snapshotPlannerStrategyData, type PlannerStrategyBindingV2 } from "./plannerStrategyBinding.ts";
 import { validatePlannerParameterEvidence } from "./plannerParameterEvidence.ts";
+import { isLiveConfirmedPlannerSource } from "./plannerConfirmationAuthority.ts";
 import { validateStrategy, type ActionStep, type Strategy } from "./strategyModel.ts";
 
 /** The caller owns request/session identity and the observed creation time. */
@@ -105,7 +106,10 @@ export function compilePlannerStrategy(input: unknown): StrategyCompilationResul
       intents.set(intent.id, intent);
     }
     if (intents.size !== goals.size) return reject("GOAL_BINDING_MISMATCH");
-    const provenance = validatePlannerParameterEvidence(resolution, source.provenanceSource);
+    const rawSource = input && typeof input === "object" ? Object.getOwnPropertyDescriptor(input, "provenanceSource")?.value : undefined;
+    const liveSource = isLiveConfirmedPlannerSource(rawSource) && JSON.stringify(snapshotPlannerStrategyData(rawSource)) ===
+      JSON.stringify(snapshotPlannerStrategyData(source.provenanceSource)) ? rawSource : source.provenanceSource;
+    const provenance = validatePlannerParameterEvidence(resolution, liveSource);
     if (!provenance.valid || provenance.value.status !== "RESOLVED_WITH_EVIDENCE") return reject("INVALID_PARAMETER_EVIDENCE");
     if (!object(source.provenanceSource) || source.provenanceSource.requestId !== source.requestId ||
       source.provenanceSource.sessionId !== source.sessionId) return reject("INVALID_PARAMETER_EVIDENCE");
@@ -129,7 +133,7 @@ export function compilePlannerStrategy(input: unknown): StrategyCompilationResul
     const goalSteps = orderedGoals.map((goal) => ({ goalId: goal.id, actionStepId: stepIds.get(goal.id)! }));
     const bound = createPlannerStrategyBindingV2({ requestId: source.requestId, sessionId: source.sessionId,
       plan, resolution: source.provenanceSource.resolution, strategy, goalSteps, provenance: resolution,
-      provenanceSource: source.provenanceSource });
+      provenanceSource: liveSource });
     if (!bound.valid) return reject("BINDING_CREATION_FAILED");
     const frozen: Strategy = Object.freeze({ ...strategy, steps: Object.freeze(steps.map((step) => Object.freeze({ ...step, dependsOn: Object.freeze([...step.dependsOn]) }))) });
     return { status: "COMPILED", executionEnabled: false, strategy: frozen, binding: bound.value };

@@ -3,6 +3,7 @@ import { validatePlannerIntent, type PlannerIntent } from "./plannerIntent.ts";
 import { validatePlannerPlan, type PlannerPlan } from "./plannerPlan.ts";
 import { validateStrategy, type ActionStep, type Strategy } from "./strategyModel.ts";
 import { validatePlannerParameterEvidence } from "./plannerParameterEvidence.ts";
+import { isLiveConfirmedPlannerSource } from "./plannerConfirmationAuthority.ts";
 
 /** AEI-A binds an existing, non-executable skeleton. It never creates Strategy steps. */
 export type PlannerStrategyGoalStep = Readonly<{ goalId: string; actionStepId: string }>;
@@ -226,7 +227,10 @@ export function validatePlannerStrategyBinding(input: unknown, sourceInput: unkn
 function v2Expected(sourceInput: unknown): PlannerStrategyBindingV2 | PlannerStrategyBindingIssue {
   const source = snapshot(sourceInput);
   if (!object(source) || !exact(source, ["requestId", "sessionId", "plan", "resolution", "strategy", "goalSteps", "provenance", "provenanceSource"])) return "INVALID_SCHEMA";
-  const checked = validatePlannerParameterEvidence(source.provenance, source.provenanceSource);
+  const rawSource = sourceInput && typeof sourceInput === "object" ? Object.getOwnPropertyDescriptor(sourceInput, "provenanceSource")?.value : undefined;
+  const liveSource = isLiveConfirmedPlannerSource(rawSource) && JSON.stringify(snapshot(rawSource)) === JSON.stringify(source.provenanceSource)
+    ? rawSource : source.provenanceSource;
+  const checked = validatePlannerParameterEvidence(source.provenance, liveSource);
   if (!checked.valid || checked.value.status !== "RESOLVED_WITH_EVIDENCE") return "UNRESOLVED_INTENTS";
   if (!object(source.provenanceSource) || source.provenanceSource.requestId !== source.requestId ||
     source.provenanceSource.sessionId !== source.sessionId || JSON.stringify(source.provenanceSource.plan) !== JSON.stringify(source.plan) ||
