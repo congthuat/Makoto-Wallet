@@ -1,6 +1,6 @@
 # AEI-C — Strategy materialization and provenance (design approved)
 
-**Status:** DESIGN APPROVED / IMPLEMENTED / FINAL REVIEW PASSED / READY_TO_CLOSE, not COMPLETE. The pure artifact producer began at `612c3c69d665941fefbd00e8cea6aa4dda58a73e`; review evidence is in `aei-c-final-review-audit.md`. AEI-A, AEI-B1, AEI-B2 and AEI-B are COMPLETE / CLOSED. AEI-D/E/F/G and Phase 13 are NOT STARTED. The reviewed AEI-B input is a non-executable Phase 10 `Strategy` skeleton plus AEI-A v2 binding; `executionEnabled` is false.
+**Status:** DESIGN APPROVED / IMPLEMENTED / FINAL REVIEW PASSED / COMPLETE / CLOSED. The pure artifact producer began at `612c3c69d665941fefbd00e8cea6aa4dda58a73e`; review evidence is in `aei-c-final-review-audit.md`. AEI-A, AEI-B1, AEI-B2 and AEI-B are COMPLETE / CLOSED. AEI-D is NEXT / NOT STARTED; AEI-E/F/G and Phase 13 are NOT STARTED. The reviewed AEI-B input is a non-executable Phase 10 `Strategy` skeleton plus AEI-A v2 binding; `executionEnabled` is false. This status records a separate documentation closeout after the final review and grants no operational authority.
 
 ## Decision and repository fit
 
