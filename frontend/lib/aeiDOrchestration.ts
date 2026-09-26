@@ -330,7 +330,16 @@ export async function validateAeiDOperationalEnvelope(candidate: unknown, retain
         warnings: envelope.warnings }, envelope.revision]) !== envelope.digest) return false;
     const materialization = validateStrategyMaterialization(envelope.materialization, retainedLiveInput);
     if (!materialization.valid || !envelope.accountContext) return false;
-    const current = accountOf(await record.current(), record.now());
+    const now = record.now();
+    const current = accountOf(await record.current(), now);
+    if (envelope.status === "ORCHESTRATED" || envelope.status === "REVIEW_REQUIRED") {
+      if (!envelope.quote || !envelope.prepared || !envelope.policy ||
+        !validateQuoteResult(envelope.quote.result, now).valid ||
+        envelope.quote.result.status !== "AVAILABLE" ||
+        envelope.prepared.result.status !== "PREPARED" ||
+        now > envelope.prepared.result.data.expiresAt ||
+        now < envelope.policy.observedAt) return false;
+    }
     return sameAccount(envelope.accountContext, current);
   } catch { return false; }
 }

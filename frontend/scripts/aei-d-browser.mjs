@@ -107,6 +107,15 @@ try {
   check("refreshed quote fingerprint bound", swapBinding.quoteFingerprint, true);
   check("gas warning retained", swapBinding.warning, true);
   check("allowance spender bound", swapBinding.allowance, true);
+  const aging = await run("swap", "window.fixtureDState.quoteAt=-35000;");
+  check("near-expiry SWAP initially reviewable", aging.status, "REVIEW_REQUIRED");
+  check("near-expiry SWAP initially validates", await evaluate("window.fixtureDValidate(window.fixtureDLast.envelope,window.fixtureCMaterializationInput)"), true);
+  check("expired quote invalidates registered envelope", await evaluate(`(async()=>{
+    const observed=await window.fixtureDHost.current();
+    window.fixtureDHost.current=async()=>observed;
+    window.fixtureDState.clock=11001;
+    return window.fixtureDValidate(window.fixtureDLast.envelope,window.fixtureCMaterializationInput);
+  })()`), false);
   const bridge = await run("bridge");
   check("BRIDGE no handoff", bridge.status, "HANDOFF_REQUIRED");
   check("BRIDGE no prepared artifact", bridge.prepared, undefined);
@@ -134,6 +143,14 @@ try {
   const changedAccount = await run("send", `window.fixtureDHost.reads.readBalance=async(_a,id)=>{window.fixtureDState.reads++;window.fixtureDState.account="0x3333333333333333333333333333333333333333";return window.fixtureDState.balances[id]};`);
   check("mid-acquisition account switch", changedAccount.status, "REVALIDATION_REQUIRED");
   check("mid-acquisition no prepared artifact", changedAccount.prepared, undefined);
+  for (const [label, switchAt, field] of [["after quote", 3, "account"], ["after prepare", 4, "account"],
+    ["after policy", 6, "account"], ["chain after quote", 3, "chain"]]) {
+    const changed = await run("send", `(()=>{const original=window.fixtureDHost.current;let calls=0;
+      window.fixtureDHost.current=async()=>{if(++calls===${switchAt})window.fixtureDState.${field}=${field === "account" ? '"0x3333333333333333333333333333333333333333"' : '84532'};
+        return original()};})();`);
+    check(`${label} switch requires revalidation`, changed.status, "REVALIDATION_REQUIRED");
+    check(`${label} switch has no policy authority`, changed.policy, undefined);
+  }
   const changedAllowance = await run("swap", `window.fixtureDHost.reads.readAllowance=async()=>{window.fixtureDState.reads++;return window.fixtureDState.reads>9?1n:0n};`);
   check("allowance change is non-authoritative", changedAllowance.status, "REVALIDATION_REQUIRED");
   const transientBalance = await run("swap", `window.fixtureDHost.reads.readBalance=async(_a,id)=>{const n=++window.fixtureDState.reads;
