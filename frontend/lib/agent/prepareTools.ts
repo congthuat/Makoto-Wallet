@@ -8,7 +8,7 @@ import { normalizeTransactionRequest, type NormalizedTransactionRequest } from "
 import { prepareAgentActionHandoff, AGENT_HANDOFF_TTL_MS } from "./actions/prepare.ts";
 import type { AgentActionHandoff } from "./actions/types.ts";
 import { runQuoteTool, type BridgeQuoteData, type QuoteContext, type QuoteProvider, type QuoteResult, type SendQuote, type SwapQuoteData } from "./quoteTools.ts";
-import { runReadTool } from "./readTools.ts";
+import { runReadTool, type Balances, type ReadResult } from "./readTools.ts";
 import type { AgentActionDraft } from "./types.ts";
 import { requireValidTool, validatePrepareRequest, validatePrepareResult } from "./toolSchemas.ts";
 
@@ -21,7 +21,11 @@ type SendRequest = Readonly<{ tool: "send.prepare"; account: Address; chainId: n
 type SwapRequest = Readonly<{ tool: "swap.prepare"; account: Address; chainId: number; inputAsset: SupportedAssetId; outputAsset: SupportedAssetId; amount: bigint; slippage: 0.005 | 0.01 | 0.03; quote: QuoteResult<SwapQuoteData> }>;
 type BridgeRequest = Readonly<{ tool: "bridge.prepare"; account: Address; chainId: number; destinationChainId: number; assetId: SupportedAssetId; amount: bigint; recipient: Address; route: "cctp-direct-forwarding" | "circle-app-kit-cctp"; quote: QuoteResult<BridgeQuoteData> }>;
 export type PrepareRequest = SendRequest | SwapRequest | BridgeRequest;
-export type PrepareContext = QuoteContext;
+/** Observation-only tap for the quote actually reacquired by PREPARE. It grants no wallet authority. */
+export type PrepareContext = QuoteContext & Readonly<{
+  onValidatedQuote?: (quote: QuoteResult<SendQuote | SwapQuoteData | BridgeQuoteData>) => void;
+  onValidatedBalance?: (balance: ReadResult<Balances>) => void;
+}>;
 
 const fail = (tool: PrepareToolId, error: PrepareError, status: "UNAVAILABLE" | "UNSUPPORTED" | "EXPIRED" = "UNAVAILABLE"): PrepareResult => Object.freeze({ tool, status, error });
 const same = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
@@ -78,6 +82,7 @@ export async function runPrepareTool(context: PrepareContext, request: PrepareRe
   if (live.status === "PARTIAL") return fail(request.tool, "EVIDENCE_UNAVAILABLE");
   if (live.status !== "AVAILABLE" || live.quotedAt === null || live.expiresAt === null) return fail(request.tool, "QUOTE_UNAVAILABLE");
   validationQuote = live;
+  context.onValidatedQuote?.(live);
   const expiry = Math.min(expected.expiresAt, live.expiresAt, now() + AGENT_HANDOFF_TTL_MS);
   if (now() > expiry) return fail(request.tool, "QUOTE_EXPIRED", "EXPIRED");
   const observedAt = now();
@@ -96,6 +101,7 @@ export async function runPrepareTool(context: PrepareContext, request: PrepareRe
   }
 
   const balances = await runReadTool({ snapshot: context.snapshot, services: context.reads, now }, { tool: "assets.balances" });
+  context.onValidatedBalance?.(balances);
   if (balances.status === "UNAVAILABLE" || balances.freshness !== "live") return fail(request.tool, "EVIDENCE_UNAVAILABLE");
   const inputAsset = request.tool === "swap.prepare" ? request.inputAsset : request.assetId;
   const required = request.tool === "bridge.prepare" ? (live.data as BridgeQuoteData).sourceDebit : request.amount;

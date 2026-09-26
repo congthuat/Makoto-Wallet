@@ -34,6 +34,7 @@ import { createPlannerParameterEvidence, validatePlannerParameterEvidence } from
 import { compilePlannerStrategy } from "@/lib/plannerStrategyCompiler";
 import { validatePlannerStrategyBindingV2 } from "@/lib/plannerStrategyBinding";
 import { materializePlannerStrategy, validateStrategyMaterialization } from "@/lib/strategyMaterialization";
+import { createAeiDOrchestrator, validateAeiDOperationalEnvelope } from "@/lib/aeiDOrchestration";
 import { keccak256, stringToHex } from "viem";
 import { AgentStatusSurface } from "@/components/AgentStatusSurface";
 import { arcTestnet } from "viem/chains";
@@ -118,6 +119,8 @@ export function B2Fixture({scenario}) {
         provenance:result.value,provenanceSource:source}};
       window.fixtureCMaterialize=(candidate)=>materializePlannerStrategy(candidate);
       window.fixtureCValidate=(candidate,input=window.fixtureCMaterializationInput)=>validateStrategyMaterialization(candidate,input);
+      window.fixtureDCreate=createAeiDOrchestrator;
+      window.fixtureDValidate=validateAeiDOperationalEnvelope;
       window.fixtureCRehash=(domain,tuple)=>keccak256(stringToHex(JSON.stringify([domain,1,...tuple])));
     }
     window.fixtureB2ValidateBinding=(candidate,changes={})=>compiled?.status==="COMPILED"&&validatePlannerStrategyBindingV2(candidate,{
@@ -132,7 +135,7 @@ export function B2Fixture({scenario}) {
 const cache = new Map();
 let binding = { address: accountA, chainId: arc };
 function compile(source, filename) {
-  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const code = ts.transpileModule(source, { fileName: filename, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const mod = { exports: {} };
   cache.set(filename, mod.exports);
   new Function("require", "module", "exports", code)((id) => {
