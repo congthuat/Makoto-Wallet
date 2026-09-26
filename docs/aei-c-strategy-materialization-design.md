@@ -1,6 +1,6 @@
 # AEI-C — Strategy materialization and provenance (design approved)
 
-**Status:** DESIGN APPROVED / IMPLEMENTED / PENDING REVIEW. The pure artifact producer is implemented at `612c3c69d665941fefbd00e8cea6aa4dda58a73e`; implementation evidence is in `aei-c-implementation-audit.md`. AEI-A, AEI-B1, AEI-B2 and AEI-B are COMPLETE / CLOSED. AEI-D/E/F/G and Phase 13 are NOT STARTED. The reviewed AEI-B input is a non-executable Phase 10 `Strategy` skeleton plus AEI-A v2 binding; `executionEnabled` is false.
+**Status:** DESIGN APPROVED / IMPLEMENTED / FINAL REVIEW PASSED / READY_TO_CLOSE, not COMPLETE. The pure artifact producer began at `612c3c69d665941fefbd00e8cea6aa4dda58a73e`; review evidence is in `aei-c-final-review-audit.md`. AEI-A, AEI-B1, AEI-B2 and AEI-B are COMPLETE / CLOSED. AEI-D/E/F/G and Phase 13 are NOT STARTED. The reviewed AEI-B input is a non-executable Phase 10 `Strategy` skeleton plus AEI-A v2 binding; `executionEnabled` is false.
 
 ## Decision and repository fit
 
@@ -89,7 +89,7 @@ AEI-D receives the whole validated envelope, selects an ACTION by exact step ID,
 
 ## Fifty implementation acceptance criteria
 
-These are future implementation gates, **not claims of tests run or code implemented**.
+These were implementation gates. The criterion-by-criterion review classification and exact test evidence are in `aei-c-final-review-audit.md`.
 
 | # | Criterion | # | Criterion |
 | --- | --- | --- | --- |
