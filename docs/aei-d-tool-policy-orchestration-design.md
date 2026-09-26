@@ -1,5 +1,7 @@
 # AEI-D — Tool and Policy Orchestration Boundary
 
+**Implementation record (2026-09-26):** The approved contract below is now IMPLEMENTED / PENDING REVIEW, not COMPLETE, at `a88d8529d7ac24f4dfb5d39716027e000887e196`. See [the implementation audit](aei-d-implementation-audit.md) for the exact runtime boundary, 64-criterion evidence, verification and remaining limits. The historical design status line below records the pre-implementation decision.
+
 **Status:** DESIGN APPROVED / NEXT / NOT STARTED. AEI-A/B/B1/B2/C are COMPLETE / CLOSED. AEI-E/F/G and Phase 13 are NOT STARTED. This is a design contract, not a runtime implementation or a claim that the Agent can execute a Strategy.
 
 ## Decision and audited fit
