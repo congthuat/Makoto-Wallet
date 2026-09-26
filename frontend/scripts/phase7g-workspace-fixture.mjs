@@ -33,6 +33,7 @@ import { PlannerParameterConfirmControl, isLiveConfirmedPlannerSource } from "@/
 import { createPlannerParameterEvidence, validatePlannerParameterEvidence } from "@/lib/plannerParameterEvidence";
 import { compilePlannerStrategy } from "@/lib/plannerStrategyCompiler";
 import { validatePlannerStrategyBindingV2 } from "@/lib/plannerStrategyBinding";
+import { materializePlannerStrategy, validateStrategyMaterialization } from "@/lib/strategyMaterialization";
 import { AgentStatusSurface } from "@/components/AgentStatusSurface";
 import { arcTestnet } from "viem/chains";
 const styles = new Proxy({}, { get: (_target, key) => String(key) });
@@ -84,14 +85,14 @@ export function Fixture({options = {}}) {
 }
 export function StatusFixture({input, locale}) { return <AgentStatusSurface input={input} locale={locale}/>; }
 export function B2Fixture({scenario}) {
-  const multi=scenario==="multi";
+  const multi=scenario==="multi", sendAlt=scenario==="send-alt";
   const swapOnly=scenario==="swap", bridgeOnly=scenario==="bridge";
   const request={text:multi?"Swap 10 USDC to EURC, then send 5 EURC to ${accountB}":swapOnly?"Swap 10 USDC to EURC":bridgeOnly?
-    "Bridge 5 USDC to ${accountB}":"Send 10 EURC to ${accountB}",locale:"en"};
+    "Bridge 5 USDC to ${accountB}":"Send "+(sendAlt?"11":"10")+" EURC to ${accountB}",locale:"en"};
   const plan={version:1,id:"fixture-b2-plan",classification:multi?"STRATEGY":"ACTION",goals:multi?
     [{id:"swap",kind:"SWAP",dependsOn:[]},{id:"send",kind:"SEND",dependsOn:["swap"]}]:swapOnly?
     [{id:"swap",kind:"SWAP",dependsOn:[]}]:bridgeOnly?[{id:"bridge",kind:"BRIDGE",dependsOn:[]}]:[{id:"send",kind:"SEND",dependsOn:[]}]};
-  const send={version:1,id:"send",kind:"SEND",asset:"eurc",amount:multi?"5":"10",recipient:"${accountB}",chainId:${arc}};
+  const send={version:1,id:"send",kind:"SEND",asset:"eurc",amount:multi?"5":sendAlt?"11":"10",recipient:"${accountB}",chainId:${arc}};
   const swap={version:1,id:"swap",kind:"SWAP",fromAsset:"usdc",toAsset:"eurc",amount:"10",chainId:${arc}};
   const bridge={version:1,id:"bridge",kind:"BRIDGE",sourceChainId:${arc},destinationChainId:84532,asset:"usdc",amount:"5",recipient:"${accountB}"};
   const resolution={status:"RESOLVED",planId:plan.id,intents:multi?[swap,send]:swapOnly?[swap]:bridgeOnly?[bridge]:[send]};
@@ -110,6 +111,13 @@ export function B2Fixture({scenario}) {
     window.fixtureB2CompileInput={version:2,requestId:source.requestId,sessionId:source.sessionId,createdAt:1,
       plan:source.plan,resolution:result.value,provenanceSource:source};
     window.fixtureB2Compile=(candidate)=>compilePlannerStrategy(candidate);
+    if(compiled?.status==="COMPILED") {
+      window.fixtureCMaterializationInput={version:1,compilation:compiled,bindingSource:{requestId:source.requestId,sessionId:source.sessionId,
+        plan:source.plan,resolution:source.resolution,strategy:compiled.strategy,goalSteps:compiled.binding.goalSteps,
+        provenance:result.value,provenanceSource:source}};
+      window.fixtureCMaterialize=(candidate)=>materializePlannerStrategy(candidate);
+      window.fixtureCValidate=(candidate,input=window.fixtureCMaterializationInput)=>validateStrategyMaterialization(candidate,input);
+    }
     window.fixtureB2ValidateBinding=(candidate,changes={})=>compiled?.status==="COMPILED"&&validatePlannerStrategyBindingV2(candidate,{
       requestId:changes.requestId??source.requestId,sessionId:changes.sessionId??source.sessionId,
       plan:changes.plan??source.plan,resolution:changes.resolution??source.resolution,
