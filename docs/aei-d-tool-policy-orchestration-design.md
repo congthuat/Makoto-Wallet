@@ -1,5 +1,7 @@
 # AEI-D — Tool and Policy Orchestration Boundary
 
+**Closeout pointer (2026-09-26):** AEI-D is COMPLETE / CLOSED on the committed [final adversarial review](aei-d-final-review-audit.md). The review fixed live validation of expired review-eligible quote/preparation evidence. This document's design and implementation status lines below are historical records. AEI-E — Phase 12 state integration is NEXT / NOT STARTED; AEI-F/G and Phase 13 remain NOT STARTED. D remains `OPERATIONAL_ONLY`, `executionEnabled: false`, `executionAuthority: FORBIDDEN`; it made no Phase 12 state write, wallet signature, submission, receipt, retry or dependent-action continuation. **DEPLOYMENT_GATED_BY_AUTH_AND_RATE_LIMIT** remains unresolved.
+
 **Implementation record (2026-09-26):** The approved contract below is now IMPLEMENTED / PENDING REVIEW, not COMPLETE, at `a88d8529d7ac24f4dfb5d39716027e000887e196`. See [the implementation audit](aei-d-implementation-audit.md) for the exact runtime boundary, 64-criterion evidence, verification and remaining limits. The historical design status line below records the pre-implementation decision.
 
 **Status:** DESIGN APPROVED / NEXT / NOT STARTED. AEI-A/B/B1/B2/C are COMPLETE / CLOSED. AEI-E/F/G and Phase 13 are NOT STARTED. This is a design contract, not a runtime implementation or a claim that the Agent can execute a Strategy.
