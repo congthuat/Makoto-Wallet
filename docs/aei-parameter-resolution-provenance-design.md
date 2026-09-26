@@ -2,7 +2,7 @@
 
 **Status:** design only. AEI-B remains IMPLEMENTED / PENDING REVIEW / BLOCKED. AEI-C and Phase 13 are NOT STARTED. Baseline: `7d27487e70d8a9d96b98173e409c42a193a26538` on `phase12h-planner-strategy-integration`, clean worktree and index. No runtime fix or execution authority is supplied by this document.
 
-**Current approved prerequisite:** **AEI-B2 — Trusted Planner Proposal Confirmation Boundary**, DESIGN APPROVED / NEXT / NOT STARTED, formalized at baseline `17a559e8dcb158c7827bf85db831a3086d1b03f1`. The earlier audit and implementation history below remains historical; the final AEI-B2 section defines the approved next work. The runtime still refuses caller-created fixed-origin evidence. AEI-B remains IMPLEMENTED / PENDING REVIEW / BLOCKED until the production source is implemented, verified, and separately reviewed for AEI-B closeout.
+**Current approved prerequisites:** **AEI-B1 — Production Planner Proposal Pipeline**, DESIGN APPROVED / NEXT / NOT STARTED, supplies the production proposal source; **AEI-B2 — Trusted Planner Proposal Confirmation Boundary**, DESIGN APPROVED / BLOCKED BY AEI-B1, confirms it. B2 was formalized at baseline `17a559e8dcb158c7827bf85db831a3086d1b03f1`; B1 is specified in [its separate design](aei-b1-production-planner-proposal-pipeline-design.md) at baseline `ab0c4348b34a34279eda5eee76d5053af3243188`. The earlier audit and implementation history below remains historical. The runtime still refuses caller-created fixed-origin evidence. AEI-B remains IMPLEMENTED / PENDING REVIEW / BLOCKED until both sources are implemented, verified and separately reviewed for closeout.
 
 ## Reproduced blocker and current lifecycle
 
@@ -106,19 +106,19 @@ AEI-B now requires input version 2, validated v2 field evidence, and the separat
 
 ## AEI-B2 — Trusted Planner Proposal Confirmation Boundary
 
-**Decision and status:** DESIGN APPROVED / NEXT / NOT STARTED. This is the smallest production input prerequisite between AEI-B implementation and its final review, before AEI-C. It establishes only: “I confirm these structured values represent what I intend.” It does not establish transaction approval, wallet consent, policy approval, execution readiness, submission or retry permission. This section is a design contract; no described model, capability, UI state or production wiring has been implemented by this formalization.
+**Decision and status:** DESIGN APPROVED / BLOCKED BY AEI-B1 / NOT STARTED. B1 first creates a real canonical production proposal; B2 then establishes: “I confirm these structured values represent what I intend.” It does not establish transaction approval, wallet consent, policy approval, execution readiness, submission or retry permission. This section is a design contract; no described model, capability, UI state or production wiring has been implemented by this formalization.
 
 ### Confirmed production gap and placement
 
 At baseline `17a559e`, `AgentMessage` in `frontend/hooks/useMakotoAgent.ts` carries a legacy `AgentActionDraft` and optional preparation/quote/policy presentation. `AgentDraftContext` in `frontend/lib/agent/types.ts` binds account/chain only. Neither carries canonical Planner request/session/plan/goal identity or field provenance. `ActionDraftCard.prepare` in `frontend/components/MakotoAgentPage.tsx` selects or creates an `AgentActionHandoff`, stores it, and navigates to wallet review. `frontend/lib/agent/actions/types.ts` and `prepare.ts` define that separate handoff identity and parameter shape. It cannot be treated as a Planner confirmation source.
 
-Extend Makoto Agent with a distinct **Planner proposal review state** in its existing action workspace, using Ledger Calm styling and existing EN/VI conventions. Reuse presentation primitives, but keep the proposal model and parameter-confirmation action separate from `ActionDraftCard`'s wallet Review behavior. The scope includes the missing proposal-only application host and the minimum wiring to carry retained Phase 11 proposal inputs into this state. It must not synthesize a Planner plan from a wallet draft or send this lane through the existing quote/prepare/wallet handoff path. Existing Planner ports may supply untrusted semantic proposals; the host retains their exact validated plan and candidate resolution. A dormant component or test-only factory without a reachable production proposal path does not satisfy AEI-B2.
+AEI-B1 adds the proposal-only application host and minimum wiring from retained Phase 11 inputs into a distinct Agent proposal state. B2 extends that state with exact visible review and explicit confirmation, using Ledger Calm styling and existing EN/VI conventions. Reuse presentation primitives, but keep the parameter-confirmation action separate from `ActionDraftCard`'s wallet Review behavior. Neither phase may synthesize a Planner plan from a wallet draft or send this lane through the existing quote/prepare/wallet handoff path. B2 cannot be accepted with a dormant component or test-only fixture: the proposal must come from B1's reachable production caller.
 
-The host assigns and retains request/session identity when accepting user input, independently of provider output, and keeps the bounded original request bytes/locale and validated plan/resolution together. The required path is:
+The B1 host assigns and retains request/session correlation when accepting user input, independently of provider output, and keeps the bounded accepted request text/locale and validated plan/resolution together. B2 receives the **same immutable B1 proposal and retained source**, without rebuilding it from UI labels or visible field text. The required path is:
 
 `request ID → session ID → PlannerPlan ID/digest → goal ID → exact structured parameters → proposal/review surface → explicit user confirmation → field-level provenance evidence`
 
-The request digest additionally binds the original request bytes and locale. IDs are mapped explicitly, never inferred from array position, display labels, UI order, action-name similarity or wallet draft state. Plan identity includes classification, goal kinds and dependency edges. The minimal host ends at confirmed evidence and optional non-executable AEI-B compilation; AEI-F retains full production execution orchestration.
+The request digest additionally binds the exact accepted request text and locale. IDs are mapped explicitly, never inferred from array position, display labels, UI order, action-name similarity or wallet draft state. Plan identity includes classification, goal kinds and dependency edges. B1 ends at the unconfirmed proposal in Agent UI; B2 ends at confirmed field evidence and may invoke only non-executable AEI-B compilation after confirmation. AEI-F retains full production execution orchestration.
 
 ### Canonical proposal/review model
 
@@ -131,6 +131,7 @@ Define a new versioned, closed-schema `PlannerProposalReview` data contract, sep
 | `requestId`, `sessionId`, `requestDigest` | Retained application request/session and exact request digest; provider-supplied identities cannot replace them. |
 | `planId`, `planDigest` | Exact validated PlannerPlan identity and digest, including goal kinds and dependencies. |
 | `goals` | Complete set of explicit `goalId`, `kind`, `dependsOn` and closed, kind-specific `parameters`; exactly one entry per retained plan goal. |
+| `resolutionStatus`, `resolutionDigest` | B1's versioned field/issue/origin classification and digest, still untrusted as user intent; B2 must retain and revalidate them. |
 | `proposalDigest` | Versioned, domain-separated digest over all declared semantic fields except the digest itself; recomputed from the immutable snapshot. This proves content consistency only. |
 | `executionEnabled` | Literal `false`; neither proposal nor confirmation can enable execution. |
 
@@ -203,4 +204,4 @@ All criteria below are requirements for the future implementation, not results o
 23. Proposal mutation while review is open, late provider replies, session changes and conversation clearing invalidate capture; evidence cannot transfer across revisions or restored history.
 24. Focused unit and browser tests exercise both genuine confirmation and independent forgery attempts with mocked proposals, and an authority audit shows no new wallet, prepare, sign, submit, retry, receipt-polling or execution path from confirmation. A positive fixture alone is insufficient evidence of a production trust source.
 
-AEI-B remains IMPLEMENTED / PENDING REVIEW / BLOCKED. AEI-B2 is DESIGN APPROVED / NEXT / NOT STARTED; AEI-C and Phase 13 are NOT STARTED. This formalization changes documentation only and requires `git diff --check`, with no tests/builds or live transaction/model/provider calls for this task.
+AEI-B remains IMPLEMENTED / PENDING REVIEW / BLOCKED. AEI-B1 is DESIGN APPROVED / NEXT / NOT STARTED; AEI-B2 is DESIGN APPROVED / BLOCKED BY AEI-B1; AEI-C and Phase 13 are NOT STARTED. These design documents change no runtime authority; implementation and verification are future work.
