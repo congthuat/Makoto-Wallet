@@ -35,6 +35,8 @@ import { compilePlannerStrategy } from "@/lib/plannerStrategyCompiler";
 import { validatePlannerStrategyBindingV2 } from "@/lib/plannerStrategyBinding";
 import { materializePlannerStrategy, validateStrategyMaterialization } from "@/lib/strategyMaterialization";
 import { createAeiDOrchestrator, validateAeiDOperationalEnvelope } from "@/lib/aeiDOrchestration";
+import { integrateAeiDOperationalState, validateAeiEReviewEligibility, evaluateAeiECurrentness, evaluateAgentTransition } from "@/lib/agentTransition";
+import { storeAeiEHistoricalState, restoreAeiEHistoricalState, restoreAeiEHistoricalHistory } from "@/lib/agentStatePersistence";
 import { keccak256, stringToHex } from "viem";
 import { AgentStatusSurface } from "@/components/AgentStatusSurface";
 import { arcTestnet } from "viem/chains";
@@ -121,6 +123,13 @@ export function B2Fixture({scenario}) {
       window.fixtureCValidate=(candidate,input=window.fixtureCMaterializationInput)=>validateStrategyMaterialization(candidate,input);
       window.fixtureDCreate=createAeiDOrchestrator;
       window.fixtureDValidate=validateAeiDOperationalEnvelope;
+      window.fixtureEIntegrate=integrateAeiDOperationalState;
+      window.fixtureEReview=validateAeiEReviewEligibility;
+      window.fixtureECurrentness=evaluateAeiECurrentness;
+      window.fixtureETransition=evaluateAgentTransition;
+      window.fixtureEStore=storeAeiEHistoricalState;
+      window.fixtureERestore=restoreAeiEHistoricalState;
+      window.fixtureEHistory=restoreAeiEHistoricalHistory;
       window.fixtureCRehash=(domain,tuple)=>keccak256(stringToHex(JSON.stringify([domain,1,...tuple])));
     }
     window.fixtureB2ValidateBinding=(candidate,changes={})=>compiled?.status==="COMPILED"&&validatePlannerStrategyBindingV2(candidate,{
