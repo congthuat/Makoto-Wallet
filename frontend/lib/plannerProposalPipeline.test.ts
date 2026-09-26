@@ -50,6 +50,16 @@ for (const text of [`Swap 10 USDC to EURC, then send 50% of previous output to $
   assert.equal(amount?.state, "UNRESOLVED"); assert.doesNotMatch(JSON.stringify(amount), /"value":"10"/);
 });
 
+test("remaining-balance wording stays dynamic despite a provider's quoted numeric candidate", async () => {
+  const fixture = { ...fixtures.send, text: `Send my remaining balance, about 10 USDC, to ${recipient}` };
+  const result = await run(fixture);
+  assert.equal(result.status, "PROPOSAL");
+  if (result.status !== "PROPOSAL") return;
+  assert.equal(result.proposal.resolutionStatus, "NEEDS_CLARIFICATION");
+  const amount = result.proposal.goals[0].parameters.find((field) => field.key === "amount");
+  assert.equal(amount?.state, "UNRESOLVED");
+});
+
 test("stage failures and malformed requests fail closed", async () => {
   assert.equal((await run(fixtures.send, { classification: { status: "CLASSIFIED", category: "ACTION", secret: "x" } })).status, "CLASSIFICATION_INVALID_OUTPUT");
   assert.equal((await run(fixtures.send, { plan: { ...fixtures.send.plan, version: 2 } })).status, "PLAN_UNSUPPORTED_VERSION");

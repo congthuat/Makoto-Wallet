@@ -33,7 +33,7 @@ const dynamicClass = (text: string): "NONE" | "PERCENTAGE" | "PREVIOUS_OUTPUT" |
   if (/\d+(?:\.\d+)?\s*%|\bpercent\b/i.test(text)) return "PERCENTAGE";
   if (/\breceipt\b/i.test(text)) return "RECEIPT";
   if (/\b(?:previous|prior)\s+(?:step|output|result|transaction)\b|\breceiv(?:e|ed)\b|\breturns?\b/i.test(text)) return "PREVIOUS_OUTPUT";
-  if (/\b(?:all|half|max|maximum|whatever)\b/i.test(text)) return "OTHER_DYNAMIC";
+  if (/\b(?:all|half|max|maximum|whatever)\b|\bremaining\s+balance\b/i.test(text)) return "OTHER_DYNAMIC";
   return "NONE";
 };
 

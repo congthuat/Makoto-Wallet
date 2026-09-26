@@ -78,6 +78,8 @@ try {
   assert.deepEqual(evidence.proposalIds, Array(4).fill("fixture-b2-proposal"));
   assert.equal(evidence.compiled, "COMPILED"); assert.equal(evidence.executionEnabled, false);
   assert.equal(evidence.bindingDigest, evidence.evidenceDigest);
+  const reorderedObjects = evaluate(`(()=>{const reverse=x=>Object.fromEntries(Object.entries(x).reverse());const result=structuredClone(window.fixtureB2.result.value);result.evidence[0]=reverse(result.evidence[0]);const binding=reverse(window.fixtureB2.compiled.binding);return {evidence:window.fixtureB2Validate(result),binding:window.fixtureB2ValidateBinding(binding)}})()`);
+  assert.deepEqual(reorderedObjects, { evidence: true, binding: true }, "property insertion order must not become evidence or binding authority");
   const evidenceAttacks = evaluate(`(()=>{const changes=[
     ["status",x=>x.status="UNVERIFIED"],["version",x=>x.version=1],["planId",x=>x.planId="other"],
     ["intentAmount",x=>x.intents[0].amount="11"],["intentRecipient",x=>x.intents[0].recipient="0x3333333333333333333333333333333333333333"],
@@ -121,6 +123,7 @@ try {
   const revokedVersion = evaluate(`window.mountWorkspace({scenario:"empty"})`);
   command("wait", "--fn", `window.fixtureVersion===${revokedVersion}`);
   command("wait", "--fn", `window.fixtureB2CheckLive()===false`);
+  assert.equal(evaluate(`window.fixtureB2Compile(window.fixtureB2CompileInput).status`), "REJECTED", "unmount revocation must reach AEI-B");
   for (const scenario of ["planner-spoof", "planner-missing-source", "ready"]) {
     const version = evaluate(`window.mountWorkspace({scenario:${JSON.stringify(scenario)},locale:"en"})`);
     command("wait", "--fn", `window.fixtureVersion===${version}`);

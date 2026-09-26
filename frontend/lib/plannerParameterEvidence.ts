@@ -2,7 +2,7 @@ import { keccak256, stringToHex, type Hex } from "viem";
 import { validatePlannerIntent, type PlannerIntent } from "./plannerIntent.ts";
 import { validatePlannerPlan, type PlannerPlan } from "./plannerPlan.ts";
 import { validatePlannerClassificationRequest, type PlannerClassificationRequest } from "./plannerSemanticClassifier.ts";
-import { snapshotPlannerStrategyData } from "./plannerStrategyBinding.ts";
+import { canonicalPlannerDataJSON, snapshotPlannerStrategyData } from "./plannerStrategyBinding.ts";
 import { isLiveConfirmedPlannerSource } from "./plannerConfirmationAuthority.ts";
 
 /** A host-retained structured user event, created only by the B2 confirmation control. */
@@ -146,7 +146,7 @@ export function validatePlannerParameterEvidence(resultInput: unknown, sourceInp
   const actual = captured.value;
   if (!object(actual) || !exact(actual, expected.value.status === "RESOLVED_WITH_EVIDENCE"
     ? ["status", "version", "planId", "intents", "evidence", "evidenceDigest"] : ["status", "version", "evidence"])) return { valid: false, reason: "PROVENANCE_MISMATCH" };
-  // Both sides are descriptor-safe plain data. Exact serialization also rejects nested extras, symbols and changed order.
-  if (JSON.stringify(actual) !== JSON.stringify(expected.value)) return { valid: false, reason: "PROVENANCE_MISMATCH" };
+  // Both sides are descriptor-safe plain data. Object key order is inert; evidence array order remains canonical.
+  if (canonicalPlannerDataJSON(actual) !== canonicalPlannerDataJSON(expected.value)) return { valid: false, reason: "PROVENANCE_MISMATCH" };
   return expected;
 }

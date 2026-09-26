@@ -54,6 +54,14 @@ const digestShape = (value: unknown): value is Hex => typeof value === "string" 
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0; // Code-point order, never locale order.
 const reject = (reason: PlannerStrategyBindingIssue): PlannerStrategyBindingResult => ({ valid: false, reason });
 
+/** Compare checked plain data without granting meaning to object insertion order. Array order stays explicit. */
+export function canonicalPlannerDataJSON(value: unknown): string {
+  const normalize = (item: unknown): unknown => Array.isArray(item) ? item.map(normalize) :
+    item !== null && typeof item === "object" ? Object.fromEntries(Object.keys(item).sort(compare)
+      .map((key) => [key, normalize((item as Data)[key])])) : item;
+  return JSON.stringify(normalize(value));
+}
+
 /** Copy descriptor values once, never reading getters or a proxy's later get trap. */
 const INVALID = Symbol("invalid-plain-data");
 function snapshot(value: unknown, ancestors = new Set<object>(), budget = { nodes: 0 }, depth = 0): unknown | typeof INVALID {
@@ -264,7 +272,10 @@ export function validatePlannerStrategyBindingV2(input: unknown, sourceInput: un
       captured.version !== 2 || captured.digestVersion !== 2) return reject("INVALID_SCHEMA");
     const expected = v2Expected(sourceInput);
     if (typeof expected === "string") return reject(expected);
-    if (JSON.stringify(captured) !== JSON.stringify(expected)) return reject("PROVENANCE_MISMATCH");
+    const actual = captured as Data;
+    if (!Array.isArray(actual.goalSteps)) return reject("INVALID_MAPPING");
+    const normalized = { ...actual, goalSteps: [...actual.goalSteps].sort((a, b) => compare(a?.goalId, b?.goalId)) };
+    if (canonicalPlannerDataJSON(normalized) !== canonicalPlannerDataJSON(expected)) return reject("PROVENANCE_MISMATCH");
     return { valid: true, value: expected };
   } catch { return reject("INVALID_RUNTIME"); }
 }

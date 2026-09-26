@@ -77,6 +77,13 @@ test("partial clarification does not resurrect raw candidates or default missing
   assert.doesNotMatch(JSON.stringify(partial.goals), /"value"|FIXED_USER_INPUT/);
 });
 
+test("remaining-balance request cannot expose a fixed candidate from a nominal RESOLVED result", () => {
+  const proposal = createPlannerProposal({ ...source, request: { text: `Send my remaining balance, about 10 EURC, to ${recipient}`, locale: "en" } });
+  assert.ok(proposal);
+  assert.equal(proposal.resolutionStatus, "NEEDS_CLARIFICATION");
+  assert.ok(proposal.goals.every((goal) => goal.parameters.find((field) => field.key === "amount")?.state === "UNRESOLVED"));
+});
+
 test("meaningful request, plan, field and resolution changes alter provenance", () => {
   const baseline = createPlannerProposal(source);
   assert.ok(baseline);
