@@ -34,6 +34,7 @@ import { createPlannerParameterEvidence, validatePlannerParameterEvidence } from
 import { compilePlannerStrategy } from "@/lib/plannerStrategyCompiler";
 import { validatePlannerStrategyBindingV2 } from "@/lib/plannerStrategyBinding";
 import { materializePlannerStrategy, validateStrategyMaterialization } from "@/lib/strategyMaterialization";
+import { keccak256, stringToHex } from "viem";
 import { AgentStatusSurface } from "@/components/AgentStatusSurface";
 import { arcTestnet } from "viem/chains";
 const styles = new Proxy({}, { get: (_target, key) => String(key) });
@@ -117,6 +118,7 @@ export function B2Fixture({scenario}) {
         provenance:result.value,provenanceSource:source}};
       window.fixtureCMaterialize=(candidate)=>materializePlannerStrategy(candidate);
       window.fixtureCValidate=(candidate,input=window.fixtureCMaterializationInput)=>validateStrategyMaterialization(candidate,input);
+      window.fixtureCRehash=(domain,tuple)=>keccak256(stringToHex(JSON.stringify([domain,1,...tuple])));
     }
     window.fixtureB2ValidateBinding=(candidate,changes={})=>compiled?.status==="COMPILED"&&validatePlannerStrategyBindingV2(candidate,{
       requestId:changes.requestId??source.requestId,sessionId:changes.sessionId??source.sessionId,

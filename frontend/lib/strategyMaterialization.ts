@@ -61,6 +61,14 @@ function intentTuple(intent: PlannerIntent): unknown[] {
   if (intent.kind === "SWAP") return [intent.version, intent.id, intent.kind, intent.chainId, intent.fromAsset, intent.toAsset, intent.amount];
   return [intent.version, intent.id, intent.kind, intent.sourceChainId, intent.destinationChainId, intent.asset, intent.amount, intent.recipient];
 }
+function canonicalIntent(intent: PlannerIntent): PlannerIntent {
+  if (intent.kind === "SEND") return { version: 1, id: intent.id, kind: "SEND", chainId: intent.chainId,
+    asset: intent.asset, amount: intent.amount, recipient: intent.recipient };
+  if (intent.kind === "SWAP") return { version: 1, id: intent.id, kind: "SWAP", chainId: intent.chainId,
+    fromAsset: intent.fromAsset, toAsset: intent.toAsset, amount: intent.amount };
+  return { version: 1, id: intent.id, kind: "BRIDGE", sourceChainId: intent.sourceChainId,
+    destinationChainId: intent.destinationChainId, asset: intent.asset, amount: intent.amount, recipient: intent.recipient };
+}
 function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === "object") {
     for (const item of Object.values(value)) deepFreeze(item);
@@ -119,7 +127,7 @@ export function materializePlannerStrategy(input: unknown): StrategyMaterializat
       const base = { version: 1 as const, stage: "SEMANTIC_ONLY" as const, executionEnabled: false as const,
         strategyId: strategy.value.id, strategyDigest: b.strategy.digest, bindingDigest: b.digest, revision,
         actionStepId: step.id, goalId, actionKind: step.action, dependsOnStepIds: deps,
-        parameters: { ...intent }, requirements };
+        parameters: canonicalIntent(intent), requirements };
       const digest = hash("makoto.strategy-action-materialization", [base.strategyId, base.strategyDigest, base.bindingDigest,
         base.revision, base.actionStepId, base.goalId, base.actionKind, deps, intentTuple(intent), requirements]);
       actions.push({ ...base, digest });
