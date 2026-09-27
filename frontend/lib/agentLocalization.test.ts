@@ -128,7 +128,8 @@ test("current locale controls clarification, planning failure, preparation succe
   const hook = readFileSync(new URL("../hooks/useMakotoAgent.ts", import.meta.url), "utf8");
   const page = readFileSync(new URL("../components/MakotoAgentPage.tsx", import.meta.url), "utf8");
   const dashboard = readFileSync(new URL("../components/WalletDashboard.tsx", import.meta.url), "utf8");
-  assert.match(hook, /useEffect\(\(\) => \{\s*latestLocale\.current = locale;\s*\}, \[locale\]\)/);
+  assert.match(hook, /if \(latestLocale\.current !== locale\) \{\s*requestGeneration\.current\.invalidate\(\)/);
+  assert.match(hook, /latestLocale\.current = locale;\s*\}, \[locale\]\)/);
   assert.match(hook, /locale: requestLocale/);
   assert.match(page, /ActionDraftCard draft=\{message\.draft\} draftContext=\{message\.draftContext\} handoff=\{message\.prepared\?\.status/);
   assert.match(dashboard, /ActionDraftCard draft=\{message\.draft\} draftContext=\{message\.draftContext\} handoff=\{message\.prepared\?\.status/);

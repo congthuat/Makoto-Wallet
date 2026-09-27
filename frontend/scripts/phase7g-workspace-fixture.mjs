@@ -32,6 +32,7 @@ import { createPlannerProposal, createPlannerProposalHostSource, validatePlanner
 import { PlannerParameterConfirmControl, isLiveConfirmedPlannerSource } from "@/lib/plannerConfirmationAuthority";
 import { createPlannerParameterEvidence, validatePlannerParameterEvidence } from "@/lib/plannerParameterEvidence";
 import { compilePlannerStrategy } from "@/lib/plannerStrategyCompiler";
+import { createProductionAgentFlow } from "@/lib/aeiFProduction";
 import { validatePlannerStrategyBindingV2 } from "@/lib/plannerStrategyBinding";
 import { materializePlannerStrategy, validateStrategyMaterialization } from "@/lib/strategyMaterialization";
 import { createAeiDOrchestrator, validateAeiDOperationalEnvelope } from "@/lib/aeiDOrchestration";
@@ -52,6 +53,24 @@ export function Fixture({options = {}}) {
   const [input, setInput] = useState("");
   const inputRef = useRef(null);
   const [cleared, setCleared] = useState(false);
+  const [productionState] = useState(() => ({ account, chainId, clock: Date.now(), allowance: 0n,
+    balances: { usdc: 100000000n, eurc: 100000000n, cirbtc: 100000000n }, fee: 1000000000000n,
+    swapOutput: 10000000n, quoteAt: Date.now(), readCalls: 0, quoteCalls: 0, readGate: null }));
+  if (options.production) window.fixtureFState = productionState;
+  const productionHost = options.production ? () => {
+    const observed = { connected: true, account: productionState.account, accountKind: "external", walletStatus: "connected",
+      verifiedChainId: productionState.chainId, isArc: productionState.chainId === ${arc}, balances: productionState.balances,
+      activity: [], activityLoadState: "loaded", activityPartial: false, activityUnavailable: false,
+      vault: { available: false }, safetyCapabilities: [], timestamp: productionState.clock };
+    return { now: () => productionState.clock,
+      current: async () => ({ wallet: { kind: "external", address: productionState.account, chainId: productionState.chainId,
+        providerChainId: productionState.chainId, status: "connected", connectionStatus: "connected",
+        isArc: productionState.chainId === ${arc} }, snapshot: observed }),
+      reads: { readBalance: async (_account, asset) => { productionState.readCalls++; if (productionState.readGate) await productionState.readGate; return productionState.balances[asset]; },
+        readAllowance: async () => { productionState.readCalls++; return productionState.allowance; } },
+      quotes: { estimateSendMaximumFee: async () => { productionState.quoteCalls++; return productionState.fee; },
+        readXyloOutput: async () => { productionState.quoteCalls++; return { amountOut: productionState.swapOutput, quotedAt: productionState.quoteAt }; } } };
+  } : undefined;
   const request = vi ? "Gửi 5 USDC cho ${accountB}" : "Send 5 USDC to ${accountB}";
   const observedAt = 1790000000000;
   const draft = {version:1, mode:"prepare-only", executionEnabled:false, rawUserText:request, kind:"send", asset:"USDC", amount:"5", recipient:"${accountB}", sourceChain:"Arc Testnet"};
@@ -85,7 +104,7 @@ export function Fixture({options = {}}) {
     if (scenario === "planner-missing-source") message = {...message,proposalSource:undefined};
   }
   const messages = cleared || scenario === "empty" ? [] : scenario === "history" ? [{...message,id:0},message] : [message];
-  return <AgentWorkspace locale={locale} account={account} chainId={chainId} messages={messages} hasSessionContext={false} clearConversation={()=>{setCleared(true);inputRef.current?.focus();}} input={input} setInput={setInput} inputRef={inputRef} ask={setInput} submit={(e)=>e.preventDefault()}/>;
+  return <AgentWorkspace locale={locale} account={account} chainId={chainId} messages={messages} hasSessionContext={false} clearConversation={()=>{setCleared(true);inputRef.current?.focus();}} input={input} setInput={setInput} inputRef={inputRef} ask={setInput} submit={(e)=>e.preventDefault()} productionHost={productionHost}/>;
 }
 export function StatusFixture({input, locale}) { return <AgentStatusSurface input={input} locale={locale}/>; }
 export function B2Fixture({scenario}) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePublicClient } from "wagmi";
 import { AppShell } from "./AppShell";
@@ -28,8 +28,8 @@ import { PolicyDecisionNotice } from "./PolicyDecisionNotice";
 import { AgentStatusSurface } from "./AgentStatusSurface";
 import { validatePlannerProposalHostPair, type PlannerProposalHostSource, type PlannerProposalReview } from "@/lib/plannerProposal";
 import { PlannerParameterConfirmControl } from "@/lib/plannerConfirmationAuthority";
-import { createPlannerParameterEvidence } from "@/lib/plannerParameterEvidence";
-import { compilePlannerStrategy } from "@/lib/plannerStrategyCompiler";
+import { createProductionAgentFlow, type ProductionAgentView } from "@/lib/aeiFProduction";
+import type { AEIDHostPorts } from "@/lib/aeiDOrchestration";
 
 export function MakotoAgentPage() {
   const { locale } = usePreferences(), wallet = useWalletReadContext();
@@ -38,17 +38,27 @@ export function MakotoAgentPage() {
   const onchainServices = useMemo(() => createOnchainIntelligenceServices(publicClient), [publicClient]);
   const canRead = wallet.status === "connected" && wallet.isArc, balances = useWalletBalances(wallet.address, canRead), activity = useWalletActivity(wallet.address, canRead, true), ownerJars = useOwnerJars(canRead ? wallet.address : undefined), savings = summarizeSavingsJars(ownerJars.jars);
   const snapshot = useMemo(() => createAgentContextSnapshot({ connected: wallet.status === "connected", account: wallet.address, walletType: wallet.providerName, accountKind: wallet.kind, walletStatus: wallet.status, verifiedChainId: wallet.providerChainId, isArc: wallet.isArc, balances: { usdc: balances.usdc.data, eurc: balances.eurc.data, cirbtc: balances.cirbtc.data }, activity: activity.data, activityLoadState: activity.loadState, activityPartial: activity.partial, activityUnavailable: activity.unavailable, vault: { available: canRead && !ownerJars.isLoading && !ownerJars.error, total: canRead ? savings.totalSaved : undefined, goalCount: canRead ? ownerJars.jars.length : undefined, activeCount: canRead ? savings.active : undefined } }), [activity.data, activity.loadState, activity.partial, activity.unavailable, balances.cirbtc.data, balances.eurc.data, balances.usdc.data, canRead, ownerJars.error, ownerJars.isLoading, ownerJars.jars.length, savings.active, savings.totalSaved, wallet.address, wallet.isArc, wallet.kind, wallet.providerChainId, wallet.providerName, wallet.status]);
+  const walletRef = useRef(wallet), snapshotRef = useRef(snapshot);
+  useLayoutEffect(() => { walletRef.current = wallet; snapshotRef.current = snapshot; }, [wallet, snapshot]);
+  const productionHost = () : AEIDHostPorts | undefined => {
+    if (!canonicalServices?.reads || !canonicalServices.services) return undefined;
+    // One actual host observation is held for D's same-observation checks. Wallet identity remains live.
+    const observed = Object.freeze({ ...snapshotRef.current, timestamp: Date.now() });
+    return { current: async () => ({ wallet: walletRef.current, snapshot: observed }),
+      reads: canonicalServices.reads, quotes: canonicalServices.services };
+  };
   const { messages, hasSessionContext, clearConversation, input, setInput, inputRef, submit, requestMode, setRequestMode } = useMakotoAgent(snapshot, locale, wallet.address, onchainServices, canonicalServices);
-  return <AppShell><AgentWorkspace locale={locale} account={wallet.address} chainId={wallet.providerChainId} messages={messages} hasSessionContext={hasSessionContext} clearConversation={clearConversation} input={input} setInput={setInput} inputRef={inputRef} submit={submit} requestMode={requestMode} setRequestMode={setRequestMode} /></AppShell>;
+  return <AppShell><AgentWorkspace locale={locale} account={wallet.address} chainId={wallet.providerChainId} messages={messages} hasSessionContext={hasSessionContext} clearConversation={clearConversation} input={input} setInput={setInput} inputRef={inputRef} submit={submit} requestMode={requestMode} setRequestMode={setRequestMode} productionHost={productionHost} /></AppShell>;
 }
 
 /** Presentation seam shared by the live page and isolated browser fixtures. */
-export function AgentWorkspace({ locale, account, chainId, messages, hasSessionContext, clearConversation, input, setInput, inputRef, submit, requestMode, setRequestMode }: {
+export function AgentWorkspace({ locale, account, chainId, messages, hasSessionContext, clearConversation, input, setInput, inputRef, submit, requestMode, setRequestMode, productionHost }: {
   locale: Locale; account?: AgentDraftContext["account"]; chainId?: number;
   messages: AgentMessage[]; hasSessionContext: boolean; clearConversation: () => void;
   input: string; setInput: (value: string) => void; inputRef: React.RefObject<HTMLInputElement | null>;
   submit: (event: React.FormEvent) => void;
   requestMode?: "planner" | "legacy"; setRequestMode?: (value: "planner" | "legacy") => void;
+  productionHost?: () => AEIDHostPorts | undefined;
 }) {
   const t = (key: TranslationKey) => translate(locale, key);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -95,7 +105,7 @@ export function AgentWorkspace({ locale, account, chainId, messages, hasSessionC
       <section className={styles.conversation} aria-labelledby="agent-conversation-title">
         <h2 id="agent-conversation-title" className={styles.conversationTitle}>{t("agent.page.conversation")}</h2>
         <div className={styles.conversationFeed} aria-live="polite" aria-relevant="additions text">
-          {latest ? <AgentOperation key={latest.id} message={latest} locale={locale} current={current} active /> : <section className={styles.empty}><h2>{t("agent.workspace.emptyTitle")}</h2><p>{t("agent.workspace.emptyCopy")}</p><div className={styles.starterPrompts}>{starterSuggestions.map((suggestion) => <button key={suggestion.id} type="button" onClick={() => selectSuggestion(suggestion.promptKey)}>{t(suggestion.promptKey)}</button>)}</div></section>}
+          {latest ? <AgentOperation key={latest.id} message={latest} locale={locale} current={current} active productionHost={productionHost} /> : <section className={styles.empty}><h2>{t("agent.workspace.emptyTitle")}</h2><p>{t("agent.workspace.emptyCopy")}</p><div className={styles.starterPrompts}>{starterSuggestions.map((suggestion) => <button key={suggestion.id} type="button" onClick={() => selectSuggestion(suggestion.promptKey)}>{t(suggestion.promptKey)}</button>)}</div></section>}
         </div>
         <form className={styles.composer} onSubmit={submit}>
           {setRequestMode && <div className={styles.modeSwitch} role="group" aria-label={t("agent.planner.modeLabel")}><button type="button" aria-pressed={requestMode !== "legacy"} onClick={() => setRequestMode("planner")}>{t("agent.planner.mode")}</button><button type="button" aria-pressed={requestMode === "legacy"} onClick={() => setRequestMode("legacy")}>{t("agent.planner.legacyMode")}</button></div>}
@@ -122,12 +132,12 @@ export function AgentWorkspace({ locale, account, chainId, messages, hasSessionC
   </div>;
 }
 
-export function AgentOperation({ message, locale, current, active = false }: { message: AgentMessage; locale: Locale; current: AgentDraftContext; active?: boolean }) {
+export function AgentOperation({ message, locale, current, active = false, productionHost }: { message: AgentMessage; locale: Locale; current: AgentDraftContext; active?: boolean; productionHost?: () => AEIDHostPorts | undefined }) {
   const vi = locale === "vi", t = (key: TranslationKey) => translate(locale, key);
   const proposal = !message.draft && !message.prepared && !message.quote && !message.policy && !message.intelligence && !message.draftContext &&
     !message.presentation?.intent && !message.presentation?.planning && !message.presentation?.result &&
     message.proposal && message.proposalSource ? validatePlannerProposalHostPair(message.proposal, message.proposalSource) : undefined;
-  if (proposal) return <PlannerProposalCard key={proposal.proposalDigest} proposal={proposal} source={message.proposalSource!} locale={locale} active={active} />;
+  if (proposal) return <PlannerProposalCard key={proposal.proposalDigest} proposal={proposal} source={message.proposalSource!} locale={locale} active={active} current={current} productionHost={productionHost} />;
   const mode = agentWorkspaceMode(message.presentation?.intent, Boolean(message.draft), message.presentation?.result);
   const origin = message.draftContext ?? message.presentation?.context;
   const context = assessAgentDraftContext(origin, current);
@@ -156,9 +166,23 @@ export function AgentOperation({ message, locale, current, active = false }: { m
     {mode === "result" && <p className={styles.resultBoundary}>{t("agent.workspace.resultBoundary")}</p>}
   </article>;
 }
-function PlannerProposalCard({ proposal, source, locale, active }: { proposal: PlannerProposalReview; source: PlannerProposalHostSource; locale: Locale; active: boolean }) {
+function PlannerProposalCard({ proposal, source, locale, active, current, productionHost }: { proposal: PlannerProposalReview; source: PlannerProposalHostSource; locale: Locale; active: boolean; current: AgentDraftContext; productionHost?: () => AEIDHostPorts | undefined }) {
   const t = (key: TranslationKey) => translate(locale, key);
   const [confirmation, setConfirmation] = useState<"AWAITING" | "CONFIRMED" | "UNAVAILABLE">("AWAITING");
+  const [cancelled, setCancelled] = useState(false);
+  const [production, setProduction] = useState<ProductionAgentView>({ status: "CONFIRMATION_REQUIRED" });
+  const flow = useRef<ReturnType<typeof createProductionAgentFlow> | null>(null);
+  const currentLocale = source.request.locale === locale;
+  const reviewCurrent = !production.review || active && currentLocale && !cancelled &&
+    current.account?.toLowerCase() === production.review.account && current.chainId === production.review.chainId;
+  useEffect(() => () => { flow.current?.cancel(); flow.current = null; }, []);
+  useEffect(() => { if (!active || !currentLocale) { flow.current?.cancel(); flow.current = null; } }, [active, currentLocale]);
+  useEffect(() => { if (!reviewCurrent) { flow.current?.cancel(); flow.current = null; } }, [reviewCurrent]);
+  useEffect(() => {
+    if (!production.review) return;
+    const timer = window.setInterval(() => { void flow.current?.refreshReview(); }, 1000);
+    return () => window.clearInterval(timer);
+  }, [production.review]);
   const complete = proposal.resolutionStatus === "RESOLVED" && proposal.goals.every((goal) =>
     goal.parameters.every((field) => field.state === "FIXED_CANDIDATE"));
   return <article className={styles.operation} data-operation-mode="planner-proposal">
@@ -172,18 +196,65 @@ function PlannerProposalCard({ proposal, source, locale, active }: { proposal: P
         <dd>{field.state === "FIXED_CANDIDATE" ? `${field.value} · ${t(confirmation === "CONFIRMED" ? "agent.planner.confirmedValue" : "agent.planner.unverified")}` :
           `${t(`agent.planner.reason.${field.reason}`)}${field.expressionClass !== "NONE" ? ` · ${t(`agent.planner.expression.${field.expressionClass}`)}` : ""}`}</dd></div>)}</dl>
     </li>)}</ol>
-    <p role="status" aria-live="polite">{t(confirmation === "CONFIRMED" ? "agent.planner.confirmed" :
+    <p role="status" aria-live="polite">{confirmation === "CONFIRMED" && productionHost ?
+      locale === "vi" ? "Đã xác nhận thông số. Việc chuẩn bị giao dịch được hiển thị riêng bên dưới; chưa có giao dịch nào được gửi." :
+        "Parameters confirmed. Preparation is shown separately below; no transaction has been submitted." : t(confirmation === "CONFIRMED" ? "agent.planner.confirmed" :
       confirmation === "UNAVAILABLE" ? "agent.planner.confirmUnavailable" : complete ? "agent.planner.awaiting" : "agent.planner.incomplete")}</p>
-    {confirmation === "AWAITING" && <PlannerParameterConfirmControl proposal={proposal} host={source} active={active && complete} className={styles.plannerConfirmButton}
+    <PlannerParameterConfirmControl proposal={proposal} host={source} active={active && complete && currentLocale && !cancelled} className={styles.plannerConfirmButton}
       label={t("agent.planner.confirmParameters")} onConfirmed={(retained) => {
-        const made = createPlannerParameterEvidence(retained);
-        if (!made.valid || made.value.status !== "RESOLVED_WITH_EVIDENCE") { setConfirmation("UNAVAILABLE"); return; }
-        const compiled = compilePlannerStrategy({ version: 2, requestId: retained.requestId, sessionId: retained.sessionId,
-          createdAt: Date.now(), plan: retained.plan, resolution: made.value, provenanceSource: retained });
-        setConfirmation(compiled.status === "COMPILED" && compiled.executionEnabled === false ? "CONFIRMED" : "UNAVAILABLE");
-      }} />}
-    <p>{t("agent.planner.noExecution")}</p>
+        if (!productionHost) { setConfirmation("CONFIRMED"); return; }
+        const host = productionHost?.();
+        if (!host) { setConfirmation("UNAVAILABLE"); return; }
+        setConfirmation("CONFIRMED");
+        const coordinator = createProductionAgentFlow(host, setProduction);
+        flow.current = coordinator;
+        void coordinator.confirm(retained);
+      }} />
+    {confirmation === "CONFIRMED" && productionHost && <section aria-label="Agent preparation"><p role="status">{productionStatusCopy(production.status, locale)}{production.reason ? `: ${production.reason}` : ""}</p>
+      {!cancelled && <button type="button" onClick={() => { flow.current?.cancel(); setCancelled(true); }}>{locale === "vi" ? "Hủy chuẩn bị" : "Cancel preparation"}</button>}
+      {(production.status === "REVIEW_ELIGIBLE" || production.status === "REVIEW_REQUIRED" || production.status === "WARNING") && !production.review &&
+        !cancelled && <button type="button" className={styles.plannerConfirmButton} onClick={() => void flow.current?.openReview()}>Review prepared transaction</button>}
+      {production.review && reviewCurrent && <section aria-label="Prepared transaction review"><h3>Transaction Review</h3><dl>
+        <div><dt>Action</dt><dd>{production.review.kind} · {production.review.technicalStepKind}</dd></div>
+        <div><dt>Amount</dt><dd>{production.review.amount} {production.review.asset}</dd></div>
+        {production.review.recipient && <div><dt>Recipient</dt><dd>{production.review.recipient}</dd></div>}
+        {production.review.route && <div><dt>Route</dt><dd>{production.review.route}</dd></div>}
+        {production.review.expectedOutput && <div><dt>Expected output</dt><dd>{production.review.expectedOutput} {production.review.outputAsset}</dd></div>}
+        {production.review.minimumReceived && <div><dt>Minimum received</dt><dd>{production.review.minimumReceived} {production.review.outputAsset}</dd></div>}
+        {production.review.approvalSpender && <div><dt>Approval spender</dt><dd>{production.review.approvalSpender}</dd></div>}
+        <div><dt>Account</dt><dd>{production.review.account}</dd></div>
+        <div><dt>Network</dt><dd>Arc Testnet</dd></div>
+        <div><dt>Fee</dt><dd>{production.review.fee}</dd></div>
+        <div><dt>Quote expires</dt><dd>{new Date(production.review.quoteExpiresAt).toLocaleString()}</dd></div>
+      </dl>{production.review.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+      {production.review.reviewRequirements.map((requirement) => <p key={requirement}>Review requirement: {requirement}</p>)}
+      <p>This review presents preparation facts only. No transaction has been submitted.</p></section>}
+    </section>}
+    <p>{confirmation === "CONFIRMED" && productionHost ? locale === "vi" ? "Chưa có giao dịch nào được gửi." : "No transaction has been submitted." : t("agent.planner.noExecution")}</p>
   </article>;
+}
+function productionStatusCopy(status: ProductionAgentView["status"], locale: Locale): string {
+  const labels: Record<ProductionAgentView["status"], readonly [string, string]> = {
+    CONFIRMATION_REQUIRED: ["Confirm parameters before preparation", "Xác nhận thông số trước khi chuẩn bị"],
+    CONFIRMATION_REVOKED: ["Parameter confirmation is no longer current", "Xác nhận thông số không còn hiệu lực"],
+    COMPILING: ["Checking confirmed parameters", "Đang kiểm tra thông số đã xác nhận"],
+    STRATEGY_REJECTED: ["Plan could not be prepared", "Không thể chuẩn bị kế hoạch"],
+    MATERIALIZATION_FAILED: ["Plan details could not be prepared", "Không thể chuẩn bị chi tiết kế hoạch"],
+    DEPENDENCY_BLOCKED: ["A prior action needs verified completion", "Cần xác minh hành động trước đã hoàn tất"],
+    PREPARING: ["Preparing transaction details", "Đang chuẩn bị chi tiết giao dịch"],
+    ORCHESTRATION_BLOCKED: ["Preparation blocked by policy", "Chính sách đã chặn việc chuẩn bị"],
+    REQUOTE_REQUIRED: ["A new quote is required", "Cần báo giá mới"],
+    REVALIDATION_REQUIRED: ["Current wallet data must be checked again", "Cần kiểm tra lại dữ liệu ví hiện tại"],
+    REVIEW_REQUIRED: ["Prepared details require explicit Review", "Chi tiết đã chuẩn bị cần được xem lại rõ ràng"],
+    WARNING: ["Prepared details include a warning", "Chi tiết đã chuẩn bị có cảnh báo"],
+    REVIEW_ELIGIBLE: ["Prepared details are available for Review", "Có thể xem lại chi tiết đã chuẩn bị"],
+    HANDOFF_REQUIRED: ["Agent bridge handoff is unavailable", "Không có bàn giao cầu nối từ Agent"],
+    UNSUPPORTED: ["This Agent action is unsupported", "Agent không hỗ trợ hành động này"],
+    OPERATIONAL_FAILED: ["Preparation could not finish", "Không thể hoàn tất việc chuẩn bị"],
+    STALE_RESULT: ["Prepared details are no longer current", "Chi tiết đã chuẩn bị không còn mới"],
+    CANCELLED: ["Preparation cancelled", "Đã hủy việc chuẩn bị"],
+  };
+  return labels[status][locale === "vi" ? 1 : 0];
 }
 export function EvidenceBlock({ value, locale }: { value: AgentIntelligenceResult; locale: Locale }) {
   const statusLabel = value.status === "SOURCE_ERROR" ? "agent.intelligence.attemptedCheck" : value.status === "UNVERIFIED" ? "agent.intelligence.sourceStatus" : "agent.intelligence.checked";
