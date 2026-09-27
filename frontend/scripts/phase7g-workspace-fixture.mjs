@@ -50,6 +50,8 @@ export function Fixture({options = {}}) {
   const origin = {account: "${accountA}", chainId: ${arc}};
   const account = options.account ?? (scenario === "account" || scenario === "prepare" ? "${accountB}" : "${accountA}");
   const chainId = options.chainId ?? (scenario === "chain" ? 84532 : ${arc});
+  const [walletAccount, setWalletAccount] = useState(account);
+  const [walletChainId, setWalletChainId] = useState(chainId);
   const [input, setInput] = useState("");
   const inputRef = useRef(null);
   const [cleared, setCleared] = useState(false);
@@ -57,6 +59,8 @@ export function Fixture({options = {}}) {
     balances: { usdc: 100000000n, eurc: 100000000n, cirbtc: 100000000n }, fee: 1000000000000n,
     swapOutput: 10000000n, quoteAt: Date.now(), readCalls: 0, quoteCalls: 0, readGate: null }));
   if (options.production) window.fixtureFState = productionState;
+  if (options.production) window.fixtureFSwitchAccount = (next) => { productionState.account = next; setWalletAccount(next); };
+  if (options.production) window.fixtureFSwitchChain = (next) => { productionState.chainId = next; setWalletChainId(next); };
   const productionHost = options.production ? () => {
     const observed = { connected: true, account: productionState.account, accountKind: "external", walletStatus: "connected",
       verifiedChainId: productionState.chainId, isArc: productionState.chainId === ${arc}, balances: productionState.balances,
@@ -99,12 +103,12 @@ export function Fixture({options = {}}) {
       {status:"RESOLVED",planId:"fixture-plan",intents:scenario === "planner-send"?[sendIntent]:scenario === "planner-swap"?[swapIntent]:scenario === "planner-bridge"?[bridgeIntent]:[swapIntent,sendIntent]};
     const proposal = createPlannerProposal({requestId:"fixture-"+scenario+"-request",sessionId:"fixture-session",proposalId:"fixture-"+scenario+"-proposal",request:plannerRequest,plan:plannerPlan,resolution:plannerResolution});
     const proposalSource = createPlannerProposalHostSource(proposal,"fixture-session",plannerRequest);
-    message = {id:1,role:"agent",text:"",presentation:{request:plannerText,observedAt},proposal,proposalSource};
+    message = {id:1,role:"agent",text:"",presentation:{request:plannerText,observedAt,context:{account,chainId}},proposal,proposalSource};
     if (scenario === "planner-spoof") message = {...message,draft,draftContext:origin};
     if (scenario === "planner-missing-source") message = {...message,proposalSource:undefined};
   }
   const messages = cleared || scenario === "empty" ? [] : scenario === "history" ? [{...message,id:0},message] : [message];
-  return <AgentWorkspace locale={locale} account={account} chainId={chainId} messages={messages} hasSessionContext={false} clearConversation={()=>{setCleared(true);inputRef.current?.focus();}} input={input} setInput={setInput} inputRef={inputRef} ask={setInput} submit={(e)=>e.preventDefault()} productionHost={productionHost}/>;
+  return <AgentWorkspace locale={locale} account={walletAccount} chainId={walletChainId} messages={messages} hasSessionContext={false} clearConversation={()=>{setCleared(true);inputRef.current?.focus();}} input={input} setInput={setInput} inputRef={inputRef} ask={setInput} submit={(e)=>e.preventDefault()} productionHost={productionHost}/>;
 }
 export function StatusFixture({input, locale}) { return <AgentStatusSurface input={input} locale={locale}/>; }
 export function B2Fixture({scenario}) {

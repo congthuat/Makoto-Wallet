@@ -97,6 +97,9 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
     if (requestMode === "planner") {
       const requestLocale = latestLocale.current;
       const sessionId = plannerSession.current ?? (plannerSession.current = crypto.randomUUID());
+      const origin = snapshot.connected && snapshot.account && snapshot.verifiedChainId !== undefined && snapshot.isArc
+        ? { account: snapshot.account, chainId: snapshot.verifiedChainId } : undefined;
+      const originKey = origin ? `${origin.account.toLowerCase()}:${origin.chainId}` : undefined;
       pendingPlanner.current = { text: value, sessionId };
       setMessages((current) => current.filter((message) => !message.proposal));
       let result: unknown;
@@ -105,14 +108,15 @@ export function useMakotoAgent(snapshot: AgentContextSnapshot, locale: AgentLoca
         result = await response.json();
       } catch { result = { status: "PROPOSAL_FAILED" }; }
       if (pendingPlanner.current?.text === value && pendingPlanner.current.sessionId === sessionId) pendingPlanner.current = undefined;
-      if (!requestGeneration.current.isCurrent(generation) || plannerSession.current !== sessionId || latestLocale.current !== requestLocale) return;
+      if (!requestGeneration.current.isCurrent(generation) || plannerSession.current !== sessionId ||
+        latestLocale.current !== requestLocale || latestBinding.current !== originKey) return;
       const payload = result && typeof result === "object" ? result as Record<string, unknown> : {};
       const proposal = payload.status === "PROPOSAL" ? acceptPlannerProposalResponse(payload.proposal, sessionId, { text: value, locale: requestLocale }) : undefined;
       const accepted = proposal?.sessionId === sessionId && proposal.requestId ? proposal : undefined;
       const proposalSource = accepted ? createPlannerProposalHostSource(accepted, sessionId, { text: value, locale: requestLocale }) : undefined;
       setMessages((current) => [...current.filter((message) => !message.proposal),
         { id: nextId.current++, role: "user", text: value },
-        { id: nextId.current++, role: "agent", text: accepted && proposalSource ? "" : translate(requestLocale, "agent.planner.failure"), proposal: proposalSource ? accepted : undefined, proposalSource, presentation: { request: value, observedAt: Date.now() } },
+        { id: nextId.current++, role: "agent", text: accepted && proposalSource ? "" : translate(requestLocale, "agent.planner.failure"), proposal: proposalSource ? accepted : undefined, proposalSource, presentation: { request: value, observedAt: Date.now(), context: origin } },
       ]);
       setInput("");
       return;

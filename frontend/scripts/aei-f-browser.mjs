@@ -32,6 +32,13 @@ function openReview() { command("click", "[aria-label='Agent preparation'] butto
 try {
   command("open", `http://127.0.0.1:${port}`);
   command("wait", "--fn", "!!window.fixtureVersion");
+  mount("planner-send");
+  check("B2 initially offered for originating account", evaluate(`!!document.querySelector('[data-operation-mode="planner-proposal"] button.plannerConfirmButton')`), true);
+  evaluate(`window.fixtureFSwitchAccount('0x3333333333333333333333333333333333333333')`);
+  check("account switch before B2 revokes old proposal", evaluate(`!!document.querySelector('[data-operation-mode="planner-proposal"] button.plannerConfirmButton')`), false);
+  mount("planner-send");
+  evaluate(`window.fixtureFSwitchChain(84532)`);
+  check("chain switch before B2 revokes old proposal", evaluate(`!!document.querySelector('[data-operation-mode="planner-proposal"] button.plannerConfirmButton')`), false);
   mount("planner-send"); confirm();
   command("wait", "--fn", `!!document.querySelector('[aria-label="Agent preparation"] button.plannerConfirmButton')`);
   check("SEND preparation reaches Review gate", stage(), "Prepared details are available for Review");

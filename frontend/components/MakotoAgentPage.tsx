@@ -137,7 +137,7 @@ export function AgentOperation({ message, locale, current, active = false, produ
   const proposal = !message.draft && !message.prepared && !message.quote && !message.policy && !message.intelligence && !message.draftContext &&
     !message.presentation?.intent && !message.presentation?.planning && !message.presentation?.result &&
     message.proposal && message.proposalSource ? validatePlannerProposalHostPair(message.proposal, message.proposalSource) : undefined;
-  if (proposal) return <PlannerProposalCard key={proposal.proposalDigest} proposal={proposal} source={message.proposalSource!} locale={locale} active={active} current={current} productionHost={productionHost} />;
+  if (proposal) return <PlannerProposalCard key={proposal.proposalDigest} proposal={proposal} source={message.proposalSource!} locale={locale} active={active} current={current} origin={message.presentation?.context} productionHost={productionHost} />;
   const mode = agentWorkspaceMode(message.presentation?.intent, Boolean(message.draft), message.presentation?.result);
   const origin = message.draftContext ?? message.presentation?.context;
   const context = assessAgentDraftContext(origin, current);
@@ -166,17 +166,19 @@ export function AgentOperation({ message, locale, current, active = false, produ
     {mode === "result" && <p className={styles.resultBoundary}>{t("agent.workspace.resultBoundary")}</p>}
   </article>;
 }
-function PlannerProposalCard({ proposal, source, locale, active, current, productionHost }: { proposal: PlannerProposalReview; source: PlannerProposalHostSource; locale: Locale; active: boolean; current: AgentDraftContext; productionHost?: () => AEIDHostPorts | undefined }) {
+function PlannerProposalCard({ proposal, source, locale, active, current, origin, productionHost }: { proposal: PlannerProposalReview; source: PlannerProposalHostSource; locale: Locale; active: boolean; current: AgentDraftContext; origin?: AgentDraftContext; productionHost?: () => AEIDHostPorts | undefined }) {
   const t = (key: TranslationKey) => translate(locale, key);
   const [confirmation, setConfirmation] = useState<"AWAITING" | "CONFIRMED" | "UNAVAILABLE">("AWAITING");
   const [cancelled, setCancelled] = useState(false);
   const [production, setProduction] = useState<ProductionAgentView>({ status: "CONFIRMATION_REQUIRED" });
   const flow = useRef<ReturnType<typeof createProductionAgentFlow> | null>(null);
   const currentLocale = source.request.locale === locale;
+  const currentOrigin = !productionHost || !!origin?.account && origin.chainId === arcTestnet.id &&
+    origin.account.toLowerCase() === current.account?.toLowerCase() && current.chainId === origin.chainId;
   const reviewCurrent = !production.review || active && currentLocale && !cancelled &&
     current.account?.toLowerCase() === production.review.account && current.chainId === production.review.chainId;
   useEffect(() => () => { flow.current?.cancel(); flow.current = null; }, []);
-  useEffect(() => { if (!active || !currentLocale) { flow.current?.cancel(); flow.current = null; } }, [active, currentLocale]);
+  useEffect(() => { if (!active || !currentLocale || !currentOrigin) { flow.current?.cancel(); flow.current = null; } }, [active, currentLocale, currentOrigin]);
   useEffect(() => { if (!reviewCurrent) { flow.current?.cancel(); flow.current = null; } }, [reviewCurrent]);
   useEffect(() => {
     if (!production.review) return;
@@ -200,7 +202,7 @@ function PlannerProposalCard({ proposal, source, locale, active, current, produc
       locale === "vi" ? "Đã xác nhận thông số. Việc chuẩn bị giao dịch được hiển thị riêng bên dưới; chưa có giao dịch nào được gửi." :
         "Parameters confirmed. Preparation is shown separately below; no transaction has been submitted." : t(confirmation === "CONFIRMED" ? "agent.planner.confirmed" :
       confirmation === "UNAVAILABLE" ? "agent.planner.confirmUnavailable" : complete ? "agent.planner.awaiting" : "agent.planner.incomplete")}</p>
-    <PlannerParameterConfirmControl proposal={proposal} host={source} active={active && complete && currentLocale && !cancelled} className={styles.plannerConfirmButton}
+    <PlannerParameterConfirmControl proposal={proposal} host={source} active={active && complete && currentLocale && currentOrigin && !cancelled} className={styles.plannerConfirmButton}
       label={t("agent.planner.confirmParameters")} onConfirmed={(retained) => {
         if (!productionHost) { setConfirmation("CONFIRMED"); return; }
         const host = productionHost?.();
