@@ -65,6 +65,6 @@ The 80 approved criteria are classified below using the implementation audit's c
 | 35 | ADVERSARIAL_RUNTIME | action/goal binding | 75 | SOURCE_INSPECTED | prepared binder and tool schema |
 | 36 | ADVERSARIAL_RUNTIME | account transplant denied | 76 | ADVERSARIAL_RUNTIME | approval first, swap gated |
 | 37 | ADVERSARIAL_RUNTIME | chain transplant denied | 77 | SOURCE_INSPECTED | typed unsupported overlay |
-| 38 | A/S | D latest-object supersession and C revision binding | 78 | TESTED | hostile boundary inputs |
-| 39 | A/S | new D policy lineage revokes; digest bound | 79 | TESTED | currentness requires registry |
-| 40 | A/S | new preparation lineage revokes; digest bound | 80 | SOURCE_INSPECTED | no UI/Phase 13 edits |
+| 38 | ADVERSARIAL_RUNTIME | D latest-object supersession and C revision binding | 78 | TESTED | hostile boundary inputs |
+| 39 | ADVERSARIAL_RUNTIME | new D policy lineage revokes; digest bound | 79 | TESTED | currentness requires registry |
+| 40 | ADVERSARIAL_RUNTIME | new preparation lineage revokes; digest bound | 80 | SOURCE_INSPECTED | no UI/Phase 13 edits |
