@@ -67,6 +67,10 @@ export type AEIDRequest = Readonly<{
 }>;
 
 const registered = new WeakMap<object, { digest: Hex; current: AEIDHostPorts["current"]; now: () => number }>();
+const latestByAction = new Map<string, object>();
+const actionLineageKey = (envelope: AEIDOperationalEnvelopeV1) =>
+  [envelope.materialization.sessionId, envelope.materialization.strategyId, envelope.action.actionStepId,
+    envelope.accountContext?.account.toLowerCase(), envelope.accountContext?.chainId].join(":");
 const same = (a: string, b: string) => getAddress(a) === getAddress(b);
 const failure = (status: AEIDOutcome): AEIDResult =>
   Object.freeze({ status, executionEnabled: false });
@@ -186,6 +190,7 @@ export function createAeiDOrchestrator(host: AEIDHostPorts) {
           evidence.prepared?.digest, evidence.policy?.digest, status]);
         const envelope = frozen({ ...base, revision, digest: digest("aei-d-operational-envelope", [base, revision]) });
         registered.set(envelope, { digest: envelope.digest, current: () => host.current(), now });
+        latestByAction.set(actionLineageKey(envelope), envelope);
         return { status, executionEnabled: false, envelope };
       };
       const current = async () => sameAccount(context, accountOf(await host.current(), now()));
@@ -320,6 +325,7 @@ export async function validateAeiDOperationalEnvelope(candidate: unknown, retain
     const record = registered.get(candidate);
     if (!record) return false;
     const envelope = candidate as AEIDOperationalEnvelopeV1;
+    if (latestByAction.get(actionLineageKey(envelope)) !== candidate) return false;
     if (envelope.digest !== record.digest || digest("aei-d-operational-envelope",
       [{ version: envelope.version, stage: envelope.stage, executionEnabled: envelope.executionEnabled,
         executionAuthority: envelope.executionAuthority, status: envelope.status, materialization: envelope.materialization,
@@ -340,6 +346,6 @@ export async function validateAeiDOperationalEnvelope(candidate: unknown, retain
         now > envelope.prepared.result.data.expiresAt ||
         now < envelope.policy.observedAt) return false;
     }
-    return sameAccount(envelope.accountContext, current);
+    return sameAccount(envelope.accountContext, current) && latestByAction.get(actionLineageKey(envelope)) === candidate;
   } catch { return false; }
 }

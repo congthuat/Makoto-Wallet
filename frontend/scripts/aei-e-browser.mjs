@@ -93,6 +93,11 @@ try {
     {account:"0x3333333333333333333333333333333333333333",chainId:5042002}).status})()`), "ABSENT");
   check("wrong-chain restore is absent", evaluate(`(()=>{const {d,from}=window.fixtureELast;return window.fixtureERestore(sessionStorage,from.sessionId,
     {account:d.envelope.accountContext.account,chainId:84532}).status})()`), "ABSENT");
+  check("unmapped newer D result revokes old review", await evaluate(`(async()=>{const old=window.fixtureELast;
+    window.fixtureEState.fee=1500000000000n;
+    const d=await window.fixtureD.orchestrate({materialization:old.d.envelope.materialization,
+      retainedLiveInput:window.fixtureCMaterializationInput,actionStepId:old.d.envelope.action.actionStepId});
+    return [d.status,(await window.fixtureEReview(old.result)).reason]})()`), ["ORCHESTRATED","STALE"]);
   check("new quote/prep/policy creates new lineage", await evaluate(`(async()=>{const old=window.fixtureELast;const m=old.d.envelope.materialization;
     window.fixtureEState.fee=2000000000000n;
     const d=await window.fixtureD.orchestrate({materialization:m,retainedLiveInput:window.fixtureCMaterializationInput,actionStepId:old.d.envelope.action.actionStepId});
@@ -136,7 +141,7 @@ try {
   check("quote expiry invalidates without remount", await evaluate(`(async()=>{window.fixtureEState.clock=40000;
     return window.fixtureEReview(window.fixtureELast.result)})()`), { eligible: false, reason: "STALE" });
   check("expired currentness is stale", await evaluate("window.fixtureECurrentness(window.fixtureELast.result)"), { status: "STALE" });
-  const preparationExpired = await run("swap");
+  await run("swap");
   check("prepared artifact expiry invalidates review", await evaluate(`(async()=>{const e=window.fixtureELast.d.envelope;
     window.fixtureEState.clock=e.prepared.result.data.expiresAt+1;
     return window.fixtureEReview(window.fixtureELast.result)})()`), { eligible: false, reason: "STALE" });
