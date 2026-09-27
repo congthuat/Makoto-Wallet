@@ -1,5 +1,7 @@
 # AEI-G — Robustness / Final Integration Audit (approved design)
 
+**Implementation addendum (2026-09-27):** AEI-G is IMPLEMENTED / PENDING FINAL REVIEW on [the implementation audit](aei-g-implementation-audit.md), not COMPLETE. The 140 future gates below are now classified there, including Criterion 98 as deferred/unproven. One failing-first mixed Planner/legacy draft control defect received a scoped fail-closed fix. The milestone remains OPEN; Phase 13 is NOT STARTED and deployment remains gated by authentication and distributed rate limiting. The design status below records the original approved baseline.
+
 **Status (2026-09-27): DESIGN APPROVED / NEXT / NOT STARTED.** Starting baseline: `phase12h-planner-strategy-integration` at `66e1a90322653b86fbd5a73c0c2cac1e74ecb20f`, clean worktree and index. AEI-A/B/B1/B2/C/D/E/F are COMPLETE / CLOSED. Phase 13 is NOT STARTED. This document formalizes future audit work; it reports no new runtime, test, browser, wallet, deployment, or criterion results. `DEPLOYMENT_GATED_BY_AUTH_AND_RATE_LIMIT` remains in force.
 
 ## Evidence and exact ownership
