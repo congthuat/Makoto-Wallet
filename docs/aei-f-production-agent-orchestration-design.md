@@ -119,3 +119,7 @@ These are **design gates, not tests run**. A future AEI-F implementation must de
 | 50 | Review binds exact D/E revisions. | 100 | Remount cannot revive live authority from JSON. |
 
 Adversarial fixtures must also inject hostile callbacks/proxies, double-clicks, concurrent requests, unmount/remount, refresh and forged history; verify exact current-lineage presentation without live provider/model/RPC/wallet calls. The future implementation must run focused, browser, full frontend, typecheck, lint and isolated production-build gates and record exact counts. This design does not run them.
+
+## Implementation record — pending review
+
+The later AEI-F implementation composes B1/B2/A/B/C/D/E in the mounted production Agent card and ends at an inert, closed-schema Review presentation. The B2 control remains mounted after its native confirmation so its private source is not lost. A separate Review click invokes fresh AEI-E eligibility; an open Review is rechecked and closed on stale lineage. The existing Send/Swap Review callers retain their wallet callbacks and are not mounted by AEI-F. There is no final wallet handoff or final action in this implementation. Criterion 98 therefore remains deferred and is explicitly `NOT_PROVEN` in [the implementation audit](aei-f-implementation-audit.md); any later final action needs another fresh AEI-E check and current final policy/fee/simulation. AEI-F is **IMPLEMENTED / PENDING REVIEW, not COMPLETE**; AEI-G and Phase 13 are NOT STARTED. The original design gates above remain the review contract.
