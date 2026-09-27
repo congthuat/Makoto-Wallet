@@ -138,6 +138,10 @@ export function AgentOperation({ message, locale, current, active = false, produ
     !message.presentation?.intent && !message.presentation?.planning && !message.presentation?.result &&
     message.proposal && message.proposalSource ? validatePlannerProposalHostPair(message.proposal, message.proposalSource) : undefined;
   if (proposal) return <PlannerProposalCard key={proposal.proposalDigest} proposal={proposal} source={message.proposalSource!} locale={locale} active={active} current={current} origin={message.presentation?.context} productionHost={productionHost} />;
+  // A malformed or mixed Planner message must not expose the legacy action draft path.
+  if (message.proposal || message.proposalSource) return <article className={styles.operation} data-operation-mode="planner-unavailable">
+    <p role="status">{t("agent.planner.failure")}</p><p>{t("agent.planner.noExecution")}</p>
+  </article>;
   const mode = agentWorkspaceMode(message.presentation?.intent, Boolean(message.draft), message.presentation?.result);
   const origin = message.draftContext ?? message.presentation?.context;
   const context = assessAgentDraftContext(origin, current);
