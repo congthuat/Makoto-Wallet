@@ -165,11 +165,11 @@ export function createProductionAgentFlow(host: AEIDHostPorts, onChange: (view: 
   }
 
   async function refreshReview(): Promise<void> {
-    if (!review || !mapped || !envelope) return;
+    if (!mapped || !envelope) return;
     const token = generation, e = mapped, d = envelope, prior = review;
     const eligible = await validateAeiEReviewEligibility(e);
     if (!live(token) || mapped !== e || envelope !== d || review !== prior) return;
-    if (!eligible.eligible || !reviewFrom(e, d) || Date.now() > prior.quoteExpiresAt || Date.now() > prior.preparationExpiresAt)
+    if (!eligible.eligible || !reviewFrom(e, d) || prior && (Date.now() > prior.quoteExpiresAt || Date.now() > prior.preparationExpiresAt))
       publish("STALE_RESULT", eligible.eligible ? "Review expired" : eligible.reason);
   }
 

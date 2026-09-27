@@ -87,7 +87,7 @@ export function Fixture({options = {}}) {
   if (scenario === "canonical") message = {...message, quote:{provider:"Arc RPC",status:"AVAILABLE",observedAt},prepared:{status:"PREPARED",data:{provider:"Arc RPC",expiresAt:observedAt+300000}}};
   if (scenario === "invalid") message.draft = {...draft,amount:"0"};
   if (scenario === "result") message = {id:1,role:"agent",text:formatAgentActionResult({status:"unknown",action:"send",account:"${accountA}",createdAt:observedAt,transactionHash:"0x"+"a".repeat(64)},locale),presentation:{result:true,observedAt,context:{account:"${accountA}"}}};
-  if (["planner-proposal", "planner-spoof", "planner-missing-source", "planner-send", "planner-swap", "planner-bridge", "planner-dynamic"].includes(scenario)) {
+  if (["planner-proposal", "planner-spoof", "planner-stale-spoof", "planner-malformed-spoof", "planner-missing-source", "planner-send", "planner-swap", "planner-bridge", "planner-dynamic"].includes(scenario)) {
     const plannerText = scenario === "planner-dynamic" ? "Swap 10 USDC to EURC, then send all received EURC" :
       scenario === "planner-send" ? "Send 10 EURC to ${accountB}" : scenario === "planner-bridge" ? "Bridge 5 USDC to ${accountB}" :
       vi ? "Hoán đổi 10 USDC sang EURC, sau đó gửi 5 EURC" : "Swap 10 USDC to EURC, then send 5 EURC";
@@ -105,8 +105,12 @@ export function Fixture({options = {}}) {
     const proposalSource = createPlannerProposalHostSource(proposal,"fixture-session",plannerRequest);
     message = {id:1,role:"agent",text:"",presentation:{request:plannerText,observedAt,context:{account,chainId}},proposal,proposalSource};
     if (scenario === "planner-spoof") message = {...message,draft,draftContext:origin};
+    if (scenario === "planner-stale-spoof") message = {...message,proposalSource:{...proposalSource,sessionId:"stale-session"},draft,draftContext:origin};
+    if (scenario === "planner-malformed-spoof") message = {...message,proposal:{...proposal,version:7},draft,draftContext:origin};
     if (scenario === "planner-missing-source") message = {...message,proposalSource:undefined};
   }
+  if (scenario === "planner-null-spoof") message = {...message,proposal:null,proposalSource:null,draft,draftContext:origin};
+  if (scenario === "planner-rejected-spoof") message = {...message,proposal:undefined,proposalSource:undefined,draft,draftContext:origin};
   const messages = cleared || scenario === "empty" ? [] : scenario === "history" ? [{...message,id:0},message] : [message];
   return <AgentWorkspace locale={locale} account={walletAccount} chainId={walletChainId} messages={messages} hasSessionContext={false} clearConversation={()=>{setCleared(true);inputRef.current?.focus();}} input={input} setInput={setInput} inputRef={inputRef} ask={setInput} submit={(e)=>e.preventDefault()} productionHost={productionHost}/>;
 }

@@ -139,7 +139,7 @@ export function AgentOperation({ message, locale, current, active = false, produ
     message.proposal && message.proposalSource ? validatePlannerProposalHostPair(message.proposal, message.proposalSource) : undefined;
   if (proposal) return <PlannerProposalCard key={proposal.proposalDigest} proposal={proposal} source={message.proposalSource!} locale={locale} active={active} current={current} origin={message.presentation?.context} productionHost={productionHost} />;
   // A malformed or mixed Planner message must not expose the legacy action draft path.
-  if (message.proposal || message.proposalSource) return <article className={styles.operation} data-operation-mode="planner-unavailable">
+  if (Object.hasOwn(message, "proposal") || Object.hasOwn(message, "proposalSource")) return <article className={styles.operation} data-operation-mode="planner-unavailable">
     <p role="status">{t("agent.planner.failure")}</p><p>{t("agent.planner.noExecution")}</p>
   </article>;
   const mode = agentWorkspaceMode(message.presentation?.intent, Boolean(message.draft), message.presentation?.result);
@@ -185,10 +185,10 @@ function PlannerProposalCard({ proposal, source, locale, active, current, origin
   useEffect(() => { if (!active || !currentLocale || !currentOrigin) { flow.current?.cancel(); flow.current = null; } }, [active, currentLocale, currentOrigin]);
   useEffect(() => { if (!reviewCurrent) { flow.current?.cancel(); flow.current = null; } }, [reviewCurrent]);
   useEffect(() => {
-    if (!production.review) return;
+    if (!production.review && !["REVIEW_ELIGIBLE", "REVIEW_REQUIRED", "WARNING"].includes(production.status)) return;
     const timer = window.setInterval(() => { void flow.current?.refreshReview(); }, 1000);
     return () => window.clearInterval(timer);
-  }, [production.review]);
+  }, [production.review, production.status]);
   const complete = proposal.resolutionStatus === "RESOLVED" && proposal.goals.every((goal) =>
     goal.parameters.every((field) => field.state === "FIXED_CANDIDATE"));
   return <article className={styles.operation} data-operation-mode="planner-proposal">

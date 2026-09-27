@@ -93,6 +93,38 @@ try {
     ["REVIEW_REQUIRED","DEPENDENCY_BLOCKED","MAPPED","PREPARED"]);
   check("whole chain identity continuity", [multi.action,multi.goal,multi.strategy,multi.account,multi.chain,multi.quote,multi.prep,multi.policy],
     Array(8).fill(true));
+  check("64 rehashed live C lineage mutations rejected", evaluate(`(()=>{
+    const source=window.fixtureGChain.m,rehash=window.fixtureCRehash;
+    const intentTuple=p=>p.kind==="SEND"?[p.version,p.id,p.kind,p.chainId,p.asset,p.amount,p.recipient]:
+      [p.version,p.id,p.kind,p.chainId,p.fromAsset,p.toAsset,p.amount];
+    let rejected=0;
+    for(let trial=0;trial<64;trial++){
+      const actions=source.actions.map(x=>({...x,dependsOnStepIds:[...x.dependsOnStepIds],parameters:{...x.parameters}}));
+      const candidate={...source,actions};const a=actions[trial%actions.length];
+      switch(trial%10){
+        case 0:candidate.requestId+=":mutated";break;
+        case 1:candidate.sessionId+=":mutated";break;
+        case 2:candidate.strategyId+=":mutated";a.strategyId=candidate.strategyId;break;
+        case 3:a.actionStepId+=":mutated";break;
+        case 4:a.goalId+=":mutated";break;
+        case 5:a.parameters.amount="999";break;
+        case 6:a.parameters.chainId=84532;break;
+        case 7:candidate.revision="0x"+"f".repeat(64);a.revision=candidate.revision;break;
+        case 8:a.dependsOnStepIds.push("foreign-step");break;
+        case 9:candidate.proposalId+=":mutated";break;
+      }
+      for(const item of actions)item.digest=rehash("makoto.strategy-action-materialization",
+        [item.strategyId,item.strategyDigest,item.bindingDigest,item.revision,item.actionStepId,item.goalId,
+          item.actionKind,item.dependsOnStepIds,intentTuple(item.parameters),item.requirements]);
+      candidate.digest=rehash("makoto.strategy-materialization",
+        [candidate.strategyId,candidate.strategyVersion,candidate.strategyCreatedAt,candidate.strategyDigest,
+          candidate.bindingVersion,candidate.bindingDigest,candidate.parameterEvidenceDigest,candidate.requestId,
+          candidate.sessionId,candidate.requestDigest,candidate.proposalId,candidate.proposalDigest,
+          candidate.planId,candidate.planDigest,candidate.revision,actions.map(x=>x.digest)]);
+      if(!window.fixtureCValidate(candidate,window.fixtureCMaterializationInput).valid)rejected++;
+    }
+    return rejected;
+  })()`), 64);
   check("root E Review currently eligible", await evaluate("window.fixtureEReview(window.fixtureGChain.e)"), {eligible:true});
   check("dependent ACTION cannot borrow root preparation", evaluate("window.fixtureGChain.blocked.envelope?.prepared ?? null"), null);
   const superseded = await evaluate(`(async()=>{
@@ -126,8 +158,8 @@ try {
   mount("planner-send"); confirm();
   command("wait", "--fn", `!!document.querySelector('[aria-label="Agent preparation"] button.plannerConfirmButton')`);
   evaluate("window.fixtureFState.clock+=1000000");
-  command("click", "[aria-label='Agent preparation'] button.plannerConfirmButton");
-  command("wait", "--fn", `document.querySelector('[aria-label="Agent preparation"] [role="status"]')?.innerText.includes('no longer current')`);
+  evaluate("new Promise(resolve=>setTimeout(()=>resolve(true),1250))");
+  check("expired evidence removes unopened Review control", reviewButton(), false);
   check("expired quote/preparation cannot open Review", review(), null);
 
   mount("planner-send"); confirm();
@@ -159,8 +191,15 @@ try {
   mount("planner-spoof");
   check("mixed legacy draft/proposal has no B2 control", evaluate(`!!document.querySelector('[data-operation-mode="planner-proposal"] button')`), false);
   check("mixed legacy draft/proposal has no action control", evaluate(`document.querySelectorAll('[data-operation-mode="action"] button').length`), 0);
+  for (const scenario of ["planner-null-spoof", "planner-rejected-spoof", "planner-stale-spoof", "planner-malformed-spoof"]) {
+    mount(scenario);
+    check(`${scenario} cannot downgrade into legacy action`,
+      evaluate(`document.querySelectorAll('[data-operation-mode="action"] button').length`), 0);
+  }
   mount("planner-missing-source");
   check("missing B1 host source has no B2 control", evaluate(`!!document.querySelector('[data-operation-mode="planner-proposal"] button')`), false);
+  mount("fresh");
+  check("legacy-only action remains separate", evaluate(`document.querySelectorAll('[data-operation-mode="action"] button').length > 0`), true);
   mount("planner-send", "vi");
   check("Vietnamese B2 shown", evaluate(`!!document.querySelector('[data-operation-mode="planner-proposal"] button')`), true);
   console.log(`AEI-G deterministic browser ${checks.length}/${checks.length} PASS`);
