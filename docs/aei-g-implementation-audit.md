@@ -1,5 +1,7 @@
 # AEI-G implementation audit — pending separate final review
 
+**Final-review addendum (2026-09-27):** [The separate AEI-G adversarial review](aei-g-final-review-audit.md) reproduced two further scoped boundary defects and fixed them at `f1f0a52012c32e102106e9f4d07a8a6f44f19b3b`: falsy Planner proposal fields with a legacy draft exposed an action control, and an unopened Review control remained visible after operational evidence expired. The final G browser suite is 50/50, with 64 caller-rehashed mutations of a live C materialization in addition to the focused serializer property test. AEI-G is IMPLEMENTED / FINAL REVIEW PASSED / READY_TO_CLOSE, not COMPLETE; the milestone remains OPEN. The implementation counts and status below are historical.
+
 **Status (2026-09-27): AEI_G_IMPLEMENTED_PENDING_FINAL_REVIEW.** Starting clean branch/HEAD: `phase12h-planner-strategy-integration` / `842234cabf8b37c9c4f3e79eb9966178ef3e2ad5`. Scoped implementation commit: `10c111121efd497503e83cdc1f7df7a69b4cdc1c`. AEI-A/B/B1/B2/C/D/E/F remain COMPLETE / CLOSED. AEI-G is **not COMPLETE**; the Agent Execution Integration milestone is **not CLOSED**. Phase 13 is NOT STARTED. This audit is implementation evidence for the later independent adversarial final review, not that review itself.
 
 ## Authority and provenance result
