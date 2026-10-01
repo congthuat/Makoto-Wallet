@@ -1,0 +1,29 @@
+
+> frontend@0.0.0 test:portfolio
+> node --experimental-strip-types --test src/lib/portfolioHistory.test.ts
+
+✔ history scopes a confirmed connected wallet by normalized address and known chain (3.6696ms)
+✔ demo, watch, disconnected and unknown-chain wallets cannot capture or expose history (0.8053ms)
+✔ current CoinGecko total and history eligibility share the exact valuation rules (0.4098ms)
+✔ incomplete, failed, missing or mismatched wallet observations cannot be recorded (0.2215ms)
+✔ a positive holding without a valid price never produces a complete snapshot (0.3082ms)
+✔ STALE and UNAVAILABLE prices display separately but cannot be captured, including zeros (0.518ms)
+✔ non-finite totals, asset values and balances are rejected (0.3202ms)
+✔ old, missing and future observation timestamps cannot create new truth points (0.3253ms)
+✔ wallet switch immediately excludes another wallet dataset and uses another cache key (0.5116ms)
+✔ chain switch never exposes Arc Testnet points as another chain (0.4552ms)
+✔ UTC snapshots are converted to real timestamps without invented historical points (0.4064ms)
+✔ zero, one and two points have truthful empty, starting and chart states (0.3112ms)
+✔ chart X coordinates and selection use elapsed capture time rather than array indexes (0.8177ms)
+✔ all five history ranges query backend persistence with scoped no-store requests (56.0433ms)
+✔ snapshot submission contains only wallet and chain; backend owns the total and time (1.0123ms)
+✔ backend failures remain explicit instead of fabricating empty successful history (1.6263ms)
+✔ real chart component renders only after two real points and masks accessible totals (1055.0776ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1374.4629

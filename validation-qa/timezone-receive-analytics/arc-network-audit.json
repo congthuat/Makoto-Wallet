@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:3001/api/arc/network",
+  "status": 200,
+  "observedAt": "2026-10-01T11:17:52.441Z",
+  "data": {
+    "chainId": 5042002,
+    "blockNumber": 64937947,
+    "gasPriceGwei": 21.5,
+    "transferFeeUsdc": 0.0004515,
+    "tokenTransferFeeUsdc": 0.0013975,
+    "rpcLatencyMs": 209,
+    "updatedAt": 1790853472440
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "observedAt": "2026-10-01T11:40:18.541Z",
+  "results": [
+    {
+      "suite": "test:ui",
+      "exitCode": 0,
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 4365
+    },
+    {
+      "suite": "test:polish",
+      "exitCode": 0,
+      "tests": 56,
+      "pass": 56,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 4182
+    },
+    {
+      "suite": "type-check",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 7890
+    },
+    {
+      "suite": "lint",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 5914
+    },
+    {
+      "suite": "build:client",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 10662
+    },
+    {
+      "suite": "build:server",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1452
+    }
+  ]
+}

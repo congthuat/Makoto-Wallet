@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="theme-color" content="#0b0b10" />
+    <title>Makoto Wallet — The wallet you can just ask</title>
+    <meta name="description" content="Makoto is an AI agent wallet prototype for Arc Testnet. Ask in plain words, review the plan, approve in your own wallet." />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Makoto" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Makoto Wallet" />
+    <meta property="og:title" content="Makoto Wallet — The wallet you can just ask" />
+    <meta property="og:description" content="AI agent wallet prototype for Arc Testnet. Ask, review, approve." />
+    <meta property="og:image" content="./og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Makoto Wallet — The wallet you can just ask" />
+    <meta name="twitter:description" content="AI agent wallet prototype for Arc Testnet. Ask, review, approve." />
+    <meta name="twitter:image" content="./og.png" />
+    <script>
+      (function(){var t;try{t=localStorage.getItem('mk.theme')}catch(e){}if(!t)t=window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;if(t==='dark')document.documentElement.classList.add('dark');})();
+    </script>
+  </head>
+  <body>
+    <div id="root"><!--ssr-outlet--></div>
+    <script type="module" src="./src/entry-client.tsx"></script>
+    <script>
+      // Fallback: if React fails to render (e.g. Vite dep stubs during cold
+      // start), auto-reload until deps are ready.  This fires OUTSIDE React
+      // so it works even when React itself is null/undefined.
+      (function(){
+        var K='__boot_reload', W=30000, M=8;
+        function st(){try{return JSON.parse(sessionStorage.getItem(K))||{c:0,t:0}}catch(e){return{c:0,t:0}}}
+        setTimeout(function(){
+          if(window.__reactOk)return;
+          var s=st(),c=(Date.now()-s.t>W)?0:s.c;
+          if(c<M){sessionStorage.setItem(K,JSON.stringify({c:c+1,t:Date.now()}));location.reload()}
+        },3000);
+      })();
+    </script>
+  </body>
+</html>

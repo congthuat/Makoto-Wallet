@@ -1,0 +1,2810 @@
+﻿[
+    {
+        "cell":  "1440-VI-light",
+        "surface":  "Home",
+        "observedAt":  "2026-09-30T14:01:55.3295273+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(0, 0, 0, 0)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-light",
+        "surface":  "Monitor mode",
+        "observedAt":  "2026-09-30T14:01:55.4527079+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.97)",
+                                        "color":  "rgb(13, 13, 18)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.03)",
+                                        "color":  "rgb(72, 72, 85)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-light",
+        "surface":  "Automate mode",
+        "observedAt":  "2026-09-30T14:01:55.6533666+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(0, 0, 0, 0)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.97)",
+                                        "color":  "rgb(13, 13, 18)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-light",
+        "surface":  "Tasks page and controls",
+        "observedAt":  "2026-09-30T14:01:55.7936481+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-light",
+        "surface":  "Task review UI",
+        "observedAt":  "2026-09-30T14:01:55.9024064+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1440
+                   },
+        "recheckedMetric":  {
+                                "overflowPx":  0,
+                                "reviewCreateButton":  true,
+                                "reviewText":  "XEM LẠI NHIỆM VỤ",
+                                "taskCardCount":  1,
+                                "theme":  "light",
+                                "width":  1440
+                            }
+    },
+    {
+        "cell":  "1440-VI-light",
+        "surface":  "Notification popover",
+        "observedAt":  "2026-09-30T14:01:56.0324797+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  2,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  1,
+                       "theme":  "light",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-light",
+        "surface":  "Edit modal",
+        "observedAt":  "2026-09-30T14:01:56.4261333+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+                                       {
+                                           "inputs":  [
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "5000"
+                                                          },
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "2"
+                                                          }
+                                                      ],
+                                           "text":  "Sửa\n\nTheo dõi số dư USDC\n\nNgưỡng · USDC\nChu kỳ kiểm tra · phút\nHủy\nLưu thay đổi"
+                                       }
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  3,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-light",
+        "surface":  "Browser diagnostics",
+        "observedAt":  "2026-09-30T14:01:56.5725239+07:00",
+        "pageErrors":  "",
+        "console":  ""
+    },
+    {
+        "cell":  "1280-VI-light",
+        "surface":  "Home",
+        "observedAt":  "2026-09-30T14:01:56.8634328+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(0, 0, 0, 0)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-light",
+        "surface":  "Monitor mode",
+        "observedAt":  "2026-09-30T14:01:56.9824082+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.97)",
+                                        "color":  "rgb(13, 13, 18)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.03)",
+                                        "color":  "rgb(72, 72, 85)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-light",
+        "surface":  "Automate mode",
+        "observedAt":  "2026-09-30T14:01:57.1010109+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.008)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.72)",
+                                        "color":  "rgb(18, 18, 24)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-light",
+        "surface":  "Tasks page and controls",
+        "observedAt":  "2026-09-30T14:01:57.2432169+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-light",
+        "surface":  "Task review UI",
+        "observedAt":  "2026-09-30T14:01:57.3501990+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1280
+                   },
+        "recheckedMetric":  {
+                                "overflowPx":  0,
+                                "reviewCreateButton":  true,
+                                "reviewText":  "XEM LẠI NHIỆM VỤ",
+                                "taskCardCount":  1,
+                                "theme":  "light",
+                                "width":  1280
+                            }
+    },
+    {
+        "cell":  "1280-VI-light",
+        "surface":  "Notification popover",
+        "observedAt":  "2026-09-30T14:01:57.4634689+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  2,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  1,
+                       "theme":  "light",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-light",
+        "surface":  "Edit modal",
+        "observedAt":  "2026-09-30T14:01:57.7939902+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+                                       {
+                                           "inputs":  [
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "5000"
+                                                          },
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "2"
+                                                          }
+                                                      ],
+                                           "text":  "Sửa\n\nTheo dõi số dư USDC\n\nNgưỡng · USDC\nChu kỳ kiểm tra · phút\nHủy\nLưu thay đổi"
+                                       }
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  3,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-light",
+        "surface":  "Browser diagnostics",
+        "observedAt":  "2026-09-30T14:01:57.9283769+07:00",
+        "pageErrors":  "",
+        "console":  ""
+    },
+    {
+        "cell":  "390-VI-light",
+        "surface":  "Home",
+        "observedAt":  "2026-09-30T14:01:58.2043437+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(0, 0, 0, 0)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-light",
+        "surface":  "Monitor mode",
+        "observedAt":  "2026-09-30T14:01:58.3153605+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.97)",
+                                        "color":  "rgb(13, 13, 18)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.03)",
+                                        "color":  "rgb(72, 72, 85)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-light",
+        "surface":  "Automate mode",
+        "observedAt":  "2026-09-30T14:01:58.4161413+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.03)",
+                                        "color":  "rgb(72, 72, 85)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.608)",
+                                        "color":  "rgb(24, 24, 30)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-light",
+        "surface":  "Tasks page and controls",
+        "observedAt":  "2026-09-30T14:01:58.5391630+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-light",
+        "surface":  "Task review UI",
+        "observedAt":  "2026-09-30T14:01:58.7991638+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  390
+                   },
+        "recheckedMetric":  {
+                                "overflowPx":  0,
+                                "reviewCreateButton":  true,
+                                "reviewText":  "XEM LẠI NHIỆM VỤ",
+                                "taskCardCount":  1,
+                                "theme":  "light",
+                                "width":  390
+                            }
+    },
+    {
+        "cell":  "390-VI-light",
+        "surface":  "Notification popover",
+        "observedAt":  "2026-09-30T14:01:58.9061474+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  2,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  1,
+                       "theme":  "light",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-light",
+        "surface":  "Edit modal",
+        "observedAt":  "2026-09-30T14:01:59.3924853+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+                                       {
+                                           "inputs":  [
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "5000"
+                                                          },
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "2"
+                                                          }
+                                                      ],
+                                           "text":  "Sửa\n\nTheo dõi số dư USDC\n\nNgưỡng · USDC\nChu kỳ kiểm tra · phút\nHủy\nLưu thay đổi"
+                                       }
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  3,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "rgba(15, 15, 22, 0.043)",
+                                        "color":  "rgb(74, 74, 87)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "light",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-light",
+        "surface":  "Browser diagnostics",
+        "observedAt":  "2026-09-30T14:01:59.6419534+07:00",
+        "pageErrors":  "",
+        "console":  ""
+    },
+    {
+        "cell":  "1440-VI-dark",
+        "surface":  "Home",
+        "observedAt":  "2026-09-30T14:02:00.0542400+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(0, 0, 0, 0)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-dark",
+        "surface":  "Monitor mode",
+        "observedAt":  "2026-09-30T14:02:00.2012361+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(0, 0, 0, 0)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-dark",
+        "surface":  "Automate mode",
+        "observedAt":  "2026-09-30T14:02:00.2982350+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.08)",
+                                        "color":  "rgb(151, 151, 161)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.404)",
+                                        "color":  "rgb(57, 57, 64)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-dark",
+        "surface":  "Tasks page and controls",
+        "observedAt":  "2026-09-30T14:02:00.4198356+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-dark",
+        "surface":  "Task review UI",
+        "observedAt":  "2026-09-30T14:02:00.5158549+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1440
+                   },
+        "recheckedMetric":  {
+                                "overflowPx":  0,
+                                "reviewCreateButton":  true,
+                                "reviewText":  "XEM LẠI NHIỆM VỤ",
+                                "taskCardCount":  1,
+                                "theme":  "dark",
+                                "width":  1440
+                            }
+    },
+    {
+        "cell":  "1440-VI-dark",
+        "surface":  "Notification popover",
+        "observedAt":  "2026-09-30T14:02:00.6208372+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  2,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  1,
+                       "theme":  "dark",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-dark",
+        "surface":  "Edit modal",
+        "observedAt":  "2026-09-30T14:02:00.9460371+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1440,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+                                       {
+                                           "inputs":  [
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "5000"
+                                                          },
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "2"
+                                                          }
+                                                      ],
+                                           "text":  "Sửa\n\nTheo dõi số dư USDC\n\nNgưỡng · USDC\nChu kỳ kiểm tra · phút\nHủy\nLưu thay đổi"
+                                       }
+                                   ],
+                       "documentWidth":  1440,
+                       "height":  900,
+                       "homeTaskCount":  3,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1440
+                   }
+    },
+    {
+        "cell":  "1440-VI-dark",
+        "surface":  "Browser diagnostics",
+        "observedAt":  "2026-09-30T14:02:01.0856680+07:00",
+        "pageErrors":  "",
+        "console":  ""
+    },
+    {
+        "cell":  "1280-VI-dark",
+        "surface":  "Home",
+        "observedAt":  "2026-09-30T14:02:01.3219831+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(0, 0, 0, 0)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-dark",
+        "surface":  "Monitor mode",
+        "observedAt":  "2026-09-30T14:02:01.4343614+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.97)",
+                                        "color":  "rgb(16, 16, 21)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.03)",
+                                        "color":  "rgb(158, 158, 168)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-dark",
+        "surface":  "Automate mode",
+        "observedAt":  "2026-09-30T14:02:01.5669620+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(0, 0, 0, 0)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.784)",
+                                        "color":  "rgb(16, 16, 21)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-dark",
+        "surface":  "Tasks page and controls",
+        "observedAt":  "2026-09-30T14:02:01.6869474+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-dark",
+        "surface":  "Task review UI",
+        "observedAt":  "2026-09-30T14:02:01.7819616+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1280
+                   },
+        "recheckedMetric":  {
+                                "overflowPx":  0,
+                                "reviewCreateButton":  true,
+                                "reviewText":  "XEM LẠI NHIỆM VỤ",
+                                "taskCardCount":  1,
+                                "theme":  "dark",
+                                "width":  1280
+                            }
+    },
+    {
+        "cell":  "1280-VI-dark",
+        "surface":  "Notification popover",
+        "observedAt":  "2026-09-30T14:02:01.8879434+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  2,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  1,
+                       "theme":  "dark",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-dark",
+        "surface":  "Edit modal",
+        "observedAt":  "2026-09-30T14:02:02.2240341+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  1280,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+                                       {
+                                           "inputs":  [
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "5000"
+                                                          },
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "2"
+                                                          }
+                                                      ],
+                                           "text":  "Sửa\n\nTheo dõi số dư USDC\n\nNgưỡng · USDC\nChu kỳ kiểm tra · phút\nHủy\nLưu thay đổi"
+                                       }
+                                   ],
+                       "documentWidth":  1280,
+                       "height":  800,
+                       "homeTaskCount":  3,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  1280
+                   }
+    },
+    {
+        "cell":  "1280-VI-dark",
+        "surface":  "Browser diagnostics",
+        "observedAt":  "2026-09-30T14:02:02.3546772+07:00",
+        "pageErrors":  "",
+        "console":  ""
+    },
+    {
+        "cell":  "390-VI-dark",
+        "surface":  "Home",
+        "observedAt":  "2026-09-30T14:02:02.6224769+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(0, 0, 0, 0)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-dark",
+        "surface":  "Monitor mode",
+        "observedAt":  "2026-09-30T14:02:02.7353226+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.97)",
+                                        "color":  "rgb(16, 16, 21)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.03)",
+                                        "color":  "rgb(158, 158, 168)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-dark",
+        "surface":  "Automate mode",
+        "observedAt":  "2026-09-30T14:02:02.8484822+07:00",
+        "metric":  {
+                       "alertHistoryCount":  0,
+                       "alertText":  [
+                                         "Không thể tải giá để định giá số dư. Thử lại"
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Tạm dừng",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Chạy ngay",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Sửa",
+                                            "present":  false
+                                        },
+                                        {
+                                            "disabled":  null,
+                                            "name":  "Xóa",
+                                            "present":  false
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Chào buổi chiều. Makoto có thể làm gì cho bạn?",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.008)",
+                                        "color":  "rgb(162, 162, 172)",
+                                        "selected":  "false",
+                                        "text":  "Hỏi"
+                                    },
+                                    {
+                                        "background":  "rgba(142, 254, 126, 0.325)",
+                                        "color":  "rgb(71, 71, 78)",
+                                        "selected":  "false",
+                                        "text":  "Theo dõi"
+                                    }
+                                ],
+                       "taskCardCount":  0,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-dark",
+        "surface":  "Tasks page and controls",
+        "observedAt":  "2026-09-30T14:02:02.9745455+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-dark",
+        "surface":  "Task review UI",
+        "observedAt":  "2026-09-30T14:02:03.2331417+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  1,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  false,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  390
+                   },
+        "recheckedMetric":  {
+                                "overflowPx":  0,
+                                "reviewCreateButton":  true,
+                                "reviewText":  "XEM LẠI NHIỆM VỤ",
+                                "taskCardCount":  1,
+                                "theme":  "dark",
+                                "width":  390
+                            }
+    },
+    {
+        "cell":  "390-VI-dark",
+        "surface":  "Notification popover",
+        "observedAt":  "2026-09-30T14:02:03.3403701+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  2,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  1,
+                       "theme":  "dark",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-dark",
+        "surface":  "Edit modal",
+        "observedAt":  "2026-09-30T14:02:03.7955111+07:00",
+        "metric":  {
+                       "alertHistoryCount":  1,
+                       "alertText":  [
+
+                                     ],
+                       "bodyWidth":  390,
+                       "busyCount":  0,
+                       "controls":  [
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Tạm dừng",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Chạy ngay",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Sửa",
+                                            "present":  true
+                                        },
+                                        {
+                                            "disabled":  false,
+                                            "name":  "Xóa",
+                                            "present":  true
+                                        }
+                                    ],
+                       "dialogs":  [
+                                       {
+                                           "inputs":  [
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "5000"
+                                                          },
+                                                          {
+                                                              "name":  "",
+                                                              "value":  "2"
+                                                          }
+                                                      ],
+                                           "text":  "Sửa\n\nTheo dõi số dư USDC\n\nNgưỡng · USDC\nChu kỳ kiểm tra · phút\nHủy\nLưu thay đổi"
+                                       }
+                                   ],
+                       "documentWidth":  390,
+                       "height":  844,
+                       "homeTaskCount":  3,
+                       "loadingText":  false,
+                       "overflowPx":  0,
+                       "pageHeading":  "Nhiệm vụ",
+                       "reviewCreateButton":  true,
+                       "tabs":  [
+                                    {
+                                        "background":  "rgb(142, 254, 126)",
+                                        "color":  "rgb(11, 11, 16)",
+                                        "selected":  "true",
+                                        "text":  "Theo dõi"
+                                    },
+                                    {
+                                        "background":  "oklab(0.999994 0.0000455678 0.0000200868 / 0.04)",
+                                        "color":  "rgb(163, 163, 173)",
+                                        "selected":  "false",
+                                        "text":  "Tự động"
+                                    }
+                                ],
+                       "taskCardCount":  1,
+                       "taskNotificationCount":  0,
+                       "theme":  "dark",
+                       "width":  390
+                   }
+    },
+    {
+        "cell":  "390-VI-dark",
+        "surface":  "Browser diagnostics",
+        "observedAt":  "2026-09-30T14:02:04.0401577+07:00",
+        "pageErrors":  "",
+        "console":  ""
+    }
+]

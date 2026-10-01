@@ -1,0 +1,72 @@
+
+> frontend@0.0.0 test:ux
+> node --experimental-strip-types --test src/lib/agentSuggestions.test.ts src/lib/walletProviders.test.ts
+
+✔ vi ask exposes exactly five distinct ordinary user inputs (3.0147ms)
+✔ vi monitor exposes exactly five distinct ordinary user inputs (0.2801ms)
+✔ vi automation exposes exactly five distinct ordinary user inputs (0.2429ms)
+✔ vi Ask portfolio-value reaches an existing deterministic read (3.5621ms)
+✔ vi Ask holdings reaches an existing deterministic read (0.72ms)
+✔ vi Ask recent-activity reaches an existing deterministic read (0.6266ms)
+✔ vi Ask token-balances reaches an existing deterministic read (0.3858ms)
+✔ vi Ask network-status reaches an existing deterministic read (0.4575ms)
+✔ vi monitor usdc-below-100 parses through the ordinary request and runs an existing read task (56.0881ms)
+✔ vi monitor eurc-below-50 parses through the ordinary request and runs an existing read task (3.5764ms)
+✔ vi monitor cirbtc-below-001 parses through the ordinary request and runs an existing read task (2.6824ms)
+✔ vi monitor usdc-above-1000 parses through the ordinary request and runs an existing read task (2.4951ms)
+✔ vi monitor eurc-above-200 parses through the ordinary request and runs an existing read task (2.5967ms)
+✔ vi automation portfolio-morning parses through the ordinary request and runs an existing read task (8.8737ms)
+✔ vi automation activity-evening parses through the ordinary request and runs an existing read task (7.1498ms)
+✔ vi automation balances-morning parses through the ordinary request and runs an existing read task (4.9821ms)
+✔ vi automation portfolio-evening parses through the ordinary request and runs an existing read task (6.4022ms)
+✔ vi automation transactions-evening parses through the ordinary request and runs an existing read task (7.7683ms)
+✔ en ask exposes exactly five distinct ordinary user inputs (0.2083ms)
+✔ en monitor exposes exactly five distinct ordinary user inputs (4.8515ms)
+✔ en automation exposes exactly five distinct ordinary user inputs (0.1755ms)
+✔ en Ask portfolio-value reaches an existing deterministic read (0.7796ms)
+✔ en Ask holdings reaches an existing deterministic read (0.2312ms)
+✔ en Ask recent-activity reaches an existing deterministic read (0.2638ms)
+✔ en Ask token-balances reaches an existing deterministic read (0.1851ms)
+✔ en Ask network-status reaches an existing deterministic read (0.1646ms)
+✔ en monitor usdc-below-100 parses through the ordinary request and runs an existing read task (2.8248ms)
+✔ en monitor eurc-below-50 parses through the ordinary request and runs an existing read task (2.1924ms)
+✔ en monitor cirbtc-below-001 parses through the ordinary request and runs an existing read task (2.4376ms)
+✔ en monitor usdc-above-1000 parses through the ordinary request and runs an existing read task (2.1011ms)
+✔ en monitor eurc-above-200 parses through the ordinary request and runs an existing read task (2.0955ms)
+✔ en automation portfolio-morning parses through the ordinary request and runs an existing read task (4.5723ms)
+✔ en automation activity-evening parses through the ordinary request and runs an existing read task (5.7958ms)
+✔ en automation balances-morning parses through the ordinary request and runs an existing read task (4.5284ms)
+✔ en automation portfolio-evening parses through the ordinary request and runs an existing read task (4.337ms)
+✔ en automation transactions-evening parses through the ordinary request and runs an existing read task (6.2624ms)
+✔ locale and mode changes immediately provide new suggestions without altering captured original text (0.396ms)
+✔ suggestions avoid unsupported balance changes, portfolio conditions, weekly schedules, and implicit times (1.0694ms)
+✔ no wallet provider lists no installed wallet and cannot connect (4.1378ms)
+✔ OKX only uses the available legacy provider (1.2911ms)
+✔ MetaMask only is discovered without an ethereum global and requires selection (1.4422ms)
+✔ Rabby only stays Rabby even with a MetaMask compatibility flag (0.5868ms)
+✔ OKX plus MetaMask legacy providers are distinct and neither is silently chosen (0.6558ms)
+✔ MetaMask plus Rabby announces both providers without picking announcement order (0.836ms)
+✔ all three supported wallets and another compatible announced wallet are selectable (0.701ms)
+✔ explicit selection only replaces the current provider after validated connection completes (0.7476ms)
+✔ selected Rabby receives connection and subsequent Tool Layer reads despite an OKX global (1.3577ms)
+✔ wallet rejection preserves the current provider and saved preference (0.7725ms)
+✔ account unavailable or malformed rejects without committing provider selection (0.5483ms)
+✔ wrong chain readback rejects without replacing a validated current wallet (0.4669ms)
+✔ watch-only clears provider access and existing policy denies signing authority (16.0059ms)
+✔ connection stores metadata only and has no private-key or wallet-signature path (0.5265ms)
+✔ cancel during the wallet popup prevents a late approval from replacing selection (0.6523ms)
+✔ reload restores selected rdns with a new UUID and refuses a missing or ambiguous wallet (0.4076ms)
+✔ copied UUID, repeated announcements, and legacy aliases cannot replace selected identity (0.3305ms)
+✔ legacy providers array discovers individual providers without connecting the container (0.4347ms)
+✔ late announcements notify provider consumers and disconnected selection never falls back (0.6077ms)
+✔ untrusted announcement metadata is inert and invalid image sources are discarded (0.2882ms)
+✔ account changes during connection fail before provider commit (0.4062ms)
+ℹ tests 59
+ℹ suites 0
+ℹ pass 59
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2211.6956
+

@@ -1,0 +1,43 @@
+
+> frontend@0.0.0 test:agent
+> node --experimental-strip-types --test src/agent/*.test.ts
+
+✔ chat client uses the backend boundary and bounds history (32.4163ms)
+✔ chat client keeps at most twelve turns and a bounded character budget (1.1507ms)
+✔ chat client turns backend and network failures into a local fallback signal (1.0299ms)
+✔ chat context is short lived, text only, and bounded (2.697ms)
+✔ asset follow ups use the preceding wallet question only (6.5278ms)
+✔ routes greetings, capabilities, thanks, and goodbye to local chat (5.2997ms)
+✔ routes canonical wallet questions to information (2.704ms)
+✔ routes English and Vietnamese time questions to deterministic information (0.7389ms)
+✔ routes complete and incomplete writes to deterministic action planning (7.1169ms)
+✔ safety language stays local and cannot grant execution authority (0.4284ms)
+✔ Vietnamese portfolio question stays on Home and preserves exact original text (40.5384ms)
+✔ leading whitespace, punctuation and Vietnamese original wording remain unchanged (0.9674ms)
+✔ simple USDC balance query stays inline and reads only requested output (2.1325ms)
+✔ holdings question uses existing deterministic Brain capability (0.7222ms)
+✔ recent activity stays inline, preserves observed status and is compact (1.8521ms)
+✔ cancelled wallet activity has a localized cancellation state (0.6673ms)
+✔ Send, Swap, Bridge and sequential actions retain Agent handoff (6.1711ms)
+✔ task modes retain review workflow rather than answering as balances (0.2273ms)
+✔ English question and generated answer remain English (0.8953ms)
+✔ locale switch regenerates system evidence without changing historical user input (2.0342ms)
+✔ portfolio uses the canonical store valuation and never recalculates prices (0.6982ms)
+✔ missing prices does not invent a total and verified balances stay useful (0.8346ms)
+✔ disconnected reads do not turn demo balances into wallet evidence (0.456ms)
+✔ public-address watch reads do not request a wallet or signer (0.6005ms)
+✔ connected account and chain changes block stale wallet evidence (0.3923ms)
+✔ live global network read works without a connected wallet (0.531ms)
+✔ network stale, failed and mismatched chain snapshots are unavailable (0.2203ms)
+✔ wallet snapshot requires verified metadata and all canonical token balances (0.3168ms)
+✔ privacy masking covers total, token and activity amounts at render time (1.1853ms)
+✔ completed wallet evidence becomes unavailable after account, mode or chain changes (0.8433ms)
+✔ current time tool returns browser-local date, time, timezone, and offset (40.7834ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2717.5536

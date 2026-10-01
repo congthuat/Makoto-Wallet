@@ -1,0 +1,247 @@
+{
+  "basis": "Summary of recorded final browser measurements; chart heights rounded to whole CSS pixels.",
+  "combinations": 12,
+  "surfaceChecks": 24,
+  "results": [
+    {
+      "language": "VI",
+      "theme": "light",
+      "width": 1440,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "VI",
+      "theme": "light",
+      "width": 1280,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "VI",
+      "theme": "light",
+      "width": 390,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "VI",
+      "theme": "dark",
+      "width": 1440,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "VI",
+      "theme": "dark",
+      "width": 1280,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "VI",
+      "theme": "dark",
+      "width": 390,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "EN",
+      "theme": "light",
+      "width": 1440,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "EN",
+      "theme": "light",
+      "width": 1280,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "EN",
+      "theme": "light",
+      "width": 390,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "EN",
+      "theme": "dark",
+      "width": 1440,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "EN",
+      "theme": "dark",
+      "width": 1280,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    },
+    {
+      "language": "EN",
+      "theme": "dark",
+      "width": 390,
+      "pages": [
+        {
+          "page": "Home",
+          "chartHeight": 80
+        },
+        {
+          "page": "Portfolio",
+          "chartHeight": 170
+        }
+      ],
+      "state": "chart",
+      "documentOverflow": 0,
+      "sectionOverflow": 0,
+      "chartInsideSection": true,
+      "rangeButtons": 5
+    }
+  ]
+}

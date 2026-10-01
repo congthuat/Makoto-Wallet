@@ -1,0 +1,30 @@
+{
+  "observedAt": "2026-10-01T11:41:28.197Z",
+  "fixturesOnly": true,
+  "results": [
+    {
+      "name": "analytics-fixture-malformed-vi-light",
+      "pass": true,
+      "fixture": true,
+      "kind": "malformed",
+      "lang": "vi",
+      "theme": "light",
+      "intercepted": [
+        "/api/arc/stats",
+        "/api/arc/network",
+        "/api/arc/feed",
+        "/api/arc/holders"
+      ],
+      "mutationsBlocked": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "layout": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "mainWidth": 390,
+        "mainScrollWidth": 390
+      },
+      "text": "Phân tích\n\nPhân tích dữ liệu onchain của Arc và hoạt động mạng theo thời gian thực.\n\nChỉ đọc · Không thực hiện giao dịch\n\nNhịp mạng Arc\n\nDữ liệu mạng Arc hiện chưa khả dụng.\n\nDữ liệu từ trình khám phá Arc hiện chưa khả dụng.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá"
+    }
+  ]
+}

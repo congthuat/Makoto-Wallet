@@ -1,0 +1,60 @@
+
+> frontend@0.0.0 build:client
+> vite build --outDir dist/client
+
+vite v6.4.2 building for production...
+transforming...
+✓ 3079 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/client/index.html                              3.89 kB │ gzip:   1.54 kB
+dist/client/assets/index-B3QHYdi4.css             121.84 kB │ gzip:  20.81 kB
+dist/client/assets/formatUnits-CX1mc9Rw.js          0.09 kB │ gzip:   0.10 kB
+dist/client/assets/circle-Dh3b3aPS.js               0.30 kB │ gzip:   0.24 kB
+dist/client/assets/arrow-right-CMc43zVp.js          0.33 kB │ gzip:   0.26 kB
+dist/client/assets/circle-check-DnEjvyTI.js         0.34 kB │ gzip:   0.27 kB
+dist/client/assets/clock-0OabrqDD.js                0.35 kB │ gzip:   0.27 kB
+dist/client/assets/lock-Laariz97.js                 0.37 kB │ gzip:   0.29 kB
+dist/client/assets/book-user-DTdwPnRd.js            0.46 kB │ gzip:   0.33 kB
+dist/client/assets/index-CFqUQ_YF.js                0.48 kB │ gzip:   0.35 kB
+dist/client/assets/shield-check-C7qCgnfS.js         0.49 kB │ gzip:   0.35 kB
+dist/client/assets/refresh-cw-dWqg1pq0.js           0.49 kB │ gzip:   0.32 kB
+dist/client/assets/trash-2-DjozJxOR.js              0.52 kB │ gzip:   0.35 kB
+dist/client/assets/jsx-runtime-D_zvdyIk.js          0.73 kB │ gzip:   0.46 kB
+dist/client/assets/hmac-BuBvgd3r.js                 1.35 kB │ gzip:   0.60 kB
+dist/client/assets/ErrorBoundary-CtK7-_rg.js        1.95 kB │ gzip:   0.96 kB
+dist/client/assets/ccip-DCb-5qNL.js                 3.31 kB │ gzip:   1.53 kB
+dist/client/assets/index-CVSg2cOJ.js                4.66 kB │ gzip:   2.09 kB
+dist/client/assets/policy-_fY5pe70.js               4.76 kB │ gzip:   1.96 kB
+dist/client/assets/Faucet-C3TFB16z.js               5.71 kB │ gzip:   2.22 kB
+dist/client/assets/AssetsActivity-BNZ73SQS.js       5.91 kB │ gzip:   2.45 kB
+dist/client/assets/TaskReviewCard-C2pOccal.js       7.17 kB │ gzip:   3.15 kB
+dist/client/assets/Audit-CCoyCCOp.js                8.33 kB │ gzip:   3.37 kB
+dist/client/assets/index-FD8I3bBI.js                8.56 kB │ gzip:   3.29 kB
+dist/client/assets/Settings-BTWEnEBG.js            11.21 kB │ gzip:   4.11 kB
+dist/client/assets/Product-oOMC6PEL.js             14.47 kB │ gzip:   5.64 kB
+dist/client/assets/Tasks-CSTk50ZN.js               14.82 kB │ gzip:   5.14 kB
+dist/client/assets/useQuery-CYYG67Q_.js            26.34 kB │ gzip:   8.70 kB
+dist/client/assets/index-BoVmL0tN.js               27.77 kB │ gzip:   8.64 kB
+dist/client/assets/Send-CwCOXAHM.js                30.44 kB │ gzip:   9.53 kB
+dist/client/assets/Agent-Dxx_vw9I.js               34.50 kB │ gzip:  12.54 kB
+dist/client/assets/SwapBridge-Csf-e-5l.js          60.81 kB │ gzip:  17.47 kB
+dist/client/assets/index-CvLVBliU.js               75.95 kB │ gzip:  23.70 kB
+dist/client/assets/index.browser.esm-C7hNKZFa.js  110.99 kB │ gzip:  37.19 kB
+dist/client/assets/client-Dd7DrtX_.js             185.32 kB │ gzip:  58.00 kB
+dist/client/assets/index-B-7qNXi0.js              287.76 kB │ gzip:  77.87 kB
+dist/client/assets/App-mr1Pci3y.js                472.30 kB │ gzip: 152.81 kB
+dist/client/assets/next-BdXgvs6K.js               551.17 kB │ gzip: 148.46 kB
+✓ built in 8.86s
+
+[plugin vite:reporter] 
+(!) C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/Dashboard.tsx is dynamically imported by C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/App.tsx but also statically imported by C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/AssetsActivity.tsx, C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/Home.tsx, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/Insights.tsx is dynamically imported by C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/App.tsx but also statically imported by C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/Home.tsx, dynamic import will not move module into another chunk.
+
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

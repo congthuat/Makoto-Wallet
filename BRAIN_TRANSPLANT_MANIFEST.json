@@ -1,0 +1,21 @@
+{
+  "target": "makoto-wallet.zip",
+  "donor": "Makoto-Wallet-Current-Surf.zip",
+  "strategy": "preserve-target-add-brain",
+  "phase13Included": false,
+  "activeIntegration": [
+    "frontend/src/brain/parser.ts",
+    "frontend/src/brain/orchestration.ts",
+    "frontend/src/brain/policy.ts",
+    "frontend/src/brain/handoff.ts",
+    "frontend/src/brain/lifecycle.ts",
+    "frontend/src/brain/adapter.ts",
+    "frontend/src/pages/Agent.tsx",
+    "frontend/src/pages/Send.tsx",
+    "frontend/src/pages/SwapBridge.tsx"
+  ],
+  "donorReference": "brain-donor-reference/",
+  "preservationRule": "All target files/features remain unless a file is explicitly extended for brain integration.",
+  "signingRule": "User-connected wallet remains final signing authority; Agent remains prepare-only.",
+  "executionState": "Live donor protocol adapters retained as reference, not silently enabled across frameworks."
+}

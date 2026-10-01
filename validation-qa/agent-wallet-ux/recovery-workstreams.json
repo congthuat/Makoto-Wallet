@@ -1,0 +1,134 @@
+{
+  "checkpoint": "Current filesystem; recovered before final locale and validation closeout",
+  "modifiedExistingBaselineFiles": [
+    "frontend/package.json",
+    "frontend/src/brain/parser.ts",
+    "frontend/src/components/wallet/shared.tsx",
+    "frontend/src/lib/i18n-extra.ts",
+    "frontend/src/lib/store.tsx",
+    "frontend/src/lib/wallet.ts",
+    "frontend/src/migrated/toolLayer.ts",
+    "frontend/src/pages/Agent.tsx",
+    "frontend/src/pages/Home.tsx"
+  ],
+  "addedFrontendSourceFiles": [
+    "frontend/src/agent/homeRequest.test.ts",
+    "frontend/src/agent/homeRequest.ts",
+    "frontend/src/components/wallet/WalletProviderIcon.tsx",
+    "frontend/src/lib/agentSuggestions.test.ts",
+    "frontend/src/lib/agentSuggestions.ts",
+    "frontend/src/lib/walletPickerCopy.ts",
+    "frontend/src/lib/walletProviders.test.ts",
+    "frontend/src/lib/walletProviders.ts"
+  ],
+  "additionalUxTest": "frontend/tests/agent-task-locale.test.mjs",
+  "localWalletAssets": [
+    "frontend/public/wallets/metamask.svg",
+    "frontend/public/wallets/rabby.svg"
+  ],
+  "packageChange": "Only test:ux npm script added; no dependency additions or lockfile change required.",
+  "workstreams": [
+    {
+      "id": "A",
+      "workstream": "Home quick-answer routing",
+      "status": "COMPLETE",
+      "evidence": "Current Home routes single supported reads through Brain/Planner and Tool Layer; Home browser matrix and Home request tests pass."
+    },
+    {
+      "id": "B",
+      "workstream": "Original user text preservation",
+      "status": "COMPLETE",
+      "evidence": "User messages render exact m.text; normalized intent is separate. Suggestion text is submitted unchanged."
+    },
+    {
+      "id": "C",
+      "workstream": "VI/EN locale consistency",
+      "status": "PARTIAL",
+      "evidence": "Quick answers, suggestions, task reply metadata and missing-field labels follow current locale. Agent action/safety flow copy still has pretranslated stored strings pending final bounded correction."
+    },
+    {
+      "id": "D",
+      "workstream": "Dedicated Agent handoff",
+      "status": "COMPLETE",
+      "evidence": "Supported action/workflow/task intents hand off; six VI/EN workflow browser cases preserve text."
+    },
+    {
+      "id": "E",
+      "workstream": "EIP-6963 wallet discovery",
+      "status": "COMPLETE",
+      "evidence": "Announcement/request handshake, provider identity, validated inert metadata, deduplication, late announcements and legacy injection tested."
+    },
+    {
+      "id": "F",
+      "workstream": "Multi-wallet picker UI",
+      "status": "COMPLETE",
+      "evidence": "Individual truthful named/icon/status rows; existing wallet browser QA passes 30 cases."
+    },
+    {
+      "id": "G",
+      "workstream": "OKX",
+      "status": "COMPLETE",
+      "evidence": "Announced and legacy OKX fixtures supported."
+    },
+    {
+      "id": "H",
+      "workstream": "MetaMask",
+      "status": "COMPLETE",
+      "evidence": "Announced and legacy MetaMask fixtures supported; local official fallback icon."
+    },
+    {
+      "id": "I",
+      "workstream": "Rabby",
+      "status": "COMPLETE",
+      "evidence": "Announced and legacy Rabby fixtures supported despite compatibility flags; local official fallback icon."
+    },
+    {
+      "id": "J",
+      "workstream": "Explicit selected-provider connection",
+      "status": "COMPLETE",
+      "evidence": "Only selected provider receives connection calls; readback/cancellation failures cannot commit another provider."
+    },
+    {
+      "id": "K",
+      "workstream": "Watch-only mode",
+      "status": "COMPLETE",
+      "evidence": "Watch clears selection and existing write/signing guards remain; reload fixture tested."
+    },
+    {
+      "id": "L",
+      "workstream": "Ask suggestions",
+      "status": "COMPLETE",
+      "evidence": "Exact five VI and five EN target inputs reach supported inline deterministic reads."
+    },
+    {
+      "id": "M",
+      "workstream": "Monitor suggestions",
+      "status": "COMPLETE",
+      "evidence": "Exact five per locale use supported token thresholds; production parser plus isolated current engine runs pass."
+    },
+    {
+      "id": "N",
+      "workstream": "Automate suggestions",
+      "status": "COMPLETE",
+      "evidence": "Exact five per locale use supported daily HH:MM schedules; production parser plus isolated current engine runs pass."
+    },
+    {
+      "id": "O",
+      "workstream": "Responsive QA",
+      "status": "COMPLETE",
+      "evidence": "Recorded Home 1440/1280/390 EN/VI dark/light matrix, wallet 1440/390 matrix, and 24 live scroll cases pass."
+    },
+    {
+      "id": "P",
+      "workstream": "Tests",
+      "status": "PARTIAL",
+      "evidence": "Original all-seven frontend suites passed 233 distinct tests. Final affected Agent/UI/UX/type-check/lint/build rerun pending latest locale copy correction."
+    },
+    {
+      "id": "Q",
+      "workstream": "Docs",
+      "status": "PARTIAL",
+      "evidence": "AGENT_HOME_UX and evidence report exist; latest PROJECT_STATE/final validation closeout pending."
+    }
+  ]
+}

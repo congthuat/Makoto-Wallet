@@ -1,0 +1,4760 @@
+{
+  "observedAt": "2026-10-01T11:59:47.122Z",
+  "summary": {
+    "routeStatuses": {
+      "http://localhost:3001/api/arc/network": 200,
+      "http://localhost:3001/api/arc/stats": 200,
+      "http://localhost:3001/api/arc/feed": 200,
+      "http://localhost:3001/api/arc/holders": 200,
+      "https://explorer.testnet.arc.io/api/v2/stats": 200,
+      "https://explorer.testnet.arc.io/api/v2/tokens/0x3600000000000000000000000000000000000000": 200,
+      "https://explorer.testnet.arc.io/api/v2/tokens/0x3600000000000000000000000000000000000000/holders": 200
+    },
+    "liveCount": 30,
+    "largestCount": 12,
+    "liveSortedByBlockLogDescending": true,
+    "largestSortedByTokenAmountDescending": true,
+    "feedDuplicates": [
+      {
+        "key": "live",
+        "count": 0
+      },
+      {
+        "key": "whales",
+        "count": 0
+      }
+    ],
+    "verySmallAmounts": [],
+    "transferSamplesChecked": 6,
+    "transferSamplesMatched": 6,
+    "holderCount": 10,
+    "rawHoldersDescending": true,
+    "holderRankAddressesMatchRaw": true,
+    "holderBalanceChecks": [
+      {
+        "address": "0x4E42177AB52202Ced872A5EF661dfc4794bB37bF",
+        "backendBalance": 247176457968.8724,
+        "rawInteger": "247176457968872404",
+        "sameObservedBalance": true
+      },
+      {
+        "address": "0x591e17159fB5385bDC254Af2997554303F844cc7",
+        "backendBalance": 46399027910.264885,
+        "rawInteger": "46399027910264886",
+        "sameObservedBalance": true
+      },
+      {
+        "address": "0xF192691256Ad47EE5d4033d6979cDAeA23180Ad8",
+        "backendBalance": 9999892549.0964,
+        "rawInteger": "9999892549096399",
+        "sameObservedBalance": true
+      },
+      {
+        "address": "0x57414adbBbc4BBA36f1dE26b2dc1648b28ae7799",
+        "backendBalance": 8999899458.884674,
+        "rawInteger": "8999899458884674",
+        "sameObservedBalance": true
+      },
+      {
+        "address": "0xb51ff1E163Ee26144E627fF525766E60b07E21CE",
+        "backendBalance": 1000000000,
+        "rawInteger": "1000000000000000",
+        "sameObservedBalance": true
+      },
+      {
+        "address": "0x4f1c3a0359A7fAd8Fa8E9E872F7C06dAd97C91Fd",
+        "backendBalance": 999999736.912972,
+        "rawInteger": "999999736912972",
+        "sameObservedBalance": true
+      },
+      {
+        "address": "0x23FAfBB6A25bb42985a9eF7fF7837fe94118B531",
+        "backendBalance": 506108497.722799,
+        "rawInteger": "506108497722799",
+        "sameObservedBalance": true
+      },
+      {
+        "address": "0xF8891cB59BfF4D4a10C50727a613c7d0Bec2F778",
+        "backendBalance": 100000011.01,
+        "rawInteger": "100000011010000",
+        "sameObservedBalance": true
+      },
+      {
+        "address": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107",
+        "backendBalance": 99887058.14282,
+        "rawInteger": "99887058142820",
+        "sameObservedBalance": true
+      },
+      {
+        "address": "0x6063e834928EaC1ca47ac5Da27838079a103e305",
+        "backendBalance": 97864388.95352,
+        "rawInteger": "97864388953520",
+        "sameObservedBalance": true
+      }
+    ],
+    "metadataDecimals": "6",
+    "circulatingSupply": null,
+    "sourceFreshnessClaim": "Observation times record reads only; feed/cache/explorer indexed origin freshness is not established.",
+    "writes": 0,
+    "paidRequests": 0
+  },
+  "routes": {
+    "network": {
+      "url": "http://localhost:3001/api/arc/network",
+      "startedAt": "2026-10-01T11:59:41.548Z",
+      "observedAt": "2026-10-01T11:59:41.853Z",
+      "status": 200,
+      "data": {
+        "chainId": 5042002,
+        "blockNumber": 64942879,
+        "gasPriceGwei": 25,
+        "transferFeeUsdc": 0.000525,
+        "tokenTransferFeeUsdc": 0.001625,
+        "rpcLatencyMs": 226,
+        "updatedAt": 1790855981852
+      }
+    },
+    "stats": {
+      "url": "http://localhost:3001/api/arc/stats",
+      "startedAt": "2026-10-01T11:59:41.610Z",
+      "observedAt": "2026-10-01T11:59:42.134Z",
+      "status": 200,
+      "data": {
+        "totalTransactions": 764643189,
+        "transactionsToday": 1108332,
+        "totalAddresses": 55179846,
+        "totalBlocks": 64930136,
+        "utilization": 3.6616812,
+        "gas": {
+          "slow": 23.41,
+          "average": 24.97,
+          "fast": 27
+        }
+      }
+    },
+    "feed": {
+      "url": "http://localhost:3001/api/arc/feed",
+      "startedAt": "2026-10-01T11:59:41.611Z",
+      "observedAt": "2026-10-01T11:59:45.481Z",
+      "status": 200,
+      "data": {
+        "live": [
+          {
+            "hash": "0x465922286159aaae6d22086b917475f791b4f42ce1b64759bf3ae00ec8a4ee7c",
+            "logIndex": 12,
+            "block": 64942879,
+            "timestamp": "2026-10-01T11:59:41.000000Z",
+            "from": "0xB7814e722A507F16974DCF8bd8c45e7Ec850AB93",
+            "to": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+            "fromName": null,
+            "toName": "FlowSwapAMM",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 9.579368,
+            "method": "0x38ed1739"
+          },
+          {
+            "hash": "0x370922cda66349a44cd89652eff9cf868f2aa97737c0ffc182cd76209aa04f6e",
+            "logIndex": 2,
+            "block": 64942879,
+            "timestamp": "2026-10-01T11:59:41.000000Z",
+            "from": "0x350883F32869A13Ff51466Ef26A36Fcc3787657B",
+            "to": "0x359892e49fe7872f94c447306c0b642BeF166120",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 1.5985719999999999,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0x2d5deda4c0d90f0910e70ba6f38cb84d804f4d562bdc4cf4c1970866550f929c",
+            "logIndex": 0,
+            "block": 64942879,
+            "timestamp": "2026-10-01T11:59:41.000000Z",
+            "from": "0xB061fFd6B7883B13B2b833EeA06ACf02596e10DA",
+            "to": "0x94b679C755Ce8805471ab76e5E3229f9EEf9c798",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 1.379892,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0x349ea08103c1949c4f4ceed43ac88012aaba5d1fd9ea01aab363c9781e7a5f3f",
+            "logIndex": 40,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0x7124aE6E7cFe4E55821806A3eF73Af4aC490e642",
+            "to": "0x8214F788885a40Fc2018C15a5e00BCcB9A875Ef2",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 0.022624,
+            "method": null
+          },
+          {
+            "hash": "0x44d12f55a32c8b754b9a781e92a814a109a4a1ad7f1d529e3c2f28d6aa7e3704",
+            "logIndex": 39,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0xEa36b78D53430160584c52A74FE23F1E924bA36B",
+            "to": "0xa3d9Fbd0edB10327ECB73D2C72622E505dF468a2",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 1,
+            "method": "0x775c300c"
+          },
+          {
+            "hash": "0x4a22b6815e561bfcca0f500d0d8f170aef716aad5a8c5f48428b14c2dae83cb8",
+            "logIndex": 38,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0x9cFF94D51748c0e14B30d41F621a4eef1B7C2659",
+            "to": "0xFF5Cb29241F002fFeD2eAa224e3e996D24A6E8d1",
+            "fromName": null,
+            "toName": "router_v_110",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 0,
+            "method": "0xc955f5b4"
+          },
+          {
+            "hash": "0x897f225c3cf37565d20a08feae0047c7df7b073aa89a7bb4138b33415964d620",
+            "logIndex": 36,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0x09a10270F8695EcF06F1b833d04D2aCA316ed353",
+            "to": "0x6dA7b8B190b267E4bc990C9b0e56F1243B5B5663",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 0.028987,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0xe64b0a25329a50b66f69292afb5cf72c876f8e0091172952c61b4f21b888a21e",
+            "logIndex": 32,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0x0Af02c90dabaDadc2Bc1afAf31d266356632C99e",
+            "to": "0xe7FeC2e29C6dE30FAe2F72E026381c9709705fF3",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 0.04505,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0xab266c644c83c37c53c1174ca2701ee084cf64e746210371200ab37c796b756a",
+            "logIndex": 30,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0x2102FbE6777Ef4DA0B09F8d2a037C5a65aBd283A",
+            "to": "0x6BdF0492c363Cc6f04909737A978AbF0c4383ec8",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 1.2965200000000001,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0x7fd11d360d15e9895660ca540ca0c6e1ea5214bc4a38ec119c08db999ff34ce1",
+            "logIndex": 10,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0xb3825D97ccd350A5dBc743b01A19EceFb77D3a0d",
+            "to": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+            "fromName": null,
+            "toName": "FlowSwapAMM",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 6.634737,
+            "method": "0x38ed1739"
+          },
+          {
+            "hash": "0xb4e5c8694fd0799da02e89e99148e7cb0be21fc18f6dca123913dd2d4da10207",
+            "logIndex": 5,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0xb43db544E2c27092c107639Ad201b3dEfAbcF192",
+            "to": "0x0000000000000000000000000000000000000000",
+            "fromName": "TokenMinterV2",
+            "toName": null,
+            "fromContract": true,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 2.442058,
+            "method": "0x513e1175"
+          },
+          {
+            "hash": "0xb4e5c8694fd0799da02e89e99148e7cb0be21fc18f6dca123913dd2d4da10207",
+            "logIndex": 3,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0xC5567a5E3370d4DBfB0540025078e283e36A363d",
+            "to": "0xb43db544E2c27092c107639Ad201b3dEfAbcF192",
+            "fromName": "TransparentUpgradeableProxy",
+            "toName": "TokenMinterV2",
+            "fromContract": true,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 2.442058,
+            "method": "0x513e1175"
+          },
+          {
+            "hash": "0xb4e5c8694fd0799da02e89e99148e7cb0be21fc18f6dca123913dd2d4da10207",
+            "logIndex": 0,
+            "block": 64942877,
+            "timestamp": "2026-10-01T11:59:40.000000Z",
+            "from": "0xAbBcCE7462Cb6A606eD2e3cA95C70f96746b9fe5",
+            "to": "0xC5567a5E3370d4DBfB0540025078e283e36A363d",
+            "fromName": null,
+            "toName": "TransparentUpgradeableProxy",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 2.442058,
+            "method": "0x513e1175"
+          },
+          {
+            "hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+            "logIndex": 28,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1",
+            "to": "0x4E47882c9374e91F650688fC0E6227B7d467BdA1",
+            "fromName": "XyloStablePool",
+            "toName": null,
+            "fromContract": true,
+            "toContract": false,
+            "symbol": "EURC",
+            "amount": 1.461879,
+            "method": "0x56e87df9"
+          },
+          {
+            "hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+            "logIndex": 26,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x73742278c31a76dBb0D2587d03ef92E6E2141023",
+            "to": "0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1",
+            "fromName": "XyloRouter",
+            "toName": "XyloStablePool",
+            "fromContract": true,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 1.7781289999999998,
+            "method": "0x56e87df9"
+          },
+          {
+            "hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+            "logIndex": 23,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x4E47882c9374e91F650688fC0E6227B7d467BdA1",
+            "to": "0x73742278c31a76dBb0D2587d03ef92E6E2141023",
+            "fromName": null,
+            "toName": "XyloRouter",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 1.7781289999999998,
+            "method": "0x56e87df9"
+          },
+          {
+            "hash": "0x61870f12815ceea5c268422d83870c1c97c0883c01ffb931e1c8a2ff02436c9f",
+            "logIndex": 19,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x751DdF801D77c0C27bcCDe71664b1a1F72DC1CD9",
+            "to": "0x387297228f13d72c778A205A242a48C6364F7EcB",
+            "fromName": "Uniswap V2",
+            "toName": null,
+            "fromContract": true,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 0.15617,
+            "method": "0x38ed1739"
+          },
+          {
+            "hash": "0x7227196bd33b1cb4c2c026817480b525bdd0a64793172de2018e1e5d4f3b9c8c",
+            "logIndex": 16,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x311d3F5530245B839Dae6Cf91685aE64C605E956",
+            "to": "0x79A971883664ff9C06fCc0E543FFB7531df14C7c",
+            "fromName": "CurveStableSwap",
+            "toName": null,
+            "fromContract": true,
+            "toContract": false,
+            "symbol": "EURC",
+            "amount": 5.048426,
+            "method": "0x3df02124"
+          },
+          {
+            "hash": "0x7227196bd33b1cb4c2c026817480b525bdd0a64793172de2018e1e5d4f3b9c8c",
+            "logIndex": 14,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x79A971883664ff9C06fCc0E543FFB7531df14C7c",
+            "to": "0x311d3F5530245B839Dae6Cf91685aE64C605E956",
+            "fromName": null,
+            "toName": "CurveStableSwap",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 6.12218,
+            "method": "0x3df02124"
+          },
+          {
+            "hash": "0xab58462776f7f8e55a2429f3e97b51b8d7a6848b14442a0214b2e34acd764018",
+            "logIndex": 10,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x141370B051C21C29Ad895A2cf80e5Caf52E2C9B5",
+            "to": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+            "fromName": null,
+            "toName": "FlowSwapAMM",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 5.994451,
+            "method": "0x38ed1739"
+          },
+          {
+            "hash": "0x7512fb0f05ae414ef990d07f84d313b34f71a0db930f4c78b46f25a6332c86e5",
+            "logIndex": 6,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x8B28b6418524B88FF483202b9e1838eeC196723C",
+            "to": "0x5794a8284A29493871Fbfa3c4f343D42001424D6",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 7.818305,
+            "method": "0x7a950f99"
+          },
+          {
+            "hash": "0x69b61a9ac939ba378bba4985bac041ba18d3641fad12d0dab29c4ca2e79f8fb5",
+            "logIndex": 4,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x74a7aD47576F6612326d87A54892E967efF3aDF1",
+            "to": "0xA7c4a72De0F7C0aDF01bFEfC35737F458F726a34",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 1.543676,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0x7303484816a48f4e78899ae65949f246ba84d11ed776ee1dfce640ce8e661fec",
+            "logIndex": 1,
+            "block": 64942876,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+            "to": "0x42FA32eD2127299DAe554022b5125126d85AcE8c",
+            "fromName": "FlowSwapAMM",
+            "toName": null,
+            "fromContract": true,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 8.773189,
+            "method": "0x38ed1739"
+          },
+          {
+            "hash": "0x3b2627381b7d34f1b5ac439d3214e0cc73a1215789a6237e4f2005eb8faa8b7c",
+            "logIndex": 4,
+            "block": 64942875,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "to": "0x4594EA30D1Eca22f5d0DA1A3CF92A2465e07240D",
+            "fromName": "WUSDC",
+            "toName": null,
+            "fromContract": true,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 16.17639,
+            "method": "0x2e1a7d4d"
+          },
+          {
+            "hash": "0x00d9012b843b8727401219264eb288a15ab92a78d577e9fb4f5084ad771f3d08",
+            "logIndex": 2,
+            "block": 64942875,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0x4b417B0bBA96eDDdD7083f775fE84A8ad1D4146f",
+            "to": "0x5A4E969e237D70B99828B28FC899e9F0B11A0C55",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 1.211628,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0xdd887a2b05e6c90533cc97029b1249f9fc51c9d839bebcf4f096f59954503c22",
+            "logIndex": 0,
+            "block": 64942875,
+            "timestamp": "2026-10-01T11:59:39.000000Z",
+            "from": "0xbCa2c0C1fce9e426b2fe0d441325D09F85B2c35e",
+            "to": "0x1d21aC53c1c26cb9B4E1DfBafE7E79612c13cb43",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 0.046084,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0x2126e5e56a98e20c0adabb4280e642effd31bdae93324fd0f475d3c4106aa39e",
+            "logIndex": 6,
+            "block": 64942874,
+            "timestamp": "2026-10-01T11:59:38.000000Z",
+            "from": "0x1d0beD164C2978c97eE30ca76F3b3B17bB219Def",
+            "to": "0xC4C55Cb8685CA32211cEb2E42d0C6156240055a5",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 10,
+            "method": null
+          },
+          {
+            "hash": "0x3162240e7688c00b2cf108daceb7761def5e8825024ff2da146f137d1b732643",
+            "logIndex": 4,
+            "block": 64942874,
+            "timestamp": "2026-10-01T11:59:38.000000Z",
+            "from": "0xcb2F0B186667a5c71709B641299Cf0d3747439Cb",
+            "to": "0x8C2A63092F47d0690fa916929C9a4ECD4ad612c4",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 1.446833,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0x4e922ed009d49b763965237da1ae484f3741dcc4777e93a0c10609a519d13f5d",
+            "logIndex": 2,
+            "block": 64942874,
+            "timestamp": "2026-10-01T11:59:38.000000Z",
+            "from": "0xd3Bb214297a9227128c71eD930F6246b957084F5",
+            "to": "0xA8728389bf63A63E97A03649183e7A572946c3F8",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 1.072903,
+            "method": "0xa9059cbb"
+          },
+          {
+            "hash": "0x57f13e705a5e289899a3e34fda33ae34ffecffc3c91acb9d11474f114886ea45",
+            "logIndex": 0,
+            "block": 64942874,
+            "timestamp": "2026-10-01T11:59:38.000000Z",
+            "from": "0x11a3904e74CF92ffc3F277efCbDFB8089FA02A01",
+            "to": "0x96614d807a1e04b7514E3D717700D8c2c58ae10d",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 0.046291,
+            "method": "0xa9059cbb"
+          }
+        ],
+        "whales": [
+          {
+            "hash": "0xf15f6c8d26826f19f5d6d6a33a2248c9801697e8d31e4879b7b565dbeb33878a",
+            "logIndex": 44,
+            "block": 64942855,
+            "timestamp": "2026-10-01T11:59:28.000000Z",
+            "from": "0x97dE316167949d97268aAC45cF976789b722776F",
+            "to": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+            "fromName": null,
+            "toName": "PoolManager",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 524.421,
+            "method": "0xf47dbd47"
+          },
+          {
+            "hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+            "logIndex": 14,
+            "block": 64942738,
+            "timestamp": "2026-10-01T11:58:29.000000Z",
+            "from": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+            "to": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+            "fromName": null,
+            "toName": null,
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 411.50916,
+            "method": "0x21bc9a55"
+          },
+          {
+            "hash": "0xb51961801be65326eb55f66fa75d4f7c65bf51b2445e90d6b411efef8d321656",
+            "logIndex": 32,
+            "block": 64942706,
+            "timestamp": "2026-10-01T11:58:13.000000Z",
+            "from": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+            "to": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+            "fromName": null,
+            "toName": "PoolManager",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 336.46529,
+            "method": "0xf47dbd47"
+          },
+          {
+            "hash": "0xecd8e59afdd1487e70fff648cceaeceb9c5138bd34c52e7cec660dc9a77db304",
+            "logIndex": 22,
+            "block": 64942751,
+            "timestamp": "2026-10-01T11:58:36.000000Z",
+            "from": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "to": "0x4d0E0491DB1E57f2a25A1EC1FDC99Ea6363377dA",
+            "fromName": "WUSDC",
+            "toName": null,
+            "fromContract": true,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 191.189573,
+            "method": "0x2e1a7d4d"
+          },
+          {
+            "hash": "0xb8449592efa785e12d368b2d45a533c1968db8e2d26ab28325faf0e16274795b",
+            "logIndex": 24,
+            "block": 64942718,
+            "timestamp": "2026-10-01T11:58:19.000000Z",
+            "from": "0x4d0E0491DB1E57f2a25A1EC1FDC99Ea6363377dA",
+            "to": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "fromName": null,
+            "toName": "WUSDC",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 191.189573,
+            "method": "0xd0e30db0"
+          },
+          {
+            "hash": "0x98d74dbbd742641736ef2397bd8ae508ecc3a7eca6913c92b7e458b5001bf211",
+            "logIndex": 8,
+            "block": 64942760,
+            "timestamp": "2026-10-01T11:58:40.000000Z",
+            "from": "0xb40268160e0402bcebE2E49B5553def2957250d2",
+            "to": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "fromName": null,
+            "toName": "WUSDC",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 138.35976,
+            "method": "deposit"
+          },
+          {
+            "hash": "0xb840725ae0a90e8b711bc6a53d81d04f032e3726a6f2df1d773584a658c6469c",
+            "logIndex": 15,
+            "block": 64942859,
+            "timestamp": "2026-10-01T11:59:30.000000Z",
+            "from": "0xb40268160e0402bcebE2E49B5553def2957250d2",
+            "to": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "fromName": null,
+            "toName": "WUSDC",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 138.358062,
+            "method": "0xd0e30db0"
+          },
+          {
+            "hash": "0xaf8d2530c9d2633cf78e2e0560aa42cd5ede0cac419c9d80b46151f9084b08f6",
+            "logIndex": 13,
+            "block": 64942761,
+            "timestamp": "2026-10-01T11:58:41.000000Z",
+            "from": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "to": "0x34507b8D8f5F54729e11447B1d89dE81A957A153",
+            "fromName": "WUSDC",
+            "toName": null,
+            "fromContract": true,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 64.175665,
+            "method": "0x2e1a7d4d"
+          },
+          {
+            "hash": "0xb39be82e4f8370e7e47dcdeff28f8988bde5719c2c10252fc6dae0205638a748",
+            "logIndex": 7,
+            "block": 64942722,
+            "timestamp": "2026-10-01T11:58:21.000000Z",
+            "from": "0x34507b8D8f5F54729e11447B1d89dE81A957A153",
+            "to": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "fromName": null,
+            "toName": "WUSDC",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 64.175665,
+            "method": "0xd0e30db0"
+          },
+          {
+            "hash": "0xe6d479c385585cd8a888775f6a0b8faaf79c8cf65dbdea474e91b5dfbbccdfc1",
+            "logIndex": 13,
+            "block": 64942754,
+            "timestamp": "2026-10-01T11:58:37.000000Z",
+            "from": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "to": "0x869bC271599eD7aa99bEe35F02007B50cA5A9541",
+            "fromName": "WUSDC",
+            "toName": null,
+            "fromContract": true,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 60.725267,
+            "method": "0x2e1a7d4d"
+          },
+          {
+            "hash": "0x2ae84788a58c9033704f3748763552ec57d64bb4aff6ba9a8c69fef407a4fdfd",
+            "logIndex": 15,
+            "block": 64942715,
+            "timestamp": "2026-10-01T11:58:17.000000Z",
+            "from": "0x869bC271599eD7aa99bEe35F02007B50cA5A9541",
+            "to": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "fromName": null,
+            "toName": "WUSDC",
+            "fromContract": false,
+            "toContract": true,
+            "symbol": "USDC",
+            "amount": 60.725267,
+            "method": "0xd0e30db0"
+          },
+          {
+            "hash": "0xd0cb1d5936dfc63cfd203da6d4b8f4150f93432a3ddf703462b62b5bebba5a15",
+            "logIndex": 5,
+            "block": 64942760,
+            "timestamp": "2026-10-01T11:58:40.000000Z",
+            "from": "0x911b4000D3422F482F4062a913885f7b035382Df",
+            "to": "0xEA2b23164214adBACb75D40aCF7c3207CE1042DE",
+            "fromName": "WUSDC",
+            "toName": null,
+            "fromContract": true,
+            "toContract": false,
+            "symbol": "USDC",
+            "amount": 49.832717,
+            "method": "0x2e1a7d4d"
+          }
+        ],
+        "sampled": 200,
+        "sampledVolume": 1334.316073,
+        "updatedAt": 1790855985478
+      }
+    },
+    "holders": {
+      "url": "http://localhost:3001/api/arc/holders",
+      "startedAt": "2026-10-01T11:59:41.612Z",
+      "observedAt": "2026-10-01T11:59:41.639Z",
+      "status": 200,
+      "data": {
+        "holdersCount": 4971652,
+        "totalSupply": 316454544997.5655,
+        "items": [
+          {
+            "address": "0x4E42177AB52202Ced872A5EF661dfc4794bB37bF",
+            "name": null,
+            "contract": false,
+            "balance": 247176457968.8724,
+            "share": 78.10804486021016
+          },
+          {
+            "address": "0x591e17159fB5385bDC254Af2997554303F844cc7",
+            "name": null,
+            "contract": false,
+            "balance": 46399027910.264885,
+            "share": 14.662146157711792
+          },
+          {
+            "address": "0xF192691256Ad47EE5d4033d6979cDAeA23180Ad8",
+            "name": null,
+            "contract": false,
+            "balance": 9999892549.0964,
+            "share": 3.1599775409050705
+          },
+          {
+            "address": "0x57414adbBbc4BBA36f1dE26b2dc1648b28ae7799",
+            "name": null,
+            "contract": false,
+            "balance": 8999899458.884674,
+            "share": 2.8439785748546957
+          },
+          {
+            "address": "0xb51ff1E163Ee26144E627fF525766E60b07E21CE",
+            "name": null,
+            "contract": false,
+            "balance": 1000000000,
+            "share": 0.31600114955141284
+          },
+          {
+            "address": "0x4f1c3a0359A7fAd8Fa8E9E872F7C06dAd97C91Fd",
+            "name": null,
+            "contract": false,
+            "balance": 999999736.912972,
+            "share": 0.31600106641560954
+          },
+          {
+            "address": "0x23FAfBB6A25bb42985a9eF7fF7837fe94118B531",
+            "name": null,
+            "contract": false,
+            "balance": 506108497.722799,
+            "share": 0.1599308670781431
+          },
+          {
+            "address": "0xF8891cB59BfF4D4a10C50727a613c7d0Bec2F778",
+            "name": null,
+            "contract": false,
+            "balance": 100000011.01,
+            "share": 0.03160011843431394
+          },
+          {
+            "address": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107",
+            "name": null,
+            "contract": false,
+            "balance": 99887058.14282,
+            "share": 0.03156442519843993
+          },
+          {
+            "address": "0x6063e834928EaC1ca47ac5Da27838079a103e305",
+            "name": null,
+            "contract": false,
+            "balance": 97864388.95352,
+            "share": 0.03092525940945891
+          }
+        ]
+      }
+    }
+  },
+  "raw": {
+    "stats": {
+      "url": "https://explorer.testnet.arc.io/api/v2/stats",
+      "startedAt": "2026-10-01T11:59:41.612Z",
+      "observedAt": "2026-10-01T11:59:42.073Z",
+      "status": 200,
+      "data": {
+        "average_block_time": 510,
+        "coin_image": null,
+        "coin_price": null,
+        "coin_price_change_percentage": null,
+        "gas_price_updated_at": "2026-10-01T11:59:39.051071Z",
+        "gas_prices": {
+          "slow": 23.46,
+          "average": 24.77,
+          "fast": 26.5
+        },
+        "gas_prices_update_in": 28978,
+        "gas_used_today": "113859924628",
+        "market_cap": "0",
+        "network_utilization_percentage": 3.6616812,
+        "secondary_coin_image": null,
+        "secondary_coin_price": null,
+        "static_gas_price": null,
+        "total_addresses": "55179846",
+        "total_blocks": "64928743",
+        "total_transactions": "764632065",
+        "transactions_today": "1108332",
+        "tvl": null
+      }
+    },
+    "metadata": {
+      "url": "https://explorer.testnet.arc.io/api/v2/tokens/0x3600000000000000000000000000000000000000",
+      "startedAt": "2026-10-01T11:59:41.617Z",
+      "observedAt": "2026-10-01T11:59:42.143Z",
+      "status": 200,
+      "data": {
+        "address_hash": "0x3600000000000000000000000000000000000000",
+        "circulating_market_cap": null,
+        "circulating_supply": null,
+        "decimals": "6",
+        "exchange_rate": null,
+        "holders_count": "4971661",
+        "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+        "name": "USDC",
+        "reputation": "ok",
+        "symbol": "USDC",
+        "total_supply": "316454544979682199",
+        "type": "ERC-20",
+        "volume_24h": null
+      }
+    },
+    "holders": {
+      "url": "https://explorer.testnet.arc.io/api/v2/tokens/0x3600000000000000000000000000000000000000/holders",
+      "startedAt": "2026-10-01T11:59:41.618Z",
+      "observedAt": "2026-10-01T11:59:42.566Z",
+      "status": 200,
+      "data": {
+        "items": [
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x4E42177AB52202Ced872A5EF661dfc4794bB37bF",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "247176457968872404"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x591e17159fB5385bDC254Af2997554303F844cc7",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "46399027910264886"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xF192691256Ad47EE5d4033d6979cDAeA23180Ad8",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "9999892549096399"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x57414adbBbc4BBA36f1dE26b2dc1648b28ae7799",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "8999899458884674"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xb51ff1E163Ee26144E627fF525766E60b07E21CE",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "1000000000000000"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x4f1c3a0359A7fAd8Fa8E9E872F7C06dAd97C91Fd",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "999999736912972"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x23FAfBB6A25bb42985a9eF7fF7837fe94118B531",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "506108497722799"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xF8891cB59BfF4D4a10C50727a613c7d0Bec2F778",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "100000011010000"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "99887058142820"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x6063e834928EaC1ca47ac5Da27838079a103e305",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "97864388953520"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x911b4000D3422F482F4062a913885f7b035382Df",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": null,
+              "name": "WUSDC",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "73037180504903"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xa25499f37BE37C7461634DA343D2C0480cf4911b",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": null,
+              "name": "SynthraV3Pool",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "45682999673479"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x7C26b629ced406EE87991a5191aDF1ce8cD60470",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "34200326127636"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xD4c0B787aA2ff9Eb751Bb515c877EbBF2Daddaae",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "32608751598616"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x319dd63E0AC72e7Ac74443029d074032c043460F",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "32580033920955"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x70E3Fb28e1794bb91D5bCEB7d66b731d0C61Af8e",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "32556909184439"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xD844ba11F64d23a7481E24474D2f184e350B9B3d",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "32551833941694"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x3C3380cdFb94dFEEaA41cAD9F58254AE380d752D",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "32527127069430"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xB79F5448Fd6f76940687002D21F67f85Caa714E4",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "21058140494280"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xAC36804B4a860C5463F3B89d077a0653AaA9d8F1",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": "Synthra Perpetual Liquidity Token",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "17934054806700"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x1f531Ce3C418bbd830D06138A9e5B5eACFdfB3D6",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "17519265957611"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x1d70945634F618eefdF9EDaAdB59B9A183CEF929",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": null,
+              "name": "PoolManager",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "16932704623176"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xa3d9Fbd0edB10327ECB73D2C72622E505dF468a2",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "16227014637423"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x205bbBD9874C4Ec27D72Be2b2724087e9F181a36",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "14434229021692"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xD222efd60088598ACE49a98deE732c3725c491a1",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "13998797499559"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x379c868F6064D9c0564Df05Dcca170D64f8Aa5e3",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "13815600254594"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xfd839cC90c425c515de4926c5F1e735C664624f9",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "13612117575142"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xB08Dbc4F062394c066e551014B3979E4C03306EE",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "12359217831068"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x97c0194480Adb526194835D2688A333BBE55d770",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": {
+                "tags": [
+                  {
+                    "meta": {
+                      "tagIcon": "https://gateway.lighthouse.storage/ipfs/bafkreiduwbbvyyxa3cdydxnxbzqjargsikmtomrzodlbij3ftituagfdcq",
+                      "tagUrl": "https://gateway.lighthouse.storage/ipfs/bafkreicoiwhvohd7weie2rcuvpvtjv35urzptmtj6ocxxcnmybet3yks5a",
+                      "tooltipDescription": "The native unified execution layer for on-chain trading on \n@arc"
+                    },
+                    "name": "Axpha",
+                    "ordinal": 0,
+                    "slug": "axpha",
+                    "tagType": "name"
+                  }
+                ]
+              },
+              "name": "PoolToken",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "12356402720585"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x145eE95E10399Bcb34E2E1c5EB073F4E34666666",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "11541108974459"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xf7320D4873bC9090E1745E3a3dA430435ea63F3e",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "10937246376107"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x0FD1dB2e00165DbE2AD9BC933AC491BF0e3f6717",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "10000189804911"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": {
+                "tags": [
+                  {
+                    "meta": {
+                      "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                      "textColor": "#C163D4",
+                      "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                      "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                      "tooltipDescription": "Provided by OLI"
+                    },
+                    "name": "XyloStablePool",
+                    "ordinal": 0,
+                    "slug": "xylostablepool",
+                    "tagType": "name"
+                  }
+                ]
+              },
+              "name": "XyloStablePool",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "9521758510160"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xE421Dc83e5a80f3323b949C01F7694eA230c0bEb",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "9236420545801"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xEFedCD765c89f9c8E09FBF31aa1cA1Ee04085a53",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "8879502353732"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x240Eb85458CD41361bd8C3773253a1D78054f747",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": {
+                "tags": [
+                  {
+                    "meta": {
+                      "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                      "textColor": "#C163D4",
+                      "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                      "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                      "tooltipDescription": "Provided by OLI"
+                    },
+                    "name": "XyloVault",
+                    "ordinal": 0,
+                    "slug": "xylovault",
+                    "tagType": "name"
+                  }
+                ]
+              },
+              "name": "XyloVault",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "8414142314111"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xf6547f77614F7dAf76e62767831d594b8a6e5e3b",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "8068344869277"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x1c02648cf14Ece64Afc1af141C177760AEc7013a",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": null,
+              "name": "SynthraV3Pool",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "7597505161083"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x7500A83DF2aF99B2755c47B6B321a8217d876a85",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "6726100038963"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x715F78dE0CEA7428a5Ede4A0C491B05E7a8caFf2",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": null,
+              "name": "SynthraV3Pool",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "6515318984905"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x359457bD4FcC8E2A24c170617Ac2018e856A06D5",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "6363901190143"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xa693CC18Aa09d33dD388013B7A02E5Ff863b8760",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "5655738064108"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x9af79A701860C263393DC986E8ca4826C8225d9f",
+              "implementations": [
+                {
+                  "address_hash": "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
+                  "name": "SafeL2"
+                }
+              ],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": null,
+              "name": "SafeProxy",
+              "private_tags": [],
+              "proxy_type": "master_copy",
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "5189876471757"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xe181e495d364558A53774B06bE135E1A283A42a7",
+              "implementations": [],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": null,
+              "name": "PerpDEXV6",
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "5087333676729"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xd35b470eEbb581d15C88795F6426b9B1f8C14260",
+              "implementations": [
+                {
+                  "address_hash": "0xD206aC7fEf53d83ED4563E770b28Dba90D0D9eC8",
+                  "name": "SingleOwnerMSCA"
+                }
+              ],
+              "is_contract": true,
+              "is_scam": false,
+              "is_verified": true,
+              "metadata": null,
+              "name": "ERC1967Proxy",
+              "private_tags": [],
+              "proxy_type": "eip1967",
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "5000972010000"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x388E4B0EFE1d194804B16ad347f25c2040063E13",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "5000799991644"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xD27b806Ed1C80eD98a48D461503F49f5222B4a33",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "4995221366436"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x01d0129a3bDbc35A9D78C9CB17b0A9d172d2DaE9",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "4953751959159"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0x2c6267D04C879176A1D486F0971A338198a9CcCC",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "4712501372185"
+          },
+          {
+            "address": {
+              "ens_domain_name": null,
+              "hash": "0xd9f2f8f22C7F5a045787E1D78609211938117403",
+              "implementations": [],
+              "is_contract": false,
+              "is_scam": false,
+              "is_verified": false,
+              "metadata": null,
+              "name": null,
+              "private_tags": [],
+              "proxy_type": null,
+              "public_tags": [],
+              "reputation": "ok",
+              "watchlist_names": []
+            },
+            "token_id": null,
+            "value": "4596728361748"
+          }
+        ],
+        "next_page_params": {
+          "value": "4596728361748",
+          "address_hash": "0xd9f2f8f22c7f5a045787e1d78609211938117403",
+          "items_count": 50
+        }
+      }
+    }
+  },
+  "transferChecks": [
+    {
+      "row": {
+        "hash": "0x465922286159aaae6d22086b917475f791b4f42ce1b64759bf3ae00ec8a4ee7c",
+        "logIndex": 12,
+        "block": 64942879,
+        "timestamp": "2026-10-01T11:59:41.000000Z",
+        "from": "0xB7814e722A507F16974DCF8bd8c45e7Ec850AB93",
+        "to": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+        "fromName": null,
+        "toName": "FlowSwapAMM",
+        "fromContract": false,
+        "toContract": true,
+        "symbol": "USDC",
+        "amount": 9.579368,
+        "method": "0x38ed1739"
+      },
+      "detail": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x465922286159aaae6d22086b917475f791b4f42ce1b64759bf3ae00ec8a4ee7c",
+        "startedAt": "2026-10-01T11:59:45.482Z",
+        "observedAt": "2026-10-01T11:59:46.174Z",
+        "status": 200,
+        "data": {
+          "priority_fee": null,
+          "raw_input": "0x38ed17390000000000000000000000000000000000000000000000000000000000922b6800000000000000000000000000000000000000000000001f175adf0a7a6e000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000b7814e722a507f16974dcf8bd8c45e7ec850ab93000000000000000000000000000000000000000000000000000000006abe4d7f000000000000000000000000000000000000000000000000000000000000000200000000000000000000000036000000000000000000000000000000000000000000000000000000000000008959ed0d7220e1baa445106f48829df0bf1e5f83",
+          "is_pending_update": false,
+          "result": "success",
+          "hash": "0x465922286159aaae6d22086b917475f791b4f42ce1b64759bf3ae00ec8a4ee7c",
+          "max_fee_per_gas": null,
+          "revert_reason": null,
+          "confirmation_duration": [
+            0,
+            510
+          ],
+          "transaction_burnt_fee": null,
+          "type": 0,
+          "token_transfers_overflow": false,
+          "confirmations": 8,
+          "position": 7,
+          "max_priority_fee_per_gas": null,
+          "transaction_tag": null,
+          "created_contract": null,
+          "value": "0",
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0xB7814e722A507F16974DCF8bd8c45e7Ec850AB93",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "gas_used": "104558",
+          "status": "ok",
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "textColor": "#C163D4",
+                    "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                    "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "tooltipDescription": "Provided by OLI"
+                  },
+                  "name": "FlowSwapAMM",
+                  "ordinal": 0,
+                  "slug": "flowswapamm",
+                  "tagType": "name"
+                }
+              ]
+            },
+            "name": "FlowSwapAMM",
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "authorization_list": [],
+          "method": "swapExactTokensForTokens",
+          "fee": {
+            "type": "actual",
+            "value": "2823066000000000"
+          },
+          "gas_limit": "126667",
+          "gas_price": "27000000000",
+          "decoded_input": {
+            "method_call": "swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] path, address to, uint256 deadline)",
+            "method_id": "38ed1739",
+            "parameters": [
+              {
+                "name": "amountIn",
+                "type": "uint256",
+                "value": "9579368"
+              },
+              {
+                "name": "amountOutMin",
+                "type": "uint256",
+                "value": "573531968931869097984"
+              },
+              {
+                "name": "path",
+                "type": "address[]",
+                "value": [
+                  "0x3600000000000000000000000000000000000000",
+                  "0x8959ed0D7220e1bAa445106F48829Df0bF1e5F83"
+                ]
+              },
+              {
+                "name": "to",
+                "type": "address",
+                "value": "0xB7814e722A507F16974DCF8bd8c45e7Ec850AB93"
+              },
+              {
+                "name": "deadline",
+                "type": "uint256",
+                "value": "1790856575"
+              }
+            ]
+          },
+          "fhe_operations_count": 0,
+          "token_transfers": [
+            {
+              "block_hash": "0xcdcfeb0a733fb162858e1218c40254c3427828a9c7f2a0ae684fd270b4cc44f7",
+              "block_number": 64942879,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xB7814e722A507F16974DCF8bd8c45e7Ec850AB93",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 12,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": {
+                  "tags": [
+                    {
+                      "meta": {
+                        "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                        "textColor": "#C163D4",
+                        "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                        "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                        "tooltipDescription": "Provided by OLI"
+                      },
+                      "name": "FlowSwapAMM",
+                      "ordinal": 0,
+                      "slug": "flowswapamm",
+                      "tagType": "name"
+                    }
+                  ]
+                },
+                "name": "FlowSwapAMM",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "9579368"
+              },
+              "transaction_hash": "0x465922286159aaae6d22086b917475f791b4f42ce1b64759bf3ae00ec8a4ee7c",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0xcdcfeb0a733fb162858e1218c40254c3427828a9c7f2a0ae684fd270b4cc44f7",
+              "block_number": 64942879,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": {
+                  "tags": [
+                    {
+                      "meta": {
+                        "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                        "textColor": "#C163D4",
+                        "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                        "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                        "tooltipDescription": "Provided by OLI"
+                      },
+                      "name": "FlowSwapAMM",
+                      "ordinal": 0,
+                      "slug": "flowswapamm",
+                      "tagType": "name"
+                    }
+                  ]
+                },
+                "name": "FlowSwapAMM",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 14,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xB7814e722A507F16974DCF8bd8c45e7Ec850AB93",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x8959ed0D7220e1bAa445106F48829Df0bF1e5F83",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "18",
+                "exchange_rate": null,
+                "holders_count": "61916",
+                "icon_url": null,
+                "name": "DARC Token",
+                "reputation": "ok",
+                "symbol": "DARC",
+                "total_supply": "100000000000000000000000000",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "18",
+                "value": "590761557106268435373"
+              },
+              "transaction_hash": "0x465922286159aaae6d22086b917475f791b4f42ce1b64759bf3ae00ec8a4ee7c",
+              "type": "token_transfer"
+            }
+          ],
+          "base_fee_per_gas": "20000000000",
+          "timestamp": "2026-10-01T11:59:41.000000Z",
+          "nonce": 910,
+          "historic_exchange_rate": null,
+          "transaction_types": [
+            "contract_call",
+            "token_transfer"
+          ],
+          "exchange_rate": null,
+          "block_number": 64942879,
+          "has_error_in_internal_transactions": false
+        }
+      },
+      "transfers": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x465922286159aaae6d22086b917475f791b4f42ce1b64759bf3ae00ec8a4ee7c/token-transfers",
+        "startedAt": "2026-10-01T11:59:45.483Z",
+        "observedAt": "2026-10-01T11:59:45.957Z",
+        "status": 200,
+        "data": {
+          "items": [
+            {
+              "block_hash": "0xcdcfeb0a733fb162858e1218c40254c3427828a9c7f2a0ae684fd270b4cc44f7",
+              "block_number": 64942879,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xB7814e722A507F16974DCF8bd8c45e7Ec850AB93",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 12,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": {
+                  "tags": [
+                    {
+                      "meta": {
+                        "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                        "textColor": "#C163D4",
+                        "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                        "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                        "tooltipDescription": "Provided by OLI"
+                      },
+                      "name": "FlowSwapAMM",
+                      "ordinal": 0,
+                      "slug": "flowswapamm",
+                      "tagType": "name"
+                    }
+                  ]
+                },
+                "name": "FlowSwapAMM",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "9579368"
+              },
+              "transaction_hash": "0x465922286159aaae6d22086b917475f791b4f42ce1b64759bf3ae00ec8a4ee7c",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0xcdcfeb0a733fb162858e1218c40254c3427828a9c7f2a0ae684fd270b4cc44f7",
+              "block_number": 64942879,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x49f9636FE15883e16d5E356A4eA08C9Fe6BC219B",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": {
+                  "tags": [
+                    {
+                      "meta": {
+                        "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                        "textColor": "#C163D4",
+                        "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                        "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                        "tooltipDescription": "Provided by OLI"
+                      },
+                      "name": "FlowSwapAMM",
+                      "ordinal": 0,
+                      "slug": "flowswapamm",
+                      "tagType": "name"
+                    }
+                  ]
+                },
+                "name": "FlowSwapAMM",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 14,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xB7814e722A507F16974DCF8bd8c45e7Ec850AB93",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x8959ed0D7220e1bAa445106F48829Df0bF1e5F83",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "18",
+                "exchange_rate": null,
+                "holders_count": "61916",
+                "icon_url": null,
+                "name": "DARC Token",
+                "reputation": "ok",
+                "symbol": "DARC",
+                "total_supply": "100000000000000000000000000",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "18",
+                "value": "590761557106268435373"
+              },
+              "transaction_hash": "0x465922286159aaae6d22086b917475f791b4f42ce1b64759bf3ae00ec8a4ee7c",
+              "type": "token_transfer"
+            }
+          ],
+          "next_page_params": null
+        }
+      },
+      "mapping": {
+        "hash": true,
+        "logIndex": true,
+        "block": true,
+        "timestamp": true,
+        "from": true,
+        "to": true,
+        "amount": true,
+        "asset": true,
+        "fromContract": true,
+        "toContract": true
+      },
+      "matches": true
+    },
+    {
+      "row": {
+        "hash": "0x370922cda66349a44cd89652eff9cf868f2aa97737c0ffc182cd76209aa04f6e",
+        "logIndex": 2,
+        "block": 64942879,
+        "timestamp": "2026-10-01T11:59:41.000000Z",
+        "from": "0x350883F32869A13Ff51466Ef26A36Fcc3787657B",
+        "to": "0x359892e49fe7872f94c447306c0b642BeF166120",
+        "fromName": null,
+        "toName": null,
+        "fromContract": false,
+        "toContract": false,
+        "symbol": "USDC",
+        "amount": 1.5985719999999999,
+        "method": "0xa9059cbb"
+      },
+      "detail": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x370922cda66349a44cd89652eff9cf868f2aa97737c0ffc182cd76209aa04f6e",
+        "startedAt": "2026-10-01T11:59:45.483Z",
+        "observedAt": "2026-10-01T11:59:46.508Z",
+        "status": 200,
+        "data": {
+          "priority_fee": null,
+          "raw_input": "0xa9059cbb000000000000000000000000359892e49fe7872f94c447306c0b642bef166120000000000000000000000000000000000000000000000000000000000018646c",
+          "is_pending_update": false,
+          "result": "success",
+          "hash": "0x370922cda66349a44cd89652eff9cf868f2aa97737c0ffc182cd76209aa04f6e",
+          "max_fee_per_gas": null,
+          "revert_reason": null,
+          "confirmation_duration": [
+            0,
+            510
+          ],
+          "transaction_burnt_fee": null,
+          "type": 0,
+          "token_transfers_overflow": false,
+          "confirmations": 9,
+          "position": 1,
+          "max_priority_fee_per_gas": null,
+          "transaction_tag": null,
+          "created_contract": null,
+          "value": "0",
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x350883F32869A13Ff51466Ef26A36Fcc3787657B",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "gas_used": "48950",
+          "status": "ok",
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x3600000000000000000000000000000000000000",
+            "implementations": [
+              {
+                "address_hash": "0xC6AD664ac6679F4Ce74e10E91449C93Ec1ae3cA6",
+                "name": "NativeFiatTokenV2_2"
+              }
+            ],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "appID": "circle",
+                    "appMarketplaceURL": "https://app.circle.com/get-started",
+                    "bgColor": "#2775ca",
+                    "tagIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/circle-icon-white.png",
+                    "textColor": "#FFFFFF",
+                    "tooltipUrl": "https://www.circle.com/"
+                  },
+                  "name": "Circle",
+                  "ordinal": 0,
+                  "slug": "circle",
+                  "tagType": "protocol"
+                }
+              ]
+            },
+            "name": "FiatTokenProxy",
+            "private_tags": [],
+            "proxy_type": "eip1967_oz",
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "authorization_list": [],
+          "method": "transfer",
+          "fee": {
+            "type": "actual",
+            "value": "1590875000000000"
+          },
+          "gas_limit": "100000",
+          "gas_price": "32500000000",
+          "decoded_input": {
+            "method_call": "transfer(address to, uint256 value)",
+            "method_id": "a9059cbb",
+            "parameters": [
+              {
+                "name": "to",
+                "type": "address",
+                "value": "0x359892e49fe7872f94c447306c0b642BeF166120"
+              },
+              {
+                "name": "value",
+                "type": "uint256",
+                "value": "1598572"
+              }
+            ]
+          },
+          "fhe_operations_count": 0,
+          "token_transfers": [
+            {
+              "block_hash": "0xcdcfeb0a733fb162858e1218c40254c3427828a9c7f2a0ae684fd270b4cc44f7",
+              "block_number": 64942879,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x350883F32869A13Ff51466Ef26A36Fcc3787657B",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 2,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x359892e49fe7872f94c447306c0b642BeF166120",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "1598572"
+              },
+              "transaction_hash": "0x370922cda66349a44cd89652eff9cf868f2aa97737c0ffc182cd76209aa04f6e",
+              "type": "token_transfer"
+            }
+          ],
+          "base_fee_per_gas": "20000000000",
+          "timestamp": "2026-10-01T11:59:41.000000Z",
+          "nonce": 1340,
+          "historic_exchange_rate": null,
+          "transaction_types": [
+            "contract_call",
+            "token_transfer"
+          ],
+          "exchange_rate": null,
+          "block_number": 64942879,
+          "has_error_in_internal_transactions": false
+        }
+      },
+      "transfers": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x370922cda66349a44cd89652eff9cf868f2aa97737c0ffc182cd76209aa04f6e/token-transfers",
+        "startedAt": "2026-10-01T11:59:45.484Z",
+        "observedAt": "2026-10-01T11:59:46.142Z",
+        "status": 200,
+        "data": {
+          "items": [
+            {
+              "block_hash": "0xcdcfeb0a733fb162858e1218c40254c3427828a9c7f2a0ae684fd270b4cc44f7",
+              "block_number": 64942879,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x350883F32869A13Ff51466Ef26A36Fcc3787657B",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 2,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x359892e49fe7872f94c447306c0b642BeF166120",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "1598572"
+              },
+              "transaction_hash": "0x370922cda66349a44cd89652eff9cf868f2aa97737c0ffc182cd76209aa04f6e",
+              "type": "token_transfer"
+            }
+          ],
+          "next_page_params": null
+        }
+      },
+      "mapping": {
+        "hash": true,
+        "logIndex": true,
+        "block": true,
+        "timestamp": true,
+        "from": true,
+        "to": true,
+        "amount": true,
+        "asset": true,
+        "fromContract": true,
+        "toContract": true
+      },
+      "matches": true
+    },
+    {
+      "row": {
+        "hash": "0x2d5deda4c0d90f0910e70ba6f38cb84d804f4d562bdc4cf4c1970866550f929c",
+        "logIndex": 0,
+        "block": 64942879,
+        "timestamp": "2026-10-01T11:59:41.000000Z",
+        "from": "0xB061fFd6B7883B13B2b833EeA06ACf02596e10DA",
+        "to": "0x94b679C755Ce8805471ab76e5E3229f9EEf9c798",
+        "fromName": null,
+        "toName": null,
+        "fromContract": false,
+        "toContract": false,
+        "symbol": "USDC",
+        "amount": 1.379892,
+        "method": "0xa9059cbb"
+      },
+      "detail": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x2d5deda4c0d90f0910e70ba6f38cb84d804f4d562bdc4cf4c1970866550f929c",
+        "startedAt": "2026-10-01T11:59:45.486Z",
+        "observedAt": "2026-10-01T11:59:46.550Z",
+        "status": 200,
+        "data": {
+          "priority_fee": null,
+          "raw_input": "0xa9059cbb00000000000000000000000094b679c755ce8805471ab76e5e3229f9eef9c7980000000000000000000000000000000000000000000000000000000000150e34",
+          "is_pending_update": false,
+          "result": "success",
+          "hash": "0x2d5deda4c0d90f0910e70ba6f38cb84d804f4d562bdc4cf4c1970866550f929c",
+          "max_fee_per_gas": null,
+          "revert_reason": null,
+          "confirmation_duration": [
+            0,
+            510
+          ],
+          "transaction_burnt_fee": null,
+          "type": 0,
+          "token_transfers_overflow": false,
+          "confirmations": 9,
+          "position": 0,
+          "max_priority_fee_per_gas": null,
+          "transaction_tag": null,
+          "created_contract": null,
+          "value": "0",
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0xB061fFd6B7883B13B2b833EeA06ACf02596e10DA",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "gas_used": "48950",
+          "status": "ok",
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x3600000000000000000000000000000000000000",
+            "implementations": [
+              {
+                "address_hash": "0xC6AD664ac6679F4Ce74e10E91449C93Ec1ae3cA6",
+                "name": "NativeFiatTokenV2_2"
+              }
+            ],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "appID": "circle",
+                    "appMarketplaceURL": "https://app.circle.com/get-started",
+                    "bgColor": "#2775ca",
+                    "tagIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/circle-icon-white.png",
+                    "textColor": "#FFFFFF",
+                    "tooltipUrl": "https://www.circle.com/"
+                  },
+                  "name": "Circle",
+                  "ordinal": 0,
+                  "slug": "circle",
+                  "tagType": "protocol"
+                }
+              ]
+            },
+            "name": "FiatTokenProxy",
+            "private_tags": [],
+            "proxy_type": "eip1967_oz",
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "authorization_list": [],
+          "method": "transfer",
+          "fee": {
+            "type": "actual",
+            "value": "1590875000000000"
+          },
+          "gas_limit": "100000",
+          "gas_price": "32500000000",
+          "decoded_input": {
+            "method_call": "transfer(address to, uint256 value)",
+            "method_id": "a9059cbb",
+            "parameters": [
+              {
+                "name": "to",
+                "type": "address",
+                "value": "0x94b679C755Ce8805471ab76e5E3229f9EEf9c798"
+              },
+              {
+                "name": "value",
+                "type": "uint256",
+                "value": "1379892"
+              }
+            ]
+          },
+          "fhe_operations_count": 0,
+          "token_transfers": [
+            {
+              "block_hash": "0xcdcfeb0a733fb162858e1218c40254c3427828a9c7f2a0ae684fd270b4cc44f7",
+              "block_number": 64942879,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xB061fFd6B7883B13B2b833EeA06ACf02596e10DA",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 0,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x94b679C755Ce8805471ab76e5E3229f9EEf9c798",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "1379892"
+              },
+              "transaction_hash": "0x2d5deda4c0d90f0910e70ba6f38cb84d804f4d562bdc4cf4c1970866550f929c",
+              "type": "token_transfer"
+            }
+          ],
+          "base_fee_per_gas": "20000000000",
+          "timestamp": "2026-10-01T11:59:41.000000Z",
+          "nonce": 1394,
+          "historic_exchange_rate": null,
+          "transaction_types": [
+            "contract_call",
+            "token_transfer"
+          ],
+          "exchange_rate": null,
+          "block_number": 64942879,
+          "has_error_in_internal_transactions": false
+        }
+      },
+      "transfers": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x2d5deda4c0d90f0910e70ba6f38cb84d804f4d562bdc4cf4c1970866550f929c/token-transfers",
+        "startedAt": "2026-10-01T11:59:45.487Z",
+        "observedAt": "2026-10-01T11:59:46.046Z",
+        "status": 200,
+        "data": {
+          "items": [
+            {
+              "block_hash": "0xcdcfeb0a733fb162858e1218c40254c3427828a9c7f2a0ae684fd270b4cc44f7",
+              "block_number": 64942879,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xB061fFd6B7883B13B2b833EeA06ACf02596e10DA",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 0,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x94b679C755Ce8805471ab76e5E3229f9EEf9c798",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "1379892"
+              },
+              "transaction_hash": "0x2d5deda4c0d90f0910e70ba6f38cb84d804f4d562bdc4cf4c1970866550f929c",
+              "type": "token_transfer"
+            }
+          ],
+          "next_page_params": null
+        }
+      },
+      "mapping": {
+        "hash": true,
+        "logIndex": true,
+        "block": true,
+        "timestamp": true,
+        "from": true,
+        "to": true,
+        "amount": true,
+        "asset": true,
+        "fromContract": true,
+        "toContract": true
+      },
+      "matches": true
+    },
+    {
+      "row": {
+        "hash": "0xf15f6c8d26826f19f5d6d6a33a2248c9801697e8d31e4879b7b565dbeb33878a",
+        "logIndex": 44,
+        "block": 64942855,
+        "timestamp": "2026-10-01T11:59:28.000000Z",
+        "from": "0x97dE316167949d97268aAC45cF976789b722776F",
+        "to": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+        "fromName": null,
+        "toName": "PoolManager",
+        "fromContract": false,
+        "toContract": true,
+        "symbol": "USDC",
+        "amount": 524.421,
+        "method": "0xf47dbd47"
+      },
+      "detail": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0xf15f6c8d26826f19f5d6d6a33a2248c9801697e8d31e4879b7b565dbeb33878a",
+        "startedAt": "2026-10-01T11:59:45.488Z",
+        "observedAt": "2026-10-01T11:59:46.996Z",
+        "status": 200,
+        "data": {
+          "priority_fee": "1009945000000000",
+          "raw_input": "0xf47dbd47000000000000000000000000360000000000000000000000000000000000000000000000000000000000000088fecbc8a7c8d59c333a9d567012352ce73ac7fd00000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000127d6434db6efcf30ce7d78a3668809c1b8048880000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000001f4207880000000000000000000000000000000000000000000384689a5b52edc6d2588000000000000000000000000097de316167949d97268aac45cf976789b722776f000000000000000000000000000000000000000000000000000000006abe4d78",
+          "is_pending_update": false,
+          "result": "success",
+          "hash": "0xf15f6c8d26826f19f5d6d6a33a2248c9801697e8d31e4879b7b565dbeb33878a",
+          "max_fee_per_gas": "30000000000",
+          "revert_reason": null,
+          "confirmation_duration": [
+            0,
+            510
+          ],
+          "transaction_burnt_fee": "4039780000000000",
+          "type": 2,
+          "token_transfers_overflow": false,
+          "confirmations": 33,
+          "position": 9,
+          "max_priority_fee_per_gas": "5000000000",
+          "transaction_tag": null,
+          "created_contract": null,
+          "value": "0",
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x97dE316167949d97268aAC45cF976789b722776F",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "gas_used": "201989",
+          "status": "ok",
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x94ad5BD5Ba4c8F2c8A5e4952F750C5BC8300338A",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "authorization_list": [],
+          "method": "exactInputSingle",
+          "fee": {
+            "type": "actual",
+            "value": "5049725000000000"
+          },
+          "gas_limit": "208279",
+          "gas_price": "25000000000",
+          "decoded_input": {
+            "method_call": "exactInputSingle((address,address,uint24,int24,address) arg0, bool arg1, uint256 arg2, uint256 arg3, address arg4, uint256 arg5)",
+            "method_id": "f47dbd47",
+            "parameters": [
+              {
+                "name": "arg0",
+                "type": "(address,address,uint24,int24,address)",
+                "value": [
+                  "0x3600000000000000000000000000000000000000",
+                  "0x88FEcBC8A7c8d59C333A9d567012352Ce73AC7FD",
+                  "8388608",
+                  "1",
+                  "0x127D6434DB6eFcf30CE7d78A3668809C1B804888"
+                ]
+              },
+              {
+                "name": "arg1",
+                "type": "bool",
+                "value": "true"
+              },
+              {
+                "name": "arg2",
+                "type": "uint256",
+                "value": "524421000"
+              },
+              {
+                "name": "arg3",
+                "type": "uint256",
+                "value": "4252059418541232403667072"
+              },
+              {
+                "name": "arg4",
+                "type": "address",
+                "value": "0x97dE316167949d97268aAC45cF976789b722776F"
+              },
+              {
+                "name": "arg5",
+                "type": "uint256",
+                "value": "1790856568"
+              }
+            ]
+          },
+          "fhe_operations_count": 0,
+          "token_transfers": [
+            {
+              "block_hash": "0x53a37f3b773e86548f6b8dd8811018b88da0a11ca0016f3a1f2a9af5bbf823c9",
+              "block_number": 64942855,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x97dE316167949d97268aAC45cF976789b722776F",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 44,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": null,
+                "name": "PoolManager",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "524421000"
+              },
+              "transaction_hash": "0xf15f6c8d26826f19f5d6d6a33a2248c9801697e8d31e4879b7b565dbeb33878a",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x53a37f3b773e86548f6b8dd8811018b88da0a11ca0016f3a1f2a9af5bbf823c9",
+              "block_number": 64942855,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": null,
+                "name": "PoolManager",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 46,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x97dE316167949d97268aAC45cF976789b722776F",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x88FEcBC8A7c8d59C333A9d567012352Ce73AC7FD",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "18",
+                "exchange_rate": null,
+                "holders_count": "16",
+                "icon_url": null,
+                "name": "vita",
+                "reputation": "ok",
+                "symbol": "VIT",
+                "total_supply": "1000000000000000000000000000",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "18",
+                "value": "4383566410867249900687704"
+              },
+              "transaction_hash": "0xf15f6c8d26826f19f5d6d6a33a2248c9801697e8d31e4879b7b565dbeb33878a",
+              "type": "token_transfer"
+            }
+          ],
+          "base_fee_per_gas": "20000000000",
+          "timestamp": "2026-10-01T11:59:28.000000Z",
+          "nonce": 7113,
+          "historic_exchange_rate": null,
+          "transaction_types": [
+            "contract_call",
+            "token_transfer"
+          ],
+          "exchange_rate": null,
+          "block_number": 64942855,
+          "has_error_in_internal_transactions": false
+        }
+      },
+      "transfers": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0xf15f6c8d26826f19f5d6d6a33a2248c9801697e8d31e4879b7b565dbeb33878a/token-transfers",
+        "startedAt": "2026-10-01T11:59:45.489Z",
+        "observedAt": "2026-10-01T11:59:46.096Z",
+        "status": 200,
+        "data": {
+          "items": [
+            {
+              "block_hash": "0x53a37f3b773e86548f6b8dd8811018b88da0a11ca0016f3a1f2a9af5bbf823c9",
+              "block_number": 64942855,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x97dE316167949d97268aAC45cF976789b722776F",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 44,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": null,
+                "name": "PoolManager",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "524421000"
+              },
+              "transaction_hash": "0xf15f6c8d26826f19f5d6d6a33a2248c9801697e8d31e4879b7b565dbeb33878a",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x53a37f3b773e86548f6b8dd8811018b88da0a11ca0016f3a1f2a9af5bbf823c9",
+              "block_number": 64942855,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": null,
+                "name": "PoolManager",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 46,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x97dE316167949d97268aAC45cF976789b722776F",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x88FEcBC8A7c8d59C333A9d567012352Ce73AC7FD",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "18",
+                "exchange_rate": null,
+                "holders_count": "16",
+                "icon_url": null,
+                "name": "vita",
+                "reputation": "ok",
+                "symbol": "VIT",
+                "total_supply": "1000000000000000000000000000",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "18",
+                "value": "4383566410867249900687704"
+              },
+              "transaction_hash": "0xf15f6c8d26826f19f5d6d6a33a2248c9801697e8d31e4879b7b565dbeb33878a",
+              "type": "token_transfer"
+            }
+          ],
+          "next_page_params": null
+        }
+      },
+      "mapping": {
+        "hash": true,
+        "logIndex": true,
+        "block": true,
+        "timestamp": true,
+        "from": true,
+        "to": true,
+        "amount": true,
+        "asset": true,
+        "fromContract": true,
+        "toContract": true
+      },
+      "matches": true
+    },
+    {
+      "row": {
+        "hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+        "logIndex": 14,
+        "block": 64942738,
+        "timestamp": "2026-10-01T11:58:29.000000Z",
+        "from": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+        "to": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+        "fromName": null,
+        "toName": null,
+        "fromContract": false,
+        "toContract": true,
+        "symbol": "USDC",
+        "amount": 411.50916,
+        "method": "0x21bc9a55"
+      },
+      "detail": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+        "startedAt": "2026-10-01T11:59:45.490Z",
+        "observedAt": "2026-10-01T11:59:47.120Z",
+        "status": 200,
+        "data": {
+          "priority_fee": "673100000000000",
+          "raw_input": "0x21bc9a55000000000000000000000000f09d63b303748a2b5728ba2317685c30d1ff757a0000000000000000000000000000000000000000000000000000000000000000",
+          "is_pending_update": false,
+          "result": "success",
+          "hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+          "max_fee_per_gas": "30000000000",
+          "revert_reason": null,
+          "confirmation_duration": [
+            0,
+            510
+          ],
+          "transaction_burnt_fee": "2692400000000000",
+          "type": 2,
+          "token_transfers_overflow": false,
+          "confirmations": 150,
+          "position": 6,
+          "max_priority_fee_per_gas": "5000000000",
+          "transaction_tag": null,
+          "created_contract": null,
+          "value": "411509160000000000000",
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "gas_used": "134620",
+          "status": "ok",
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "authorization_list": [],
+          "method": "buyTokens",
+          "fee": {
+            "type": "actual",
+            "value": "3365500000000000"
+          },
+          "gas_limit": "286636",
+          "gas_price": "25000000000",
+          "decoded_input": {
+            "method_call": "buyTokens(address arg0, address arg1)",
+            "method_id": "21bc9a55",
+            "parameters": [
+              {
+                "name": "arg0",
+                "type": "address",
+                "value": "0xF09D63b303748A2B5728Ba2317685C30d1FF757a"
+              },
+              {
+                "name": "arg1",
+                "type": "address",
+                "value": "0x0000000000000000000000000000000000000000"
+              }
+            ]
+          },
+          "fhe_operations_count": 0,
+          "token_transfers": [
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 14,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "411509160"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 15,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0xF09D63b303748A2B5728Ba2317685C30d1FF757a",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "18",
+                "exchange_rate": null,
+                "holders_count": "13",
+                "icon_url": null,
+                "name": "Punk Is Not Dead",
+                "reputation": "ok",
+                "symbol": "PUNK",
+                "total_supply": "1000000000000000000000000000",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "18",
+                "value": "4073940684000000000000000"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 16,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x4C4E9818925A5BDAf5F50944ffBe9D297e58563b",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "411509"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 17,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x9aed55Be7Ac0d3727E4dcC1073746A74598BAe42",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": {
+                  "tags": [
+                    {
+                      "meta": {},
+                      "name": "sallos.eth",
+                      "ordinal": 10,
+                      "slug": "salloseth",
+                      "tagType": "name"
+                    }
+                  ]
+                },
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "2057545"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 18,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xE447f48d305dB916eeE2492ca78597816f3125A9",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "411509"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 19,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xE447f48d305dB916eeE2492ca78597816f3125A9",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "411509"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 20,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xE447f48d305dB916eeE2492ca78597816f3125A9",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "823018"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            }
+          ],
+          "base_fee_per_gas": "20000000000",
+          "timestamp": "2026-10-01T11:58:29.000000Z",
+          "nonce": 7093,
+          "historic_exchange_rate": null,
+          "transaction_types": [
+            "coin_transfer",
+            "contract_call",
+            "token_transfer"
+          ],
+          "exchange_rate": null,
+          "block_number": 64942738,
+          "has_error_in_internal_transactions": false
+        }
+      },
+      "transfers": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e/token-transfers",
+        "startedAt": "2026-10-01T11:59:45.491Z",
+        "observedAt": "2026-10-01T11:59:46.107Z",
+        "status": 200,
+        "data": {
+          "items": [
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 14,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "411509160"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 15,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0xF09D63b303748A2B5728Ba2317685C30d1FF757a",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "18",
+                "exchange_rate": null,
+                "holders_count": "13",
+                "icon_url": null,
+                "name": "Punk Is Not Dead",
+                "reputation": "ok",
+                "symbol": "PUNK",
+                "total_supply": "1000000000000000000000000000",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "18",
+                "value": "4073940684000000000000000"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 16,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x4C4E9818925A5BDAf5F50944ffBe9D297e58563b",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "411509"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 17,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x9aed55Be7Ac0d3727E4dcC1073746A74598BAe42",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": {
+                  "tags": [
+                    {
+                      "meta": {},
+                      "name": "sallos.eth",
+                      "ordinal": 10,
+                      "slug": "salloseth",
+                      "tagType": "name"
+                    }
+                  ]
+                },
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "2057545"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 18,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xE447f48d305dB916eeE2492ca78597816f3125A9",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "411509"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 19,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xE447f48d305dB916eeE2492ca78597816f3125A9",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "411509"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x230234d213806c005e6690780dc959db46781ebee4e7cdc0404b75963f09d5e1",
+              "block_number": 64942738,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0xd0a725f746Ea6Cd5DDeF0B6b0EDf2aB4ADce410b",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 20,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0xE447f48d305dB916eeE2492ca78597816f3125A9",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "823018"
+              },
+              "transaction_hash": "0x925df2dfff8e6a7645f6d19e4060012200257ff6b697915908d6a6e4be0d326e",
+              "type": "token_transfer"
+            }
+          ],
+          "next_page_params": null
+        }
+      },
+      "mapping": {
+        "hash": true,
+        "logIndex": true,
+        "block": true,
+        "timestamp": true,
+        "from": true,
+        "to": true,
+        "amount": true,
+        "asset": true,
+        "fromContract": true,
+        "toContract": true
+      },
+      "matches": true
+    },
+    {
+      "row": {
+        "hash": "0xb51961801be65326eb55f66fa75d4f7c65bf51b2445e90d6b411efef8d321656",
+        "logIndex": 32,
+        "block": 64942706,
+        "timestamp": "2026-10-01T11:58:13.000000Z",
+        "from": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+        "to": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+        "fromName": null,
+        "toName": "PoolManager",
+        "fromContract": false,
+        "toContract": true,
+        "symbol": "USDC",
+        "amount": 336.46529,
+        "method": "0xf47dbd47"
+      },
+      "detail": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0xb51961801be65326eb55f66fa75d4f7c65bf51b2445e90d6b411efef8d321656",
+        "startedAt": "2026-10-01T11:59:45.492Z",
+        "observedAt": "2026-10-01T11:59:47.000Z",
+        "status": 200,
+        "data": {
+          "priority_fee": "970785000000000",
+          "raw_input": "0xf47dbd470000000000000000000000003600000000000000000000000000000000000000000000000000000000000000ab171d72e1c36554b1418318a11e8c413dedb80b00000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000127d6434db6efcf30ce7d78a3668809c1b804888000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000140e0d8a00000000000000000000000000000000000000000002ac34fd9a06449d6140000000000000000000000000002d8989d9b77d4bad313565f240b89784f50d0a67000000000000000000000000000000000000000000000000000000006abe4d2c",
+          "is_pending_update": false,
+          "result": "success",
+          "hash": "0xb51961801be65326eb55f66fa75d4f7c65bf51b2445e90d6b411efef8d321656",
+          "max_fee_per_gas": "30000000000",
+          "revert_reason": null,
+          "confirmation_duration": [
+            0,
+            510
+          ],
+          "transaction_burnt_fee": "3883140000000000",
+          "type": 2,
+          "token_transfers_overflow": false,
+          "confirmations": 182,
+          "position": 13,
+          "max_priority_fee_per_gas": "5000000000",
+          "transaction_tag": null,
+          "created_contract": null,
+          "value": "0",
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "gas_used": "194157",
+          "status": "ok",
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x94ad5BD5Ba4c8F2c8A5e4952F750C5BC8300338A",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "authorization_list": [],
+          "method": "exactInputSingle",
+          "fee": {
+            "type": "actual",
+            "value": "4853925000000000"
+          },
+          "gas_limit": "200353",
+          "gas_price": "25000000000",
+          "decoded_input": {
+            "method_call": "exactInputSingle((address,address,uint24,int24,address) arg0, bool arg1, uint256 arg2, uint256 arg3, address arg4, uint256 arg5)",
+            "method_id": "f47dbd47",
+            "parameters": [
+              {
+                "name": "arg0",
+                "type": "(address,address,uint24,int24,address)",
+                "value": [
+                  "0x3600000000000000000000000000000000000000",
+                  "0xAb171d72E1c36554B1418318a11e8c413deDb80B",
+                  "8388608",
+                  "1",
+                  "0x127D6434DB6eFcf30CE7d78A3668809C1B804888"
+                ]
+              },
+              {
+                "name": "arg1",
+                "type": "bool",
+                "value": "true"
+              },
+              {
+                "name": "arg2",
+                "type": "uint256",
+                "value": "336465290"
+              },
+              {
+                "name": "arg3",
+                "type": "uint256",
+                "value": "3231076178900000000000000"
+              },
+              {
+                "name": "arg4",
+                "type": "address",
+                "value": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67"
+              },
+              {
+                "name": "arg5",
+                "type": "uint256",
+                "value": "1790856492"
+              }
+            ]
+          },
+          "fhe_operations_count": 0,
+          "token_transfers": [
+            {
+              "block_hash": "0x200918977eb3e8b5faf495820ee37cde85326c5c3aa74808855f1360e967064f",
+              "block_number": 64942706,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 32,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": null,
+                "name": "PoolManager",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "336465290"
+              },
+              "transaction_hash": "0xb51961801be65326eb55f66fa75d4f7c65bf51b2445e90d6b411efef8d321656",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x200918977eb3e8b5faf495820ee37cde85326c5c3aa74808855f1360e967064f",
+              "block_number": 64942706,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": null,
+                "name": "PoolManager",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 34,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0xAb171d72E1c36554B1418318a11e8c413deDb80B",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "18",
+                "exchange_rate": null,
+                "holders_count": "12",
+                "icon_url": null,
+                "name": "WOLFSHEAD-MOTU",
+                "reputation": "ok",
+                "symbol": "MOTU",
+                "total_supply": "1000000000000000000000000000",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "18",
+                "value": "3331006370000000000000000"
+              },
+              "transaction_hash": "0xb51961801be65326eb55f66fa75d4f7c65bf51b2445e90d6b411efef8d321656",
+              "type": "token_transfer"
+            }
+          ],
+          "base_fee_per_gas": "20000000000",
+          "timestamp": "2026-10-01T11:58:13.000000Z",
+          "nonce": 7092,
+          "historic_exchange_rate": null,
+          "transaction_types": [
+            "contract_call",
+            "token_transfer"
+          ],
+          "exchange_rate": null,
+          "block_number": 64942706,
+          "has_error_in_internal_transactions": false
+        }
+      },
+      "transfers": {
+        "url": "https://explorer.testnet.arc.io/api/v2/transactions/0xb51961801be65326eb55f66fa75d4f7c65bf51b2445e90d6b411efef8d321656/token-transfers",
+        "startedAt": "2026-10-01T11:59:45.493Z",
+        "observedAt": "2026-10-01T11:59:46.108Z",
+        "status": 200,
+        "data": {
+          "items": [
+            {
+              "block_hash": "0x200918977eb3e8b5faf495820ee37cde85326c5c3aa74808855f1360e967064f",
+              "block_number": 64942706,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 32,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": null,
+                "name": "PoolManager",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0x3600000000000000000000000000000000000000",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "6",
+                "exchange_rate": null,
+                "holders_count": "4971661",
+                "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+                "name": "USDC",
+                "reputation": "ok",
+                "symbol": "USDC",
+                "total_supply": "316454544979582199",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "6",
+                "value": "336465290"
+              },
+              "transaction_hash": "0xb51961801be65326eb55f66fa75d4f7c65bf51b2445e90d6b411efef8d321656",
+              "type": "token_transfer"
+            },
+            {
+              "block_hash": "0x200918977eb3e8b5faf495820ee37cde85326c5c3aa74808855f1360e967064f",
+              "block_number": 64942706,
+              "from": {
+                "ens_domain_name": null,
+                "hash": "0x15B5f2c054b9DC788250131FCD1bcfCC34080a59",
+                "implementations": [],
+                "is_contract": true,
+                "is_scam": false,
+                "is_verified": true,
+                "metadata": null,
+                "name": "PoolManager",
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "log_index": 34,
+              "method": null,
+              "timestamp": null,
+              "to": {
+                "ens_domain_name": null,
+                "hash": "0x2d8989D9B77d4BaD313565f240b89784f50d0a67",
+                "implementations": [],
+                "is_contract": false,
+                "is_scam": false,
+                "is_verified": false,
+                "metadata": null,
+                "name": null,
+                "private_tags": [],
+                "proxy_type": null,
+                "public_tags": [],
+                "reputation": "ok",
+                "watchlist_names": []
+              },
+              "token": {
+                "address_hash": "0xAb171d72E1c36554B1418318a11e8c413deDb80B",
+                "circulating_market_cap": null,
+                "circulating_supply": null,
+                "decimals": "18",
+                "exchange_rate": null,
+                "holders_count": "12",
+                "icon_url": null,
+                "name": "WOLFSHEAD-MOTU",
+                "reputation": "ok",
+                "symbol": "MOTU",
+                "total_supply": "1000000000000000000000000000",
+                "type": "ERC-20",
+                "volume_24h": null
+              },
+              "token_type": "ERC-20",
+              "total": {
+                "decimals": "18",
+                "value": "3331006370000000000000000"
+              },
+              "transaction_hash": "0xb51961801be65326eb55f66fa75d4f7c65bf51b2445e90d6b411efef8d321656",
+              "type": "token_transfer"
+            }
+          ],
+          "next_page_params": null
+        }
+      },
+      "mapping": {
+        "hash": true,
+        "logIndex": true,
+        "block": true,
+        "timestamp": true,
+        "from": true,
+        "to": true,
+        "amount": true,
+        "asset": true,
+        "fromContract": true,
+        "toContract": true
+      },
+      "matches": true
+    }
+  ],
+  "mappingRecheckedAt": "2026-10-01T12:00:25.475Z",
+  "mappingNote": "Explorer transaction-scoped transfer records omit timestamp; timestamp cross-check uses the recorded same-transaction detail, with no new request or synthesized value."
+}

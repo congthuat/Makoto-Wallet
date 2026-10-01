@@ -1,0 +1,30 @@
+
+> frontend@0.0.0 test:brain
+> node --experimental-strip-types --test src/brain/brain.test.ts src/lib/sendExecution.test.ts src/lib/activity.test.ts src/lib/faucet.test.ts
+
+✔ parses send preparation (3.009ms)
+✔ parses swap and bridge (0.7928ms)
+✔ Agent MAX is blocked (0.3411ms)
+✔ review expires and material changes invalidate it (16.9379ms)
+✔ handoff is one-time, account-bound and expires (0.6501ms)
+✔ UNKNOWN stays distinct from pending in Activity (1.2638ms)
+✔ a proven confirmation survives an unavailable or stale result (0.246ms)
+✔ a proven failure survives a stale pending result (0.1844ms)
+✔ unknown changes only when reconciliation supplies a new result (0.1822ms)
+✔ transaction date uses the selected locale (30.7343ms)
+✔ Arc faucet uses the three canonical token entries and existing icons (2.4884ms)
+✔ decimal-aware ERC-20 calldata and safe MAX reserve live fee (2.2454ms)
+✔ live preparation blocks invalid, contract, account, network, token and fee states (4.4607ms)
+✔ review binds account, chain, recipient, token, amount, request and expiry (1.4765ms)
+✔ wallet rejection is cancellation; submission returns a hash (0.9485ms)
+✔ duplicate submit guard permits one wallet request at a time (0.4708ms)
+✔ receipt requires success and matching transfer evidence; missing receipt remains pending (0.8923ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 247.1339
+

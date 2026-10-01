@@ -1,0 +1,13 @@
+{
+  "original_file_count": 108,
+  "byte_identical_count": 103,
+  "modified_existing_files": [
+    "README.md",
+    "frontend/package.json",
+    "frontend/src/pages/Agent.tsx",
+    "frontend/src/pages/SwapBridge.tsx",
+    "frontend/src/pages/Send.tsx"
+  ],
+  "missing_original_files": [],
+  "preserved_ok": true
+}

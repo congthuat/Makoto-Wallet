@@ -1,0 +1,2379 @@
+{
+  "origin": "http://localhost:5173",
+  "account": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+  "results": [
+    {
+      "width": 1440,
+      "lang": "vi",
+      "theme": "dark",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+              "font": 12.5,
+              "left": 557.375,
+              "right": 843.578125,
+              "width": 284,
+              "scrollWidth": 284
+            },
+            {
+              "text": "Tôi đang nắm giữ những tài sản nào?",
+              "font": 12.5,
+              "left": 851.578125,
+              "right": 1114.609375,
+              "width": 261,
+              "scrollWidth": 261
+            },
+            {
+              "text": "Cho tôi xem các giao dịch gần đây",
+              "font": 12.5,
+              "left": 522.265625,
+              "right": 766.25,
+              "width": 242,
+              "scrollWidth": 242
+            },
+            {
+              "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+              "font": 12.5,
+              "left": 774.25,
+              "right": 1149.71875,
+              "width": 373,
+              "scrollWidth": 373
+            },
+            {
+              "text": "Tình trạng mạng Arc hiện tại thế nào?",
+              "font": 12.5,
+              "left": 701.703125,
+              "right": 970.296875,
+              "width": 267,
+              "scrollWidth": 267
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Báo tôi khi số dư USDC xuống dưới 100",
+              "font": 12.5,
+              "left": 562.453125,
+              "right": 835.15625,
+              "width": 271,
+              "scrollWidth": 271
+            },
+            {
+              "text": "Báo tôi khi số dư EURC xuống dưới 50",
+              "font": 12.5,
+              "left": 843.15625,
+              "right": 1109.53125,
+              "width": 264,
+              "scrollWidth": 264
+            },
+            {
+              "text": "Báo tôi khi số dư cirBTC xuống dưới 0.01",
+              "font": 12.5,
+              "left": 563.53125,
+              "right": 842.078125,
+              "width": 277,
+              "scrollWidth": 277
+            },
+            {
+              "text": "Báo tôi khi số dư USDC lên trên 1000",
+              "font": 12.5,
+              "left": 850.078125,
+              "right": 1108.46875,
+              "width": 256,
+              "scrollWidth": 256
+            },
+            {
+              "text": "Báo tôi khi số dư EURC lên trên 200",
+              "font": 12.5,
+              "left": 709.96875,
+              "right": 962.03125,
+              "width": 250,
+              "scrollWidth": 250
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 512.21875,
+              "right": 823.71875,
+              "width": 310,
+              "scrollWidth": 310
+            },
+            {
+              "text": "Tóm tắt hoạt động ví cho tôi lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 831.71875,
+              "right": 1159.78125,
+              "width": 326,
+              "scrollWidth": 326
+            },
+            {
+              "text": "Cho tôi biết số dư USDC, EURC và cirBTC lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 474.03125,
+              "right": 879.359375,
+              "width": 403,
+              "scrollWidth": 403
+            },
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 887.359375,
+              "right": 1197.953125,
+              "width": 309,
+              "scrollWidth": 309
+            },
+            {
+              "text": "Tóm tắt giao dịch ví hôm nay lúc 21:00 mỗi ngày",
+              "font": 12.5,
+              "left": 671.359375,
+              "right": 1000.640625,
+              "width": 327,
+              "scrollWidth": 327
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+          "answer": "Danh mục của tôi hiện trị giá bao nhiêu?\n\nTổng danh mục hiện tại của bạn là $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "Tôi đang nắm giữ những tài sản nào?",
+          "answer": "Tôi đang nắm giữ những tài sản nào?\n\nCác tài sản bạn đang nắm giữ:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Cho tôi xem các giao dịch gần đây",
+          "answer": "Cho tôi xem các giao dịch gần đây\n\n3 giao dịch gần đây của bạn:\nNhận cirBTC\n0.0001 · Hoàn tất\nNhận EURC\n20 · Hoàn tất\nNhận USDC\n20 · Hoàn tất"
+        },
+        {
+          "id": "token-balances",
+          "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+          "answer": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?\n\nSố dư hiện tại đã xác minh của bạn:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "Tình trạng mạng Arc hiện tại thế nào?",
+          "answer": "Tình trạng mạng Arc hiện tại thế nào?\n\nArc Testnet đang trực tuyến. Khối mới nhất: #64.929.979."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "What is my portfolio worth right now?",
+        "before": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "after": "Your portfolio is currently worth $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "lang": "vi",
+      "theme": "light",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+              "font": 12.5,
+              "left": 557.375,
+              "right": 843.578125,
+              "width": 284,
+              "scrollWidth": 284
+            },
+            {
+              "text": "Tôi đang nắm giữ những tài sản nào?",
+              "font": 12.5,
+              "left": 851.578125,
+              "right": 1114.609375,
+              "width": 261,
+              "scrollWidth": 261
+            },
+            {
+              "text": "Cho tôi xem các giao dịch gần đây",
+              "font": 12.5,
+              "left": 522.265625,
+              "right": 766.25,
+              "width": 242,
+              "scrollWidth": 242
+            },
+            {
+              "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+              "font": 12.5,
+              "left": 774.25,
+              "right": 1149.71875,
+              "width": 373,
+              "scrollWidth": 373
+            },
+            {
+              "text": "Tình trạng mạng Arc hiện tại thế nào?",
+              "font": 12.5,
+              "left": 701.703125,
+              "right": 970.296875,
+              "width": 267,
+              "scrollWidth": 267
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Báo tôi khi số dư USDC xuống dưới 100",
+              "font": 12.5,
+              "left": 562.453125,
+              "right": 835.15625,
+              "width": 271,
+              "scrollWidth": 271
+            },
+            {
+              "text": "Báo tôi khi số dư EURC xuống dưới 50",
+              "font": 12.5,
+              "left": 843.15625,
+              "right": 1109.53125,
+              "width": 264,
+              "scrollWidth": 264
+            },
+            {
+              "text": "Báo tôi khi số dư cirBTC xuống dưới 0.01",
+              "font": 12.5,
+              "left": 563.53125,
+              "right": 842.078125,
+              "width": 277,
+              "scrollWidth": 277
+            },
+            {
+              "text": "Báo tôi khi số dư USDC lên trên 1000",
+              "font": 12.5,
+              "left": 850.078125,
+              "right": 1108.46875,
+              "width": 256,
+              "scrollWidth": 256
+            },
+            {
+              "text": "Báo tôi khi số dư EURC lên trên 200",
+              "font": 12.5,
+              "left": 709.96875,
+              "right": 962.03125,
+              "width": 250,
+              "scrollWidth": 250
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 512.21875,
+              "right": 823.71875,
+              "width": 310,
+              "scrollWidth": 310
+            },
+            {
+              "text": "Tóm tắt hoạt động ví cho tôi lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 831.71875,
+              "right": 1159.78125,
+              "width": 326,
+              "scrollWidth": 326
+            },
+            {
+              "text": "Cho tôi biết số dư USDC, EURC và cirBTC lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 474.03125,
+              "right": 879.359375,
+              "width": 403,
+              "scrollWidth": 403
+            },
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 887.359375,
+              "right": 1197.953125,
+              "width": 309,
+              "scrollWidth": 309
+            },
+            {
+              "text": "Tóm tắt giao dịch ví hôm nay lúc 21:00 mỗi ngày",
+              "font": 12.5,
+              "left": 671.359375,
+              "right": 1000.640625,
+              "width": 327,
+              "scrollWidth": 327
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+          "answer": "Danh mục của tôi hiện trị giá bao nhiêu?\n\nTổng danh mục hiện tại của bạn là $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "Tôi đang nắm giữ những tài sản nào?",
+          "answer": "Tôi đang nắm giữ những tài sản nào?\n\nCác tài sản bạn đang nắm giữ:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Cho tôi xem các giao dịch gần đây",
+          "answer": "Cho tôi xem các giao dịch gần đây\n\n3 giao dịch gần đây của bạn:\nNhận cirBTC\n0.0001 · Hoàn tất\nNhận EURC\n20 · Hoàn tất\nNhận USDC\n20 · Hoàn tất"
+        },
+        {
+          "id": "token-balances",
+          "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+          "answer": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?\n\nSố dư hiện tại đã xác minh của bạn:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "Tình trạng mạng Arc hiện tại thế nào?",
+          "answer": "Tình trạng mạng Arc hiện tại thế nào?\n\nArc Testnet đang trực tuyến. Khối mới nhất: #64.929.980."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "What is my portfolio worth right now?",
+        "before": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "after": "Your portfolio is currently worth $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "theme": "dark",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "What is my portfolio worth right now?",
+              "font": 12.5,
+              "left": 447.703125,
+              "right": 716.609375,
+              "width": 267,
+              "scrollWidth": 267
+            },
+            {
+              "text": "What assets am I currently holding?",
+              "font": 12.5,
+              "left": 724.609375,
+              "right": 980.5625,
+              "width": 254,
+              "scrollWidth": 254
+            },
+            {
+              "text": "Show me my recent transactions",
+              "font": 12.5,
+              "left": 988.5625,
+              "right": 1224.28125,
+              "width": 234,
+              "scrollWidth": 234
+            },
+            {
+              "text": "What are my current USDC, EURC and cirBTC balances?",
+              "font": 12.5,
+              "left": 503,
+              "right": 882.375,
+              "width": 377,
+              "scrollWidth": 377
+            },
+            {
+              "text": "What is the current Arc network status?",
+              "font": 12.5,
+              "left": 890.375,
+              "right": 1168.984375,
+              "width": 277,
+              "scrollWidth": 277
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Notify me when my USDC balance falls below 100",
+              "font": 12.5,
+              "left": 495.921875,
+              "right": 835.15625,
+              "width": 337,
+              "scrollWidth": 337
+            },
+            {
+              "text": "Notify me when my EURC balance falls below 50",
+              "font": 12.5,
+              "left": 843.15625,
+              "right": 1176.078125,
+              "width": 331,
+              "scrollWidth": 331
+            },
+            {
+              "text": "Notify me when my cirBTC balance falls below 0.01",
+              "font": 12.5,
+              "left": 484.03125,
+              "right": 829.125,
+              "width": 343,
+              "scrollWidth": 343
+            },
+            {
+              "text": "Notify me when my USDC balance rises above 1000",
+              "font": 12.5,
+              "left": 837.125,
+              "right": 1187.96875,
+              "width": 349,
+              "scrollWidth": 349
+            },
+            {
+              "text": "Notify me when my EURC balance rises above 200",
+              "font": 12.5,
+              "left": 663.734375,
+              "right": 1008.25,
+              "width": 343,
+              "scrollWidth": 343
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Send me a portfolio summary every day at 08:00",
+              "font": 12.5,
+              "left": 500.6875,
+              "right": 834.015625,
+              "width": 331,
+              "scrollWidth": 331
+            },
+            {
+              "text": "Summarize my wallet activity every day at 20:00",
+              "font": 12.5,
+              "left": 842.015625,
+              "right": 1171.3125,
+              "width": 327,
+              "scrollWidth": 327
+            },
+            {
+              "text": "Show me my USDC, EURC and cirBTC balances every day at 08:00",
+              "font": 12.5,
+              "left": 615.5625,
+              "right": 1056.421875,
+              "width": 439,
+              "scrollWidth": 439
+            },
+            {
+              "text": "Send me a portfolio summary every day at 20:00",
+              "font": 12.5,
+              "left": 474.828125,
+              "right": 807.25,
+              "width": 330,
+              "scrollWidth": 330
+            },
+            {
+              "text": "Summarize today's wallet transactions every day at 21:00",
+              "font": 12.5,
+              "left": 815.25,
+              "right": 1197.15625,
+              "width": 380,
+              "scrollWidth": 380
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "What is my portfolio worth right now?",
+          "answer": "What is my portfolio worth right now?\n\nYour portfolio is currently worth $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "What assets am I currently holding?",
+          "answer": "What assets am I currently holding?\n\nYour current holdings:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Show me my recent transactions",
+          "answer": "Show me my recent transactions\n\nYour 3 recent transactions:\nReceive cirBTC\n0.0001 · Completed\nReceive EURC\n20 · Completed\nReceive USDC\n20 · Completed"
+        },
+        {
+          "id": "token-balances",
+          "text": "What are my current USDC, EURC and cirBTC balances?",
+          "answer": "What are my current USDC, EURC and cirBTC balances?\n\nYour current verified balances:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "What is the current Arc network status?",
+          "answer": "What is the current Arc network status?\n\nArc Testnet is online. Latest block: #64,929,979."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "Danh mục của tôi trị giá bao nhiêu?",
+        "before": "Your portfolio is currently worth $419.16.",
+        "after": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "lang": "vi",
+      "theme": "dark",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+              "font": 12.5,
+              "left": 477.375,
+              "right": 763.578125,
+              "width": 284,
+              "scrollWidth": 284
+            },
+            {
+              "text": "Tôi đang nắm giữ những tài sản nào?",
+              "font": 12.5,
+              "left": 771.578125,
+              "right": 1034.609375,
+              "width": 261,
+              "scrollWidth": 261
+            },
+            {
+              "text": "Cho tôi xem các giao dịch gần đây",
+              "font": 12.5,
+              "left": 442.265625,
+              "right": 686.25,
+              "width": 242,
+              "scrollWidth": 242
+            },
+            {
+              "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+              "font": 12.5,
+              "left": 694.25,
+              "right": 1069.71875,
+              "width": 373,
+              "scrollWidth": 373
+            },
+            {
+              "text": "Tình trạng mạng Arc hiện tại thế nào?",
+              "font": 12.5,
+              "left": 621.703125,
+              "right": 890.296875,
+              "width": 267,
+              "scrollWidth": 267
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Báo tôi khi số dư USDC xuống dưới 100",
+              "font": 12.5,
+              "left": 482.453125,
+              "right": 755.15625,
+              "width": 271,
+              "scrollWidth": 271
+            },
+            {
+              "text": "Báo tôi khi số dư EURC xuống dưới 50",
+              "font": 12.5,
+              "left": 763.15625,
+              "right": 1029.53125,
+              "width": 264,
+              "scrollWidth": 264
+            },
+            {
+              "text": "Báo tôi khi số dư cirBTC xuống dưới 0.01",
+              "font": 12.5,
+              "left": 483.53125,
+              "right": 762.078125,
+              "width": 277,
+              "scrollWidth": 277
+            },
+            {
+              "text": "Báo tôi khi số dư USDC lên trên 1000",
+              "font": 12.5,
+              "left": 770.078125,
+              "right": 1028.46875,
+              "width": 256,
+              "scrollWidth": 256
+            },
+            {
+              "text": "Báo tôi khi số dư EURC lên trên 200",
+              "font": 12.5,
+              "left": 629.96875,
+              "right": 882.03125,
+              "width": 250,
+              "scrollWidth": 250
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 432.21875,
+              "right": 743.71875,
+              "width": 310,
+              "scrollWidth": 310
+            },
+            {
+              "text": "Tóm tắt hoạt động ví cho tôi lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 751.71875,
+              "right": 1079.78125,
+              "width": 326,
+              "scrollWidth": 326
+            },
+            {
+              "text": "Cho tôi biết số dư USDC, EURC và cirBTC lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 394.03125,
+              "right": 799.359375,
+              "width": 403,
+              "scrollWidth": 403
+            },
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 807.359375,
+              "right": 1117.953125,
+              "width": 309,
+              "scrollWidth": 309
+            },
+            {
+              "text": "Tóm tắt giao dịch ví hôm nay lúc 21:00 mỗi ngày",
+              "font": 12.5,
+              "left": 591.359375,
+              "right": 920.640625,
+              "width": 327,
+              "scrollWidth": 327
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+          "answer": "Danh mục của tôi hiện trị giá bao nhiêu?\n\nTổng danh mục hiện tại của bạn là $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "Tôi đang nắm giữ những tài sản nào?",
+          "answer": "Tôi đang nắm giữ những tài sản nào?\n\nCác tài sản bạn đang nắm giữ:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Cho tôi xem các giao dịch gần đây",
+          "answer": "Cho tôi xem các giao dịch gần đây\n\n3 giao dịch gần đây của bạn:\nNhận cirBTC\n0.0001 · Hoàn tất\nNhận EURC\n20 · Hoàn tất\nNhận USDC\n20 · Hoàn tất"
+        },
+        {
+          "id": "token-balances",
+          "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+          "answer": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?\n\nSố dư hiện tại đã xác minh của bạn:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "Tình trạng mạng Arc hiện tại thế nào?",
+          "answer": "Tình trạng mạng Arc hiện tại thế nào?\n\nArc Testnet đang trực tuyến. Khối mới nhất: #64.929.992."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "What is my portfolio worth right now?",
+        "before": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "after": "Your portfolio is currently worth $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "theme": "light",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "What is my portfolio worth right now?",
+              "font": 12.5,
+              "left": 447.703125,
+              "right": 716.609375,
+              "width": 267,
+              "scrollWidth": 267
+            },
+            {
+              "text": "What assets am I currently holding?",
+              "font": 12.5,
+              "left": 724.609375,
+              "right": 980.5625,
+              "width": 254,
+              "scrollWidth": 254
+            },
+            {
+              "text": "Show me my recent transactions",
+              "font": 12.5,
+              "left": 988.5625,
+              "right": 1224.28125,
+              "width": 234,
+              "scrollWidth": 234
+            },
+            {
+              "text": "What are my current USDC, EURC and cirBTC balances?",
+              "font": 12.5,
+              "left": 503,
+              "right": 882.375,
+              "width": 377,
+              "scrollWidth": 377
+            },
+            {
+              "text": "What is the current Arc network status?",
+              "font": 12.5,
+              "left": 890.375,
+              "right": 1168.984375,
+              "width": 277,
+              "scrollWidth": 277
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Notify me when my USDC balance falls below 100",
+              "font": 12.5,
+              "left": 495.921875,
+              "right": 835.15625,
+              "width": 337,
+              "scrollWidth": 337
+            },
+            {
+              "text": "Notify me when my EURC balance falls below 50",
+              "font": 12.5,
+              "left": 843.15625,
+              "right": 1176.078125,
+              "width": 331,
+              "scrollWidth": 331
+            },
+            {
+              "text": "Notify me when my cirBTC balance falls below 0.01",
+              "font": 12.5,
+              "left": 484.03125,
+              "right": 829.125,
+              "width": 343,
+              "scrollWidth": 343
+            },
+            {
+              "text": "Notify me when my USDC balance rises above 1000",
+              "font": 12.5,
+              "left": 837.125,
+              "right": 1187.96875,
+              "width": 349,
+              "scrollWidth": 349
+            },
+            {
+              "text": "Notify me when my EURC balance rises above 200",
+              "font": 12.5,
+              "left": 663.734375,
+              "right": 1008.25,
+              "width": 343,
+              "scrollWidth": 343
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Send me a portfolio summary every day at 08:00",
+              "font": 12.5,
+              "left": 500.6875,
+              "right": 834.015625,
+              "width": 331,
+              "scrollWidth": 331
+            },
+            {
+              "text": "Summarize my wallet activity every day at 20:00",
+              "font": 12.5,
+              "left": 842.015625,
+              "right": 1171.3125,
+              "width": 327,
+              "scrollWidth": 327
+            },
+            {
+              "text": "Show me my USDC, EURC and cirBTC balances every day at 08:00",
+              "font": 12.5,
+              "left": 615.5625,
+              "right": 1056.421875,
+              "width": 439,
+              "scrollWidth": 439
+            },
+            {
+              "text": "Send me a portfolio summary every day at 20:00",
+              "font": 12.5,
+              "left": 474.828125,
+              "right": 807.25,
+              "width": 330,
+              "scrollWidth": 330
+            },
+            {
+              "text": "Summarize today's wallet transactions every day at 21:00",
+              "font": 12.5,
+              "left": 815.25,
+              "right": 1197.15625,
+              "width": 380,
+              "scrollWidth": 380
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "What is my portfolio worth right now?",
+          "answer": "What is my portfolio worth right now?\n\nYour portfolio is currently worth $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "What assets am I currently holding?",
+          "answer": "What assets am I currently holding?\n\nYour current holdings:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Show me my recent transactions",
+          "answer": "Show me my recent transactions\n\nYour 3 recent transactions:\nReceive cirBTC\n0.0001 · Completed\nReceive EURC\n20 · Completed\nReceive USDC\n20 · Completed"
+        },
+        {
+          "id": "token-balances",
+          "text": "What are my current USDC, EURC and cirBTC balances?",
+          "answer": "What are my current USDC, EURC and cirBTC balances?\n\nYour current verified balances:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "What is the current Arc network status?",
+          "answer": "What is the current Arc network status?\n\nArc Testnet is online. Latest block: #64,929,992."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "Danh mục của tôi trị giá bao nhiêu?",
+        "before": "Your portfolio is currently worth $419.16.",
+        "after": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "lang": "vi",
+      "theme": "light",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+              "font": 12.5,
+              "left": 477.375,
+              "right": 763.578125,
+              "width": 284,
+              "scrollWidth": 284
+            },
+            {
+              "text": "Tôi đang nắm giữ những tài sản nào?",
+              "font": 12.5,
+              "left": 771.578125,
+              "right": 1034.609375,
+              "width": 261,
+              "scrollWidth": 261
+            },
+            {
+              "text": "Cho tôi xem các giao dịch gần đây",
+              "font": 12.5,
+              "left": 442.265625,
+              "right": 686.25,
+              "width": 242,
+              "scrollWidth": 242
+            },
+            {
+              "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+              "font": 12.5,
+              "left": 694.25,
+              "right": 1069.71875,
+              "width": 373,
+              "scrollWidth": 373
+            },
+            {
+              "text": "Tình trạng mạng Arc hiện tại thế nào?",
+              "font": 12.5,
+              "left": 621.703125,
+              "right": 890.296875,
+              "width": 267,
+              "scrollWidth": 267
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Báo tôi khi số dư USDC xuống dưới 100",
+              "font": 12.5,
+              "left": 482.453125,
+              "right": 755.15625,
+              "width": 271,
+              "scrollWidth": 271
+            },
+            {
+              "text": "Báo tôi khi số dư EURC xuống dưới 50",
+              "font": 12.5,
+              "left": 763.15625,
+              "right": 1029.53125,
+              "width": 264,
+              "scrollWidth": 264
+            },
+            {
+              "text": "Báo tôi khi số dư cirBTC xuống dưới 0.01",
+              "font": 12.5,
+              "left": 483.53125,
+              "right": 762.078125,
+              "width": 277,
+              "scrollWidth": 277
+            },
+            {
+              "text": "Báo tôi khi số dư USDC lên trên 1000",
+              "font": 12.5,
+              "left": 770.078125,
+              "right": 1028.46875,
+              "width": 256,
+              "scrollWidth": 256
+            },
+            {
+              "text": "Báo tôi khi số dư EURC lên trên 200",
+              "font": 12.5,
+              "left": 629.96875,
+              "right": 882.03125,
+              "width": 250,
+              "scrollWidth": 250
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 432.21875,
+              "right": 743.71875,
+              "width": 310,
+              "scrollWidth": 310
+            },
+            {
+              "text": "Tóm tắt hoạt động ví cho tôi lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 751.71875,
+              "right": 1079.78125,
+              "width": 326,
+              "scrollWidth": 326
+            },
+            {
+              "text": "Cho tôi biết số dư USDC, EURC và cirBTC lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 394.03125,
+              "right": 799.359375,
+              "width": 403,
+              "scrollWidth": 403
+            },
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 807.359375,
+              "right": 1117.953125,
+              "width": 309,
+              "scrollWidth": 309
+            },
+            {
+              "text": "Tóm tắt giao dịch ví hôm nay lúc 21:00 mỗi ngày",
+              "font": 12.5,
+              "left": 591.359375,
+              "right": 920.640625,
+              "width": 327,
+              "scrollWidth": 327
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+          "answer": "Danh mục của tôi hiện trị giá bao nhiêu?\n\nTổng danh mục hiện tại của bạn là $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "Tôi đang nắm giữ những tài sản nào?",
+          "answer": "Tôi đang nắm giữ những tài sản nào?\n\nCác tài sản bạn đang nắm giữ:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Cho tôi xem các giao dịch gần đây",
+          "answer": "Cho tôi xem các giao dịch gần đây\n\n3 giao dịch gần đây của bạn:\nNhận cirBTC\n0.0001 · Hoàn tất\nNhận EURC\n20 · Hoàn tất\nNhận USDC\n20 · Hoàn tất"
+        },
+        {
+          "id": "token-balances",
+          "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+          "answer": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?\n\nSố dư hiện tại đã xác minh của bạn:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "Tình trạng mạng Arc hiện tại thế nào?",
+          "answer": "Tình trạng mạng Arc hiện tại thế nào?\n\nArc Testnet đang trực tuyến. Khối mới nhất: #64.929.992."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "What is my portfolio worth right now?",
+        "before": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "after": "Your portfolio is currently worth $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "lang": "en",
+      "theme": "dark",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "What is my portfolio worth right now?",
+              "font": 12.5,
+              "left": 367.703125,
+              "right": 636.609375,
+              "width": 267,
+              "scrollWidth": 267
+            },
+            {
+              "text": "What assets am I currently holding?",
+              "font": 12.5,
+              "left": 644.609375,
+              "right": 900.5625,
+              "width": 254,
+              "scrollWidth": 254
+            },
+            {
+              "text": "Show me my recent transactions",
+              "font": 12.5,
+              "left": 908.5625,
+              "right": 1144.28125,
+              "width": 234,
+              "scrollWidth": 234
+            },
+            {
+              "text": "What are my current USDC, EURC and cirBTC balances?",
+              "font": 12.5,
+              "left": 423,
+              "right": 802.375,
+              "width": 377,
+              "scrollWidth": 377
+            },
+            {
+              "text": "What is the current Arc network status?",
+              "font": 12.5,
+              "left": 810.375,
+              "right": 1088.984375,
+              "width": 277,
+              "scrollWidth": 277
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Notify me when my USDC balance falls below 100",
+              "font": 12.5,
+              "left": 415.921875,
+              "right": 755.15625,
+              "width": 337,
+              "scrollWidth": 337
+            },
+            {
+              "text": "Notify me when my EURC balance falls below 50",
+              "font": 12.5,
+              "left": 763.15625,
+              "right": 1096.078125,
+              "width": 331,
+              "scrollWidth": 331
+            },
+            {
+              "text": "Notify me when my cirBTC balance falls below 0.01",
+              "font": 12.5,
+              "left": 404.03125,
+              "right": 749.125,
+              "width": 343,
+              "scrollWidth": 343
+            },
+            {
+              "text": "Notify me when my USDC balance rises above 1000",
+              "font": 12.5,
+              "left": 757.125,
+              "right": 1107.96875,
+              "width": 349,
+              "scrollWidth": 349
+            },
+            {
+              "text": "Notify me when my EURC balance rises above 200",
+              "font": 12.5,
+              "left": 583.734375,
+              "right": 928.25,
+              "width": 343,
+              "scrollWidth": 343
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Send me a portfolio summary every day at 08:00",
+              "font": 12.5,
+              "left": 420.6875,
+              "right": 754.015625,
+              "width": 331,
+              "scrollWidth": 331
+            },
+            {
+              "text": "Summarize my wallet activity every day at 20:00",
+              "font": 12.5,
+              "left": 762.015625,
+              "right": 1091.3125,
+              "width": 327,
+              "scrollWidth": 327
+            },
+            {
+              "text": "Show me my USDC, EURC and cirBTC balances every day at 08:00",
+              "font": 12.5,
+              "left": 535.5625,
+              "right": 976.421875,
+              "width": 439,
+              "scrollWidth": 439
+            },
+            {
+              "text": "Send me a portfolio summary every day at 20:00",
+              "font": 12.5,
+              "left": 394.828125,
+              "right": 727.25,
+              "width": 330,
+              "scrollWidth": 330
+            },
+            {
+              "text": "Summarize today's wallet transactions every day at 21:00",
+              "font": 12.5,
+              "left": 735.25,
+              "right": 1117.15625,
+              "width": 380,
+              "scrollWidth": 380
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "What is my portfolio worth right now?",
+          "answer": "What is my portfolio worth right now?\n\nYour portfolio is currently worth $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "What assets am I currently holding?",
+          "answer": "What assets am I currently holding?\n\nYour current holdings:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Show me my recent transactions",
+          "answer": "Show me my recent transactions\n\nYour 3 recent transactions:\nReceive cirBTC\n0.0001 · Completed\nReceive EURC\n20 · Completed\nReceive USDC\n20 · Completed"
+        },
+        {
+          "id": "token-balances",
+          "text": "What are my current USDC, EURC and cirBTC balances?",
+          "answer": "What are my current USDC, EURC and cirBTC balances?\n\nYour current verified balances:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "What is the current Arc network status?",
+          "answer": "What is the current Arc network status?\n\nArc Testnet is online. Latest block: #64,930,005."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "Danh mục của tôi trị giá bao nhiêu?",
+        "before": "Your portfolio is currently worth $419.16.",
+        "after": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "lang": "vi",
+      "theme": "dark",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+              "font": 12.5,
+              "left": 51.890625,
+              "right": 338.09375,
+              "width": 284,
+              "scrollWidth": 284
+            },
+            {
+              "text": "Tôi đang nắm giữ những tài sản nào?",
+              "font": 12.5,
+              "left": 63.484375,
+              "right": 326.515625,
+              "width": 261,
+              "scrollWidth": 261
+            },
+            {
+              "text": "Cho tôi xem các giao dịch gần đây",
+              "font": 12.5,
+              "left": 73,
+              "right": 316.984375,
+              "width": 242,
+              "scrollWidth": 242
+            },
+            {
+              "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Tình trạng mạng Arc hiện tại thế nào?",
+              "font": 12.5,
+              "left": 60.703125,
+              "right": 329.296875,
+              "width": 267,
+              "scrollWidth": 267
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Báo tôi khi số dư USDC xuống dưới 100",
+              "font": 12.5,
+              "left": 58.640625,
+              "right": 331.34375,
+              "width": 271,
+              "scrollWidth": 271
+            },
+            {
+              "text": "Báo tôi khi số dư EURC xuống dưới 50",
+              "font": 12.5,
+              "left": 61.8125,
+              "right": 328.1875,
+              "width": 264,
+              "scrollWidth": 264
+            },
+            {
+              "text": "Báo tôi khi số dư cirBTC xuống dưới 0.01",
+              "font": 12.5,
+              "left": 55.71875,
+              "right": 334.265625,
+              "width": 277,
+              "scrollWidth": 277
+            },
+            {
+              "text": "Báo tôi khi số dư USDC lên trên 1000",
+              "font": 12.5,
+              "left": 65.796875,
+              "right": 324.1875,
+              "width": 256,
+              "scrollWidth": 256
+            },
+            {
+              "text": "Báo tôi khi số dư EURC lên trên 200",
+              "font": 12.5,
+              "left": 68.96875,
+              "right": 321.03125,
+              "width": 250,
+              "scrollWidth": 250
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 39.25,
+              "right": 350.75,
+              "width": 310,
+              "scrollWidth": 310
+            },
+            {
+              "text": "Tóm tắt hoạt động ví cho tôi lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Cho tôi biết số dư USDC, EURC và cirBTC lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 39.703125,
+              "right": 350.296875,
+              "width": 309,
+              "scrollWidth": 309
+            },
+            {
+              "text": "Tóm tắt giao dịch ví hôm nay lúc 21:00 mỗi ngày",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+          "answer": "Danh mục của tôi hiện trị giá bao nhiêu?\n\nTổng danh mục hiện tại của bạn là $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "Tôi đang nắm giữ những tài sản nào?",
+          "answer": "Tôi đang nắm giữ những tài sản nào?\n\nCác tài sản bạn đang nắm giữ:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Cho tôi xem các giao dịch gần đây",
+          "answer": "Cho tôi xem các giao dịch gần đây\n\n3 giao dịch gần đây của bạn:\nNhận cirBTC\n0.0001 · Hoàn tất\nNhận EURC\n20 · Hoàn tất\nNhận USDC\n20 · Hoàn tất"
+        },
+        {
+          "id": "token-balances",
+          "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+          "answer": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?\n\nSố dư hiện tại đã xác minh của bạn:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "Tình trạng mạng Arc hiện tại thế nào?",
+          "answer": "Tình trạng mạng Arc hiện tại thế nào?\n\nArc Testnet đang trực tuyến. Khối mới nhất: #64.930.005."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "What is my portfolio worth right now?",
+        "before": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "after": "Your portfolio is currently worth $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 1280,
+      "lang": "en",
+      "theme": "light",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "What is my portfolio worth right now?",
+              "font": 12.5,
+              "left": 367.703125,
+              "right": 636.609375,
+              "width": 267,
+              "scrollWidth": 267
+            },
+            {
+              "text": "What assets am I currently holding?",
+              "font": 12.5,
+              "left": 644.609375,
+              "right": 900.5625,
+              "width": 254,
+              "scrollWidth": 254
+            },
+            {
+              "text": "Show me my recent transactions",
+              "font": 12.5,
+              "left": 908.5625,
+              "right": 1144.28125,
+              "width": 234,
+              "scrollWidth": 234
+            },
+            {
+              "text": "What are my current USDC, EURC and cirBTC balances?",
+              "font": 12.5,
+              "left": 423,
+              "right": 802.375,
+              "width": 377,
+              "scrollWidth": 377
+            },
+            {
+              "text": "What is the current Arc network status?",
+              "font": 12.5,
+              "left": 810.375,
+              "right": 1088.984375,
+              "width": 277,
+              "scrollWidth": 277
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Notify me when my USDC balance falls below 100",
+              "font": 12.5,
+              "left": 415.921875,
+              "right": 755.15625,
+              "width": 337,
+              "scrollWidth": 337
+            },
+            {
+              "text": "Notify me when my EURC balance falls below 50",
+              "font": 12.5,
+              "left": 763.15625,
+              "right": 1096.078125,
+              "width": 331,
+              "scrollWidth": 331
+            },
+            {
+              "text": "Notify me when my cirBTC balance falls below 0.01",
+              "font": 12.5,
+              "left": 404.03125,
+              "right": 749.125,
+              "width": 343,
+              "scrollWidth": 343
+            },
+            {
+              "text": "Notify me when my USDC balance rises above 1000",
+              "font": 12.5,
+              "left": 757.125,
+              "right": 1107.96875,
+              "width": 349,
+              "scrollWidth": 349
+            },
+            {
+              "text": "Notify me when my EURC balance rises above 200",
+              "font": 12.5,
+              "left": 583.734375,
+              "right": 928.25,
+              "width": 343,
+              "scrollWidth": 343
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Send me a portfolio summary every day at 08:00",
+              "font": 12.5,
+              "left": 420.6875,
+              "right": 754.015625,
+              "width": 331,
+              "scrollWidth": 331
+            },
+            {
+              "text": "Summarize my wallet activity every day at 20:00",
+              "font": 12.5,
+              "left": 762.015625,
+              "right": 1091.3125,
+              "width": 327,
+              "scrollWidth": 327
+            },
+            {
+              "text": "Show me my USDC, EURC and cirBTC balances every day at 08:00",
+              "font": 12.5,
+              "left": 535.5625,
+              "right": 976.421875,
+              "width": 439,
+              "scrollWidth": 439
+            },
+            {
+              "text": "Send me a portfolio summary every day at 20:00",
+              "font": 12.5,
+              "left": 394.828125,
+              "right": 727.25,
+              "width": 330,
+              "scrollWidth": 330
+            },
+            {
+              "text": "Summarize today's wallet transactions every day at 21:00",
+              "font": 12.5,
+              "left": 735.25,
+              "right": 1117.15625,
+              "width": 380,
+              "scrollWidth": 380
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "What is my portfolio worth right now?",
+          "answer": "What is my portfolio worth right now?\n\nYour portfolio is currently worth $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "What assets am I currently holding?",
+          "answer": "What assets am I currently holding?\n\nYour current holdings:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Show me my recent transactions",
+          "answer": "Show me my recent transactions\n\nYour 3 recent transactions:\nReceive cirBTC\n0.0001 · Completed\nReceive EURC\n20 · Completed\nReceive USDC\n20 · Completed"
+        },
+        {
+          "id": "token-balances",
+          "text": "What are my current USDC, EURC and cirBTC balances?",
+          "answer": "What are my current USDC, EURC and cirBTC balances?\n\nYour current verified balances:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "What is the current Arc network status?",
+          "answer": "What is the current Arc network status?\n\nArc Testnet is online. Latest block: #64,930,005."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "Danh mục của tôi trị giá bao nhiêu?",
+        "before": "Your portfolio is currently worth $419.16.",
+        "after": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "lang": "vi",
+      "theme": "light",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+              "font": 12.5,
+              "left": 51.890625,
+              "right": 338.09375,
+              "width": 284,
+              "scrollWidth": 284
+            },
+            {
+              "text": "Tôi đang nắm giữ những tài sản nào?",
+              "font": 12.5,
+              "left": 63.484375,
+              "right": 326.515625,
+              "width": 261,
+              "scrollWidth": 261
+            },
+            {
+              "text": "Cho tôi xem các giao dịch gần đây",
+              "font": 12.5,
+              "left": 73,
+              "right": 316.984375,
+              "width": 242,
+              "scrollWidth": 242
+            },
+            {
+              "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Tình trạng mạng Arc hiện tại thế nào?",
+              "font": 12.5,
+              "left": 60.703125,
+              "right": 329.296875,
+              "width": 267,
+              "scrollWidth": 267
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Báo tôi khi số dư USDC xuống dưới 100",
+              "font": 12.5,
+              "left": 58.640625,
+              "right": 331.34375,
+              "width": 271,
+              "scrollWidth": 271
+            },
+            {
+              "text": "Báo tôi khi số dư EURC xuống dưới 50",
+              "font": 12.5,
+              "left": 61.8125,
+              "right": 328.1875,
+              "width": 264,
+              "scrollWidth": 264
+            },
+            {
+              "text": "Báo tôi khi số dư cirBTC xuống dưới 0.01",
+              "font": 12.5,
+              "left": 55.71875,
+              "right": 334.265625,
+              "width": 277,
+              "scrollWidth": 277
+            },
+            {
+              "text": "Báo tôi khi số dư USDC lên trên 1000",
+              "font": 12.5,
+              "left": 65.796875,
+              "right": 324.1875,
+              "width": 256,
+              "scrollWidth": 256
+            },
+            {
+              "text": "Báo tôi khi số dư EURC lên trên 200",
+              "font": 12.5,
+              "left": 68.96875,
+              "right": 321.03125,
+              "width": 250,
+              "scrollWidth": 250
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 39.25,
+              "right": 350.75,
+              "width": 310,
+              "scrollWidth": 310
+            },
+            {
+              "text": "Tóm tắt hoạt động ví cho tôi lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Cho tôi biết số dư USDC, EURC và cirBTC lúc 08:00 mỗi ngày",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Gửi tôi tóm tắt danh mục lúc 20:00 mỗi ngày",
+              "font": 12.5,
+              "left": 39.703125,
+              "right": 350.296875,
+              "width": 309,
+              "scrollWidth": 309
+            },
+            {
+              "text": "Tóm tắt giao dịch ví hôm nay lúc 21:00 mỗi ngày",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "Danh mục của tôi hiện trị giá bao nhiêu?",
+          "answer": "Danh mục của tôi hiện trị giá bao nhiêu?\n\nTổng danh mục hiện tại của bạn là $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "Tôi đang nắm giữ những tài sản nào?",
+          "answer": "Tôi đang nắm giữ những tài sản nào?\n\nCác tài sản bạn đang nắm giữ:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Cho tôi xem các giao dịch gần đây",
+          "answer": "Cho tôi xem các giao dịch gần đây\n\n3 giao dịch gần đây của bạn:\nNhận cirBTC\n0.0001 · Hoàn tất\nNhận EURC\n20 · Hoàn tất\nNhận USDC\n20 · Hoàn tất"
+        },
+        {
+          "id": "token-balances",
+          "text": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?",
+          "answer": "USDC, EURC và cirBTC của tôi hiện có số dư bao nhiêu?\n\nSố dư hiện tại đã xác minh của bạn:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "Tình trạng mạng Arc hiện tại thế nào?",
+          "answer": "Tình trạng mạng Arc hiện tại thế nào?\n\nArc Testnet đang trực tuyến. Khối mới nhất: #64.930.017."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "What is my portfolio worth right now?",
+        "before": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "after": "Your portfolio is currently worth $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "lang": "en",
+      "theme": "light",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "What is my portfolio worth right now?",
+              "font": 12.5,
+              "left": 60.546875,
+              "right": 329.453125,
+              "width": 267,
+              "scrollWidth": 267
+            },
+            {
+              "text": "What assets am I currently holding?",
+              "font": 12.5,
+              "left": 67.015625,
+              "right": 322.96875,
+              "width": 254,
+              "scrollWidth": 254
+            },
+            {
+              "text": "Show me my recent transactions",
+              "font": 12.5,
+              "left": 77.140625,
+              "right": 312.859375,
+              "width": 234,
+              "scrollWidth": 234
+            },
+            {
+              "text": "What are my current USDC, EURC and cirBTC balances?",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "What is the current Arc network status?",
+              "font": 12.5,
+              "left": 55.6875,
+              "right": 334.296875,
+              "width": 277,
+              "scrollWidth": 277
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Notify me when my USDC balance falls below 100",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Notify me when my EURC balance falls below 50",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Notify me when my cirBTC balance falls below 0.01",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Notify me when my USDC balance rises above 1000",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Notify me when my EURC balance rises above 200",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Send me a portfolio summary every day at 08:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Summarize my wallet activity every day at 20:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Show me my USDC, EURC and cirBTC balances every day at 08:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Send me a portfolio summary every day at 20:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Summarize today's wallet transactions every day at 21:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "What is my portfolio worth right now?",
+          "answer": "What is my portfolio worth right now?\n\nYour portfolio is currently worth $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "What assets am I currently holding?",
+          "answer": "What assets am I currently holding?\n\nYour current holdings:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Show me my recent transactions",
+          "answer": "Show me my recent transactions\n\nYour 3 recent transactions:\nReceive cirBTC\n0.0001 · Completed\nReceive EURC\n20 · Completed\nReceive USDC\n20 · Completed"
+        },
+        {
+          "id": "token-balances",
+          "text": "What are my current USDC, EURC and cirBTC balances?",
+          "answer": "What are my current USDC, EURC and cirBTC balances?\n\nYour current verified balances:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "What is the current Arc network status?",
+          "answer": "What is the current Arc network status?\n\nArc Testnet is online. Latest block: #64,930,017."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "Danh mục của tôi trị giá bao nhiêu?",
+        "before": "Your portfolio is currently worth $419.16.",
+        "after": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "lang": "en",
+      "theme": "dark",
+      "modes": [
+        {
+          "mode": "ask",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "What is my portfolio worth right now?",
+              "font": 12.5,
+              "left": 60.5625,
+              "right": 329.421875,
+              "width": 267,
+              "scrollWidth": 267
+            },
+            {
+              "text": "What assets am I currently holding?",
+              "font": 12.5,
+              "left": 67.046875,
+              "right": 322.9375,
+              "width": 254,
+              "scrollWidth": 254
+            },
+            {
+              "text": "Show me my recent transactions",
+              "font": 12.5,
+              "left": 77.171875,
+              "right": 312.828125,
+              "width": 234,
+              "scrollWidth": 234
+            },
+            {
+              "text": "What are my current USDC, EURC and cirBTC balances?",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "What is the current Arc network status?",
+              "font": 12.5,
+              "left": 55.75,
+              "right": 334.25,
+              "width": 277,
+              "scrollWidth": 277
+            }
+          ]
+        },
+        {
+          "mode": "monitor",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Notify me when my USDC balance falls below 100",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Notify me when my EURC balance falls below 50",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Notify me when my cirBTC balance falls below 0.01",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Notify me when my USDC balance rises above 1000",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Notify me when my EURC balance rises above 200",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            }
+          ]
+        },
+        {
+          "mode": "automation",
+          "count": 5,
+          "document": 0,
+          "chips": [
+            {
+              "text": "Send me a portfolio summary every day at 08:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Summarize my wallet activity every day at 20:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Show me my USDC, EURC and cirBTC balances every day at 08:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Send me a portfolio summary every day at 20:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            },
+            {
+              "text": "Summarize today's wallet transactions every day at 21:00",
+              "font": 12.5,
+              "left": 33,
+              "right": 357,
+              "width": 322,
+              "scrollWidth": 322
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "id": "portfolio-value",
+          "text": "What is my portfolio worth right now?",
+          "answer": "What is my portfolio worth right now?\n\nYour portfolio is currently worth $419.16.\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "holdings",
+          "text": "What assets am I currently holding?",
+          "answer": "What assets am I currently holding?\n\nYour current holdings:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "recent-activity",
+          "text": "Show me my recent transactions",
+          "answer": "Show me my recent transactions\n\nYour 3 recent transactions:\nReceive cirBTC\n0.0001 · Completed\nReceive EURC\n20 · Completed\nReceive USDC\n20 · Completed"
+        },
+        {
+          "id": "token-balances",
+          "text": "What are my current USDC, EURC and cirBTC balances?",
+          "answer": "What are my current USDC, EURC and cirBTC balances?\n\nYour current verified balances:\nUSDC\n147.184199\nEURC\n181.584986\ncirBTC\n0.0008"
+        },
+        {
+          "id": "network-status",
+          "text": "What is the current Arc network status?",
+          "answer": "What is the current Arc network status?\n\nArc Testnet is online. Latest block: #64,930,017."
+        }
+      ],
+      "localeSwitch": {
+        "raw": "Danh mục của tôi trị giá bao nhiêu?",
+        "before": "Your portfolio is currently worth $419.16.",
+        "after": "Tổng danh mục hiện tại của bạn là $419.16.",
+        "preserved": true
+      },
+      "finalOverflow": 0,
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "monitor",
+      "text": "Báo tôi khi số dư USDC xuống dưới 100",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nBáo tôi khi số dư USDC xuống dưới 100\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,029 · Thời gian phản hồi mạng 133 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "monitor",
+      "text": "Báo tôi khi số dư cirBTC xuống dưới 0.01",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nBáo tôi khi số dư cirBTC xuống dưới 0.01\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,029 · Thời gian phản hồi mạng 116 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "monitor",
+      "text": "Báo tôi khi số dư EURC xuống dưới 50",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nBáo tôi khi số dư EURC xuống dưới 50\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,029 · Thời gian phản hồi mạng 196 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "automation",
+      "text": "Gửi tôi tóm tắt danh mục lúc 08:00 mỗi ngày",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nGửi tôi tóm tắt danh mục lúc 08:00 mỗi ngày\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,039 · Thời gian phản hồi mạng 107 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "monitor",
+      "text": "Báo tôi khi số dư USDC lên trên 1000",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nBáo tôi khi số dư USDC lên trên 1000\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,039 · Thời gian phản hồi mạng 200 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "monitor",
+      "text": "Báo tôi khi số dư EURC lên trên 200",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nBáo tôi khi số dư EURC lên trên 200\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,039 · Thời gian phản hồi mạng 199 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "automation",
+      "text": "Tóm tắt hoạt động ví cho tôi lúc 20:00 mỗi ngày",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nTóm tắt hoạt động ví cho tôi lúc 20:00 mỗi ngày\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,049 · Thời gian phản hồi mạng 219 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "automation",
+      "text": "Gửi tôi tóm tắt danh mục lúc 20:00 mỗi ngày",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nGửi tôi tóm tắt danh mục lúc 20:00 mỗi ngày\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,049 · Thời gian phản hồi mạng 112 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "automation",
+      "text": "Cho tôi biết số dư USDC, EURC và cirBTC lúc 08:00 mỗi ngày",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nCho tôi biết số dư USDC, EURC và cirBTC lúc 08:00 mỗi ngày\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,049 · Thời gian phản hồi mạng 207 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "workflow",
+      "text": "Gửi 10 USDC tới 0x19519eec824637087f6109996124d7700f6cbe71",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nGửi 10 USDC tới 0x19519eec824637087f6109996124d7700f6cbe71\nTôi đã phân tích lệnh chuyển cục bộ. Hãy xem lại thông số trước khi yêu cầu ví.\nXEM LẠI THÔNG SỐ · TRANSFER\nCó thể sửa\n\nChỉ đang lập kế hoạch; chưa yêu cầu ví.\n\nTài sản\nUSDC\nEURC\ncirBTC\nSố lượng\nNgười nhận\nMạng\nArc\nXác nhận thông số\n\nXác nhận các giá trị này đúng ý bạn. Thao tác này không phê duyệt hay ký bất cứ điều gì.\n\nPrototype interaction\nTiến độ\nUser request\nPlanner proposal\n3\nReview parameters\n4\nĐã xác nhận thông số\n5\nStrategy prepared\n6\nXem lại giao dịch\n7\nWallet signature\n8\nĐã gửi lên mạng\n9\nConfirming\n10\nHoàn thành\n\nWaiting for you to review the parameters.\n\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,059 · Thời gian phản hồi mạng 225 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "automation",
+      "text": "Tóm tắt giao dịch ví hôm nay lúc 21:00 mỗi ngày",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nTóm tắt giao dịch ví hôm nay lúc 21:00 mỗi ngày\nXác minh ví để quản lý nhiệm vụ\nXác minh ví để quản lý nhiệm vụ\nVÍ\n0x1629…586b\nChỉ xem\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,059 · Thời gian phản hồi mạng 111 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "monitor",
+      "text": "Notify me when my cirBTC balance falls below 0.01",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nNotify me when my cirBTC balance falls below 0.01\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,068 · Network response time 203 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "monitor",
+      "text": "Notify me when my EURC balance falls below 50",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nNotify me when my EURC balance falls below 50\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,068 · Network response time 141 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "monitor",
+      "text": "Notify me when my USDC balance falls below 100",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nNotify me when my USDC balance falls below 100\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,068 · Network response time 202 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "monitor",
+      "text": "Notify me when my EURC balance rises above 200",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nNotify me when my EURC balance rises above 200\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,078 · Network response time 217 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "monitor",
+      "text": "Notify me when my USDC balance rises above 1000",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nNotify me when my USDC balance rises above 1000\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,078 · Network response time 205 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "automation",
+      "text": "Send me a portfolio summary every day at 08:00",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nSend me a portfolio summary every day at 08:00\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,078 · Network response time 204 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "automation",
+      "text": "Summarize my wallet activity every day at 20:00",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nSummarize my wallet activity every day at 20:00\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,088 · Network response time 264 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "automation",
+      "text": "Send me a portfolio summary every day at 20:00",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nSend me a portfolio summary every day at 20:00\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,088 · Network response time 257 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "automation",
+      "text": "Show me my USDC, EURC and cirBTC balances every day at 08:00",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nShow me my USDC, EURC and cirBTC balances every day at 08:00\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,088 · Network response time 113 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "automation",
+      "text": "Summarize today's wallet transactions every day at 21:00",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nSummarize today's wallet transactions every day at 21:00\nVerify wallet to manage tasks\nVerify wallet to manage tasks\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,097 · Network response time 218 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "workflow",
+      "text": "Send 10 USDC to 0x19519eec824637087f6109996124d7700f6cbe71",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nSend 10 USDC to 0x19519eec824637087f6109996124d7700f6cbe71\nI parsed the transfer locally. Review the parameters before anything reaches your wallet.\nREVIEW PARAMETERS · TRANSFER\nEditable\n\nPlanning state only; no wallet request.\n\nAsset\nUSDC\nEURC\ncirBTC\nAmount\nRecipient\nNetwork\nArc\nConfirm parameters\n\nConfirms these values reflect what you intend. It does not approve or sign anything.\n\nPrototype interaction\nProgress\nUser request\nPlanner proposal\n3\nReview parameters\n4\nParameters confirmed\n5\nStrategy prepared\n6\nReview transaction\n7\nWallet signature\n8\nSubmitted\n9\nConfirming\n10\nCompleted\n\nWaiting for you to review the parameters.\n\nWALLET\n0x1629…586b\nWatch-only\n$419.16\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,098 · Network response time 244 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    }
+  ],
+  "consoleErrors": []
+}

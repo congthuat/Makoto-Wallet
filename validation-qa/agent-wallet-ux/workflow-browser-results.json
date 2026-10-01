@@ -1,0 +1,55 @@
+{
+  "origin": "http://localhost:5173",
+  "account": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+  "results": [
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "workflow",
+      "text": "Gửi 10 USDC tới 0x19519eec824637087f6109996124d7700f6cbe71",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nGửi 10 USDC tới 0x19519eec824637087f6109996124d7700f6cbe71\nTôi đã phân tích lệnh chuyển cục bộ. Hãy xem lại thông số trước khi yêu cầu ví.\nXEM LẠI THÔNG SỐ · TRANSFER\nCó thể sửa\n\nChỉ đang lập kế hoạch; chưa yêu cầu ví.\n\nTài sản\nUSDC\nEURC\ncirBTC\nSố lượng\nNgười nhận\nMạng\nArc\nXác nhận thông số\n\nXác nhận các giá trị này đúng ý bạn. Thao tác này không phê duyệt hay ký bất cứ điều gì.\n\nPrototype interaction\nTiến độ\nUser request\nPlanner proposal\n3\nReview parameters\n4\nĐã xác nhận thông số\n5\nStrategy prepared\n6\nXem lại giao dịch\n7\nWallet signature\n8\nĐã gửi lên mạng\n9\nConfirming\n10\nHoàn thành\n\nWaiting for you to review the parameters.\n\nVÍ\n0x1629…586b\nChỉ xem\n$419.25\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,437 · Thời gian phản hồi mạng 109 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "workflow",
+      "text": "Chuyển 10 USDC sang Base Sepolia",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nChuyển 10 USDC sang Base Sepolia\nTôi cần thêm một ít thông tin trước khi chuẩn bị an toàn.\nThiếu\nNgười nhận\nVÍ\n0x1629…586b\nChỉ xem\n$419.25\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,437 · Thời gian phản hồi mạng 245 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "vi",
+      "mode": "workflow",
+      "text": "Hoán đổi 10 USDC sang EURC",
+      "body": "Makoto Agent\nTrợ lý ví của bạn\nXóa\nHoán đổi 10 USDC sang EURC\nTôi đã phân tích lệnh swap cục bộ. Cần báo giá mới và kiểm tra an toàn lại trước khi xác nhận trong ví.\nXEM LẠI THÔNG SỐ · HOÁN ĐỔI\nCó thể sửa\n\nChỉ đang lập kế hoạch; chưa yêu cầu ví.\n\nTài sản\nUSDC\nEURC\ncirBTC\nSố lượng\nNhận\nUSDC\nEURC\ncirBTC\nMạng\nArc\nXác nhận thông số\n\nXác nhận các giá trị này đúng ý bạn. Thao tác này không phê duyệt hay ký bất cứ điều gì.\n\nPrototype interaction\nTiến độ\nUser request\nPlanner proposal\n3\nReview parameters\n4\nĐã xác nhận thông số\n5\nStrategy prepared\n6\nXem lại giao dịch\n7\nWallet signature\n8\nĐã gửi lên mạng\n9\nConfirming\n10\nHoàn thành\n\nWaiting for you to review the parameters.\n\nVÍ\n0x1629…586b\nChỉ xem\n$419.25\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nMẠNG\nArc Testnet · Trực tuyến\nKhối #64,930,438 · Thời gian phản hồi mạng 203 ms\nTÁC VỤ\nXem\n\nKhông có tác vụ đang chạy.\n\nMakoto · Arc Testnet\nThông tin\nCó gì mới\nTrạng thái hệ thống\nĐiều khoản & Quyền riêng tư\nPhân tích\nTrình khám phá",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "workflow",
+      "text": "Bridge 10 USDC to Base Sepolia",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nBridge 10 USDC to Base Sepolia\nI parsed the bridge locally. Source submission and destination completion remain separate states.\nREVIEW PARAMETERS · BRIDGE\nEditable\n\nPlanning state only; no wallet request.\n\nAsset\nUSDC\nAmount\nDestination\nBase Sepolia\nEthereum Sepolia\nArbitrum Sepolia\nNetwork\nArc\nConfirm parameters\n\nConfirms these values reflect what you intend. It does not approve or sign anything.\n\nPrototype interaction\nProgress\nUser request\nPlanner proposal\n3\nReview parameters\n4\nParameters confirmed\n5\nStrategy prepared\n6\nReview transaction\n7\nWallet signature\n8\nSubmitted\n9\nConfirming\n10\nCompleted\n\nWaiting for you to review the parameters.\n\nWALLET\n0x1629…586b\nWatch-only\n$419.25\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,447 · Network response time 192 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "workflow",
+      "text": "Swap 10 USDC to EURC",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nSwap 10 USDC to EURC\nI parsed the swap locally. A fresh quote and safety revalidation are still required before wallet confirmation.\nREVIEW PARAMETERS · SWAP\nEditable\n\nPlanning state only; no wallet request.\n\nAsset\nUSDC\nEURC\ncirBTC\nAmount\nReceive\nUSDC\nEURC\ncirBTC\nNetwork\nArc\nConfirm parameters\n\nConfirms these values reflect what you intend. It does not approve or sign anything.\n\nPrototype interaction\nProgress\nUser request\nPlanner proposal\n3\nReview parameters\n4\nParameters confirmed\n5\nStrategy prepared\n6\nReview transaction\n7\nWallet signature\n8\nSubmitted\n9\nConfirming\n10\nCompleted\n\nWaiting for you to review the parameters.\n\nWALLET\n0x1629…586b\nWatch-only\n$419.25\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,447 · Network response time 113 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    },
+    {
+      "type": "handoff",
+      "lang": "en",
+      "mode": "workflow",
+      "text": "Send 10 USDC to 0x19519eec824637087f6109996124d7700f6cbe71",
+      "body": "Makoto Agent\nYour wallet assistant\nClear\nSend 10 USDC to 0x19519eec824637087f6109996124d7700f6cbe71\nI parsed the transfer locally. Review the parameters before anything reaches your wallet.\nREVIEW PARAMETERS · TRANSFER\nEditable\n\nPlanning state only; no wallet request.\n\nAsset\nUSDC\nEURC\ncirBTC\nAmount\nRecipient\nNetwork\nArc\nConfirm parameters\n\nConfirms these values reflect what you intend. It does not approve or sign anything.\n\nPrototype interaction\nProgress\nUser request\nPlanner proposal\n3\nReview parameters\n4\nParameters confirmed\n5\nStrategy prepared\n6\nReview transaction\n7\nWallet signature\n8\nSubmitted\n9\nConfirming\n10\nCompleted\n\nWaiting for you to review the parameters.\n\nWALLET\n0x1629…586b\nWatch-only\n$419.25\nArcScan\n€\nEURC\n181.584986\n$\nUSDC\n147.184199\n₿\ncirBTC\n0.0008\nNETWORK\nArc Testnet · Online\nBlock #64,930,447 · Network response time 212 ms\nTASKS\nView\n\nNo active tasks.\n\nMakoto · Arc Testnet\nAbout\nWhat's new\nSystem status\nTerms & Privacy\nInsights\nExplorer",
+      "passed": true
+    }
+  ],
+  "consoleErrors": []
+}

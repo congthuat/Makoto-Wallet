@@ -1,0 +1,11 @@
+
+> frontend@0.0.0 build:server
+> vite build --ssr src/entry-server.tsx --outDir dist/server
+
+vite v6.4.2 building SSR bundle for production...
+transforming...
+✓ 1 modules transformed.
+rendering chunks...
+dist/server/entry-server.js  0.35 kB
+✓ built in 91ms
+

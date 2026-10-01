@@ -1,0 +1,464 @@
+[
+  {
+    "walletAddress": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+    "chainId": 5042002,
+    "capturedAt": "2026-10-01T07:55:29.613Z",
+    "totalUsd": 368.216908863536,
+    "priceProvider": "COINGECKO",
+    "priceStatus": "FRESH",
+    "priceObservedAt": "2026-10-01T07:55:27.349Z",
+    "balanceObservedAt": "2026-10-01T07:55:29.613Z",
+    "recomputedTotal": 368.216908863536,
+    "exactMatch": true,
+    "assets": [
+      {
+        "symbol": "EURC",
+        "address": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+        "decimals": 6,
+        "balance": 161.584986,
+        "rawBalance": "161584986",
+        "rawDecimals": 6,
+        "priceKey": "EURC",
+        "usdPrice": 1.13,
+        "usdValue": 182.59103417999998,
+        "price": {
+          "price": 1.13,
+          "change24h": -0.30804030003016003,
+          "provider": "CoinGecko",
+          "providerAssetId": "euro-coin",
+          "source": "DIRECT_EURC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T07:55:27.349Z",
+          "providerUpdatedAt": "2026-10-01T07:54:10.000Z"
+        }
+      },
+      {
+        "symbol": "USDC",
+        "address": "0x3600000000000000000000000000000000000000",
+        "decimals": 6,
+        "balance": 127.1841989187879,
+        "rawBalance": "127184198918787896440",
+        "rawDecimals": 18,
+        "priceKey": "USDC",
+        "usdPrice": 0.999863,
+        "usdValue": 127.16677468353602,
+        "price": {
+          "price": 0.999863,
+          "change24h": 0.0032553363736217257,
+          "provider": "CoinGecko",
+          "providerAssetId": "usd-coin",
+          "source": "DIRECT_USDC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T07:55:27.349Z",
+          "providerUpdatedAt": "2026-10-01T07:53:50.000Z"
+        }
+      },
+      {
+        "symbol": "cirBTC",
+        "address": "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf",
+        "decimals": 8,
+        "balance": 0.0007,
+        "rawBalance": "70000",
+        "rawDecimals": 8,
+        "priceKey": "BTC",
+        "usdPrice": 83513,
+        "usdValue": 58.4591,
+        "price": {
+          "price": 83513,
+          "change24h": 0.16704807760257065,
+          "provider": "CoinGecko",
+          "providerAssetId": "circle-wrapped-btc",
+          "source": "DIRECT_CIRBTC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T07:55:27.349Z",
+          "providerUpdatedAt": "2026-10-01T07:54:10.000Z"
+        }
+      }
+    ]
+  },
+  {
+    "walletAddress": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+    "chainId": 5042002,
+    "capturedAt": "2026-10-01T08:00:33.084Z",
+    "totalUsd": 368.1413069159122,
+    "priceProvider": "COINGECKO",
+    "priceStatus": "FRESH",
+    "priceObservedAt": "2026-10-01T08:00:31.961Z",
+    "balanceObservedAt": "2026-10-01T08:00:33.084Z",
+    "recomputedTotal": 368.1413069159122,
+    "exactMatch": true,
+    "assets": [
+      {
+        "symbol": "EURC",
+        "address": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+        "decimals": 6,
+        "balance": 161.584986,
+        "rawBalance": "161584986",
+        "rawDecimals": 6,
+        "priceKey": "EURC",
+        "usdPrice": 1.13,
+        "usdValue": 182.59103417999998,
+        "price": {
+          "price": 1.13,
+          "change24h": -0.3042559474160783,
+          "provider": "CoinGecko",
+          "providerAssetId": "euro-coin",
+          "source": "DIRECT_EURC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:00:31.961Z",
+          "providerUpdatedAt": "2026-10-01T07:59:00.000Z"
+        }
+      },
+      {
+        "symbol": "USDC",
+        "address": "0x3600000000000000000000000000000000000000",
+        "decimals": 6,
+        "balance": 127.1841989187879,
+        "rawBalance": "127184198918787896440",
+        "rawDecimals": 18,
+        "priceKey": "USDC",
+        "usdPrice": 0.999885,
+        "usdValue": 127.16957273591224,
+        "price": {
+          "price": 0.999885,
+          "change24h": 0.004750863535754288,
+          "provider": "CoinGecko",
+          "providerAssetId": "usd-coin",
+          "source": "DIRECT_USDC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:00:31.961Z",
+          "providerUpdatedAt": "2026-10-01T07:59:00.000Z"
+        }
+      },
+      {
+        "symbol": "cirBTC",
+        "address": "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf",
+        "decimals": 8,
+        "balance": 0.0007,
+        "rawBalance": "70000",
+        "rawDecimals": 8,
+        "priceKey": "BTC",
+        "usdPrice": 83401,
+        "usdValue": 58.3807,
+        "price": {
+          "price": 83401,
+          "change24h": 0.11519052963981759,
+          "provider": "CoinGecko",
+          "providerAssetId": "circle-wrapped-btc",
+          "source": "DIRECT_CIRBTC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:00:31.961Z",
+          "providerUpdatedAt": "2026-10-01T07:59:10.000Z"
+        }
+      }
+    ]
+  },
+  {
+    "walletAddress": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+    "chainId": 5042002,
+    "capturedAt": "2026-10-01T08:05:40.429Z",
+    "totalUsd": 368.1413069159122,
+    "priceProvider": "COINGECKO",
+    "priceStatus": "FRESH",
+    "priceObservedAt": "2026-10-01T08:00:59.272Z",
+    "balanceObservedAt": "2026-10-01T08:05:40.429Z",
+    "recomputedTotal": 368.1413069159122,
+    "exactMatch": true,
+    "assets": [
+      {
+        "symbol": "EURC",
+        "address": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+        "decimals": 6,
+        "balance": 161.584986,
+        "rawBalance": "161584986",
+        "rawDecimals": 6,
+        "priceKey": "EURC",
+        "usdPrice": 1.13,
+        "usdValue": 182.59103417999998,
+        "price": {
+          "price": 1.13,
+          "change24h": -0.3042559474160783,
+          "provider": "CoinGecko",
+          "providerAssetId": "euro-coin",
+          "source": "DIRECT_EURC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:00:59.272Z",
+          "providerUpdatedAt": "2026-10-01T07:59:00.000Z"
+        }
+      },
+      {
+        "symbol": "USDC",
+        "address": "0x3600000000000000000000000000000000000000",
+        "decimals": 6,
+        "balance": 127.1841989187879,
+        "rawBalance": "127184198918787896440",
+        "rawDecimals": 18,
+        "priceKey": "USDC",
+        "usdPrice": 0.999885,
+        "usdValue": 127.16957273591224,
+        "price": {
+          "price": 0.999885,
+          "change24h": 0.004750863535754288,
+          "provider": "CoinGecko",
+          "providerAssetId": "usd-coin",
+          "source": "DIRECT_USDC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:00:59.272Z",
+          "providerUpdatedAt": "2026-10-01T07:59:00.000Z"
+        }
+      },
+      {
+        "symbol": "cirBTC",
+        "address": "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf",
+        "decimals": 8,
+        "balance": 0.0007,
+        "rawBalance": "70000",
+        "rawDecimals": 8,
+        "priceKey": "BTC",
+        "usdPrice": 83401,
+        "usdValue": 58.3807,
+        "price": {
+          "price": 83401,
+          "change24h": 0.11519052963981759,
+          "provider": "CoinGecko",
+          "providerAssetId": "circle-wrapped-btc",
+          "source": "DIRECT_CIRBTC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:00:59.272Z",
+          "providerUpdatedAt": "2026-10-01T07:59:10.000Z"
+        }
+      }
+    ]
+  },
+  {
+    "walletAddress": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+    "chainId": 5042002,
+    "capturedAt": "2026-10-01T08:10:56.544Z",
+    "totalUsd": 368.1720457583425,
+    "priceProvider": "COINGECKO",
+    "priceStatus": "FRESH",
+    "priceObservedAt": "2026-10-01T08:06:40.941Z",
+    "balanceObservedAt": "2026-10-01T08:10:56.544Z",
+    "recomputedTotal": 368.1720457583425,
+    "exactMatch": true,
+    "assets": [
+      {
+        "symbol": "EURC",
+        "address": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+        "decimals": 6,
+        "balance": 161.584986,
+        "rawBalance": "161584986",
+        "rawDecimals": 6,
+        "priceKey": "EURC",
+        "usdPrice": 1.13,
+        "usdValue": 182.59103417999998,
+        "price": {
+          "price": 1.13,
+          "change24h": -0.3832965365482067,
+          "provider": "CoinGecko",
+          "providerAssetId": "euro-coin",
+          "source": "DIRECT_EURC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:06:40.941Z",
+          "providerUpdatedAt": "2026-10-01T08:05:20.000Z"
+        }
+      },
+      {
+        "symbol": "USDC",
+        "address": "0x3600000000000000000000000000000000000000",
+        "decimals": 6,
+        "balance": 127.1841989187879,
+        "rawBalance": "127184198918787896440",
+        "rawDecimals": 18,
+        "priceKey": "USDC",
+        "usdPrice": 0.999857,
+        "usdValue": 127.1660115783425,
+        "price": {
+          "price": 0.999857,
+          "change24h": -0.0011404750671891119,
+          "provider": "CoinGecko",
+          "providerAssetId": "usd-coin",
+          "source": "DIRECT_USDC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:06:40.941Z",
+          "providerUpdatedAt": "2026-10-01T08:05:10.000Z"
+        }
+      },
+      {
+        "symbol": "cirBTC",
+        "address": "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf",
+        "decimals": 8,
+        "balance": 0.0007,
+        "rawBalance": "70000",
+        "rawDecimals": 8,
+        "priceKey": "BTC",
+        "usdPrice": 83450,
+        "usdValue": 58.415,
+        "price": {
+          "price": 83450,
+          "change24h": 0.23640770001863146,
+          "provider": "CoinGecko",
+          "providerAssetId": "circle-wrapped-btc",
+          "source": "DIRECT_CIRBTC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:06:40.941Z",
+          "providerUpdatedAt": "2026-10-01T08:05:20.000Z"
+        }
+      }
+    ]
+  },
+  {
+    "walletAddress": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+    "chainId": 5042002,
+    "capturedAt": "2026-10-01T08:16:00.406Z",
+    "totalUsd": 368.114135073923,
+    "priceProvider": "COINGECKO",
+    "priceStatus": "FRESH",
+    "priceObservedAt": "2026-10-01T08:12:22.246Z",
+    "balanceObservedAt": "2026-10-01T08:16:00.406Z",
+    "recomputedTotal": 368.114135073923,
+    "exactMatch": true,
+    "assets": [
+      {
+        "symbol": "EURC",
+        "address": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+        "decimals": 6,
+        "balance": 161.584986,
+        "rawBalance": "161584986",
+        "rawDecimals": 6,
+        "priceKey": "EURC",
+        "usdPrice": 1.13,
+        "usdValue": 182.59103417999998,
+        "price": {
+          "price": 1.13,
+          "change24h": -0.3718386575821251,
+          "provider": "CoinGecko",
+          "providerAssetId": "euro-coin",
+          "source": "DIRECT_EURC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:12:22.246Z",
+          "providerUpdatedAt": "2026-10-01T08:11:00.000Z"
+        }
+      },
+      {
+        "symbol": "USDC",
+        "address": "0x3600000000000000000000000000000000000000",
+        "decimals": 6,
+        "balance": 127.1841989187879,
+        "rawBalance": "127184198918787896440",
+        "rawDecimals": 18,
+        "priceKey": "USDC",
+        "usdPrice": 0.999875,
+        "usdValue": 127.16830089392305,
+        "price": {
+          "price": 0.999875,
+          "change24h": 0.0017311297568179983,
+          "provider": "CoinGecko",
+          "providerAssetId": "usd-coin",
+          "source": "DIRECT_USDC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:12:22.246Z",
+          "providerUpdatedAt": "2026-10-01T08:10:50.000Z"
+        }
+      },
+      {
+        "symbol": "cirBTC",
+        "address": "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf",
+        "decimals": 8,
+        "balance": 0.0007,
+        "rawBalance": "70000",
+        "rawDecimals": 8,
+        "priceKey": "BTC",
+        "usdPrice": 83364,
+        "usdValue": 58.3548,
+        "price": {
+          "price": 83364,
+          "change24h": 0.3114362257594049,
+          "provider": "CoinGecko",
+          "providerAssetId": "circle-wrapped-btc",
+          "source": "DIRECT_CIRBTC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:12:22.246Z",
+          "providerUpdatedAt": "2026-10-01T08:11:00.000Z"
+        }
+      }
+    ]
+  },
+  {
+    "walletAddress": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+    "chainId": 5042002,
+    "capturedAt": "2026-10-01T08:21:15.356Z",
+    "totalUsd": 368.1061185741436,
+    "priceProvider": "COINGECKO",
+    "priceStatus": "FRESH",
+    "priceObservedAt": "2026-10-01T08:17:35.100Z",
+    "balanceObservedAt": "2026-10-01T08:21:15.356Z",
+    "recomputedTotal": 368.1061185741436,
+    "exactMatch": true,
+    "assets": [
+      {
+        "symbol": "EURC",
+        "address": "0x89b50855aa3be2f677cd6303cec089b5f319d72a",
+        "decimals": 6,
+        "balance": 161.584986,
+        "rawBalance": "161584986",
+        "rawDecimals": 6,
+        "priceKey": "EURC",
+        "usdPrice": 1.13,
+        "usdValue": 182.59103417999998,
+        "price": {
+          "price": 1.13,
+          "change24h": -0.4220245825021564,
+          "provider": "CoinGecko",
+          "providerAssetId": "euro-coin",
+          "source": "DIRECT_EURC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:17:35.100Z",
+          "providerUpdatedAt": "2026-10-01T08:16:20.000Z"
+        }
+      },
+      {
+        "symbol": "USDC",
+        "address": "0x3600000000000000000000000000000000000000",
+        "decimals": 6,
+        "balance": 127.1841989187879,
+        "rawBalance": "127184198918787896440",
+        "rawDecimals": 18,
+        "priceKey": "USDC",
+        "usdPrice": 0.999856,
+        "usdValue": 127.16588439414359,
+        "price": {
+          "price": 0.999856,
+          "change24h": 0.00010309129314921404,
+          "provider": "CoinGecko",
+          "providerAssetId": "usd-coin",
+          "source": "DIRECT_USDC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:17:35.100Z",
+          "providerUpdatedAt": "2026-10-01T08:16:10.000Z"
+        }
+      },
+      {
+        "symbol": "cirBTC",
+        "address": "0xf0c4a4ce82a5746abaad9425360ab04fbba432bf",
+        "decimals": 8,
+        "balance": 0.0007,
+        "rawBalance": "70000",
+        "rawDecimals": 8,
+        "priceKey": "BTC",
+        "usdPrice": 83356,
+        "usdValue": 58.349199999999996,
+        "price": {
+          "price": 83356,
+          "change24h": 0.23505900487662698,
+          "provider": "CoinGecko",
+          "providerAssetId": "circle-wrapped-btc",
+          "source": "DIRECT_CIRBTC",
+          "status": "FRESH",
+          "observedAt": "2026-10-01T08:17:35.100Z",
+          "providerUpdatedAt": "2026-10-01T08:16:20.000Z"
+        }
+      }
+    ]
+  }
+]

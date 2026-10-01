@@ -1,0 +1,30 @@
+
+> frontend@0.0.0 test:ui
+> node --test tests/product-ui.test.mjs
+
+WebSocket server error: Port 24678 is already in use
+✔ en demo Home renders intact with concise product copy (3063.4286ms)
+✔ en connected Home renders intact with concise product copy (50.2134ms)
+✔ en Portfolio keeps totals and actions with footer attribution (6.8789ms)
+✔ en attribution is a small muted linked source credit (1.1206ms)
+✔ en Settings removes development rows and preserves real controls (25.4608ms)
+✔ vi demo Home renders intact with concise product copy (54.5704ms)
+✔ vi connected Home renders intact with concise product copy (53.8954ms)
+✔ vi Portfolio keeps totals and actions with footer attribution (5.2866ms)
+✔ vi attribution is a small muted linked source credit (0.9287ms)
+✔ vi Settings removes development rows and preserves real controls (28.4967ms)
+✔ meaningful wallet failure remains visible with a retry action (59.3325ms)
+✔ meaningful pricing failure remains visible with a localized retry action (61.4879ms)
+✔ Agent recovery preserves stored PLAN_READY state and cannot grant a handoff without review (2.2537ms)
+✔ en Agent statuses communicate product states without changing evidence (0.4194ms)
+✔ en missing Agent fields use localized product labels (0.355ms)
+✔ vi Agent statuses communicate product states without changing evidence (0.285ms)
+✔ vi missing Agent fields use localized product labels (0.2067ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4419.97

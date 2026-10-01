@@ -1,0 +1,113 @@
+{
+  "suites": [
+    {
+      "suite": "brain",
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0,
+      "log": "test-brain.log"
+    },
+    {
+      "suite": "agent",
+      "tests": 31,
+      "pass": 31,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0,
+      "log": "test-agent.log"
+    },
+    {
+      "suite": "tasks",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0,
+      "log": "test-tasks.log"
+    },
+    {
+      "suite": "portfolio",
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0,
+      "log": "test-portfolio.log"
+    },
+    {
+      "suite": "migration",
+      "tests": 82,
+      "pass": 82,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0,
+      "log": "test-migration.log"
+    },
+    {
+      "suite": "ui",
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0,
+      "log": "test-ui.log"
+    },
+    {
+      "suite": "ux",
+      "tests": 59,
+      "pass": 59,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0,
+      "log": "test-ux.log"
+    }
+  ],
+  "totals": {
+    "tests": 233,
+    "pass": 233,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "typeCheck": {
+    "result": "PASS",
+    "exitCode": 0,
+    "log": "type-check.log"
+  },
+  "lint": {
+    "exitCode": 0,
+    "errors": 0,
+    "warnings": 12,
+    "log": "lint.log"
+  },
+  "build": {
+    "result": "PASS",
+    "exitCode": 0,
+    "clientCompleted": true,
+    "serverCompleted": true,
+    "warnings": [
+      "C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/Dashboard.tsx is dynamically imported  by C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/App.tsx but also statically imported by  C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/AssetsActivity.tsx,  C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/Home.tsx, dynamic import will not move  module into another chunk.",
+      "C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/Insights.tsx is dynamically imported by  C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/App.tsx but also statically imported by  C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/frontend/src/pages/Home.tsx, dynamic import will not move  module into another chunk.",
+      "Some chunks are larger than 500 kB after minification. Consider: - Using dynamic import() to code-split the application - Use build.rollupOptions.output.manualChunks to improve chunking:  https://rollupjs.org/configuration-options/#output-manualchunks - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit. ✓ built in 9.27s"
+    ],
+    "log": "build.log"
+  },
+  "backendTests": "Not run: all baseline backend source and tests unchanged"
+}

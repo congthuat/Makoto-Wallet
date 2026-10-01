@@ -1,0 +1,71 @@
+
+> frontend@0.0.0 test:polish
+> node --experimental-strip-types --test --test-concurrency=1 src/lib/taskTimezone.test.ts src/lib/analyticsPresentation.test.ts tests/task-timezone-ui.test.mjs tests/receive-navigation.test.mjs tests/analytics-ui.test.mjs
+
+✔ fresh Arc RPC observation retains exact block, estimate, latency and observation time (2.4326ms)
+✔ RPC errors, other chains, stale timestamps and invalid blocks cannot look live (0.3114ms)
+✔ unsupported zero fee or latency is omitted without discarding the valid RPC block (0.2146ms)
+✔ positive explorer counts and utilization retain their source values (0.2524ms)
+✔ ambiguous zero defaults, malformed counters and out of range utilization are omitted (0.3323ms)
+✔ transfer evidence preserves real hash, timestamp, amount, asset and proper names without mutation (0.7727ms)
+✔ invalid transfer evidence is hidden and never receives a synthetic fallback (0.4875ms)
+✔ hash and log index deduplicate evidence while separate real events remain visible (0.326ms)
+✔ feed preserves bounded ranking including transfers below 1000 without claiming mixed units as USD (0.4407ms)
+✔ transfer kind follows contract evidence while named protocols remain proper names (0.3422ms)
+✔ holding address balances omit denominator and ownership claims (0.6329ms)
+✔ unavailable, malformed or zero holder balances leave no empty holder card data (0.2923ms)
+✔ actual timestamps format relative observation age in Vietnamese and English (24.6295ms)
+✔ missing or future observation timestamps never fabricate a current update label (0.1618ms)
+✔ Asia/Bangkok displays UTC+7 at both relevant dates (25.7552ms)
+✔ Asia/Tokyo displays UTC+9 (0.4098ms)
+✔ America/New_York follows the relevant date including the DST transition (0.9722ms)
+✔ formatting preserves the authoritative stored IANA value and task binding (2.1125ms)
+✔ VI local timezone presentation uses the current locale (0.7483ms)
+✔ EN local timezone presentation uses the current locale (0.7688ms)
+✔ Europe/London observes winter UTC+0 and summer UTC+1 (0.6848ms)
+✔ fractional offsets retain their minute precision (0.8507ms)
+✔ a saved nonlocal zone shows its IANA name rather than Local time (1.1853ms)
+✔ matching offsets alone do not establish the browser timezone (0.849ms)
+✔ Intl aliases can identify the same local zone without rewriting the saved alias (0.6571ms)
+✔ an invalid saved timezone stays unavailable and is never called local (0.416ms)
+✔ an invalid relevant date does not fabricate a current offset (0.3292ms)
+✔ unknown browser zone preserves the valid saved zone and avoids Local time (0.518ms)
+✔ browser timezone detection agrees with the existing Intl binding source (1.3274ms)
+✔ Date and timestamp inputs agree without changing the supplied Date (0.5474ms)
+✔ vi dashboard lists disclose five truthful rows without truncating or reordering source arrays (688.7399ms)
+✔ vi verified production Analytics renders real fields, localized labels and read-only source links (14.3344ms)
+✔ vi failed RPC and explorer queries hide cached values and omit empty optional cards (3.1251ms)
+✔ vi malformed responses cannot fabricate zero statistics, transfers, balances or timestamps (2.6074ms)
+✔ en dashboard lists disclose five truthful rows without truncating or reordering source arrays (21.4355ms)
+✔ en verified production Analytics renders real fields, localized labels and read-only source links (14.4123ms)
+✔ en failed RPC and explorer queries hide cached values and omit empty optional cards (3.0076ms)
+✔ en malformed responses cannot fabricate zero statistics, transfers, balances or timestamps (2.6862ms)
+✔ partial availability keeps valid explorer metrics while omitting stale RPC and unavailable list sections (6.7025ms)
+✔ initial loading stays concise without empty list cards or persistent skeleton boxes (3.1588ms)
+✔ shared Home getJson and compact exports preserve successful response behavior (4.515ms)
+✔ shared Home getJson still rejects provider errors without converting failures into zero values (0.8931ms)
+✔ vi: transaction navigation includes Receive directly below Send (2682.8114ms)
+✔ vi: Receive reflects the open modal and never highlights Faucet (8.7825ms)
+✔ vi: closing Receive restores the underlying page navigation state (8.4501ms)
+✔ en: transaction navigation includes Receive directly below Send (9.502ms)
+✔ en: Receive reflects the open modal and never highlights Faucet (8.9864ms)
+✔ en: closing Receive restores the underlying page navigation state (10.292ms)
+✔ Receive uses the existing downward-arrow icon, spacing and keyboard focus treatment (9.6643ms)
+✔ existing navigation destinations remain present with clear test-token copy (9.7808ms)
+✔ Receive keeps the canonical modal boundary without adding a page or resetting scroll (4.2806ms)
+✔ mobile drawer shares Sidebar and the existing five-tab model retains Receive under More actions (0.5322ms)
+✔ vi production task review renders friendly local timezone and schedule while retaining IANA (736.823ms)
+✔ en production task review renders friendly local timezone and schedule while retaining IANA (3.2582ms)
+✔ production review never describes another saved timezone as local (2.6746ms)
+✔ saved task cards use each nextRunAt for New York DST without rewriting stored tasks (28.3492ms)
+✔ existing local task card has a friendly label with its original IANA available as detail (10.1109ms)
+✔ invalid stored zone review renders an honest unavailable label (2.4977ms)
+ℹ tests 58
+ℹ suites 0
+ℹ pass 58
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6464.8959
+

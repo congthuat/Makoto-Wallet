@@ -1,0 +1,1943 @@
+{
+  "observedAt": "2026-10-01T12:20:47.135Z",
+  "pass": true,
+  "origin": "http://localhost:5173",
+  "account": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+  "uniqueTotal": 60,
+  "passed": 60,
+  "preservedChecks": 24,
+  "freshChecks": 36,
+  "counts": {
+    "Home": {
+      "total": 12,
+      "passed": 12
+    },
+    "Tasks": {
+      "total": 12,
+      "passed": 12
+    },
+    "Receive": {
+      "total": 12,
+      "passed": 12
+    },
+    "Analytics": {
+      "total": 12,
+      "passed": 12
+    },
+    "Settings": {
+      "total": 12,
+      "passed": 12
+    }
+  },
+  "finalConfigurations": 12,
+  "timezoneEmulated": false,
+  "actualBrowserSystemTimezones": [
+    "Asia/Bangkok"
+  ],
+  "timezoneObservations": [
+    {
+      "key": "1440|vi|dark",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "1440|vi|light",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "1440|en|dark",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "1440|en|light",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "1280|vi|dark",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "1280|vi|light",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "1280|en|dark",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "1280|en|light",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "390|vi|dark",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "390|vi|light",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "390|en|dark",
+      "timezone": "Asia/Bangkok"
+    },
+    {
+      "key": "390|en|light",
+      "timezone": "Asia/Bangkok"
+    }
+  ],
+  "consoleErrors": 0,
+  "pageErrors": 0,
+  "warnings": [],
+  "failures": [],
+  "defaultRows": 5,
+  "disclosureChecks": 36,
+  "visibleKeyboardFocusChecks": 12,
+  "prefixAndCollapseEvidence": "Each initial disclosure record is emitted only after Enter expansion, original first-five prefix preservation, and Enter collapse with identical order have passed. Polling snapshots are not compared across different times.",
+  "expandedRowCounts": {
+    "largest-transfers": [
+      12
+    ],
+    "recent-transfers": [
+      29,
+      30
+    ],
+    "holders": [
+      10
+    ]
+  },
+  "expandedRecentRowsDuringFinalHolds": [
+    30
+  ],
+  "scrollTotal": 36,
+  "scrollPassed": 36,
+  "scrollDurationMs": {
+    "min": 17588,
+    "max": 17749
+  },
+  "maximumScrollPositionDelta": 0,
+  "successfulLivePollHolds": 24,
+  "noHorizontalOverflow": true,
+  "noNestedScrollTrap": true,
+  "dimensions": [
+    {
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "viewportHeight": 900,
+      "cardHeights": {
+        "pulse": 261,
+        "largest-transfers": 425,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 248,
+      "defaultDocumentHeight": 1148,
+      "footer": {
+        "bottom": 860,
+        "top": 773,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 1961,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "viewportHeight": 900,
+      "cardHeights": {
+        "pulse": 261,
+        "largest-transfers": 425,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 248,
+      "defaultDocumentHeight": 1148,
+      "footer": {
+        "bottom": 860,
+        "top": 773,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 1961,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "viewportHeight": 900,
+      "cardHeights": {
+        "pulse": 261,
+        "largest-transfers": 405.5,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 248,
+      "defaultDocumentHeight": 1148,
+      "footer": {
+        "bottom": 860,
+        "top": 773,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 1961,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "viewportHeight": 900,
+      "cardHeights": {
+        "pulse": 261,
+        "largest-transfers": 405.5,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 248,
+      "defaultDocumentHeight": 1148,
+      "footer": {
+        "bottom": 860,
+        "top": 773,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 1961,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "viewportHeight": 900,
+      "cardHeights": {
+        "pulse": 261,
+        "largest-transfers": 425,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 248,
+      "defaultDocumentHeight": 1148,
+      "footer": {
+        "bottom": 860,
+        "top": 773,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 1961,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "viewportHeight": 900,
+      "cardHeights": {
+        "pulse": 261,
+        "largest-transfers": 425,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 248,
+      "defaultDocumentHeight": 1148,
+      "footer": {
+        "bottom": 860,
+        "top": 773,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 1961,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "viewportHeight": 900,
+      "cardHeights": {
+        "pulse": 261,
+        "largest-transfers": 425,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 248,
+      "defaultDocumentHeight": 1148,
+      "footer": {
+        "bottom": 860,
+        "top": 773,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 1961,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "viewportHeight": 900,
+      "cardHeights": {
+        "pulse": 261,
+        "largest-transfers": 425,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 248,
+      "defaultDocumentHeight": 1148,
+      "footer": {
+        "bottom": 860,
+        "top": 773,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 1961,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "viewportHeight": 844,
+      "cardHeights": {
+        "pulse": 373,
+        "largest-transfers": 425,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 1416,
+      "defaultDocumentHeight": 2260,
+      "footer": {
+        "bottom": 732,
+        "top": 597,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 3129,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "viewportHeight": 844,
+      "cardHeights": {
+        "pulse": 373,
+        "largest-transfers": 425,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 1416,
+      "defaultDocumentHeight": 2260,
+      "footer": {
+        "bottom": 732,
+        "top": 597,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 3129,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "viewportHeight": 844,
+      "cardHeights": {
+        "pulse": 397.5,
+        "largest-transfers": 405.5,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 1376,
+      "defaultDocumentHeight": 2220,
+      "footer": {
+        "bottom": 732,
+        "top": 621,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 3089,
+      "expandedRecentCardHeight": 2193
+    },
+    {
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "viewportHeight": 844,
+      "cardHeights": {
+        "pulse": 397.5,
+        "largest-transfers": 405.5,
+        "recent-transfers": 480.5,
+        "holders": 398
+      },
+      "defaultMaxScrollY": 1376,
+      "defaultDocumentHeight": 2220,
+      "footer": {
+        "bottom": 732,
+        "top": 621,
+        "visible": true
+      },
+      "expandedRecentRowsAtHold": 30,
+      "expandedMaxScrollY": 3089,
+      "expandedRecentCardHeight": 2193
+    }
+  ],
+  "scroll": [
+    {
+      "key": "1440|vi|dark|Analytics default",
+      "pass": true,
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Analytics default",
+      "beforeY": 148,
+      "lastY": 148,
+      "elapsedMs": 17635,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 248,
+        "max": 248
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "1440|vi|dark|Analytics expanded",
+      "pass": true,
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17723,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 2
+    },
+    {
+      "key": "1440|vi|dark|Settings",
+      "pass": true,
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17711,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1193,
+        "max": 1193
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1440|vi|light|Analytics default",
+      "pass": true,
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Analytics default",
+      "beforeY": 148,
+      "lastY": 148,
+      "elapsedMs": 17666,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 248,
+        "max": 248
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "1440|vi|light|Analytics expanded",
+      "pass": true,
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17712,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1440|vi|light|Settings",
+      "pass": true,
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17661,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1193,
+        "max": 1193
+      },
+      "realNetworkPolls": 2
+    },
+    {
+      "key": "1440|en|dark|Analytics default",
+      "pass": true,
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Analytics default",
+      "beforeY": 148,
+      "lastY": 148,
+      "elapsedMs": 17620,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 248,
+        "max": 248
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "1440|en|dark|Analytics expanded",
+      "pass": true,
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17716,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1440|en|dark|Settings",
+      "pass": true,
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17670,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1193,
+        "max": 1193
+      },
+      "realNetworkPolls": 2
+    },
+    {
+      "key": "1440|en|light|Analytics default",
+      "pass": true,
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "surface": "Analytics default",
+      "beforeY": 148,
+      "lastY": 148,
+      "elapsedMs": 17644,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 248,
+        "max": 248
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "1440|en|light|Analytics expanded",
+      "pass": true,
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17697,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1440|en|light|Settings",
+      "pass": true,
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17749,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1193,
+        "max": 1193
+      },
+      "realNetworkPolls": 2
+    },
+    {
+      "key": "1280|vi|dark|Analytics default",
+      "pass": true,
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Analytics default",
+      "beforeY": 148,
+      "lastY": 148,
+      "elapsedMs": 17635,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 248,
+        "max": 248
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "1280|vi|dark|Analytics expanded",
+      "pass": true,
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17736,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 2
+    },
+    {
+      "key": "1280|vi|dark|Settings",
+      "pass": true,
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17728,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1193,
+        "max": 1193
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1280|vi|light|Analytics default",
+      "pass": true,
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Analytics default",
+      "beforeY": 148,
+      "lastY": 148,
+      "elapsedMs": 17625,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 248,
+        "max": 248
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "1280|vi|light|Analytics expanded",
+      "pass": true,
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17693,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1280|vi|light|Settings",
+      "pass": true,
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17643,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1193,
+        "max": 1193
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1280|en|dark|Analytics default",
+      "pass": true,
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Analytics default",
+      "beforeY": 148,
+      "lastY": 148,
+      "elapsedMs": 17616,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 248,
+        "max": 248
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "1280|en|dark|Analytics expanded",
+      "pass": true,
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17688,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1280|en|dark|Settings",
+      "pass": true,
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17661,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1193,
+        "max": 1193
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1280|en|light|Analytics default",
+      "pass": true,
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "surface": "Analytics default",
+      "beforeY": 148,
+      "lastY": 148,
+      "elapsedMs": 17636,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 248,
+        "max": 248
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "1280|en|light|Analytics expanded",
+      "pass": true,
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17711,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "1280|en|light|Settings",
+      "pass": true,
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17701,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1193,
+        "max": 1193
+      },
+      "realNetworkPolls": 2
+    },
+    {
+      "key": "390|vi|dark|Analytics default",
+      "pass": true,
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Analytics default",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17602,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1416,
+        "max": 1416
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "390|vi|dark|Analytics expanded",
+      "pass": true,
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17680,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 3129,
+        "max": 3153
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "390|vi|dark|Settings",
+      "pass": true,
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17689,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1681,
+        "max": 1681
+      },
+      "realNetworkPolls": 2
+    },
+    {
+      "key": "390|vi|light|Analytics default",
+      "pass": true,
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Analytics default",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17651,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1416,
+        "max": 1416
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "390|vi|light|Analytics expanded",
+      "pass": true,
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17671,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 3129,
+        "max": 3129
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "390|vi|light|Settings",
+      "pass": true,
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17702,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1681,
+        "max": 1681
+      },
+      "realNetworkPolls": 2
+    },
+    {
+      "key": "390|en|dark|Analytics default",
+      "pass": true,
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Analytics default",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17588,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1376,
+        "max": 1376
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "390|en|dark|Analytics expanded",
+      "pass": true,
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17731,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 3089,
+        "max": 3089
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "390|en|dark|Settings",
+      "pass": true,
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17697,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1618,
+        "max": 1618
+      },
+      "realNetworkPolls": 2
+    },
+    {
+      "key": "390|en|light|Analytics default",
+      "pass": true,
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "surface": "Analytics default",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17707,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1376,
+        "max": 1376
+      },
+      "realNetworkPolls": 0
+    },
+    {
+      "key": "390|en|light|Analytics expanded",
+      "pass": true,
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "surface": "Analytics expanded",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 17669,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 3089,
+        "max": 3089
+      },
+      "realNetworkPolls": 1
+    },
+    {
+      "key": "390|en|light|Settings",
+      "pass": true,
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "surface": "Settings",
+      "beforeY": 250,
+      "lastY": 250,
+      "elapsedMs": 17697,
+      "sampleCount": 17,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1618,
+        "max": 1618
+      },
+      "realNetworkPolls": 2
+    }
+  ],
+  "feedProofRequired": true,
+  "feedProofComplete": true,
+  "feedProofTotal": 12,
+  "feedProofPassed": 12,
+  "feedProofDurationMs": {
+    "min": 19027,
+    "max": 31783
+  },
+  "feedProofMaximumScrollPositionDelta": 0,
+  "targetedSuccessfulFeedHolds": [
+    {
+      "key": "1440|vi|dark|Analytics expanded feed response",
+      "pass": true,
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 20054,
+      "sampleCount": 19,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1,
+      "source": "continuation-feed-scroll-1440.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 842,
+      "postResponseY": 650
+    },
+    {
+      "key": "1440|vi|light|Analytics expanded feed response",
+      "pass": true,
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 20063,
+      "sampleCount": 19,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1,
+      "source": "continuation-feed-scroll-1440.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 842,
+      "postResponseY": 650
+    },
+    {
+      "key": "1440|en|dark|Analytics expanded feed response",
+      "pass": true,
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 31700,
+      "sampleCount": 30,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 2,
+      "source": "continuation-feed-scroll-1440.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 847,
+      "postResponseY": 650
+    },
+    {
+      "key": "1440|en|light|Analytics expanded feed response",
+      "pass": true,
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 20054,
+      "sampleCount": 19,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1,
+      "source": "continuation-feed-scroll-1440.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 851,
+      "postResponseY": 650
+    },
+    {
+      "key": "1280|vi|dark|Analytics expanded feed response",
+      "pass": true,
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 20025,
+      "sampleCount": 19,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 2,
+      "source": "continuation-feed-scroll-1280.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 846,
+      "postResponseY": 650
+    },
+    {
+      "key": "1280|vi|light|Analytics expanded feed response",
+      "pass": true,
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 20033,
+      "sampleCount": 19,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 1,
+      "source": "continuation-feed-scroll-1280.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 834,
+      "postResponseY": 650
+    },
+    {
+      "key": "1280|en|dark|Analytics expanded feed response",
+      "pass": true,
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 29637,
+      "sampleCount": 28,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 2,
+      "source": "continuation-feed-scroll-1280.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 837,
+      "postResponseY": 650
+    },
+    {
+      "key": "1280|en|light|Analytics expanded feed response",
+      "pass": true,
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 21149,
+      "sampleCount": 20,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 1961,
+        "max": 1961
+      },
+      "realNetworkPolls": 2,
+      "source": "continuation-feed-scroll-1280.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 843,
+      "postResponseY": 650
+    },
+    {
+      "key": "390|vi|dark|Analytics expanded feed response",
+      "pass": true,
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 19027,
+      "sampleCount": 18,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 3129,
+        "max": 3153
+      },
+      "realNetworkPolls": 1,
+      "source": "continuation-feed-scroll-390.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 851,
+      "postResponseY": 650
+    },
+    {
+      "key": "390|vi|light|Analytics expanded feed response",
+      "pass": true,
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 20069,
+      "sampleCount": 19,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 3129,
+        "max": 3129
+      },
+      "realNetworkPolls": 1,
+      "source": "continuation-feed-scroll-390.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 847,
+      "postResponseY": 650
+    },
+    {
+      "key": "390|en|dark|Analytics expanded feed response",
+      "pass": true,
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 31783,
+      "sampleCount": 30,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 3089,
+        "max": 3089
+      },
+      "realNetworkPolls": 2,
+      "source": "continuation-feed-scroll-390.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 848,
+      "postResponseY": 650
+    },
+    {
+      "key": "390|en|light|Analytics expanded feed response",
+      "pass": true,
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "surface": "Analytics expanded feed response",
+      "beforeY": 650,
+      "lastY": 650,
+      "elapsedMs": 20045,
+      "sampleCount": 19,
+      "maxPositionDelta": 0,
+      "maxScrollRange": {
+        "min": 3089,
+        "max": 3089
+      },
+      "realNetworkPolls": 1,
+      "source": "continuation-feed-scroll-390.json",
+      "successfulFeedResponses": 1,
+      "postResponseObservationDelayMs": 838,
+      "postResponseY": 650
+    }
+  ],
+  "totalScrollObservations": 48,
+  "globalRouteOnlyScrollEffectUnchanged": true,
+  "analyticsScopedAnchorDisabled": true,
+  "preservedAttemptFiles": [
+    "continuation-browser-before-anchor-1280.json",
+    "continuation-browser-before-anchor-1440.json",
+    "continuation-browser-before-anchor-390.json",
+    "continuation-browser-initial-1280.json",
+    "continuation-browser-initial-1440.json",
+    "continuation-browser-initial-390.json"
+  ],
+  "historyNote": "Initial Receive harness used aria-current instead of the existing aria-pressed modal action. Settings initially inspected a lazy skeleton before its h1 loaded. A separate real expanded Analytics native-anchor movement at 1440 VI light (650 → 704) was fixed with scoped Insights overflowAnchor:none. Earlier evidence is preserved; final fresh files alone establish final expanded/Receive/Settings PASS.",
+  "taskFixtures": 12,
+  "taskParseRequests": 12,
+  "forbiddenProviderRequests": 0,
+  "preservationBoundary": "Home/Tasks use preserved checkpoint browser checks; Analytics default/disclosures use recorded initial continuation checks; final expanded Analytics, Receive, Settings, keyboard focus and console use fresh final checks. No repeated attempt is counted as an additional unique surface.",
+  "writesByAggregator": 0,
+  "blockchainWrites": 0,
+  "results": [
+    {
+      "route": "Home",
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false,
+      "screenshot": "matrix-1440-vi-dark-home.png"
+    },
+    {
+      "route": "Tasks",
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true,
+      "screenshot": "matrix-1440-vi-dark-tasks.png"
+    },
+    {
+      "route": "Home",
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false
+    },
+    {
+      "route": "Tasks",
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true
+    },
+    {
+      "route": "Home",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false
+    },
+    {
+      "route": "Tasks",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true
+    },
+    {
+      "route": "Home",
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false,
+      "screenshot": "matrix-1440-en-light-home.png"
+    },
+    {
+      "route": "Home",
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false,
+      "screenshot": "matrix-1280-vi-dark-home.png"
+    },
+    {
+      "route": "Tasks",
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true,
+      "screenshot": "matrix-1440-en-light-tasks.png"
+    },
+    {
+      "route": "Home",
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false
+    },
+    {
+      "route": "Tasks",
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true,
+      "screenshot": "matrix-1280-vi-dark-tasks.png"
+    },
+    {
+      "route": "Home",
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false
+    },
+    {
+      "route": "Tasks",
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true
+    },
+    {
+      "route": "Home",
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false,
+      "screenshot": "matrix-1280-en-light-home.png"
+    },
+    {
+      "route": "Tasks",
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true
+    },
+    {
+      "route": "Home",
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false,
+      "screenshot": "matrix-390-vi-dark-home.png"
+    },
+    {
+      "route": "Tasks",
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true,
+      "screenshot": "matrix-1280-en-light-tasks.png"
+    },
+    {
+      "route": "Home",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false
+    },
+    {
+      "route": "Tasks",
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true,
+      "screenshot": "matrix-390-vi-dark-tasks.png"
+    },
+    {
+      "route": "Home",
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false
+    },
+    {
+      "route": "Tasks",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true
+    },
+    {
+      "route": "Home",
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": false,
+      "screenshot": "matrix-390-en-light-home.png"
+    },
+    {
+      "route": "Tasks",
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true
+    },
+    {
+      "route": "Tasks",
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "matrix-primary-results.json",
+      "preserved": true,
+      "fixture": true,
+      "screenshot": "matrix-390-en-light-tasks.png"
+    },
+    {
+      "route": "Analytics",
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-1440.json",
+      "screenshot": "continuation-analytics-1440-vi-dark.png"
+    },
+    {
+      "route": "Receive",
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false,
+      "navigation": "desktop sidebar"
+    },
+    {
+      "route": "Settings",
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-1440.json",
+      "screenshot": "continuation-analytics-1440-vi-light.png"
+    },
+    {
+      "route": "Receive",
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false,
+      "navigation": "desktop sidebar"
+    },
+    {
+      "route": "Settings",
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-1440.json",
+      "screenshot": "continuation-analytics-1440-en-dark.png"
+    },
+    {
+      "route": "Receive",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false,
+      "navigation": "desktop sidebar"
+    },
+    {
+      "route": "Settings",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-1440.json",
+      "screenshot": "continuation-analytics-1440-en-light.png"
+    },
+    {
+      "route": "Receive",
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false,
+      "navigation": "desktop sidebar"
+    },
+    {
+      "route": "Settings",
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1440.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-1280.json",
+      "screenshot": "continuation-analytics-1280-vi-dark.png"
+    },
+    {
+      "route": "Receive",
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false,
+      "navigation": "desktop sidebar"
+    },
+    {
+      "route": "Settings",
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-1280.json",
+      "screenshot": "continuation-analytics-1280-vi-light.png"
+    },
+    {
+      "route": "Receive",
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false,
+      "navigation": "desktop sidebar"
+    },
+    {
+      "route": "Settings",
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-1280.json",
+      "screenshot": "continuation-analytics-1280-en-dark.png"
+    },
+    {
+      "route": "Receive",
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false,
+      "navigation": "desktop sidebar"
+    },
+    {
+      "route": "Settings",
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-1280.json",
+      "screenshot": "continuation-analytics-1280-en-light.png"
+    },
+    {
+      "route": "Receive",
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false,
+      "navigation": "desktop sidebar"
+    },
+    {
+      "route": "Settings",
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-1280.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-390.json",
+      "screenshot": "continuation-analytics-390-vi-dark.png"
+    },
+    {
+      "route": "Receive",
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false,
+      "navigation": "shared mobile drawer"
+    },
+    {
+      "route": "Settings",
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-390.json",
+      "screenshot": "continuation-analytics-390-vi-light.png"
+    },
+    {
+      "route": "Receive",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false,
+      "navigation": "shared mobile drawer"
+    },
+    {
+      "route": "Settings",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-390.json",
+      "screenshot": "continuation-analytics-390-en-dark.png"
+    },
+    {
+      "route": "Receive",
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false,
+      "navigation": "shared mobile drawer"
+    },
+    {
+      "route": "Settings",
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false
+    },
+    {
+      "route": "Analytics",
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false,
+      "initialEvidenceSource": "continuation-browser-initial-390.json",
+      "screenshot": "continuation-analytics-390-en-light.png"
+    },
+    {
+      "route": "Receive",
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false,
+      "navigation": "shared mobile drawer"
+    },
+    {
+      "route": "Settings",
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "source": "continuation-browser-390.json",
+      "preserved": false
+    }
+  ]
+}

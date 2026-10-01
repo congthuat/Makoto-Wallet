@@ -1,0 +1,59 @@
+{
+  "observedAt": "2026-10-01T11:29:27.414Z",
+  "results": [
+    {
+      "suite": "test:brain",
+      "exitCode": 0,
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1008
+    },
+    {
+      "suite": "test:agent",
+      "exitCode": 0,
+      "tests": 31,
+      "pass": 31,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 2818
+    },
+    {
+      "suite": "test:tasks",
+      "exitCode": 0,
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1514
+    },
+    {
+      "suite": "test:portfolio",
+      "exitCode": 0,
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1836
+    },
+    {
+      "suite": "test:ux",
+      "exitCode": 0,
+      "tests": 59,
+      "pass": 59,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 2885
+    },
+    {
+      "suite": "test:migration",
+      "exitCode": 0,
+      "tests": 82,
+      "pass": 82,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 3111
+    }
+  ]
+}

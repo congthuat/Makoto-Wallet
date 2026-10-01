@@ -1,0 +1,641 @@
+{
+  "observedAt": "2026-10-01T12:01:22.060Z",
+  "originalFeedObservedAt": "2026-10-01T11:59:45.481Z",
+  "row": {
+    "hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+    "logIndex": 28,
+    "block": 64942876,
+    "timestamp": "2026-10-01T11:59:39.000000Z",
+    "from": "0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1",
+    "to": "0x4E47882c9374e91F650688fC0E6227B7d467BdA1",
+    "fromName": "XyloStablePool",
+    "toName": null,
+    "fromContract": true,
+    "toContract": false,
+    "symbol": "EURC",
+    "amount": 1.461879,
+    "method": "0x56e87df9"
+  },
+  "detail": {
+    "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+    "status": 200,
+    "observedAt": "2026-10-01T12:01:22.059Z",
+    "data": {
+      "priority_fee": "236383500000000",
+      "raw_input": "0x56e87df9000000000000000000000000360000000000000000000000000000000000000000000000000000000000000089b50855aa3be2f677cd6303cec089b5f319d72a00000000000000000000000000000000000000000000000000000000001b21d1000000000000000000000000000000000000000000000000000000000014136b0000000000000000000000004e47882c9374e91f650688fc0e6227b7d467bda1000000000000000000000000000000000000000000000000000000006abe4fdb",
+      "is_pending_update": false,
+      "result": "success",
+      "hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+      "max_fee_per_gas": "24500000000",
+      "revert_reason": null,
+      "confirmation_duration": [
+        0,
+        510
+      ],
+      "transaction_burnt_fee": "3151780000000000",
+      "type": 2,
+      "token_transfers_overflow": false,
+      "confirmations": 200,
+      "position": 6,
+      "max_priority_fee_per_gas": "1500000000",
+      "transaction_tag": null,
+      "created_contract": null,
+      "value": "0",
+      "from": {
+        "ens_domain_name": null,
+        "hash": "0x4E47882c9374e91F650688fC0E6227B7d467BdA1",
+        "implementations": [],
+        "is_contract": false,
+        "is_scam": false,
+        "is_verified": false,
+        "metadata": null,
+        "name": null,
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "gas_used": "157589",
+      "status": "ok",
+      "to": {
+        "ens_domain_name": null,
+        "hash": "0x73742278c31a76dBb0D2587d03ef92E6E2141023",
+        "implementations": [],
+        "is_contract": true,
+        "is_scam": false,
+        "is_verified": true,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "textColor": "#C163D4",
+                "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "tooltipDescription": "Provided by OLI"
+              },
+              "name": "XyloRouter",
+              "ordinal": 0,
+              "slug": "xylorouter",
+              "tagType": "name"
+            }
+          ]
+        },
+        "name": "XyloRouter",
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "authorization_list": [],
+      "method": "swap",
+      "fee": {
+        "type": "actual",
+        "value": "3388163500000000"
+      },
+      "gas_limit": "223690",
+      "gas_price": "21500000000",
+      "decoded_input": {
+        "method_call": "swap((address,address,uint256,uint256,address,uint256) params)",
+        "method_id": "56e87df9",
+        "parameters": [
+          {
+            "name": "params",
+            "type": "(address,address,uint256,uint256,address,uint256)",
+            "value": [
+              "0x3600000000000000000000000000000000000000",
+              "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+              "1778129",
+              "1315691",
+              "0x4E47882c9374e91F650688fC0E6227B7d467BdA1",
+              "1790857179"
+            ]
+          }
+        ]
+      },
+      "fhe_operations_count": 0,
+      "token_transfers": [
+        {
+          "block_hash": "0x364ecfeb0b1708b4c86a675d1819110011426175e352652057f00f76a3a053a3",
+          "block_number": 64942876,
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x4E47882c9374e91F650688fC0E6227B7d467BdA1",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "log_index": 23,
+          "method": null,
+          "timestamp": null,
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x73742278c31a76dBb0D2587d03ef92E6E2141023",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "textColor": "#C163D4",
+                    "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                    "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "tooltipDescription": "Provided by OLI"
+                  },
+                  "name": "XyloRouter",
+                  "ordinal": 0,
+                  "slug": "xylorouter",
+                  "tagType": "name"
+                }
+              ]
+            },
+            "name": "XyloRouter",
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "token": {
+            "address_hash": "0x3600000000000000000000000000000000000000",
+            "circulating_market_cap": null,
+            "circulating_supply": null,
+            "decimals": "6",
+            "exchange_rate": null,
+            "holders_count": "4971673",
+            "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+            "name": "USDC",
+            "reputation": "ok",
+            "symbol": "USDC",
+            "total_supply": "316454544835226970",
+            "type": "ERC-20",
+            "volume_24h": null
+          },
+          "token_type": "ERC-20",
+          "total": {
+            "decimals": "6",
+            "value": "1778129"
+          },
+          "transaction_hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+          "type": "token_transfer"
+        },
+        {
+          "block_hash": "0x364ecfeb0b1708b4c86a675d1819110011426175e352652057f00f76a3a053a3",
+          "block_number": 64942876,
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x73742278c31a76dBb0D2587d03ef92E6E2141023",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "textColor": "#C163D4",
+                    "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                    "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "tooltipDescription": "Provided by OLI"
+                  },
+                  "name": "XyloRouter",
+                  "ordinal": 0,
+                  "slug": "xylorouter",
+                  "tagType": "name"
+                }
+              ]
+            },
+            "name": "XyloRouter",
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "log_index": 26,
+          "method": null,
+          "timestamp": null,
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "textColor": "#C163D4",
+                    "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                    "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "tooltipDescription": "Provided by OLI"
+                  },
+                  "name": "XyloStablePool",
+                  "ordinal": 0,
+                  "slug": "xylostablepool",
+                  "tagType": "name"
+                }
+              ]
+            },
+            "name": "XyloStablePool",
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "token": {
+            "address_hash": "0x3600000000000000000000000000000000000000",
+            "circulating_market_cap": null,
+            "circulating_supply": null,
+            "decimals": "6",
+            "exchange_rate": null,
+            "holders_count": "4971673",
+            "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+            "name": "USDC",
+            "reputation": "ok",
+            "symbol": "USDC",
+            "total_supply": "316454544835226970",
+            "type": "ERC-20",
+            "volume_24h": null
+          },
+          "token_type": "ERC-20",
+          "total": {
+            "decimals": "6",
+            "value": "1778129"
+          },
+          "transaction_hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+          "type": "token_transfer"
+        },
+        {
+          "block_hash": "0x364ecfeb0b1708b4c86a675d1819110011426175e352652057f00f76a3a053a3",
+          "block_number": 64942876,
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "textColor": "#C163D4",
+                    "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                    "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "tooltipDescription": "Provided by OLI"
+                  },
+                  "name": "XyloStablePool",
+                  "ordinal": 0,
+                  "slug": "xylostablepool",
+                  "tagType": "name"
+                }
+              ]
+            },
+            "name": "XyloStablePool",
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "log_index": 28,
+          "method": null,
+          "timestamp": null,
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x4E47882c9374e91F650688fC0E6227B7d467BdA1",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "token": {
+            "address_hash": "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+            "circulating_market_cap": null,
+            "circulating_supply": null,
+            "decimals": "6",
+            "exchange_rate": null,
+            "holders_count": "1856345",
+            "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/EURC_latest.svg",
+            "name": "EURC",
+            "reputation": "ok",
+            "symbol": "EURC",
+            "total_supply": "2002459069683265892",
+            "type": "ERC-20",
+            "volume_24h": null
+          },
+          "token_type": "ERC-20",
+          "total": {
+            "decimals": "6",
+            "value": "1461879"
+          },
+          "transaction_hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+          "type": "token_transfer"
+        }
+      ],
+      "base_fee_per_gas": "20000000000",
+      "timestamp": "2026-10-01T11:59:39.000000Z",
+      "nonce": 1896,
+      "historic_exchange_rate": null,
+      "transaction_types": [
+        "contract_call",
+        "token_transfer"
+      ],
+      "exchange_rate": null,
+      "block_number": 64942876,
+      "has_error_in_internal_transactions": false
+    }
+  },
+  "transfers": {
+    "url": "https://explorer.testnet.arc.io/api/v2/transactions/0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6/token-transfers",
+    "status": 200,
+    "observedAt": "2026-10-01T12:01:21.841Z",
+    "data": {
+      "items": [
+        {
+          "block_hash": "0x364ecfeb0b1708b4c86a675d1819110011426175e352652057f00f76a3a053a3",
+          "block_number": 64942876,
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x4E47882c9374e91F650688fC0E6227B7d467BdA1",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "log_index": 23,
+          "method": null,
+          "timestamp": null,
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x73742278c31a76dBb0D2587d03ef92E6E2141023",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "textColor": "#C163D4",
+                    "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                    "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "tooltipDescription": "Provided by OLI"
+                  },
+                  "name": "XyloRouter",
+                  "ordinal": 0,
+                  "slug": "xylorouter",
+                  "tagType": "name"
+                }
+              ]
+            },
+            "name": "XyloRouter",
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "token": {
+            "address_hash": "0x3600000000000000000000000000000000000000",
+            "circulating_market_cap": null,
+            "circulating_supply": null,
+            "decimals": "6",
+            "exchange_rate": null,
+            "holders_count": "4971673",
+            "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+            "name": "USDC",
+            "reputation": "ok",
+            "symbol": "USDC",
+            "total_supply": "316454544835226970",
+            "type": "ERC-20",
+            "volume_24h": null
+          },
+          "token_type": "ERC-20",
+          "total": {
+            "decimals": "6",
+            "value": "1778129"
+          },
+          "transaction_hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+          "type": "token_transfer"
+        },
+        {
+          "block_hash": "0x364ecfeb0b1708b4c86a675d1819110011426175e352652057f00f76a3a053a3",
+          "block_number": 64942876,
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x73742278c31a76dBb0D2587d03ef92E6E2141023",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "textColor": "#C163D4",
+                    "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                    "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "tooltipDescription": "Provided by OLI"
+                  },
+                  "name": "XyloRouter",
+                  "ordinal": 0,
+                  "slug": "xylorouter",
+                  "tagType": "name"
+                }
+              ]
+            },
+            "name": "XyloRouter",
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "log_index": 26,
+          "method": null,
+          "timestamp": null,
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "textColor": "#C163D4",
+                    "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                    "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "tooltipDescription": "Provided by OLI"
+                  },
+                  "name": "XyloStablePool",
+                  "ordinal": 0,
+                  "slug": "xylostablepool",
+                  "tagType": "name"
+                }
+              ]
+            },
+            "name": "XyloStablePool",
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "token": {
+            "address_hash": "0x3600000000000000000000000000000000000000",
+            "circulating_market_cap": null,
+            "circulating_supply": null,
+            "decimals": "6",
+            "exchange_rate": null,
+            "holders_count": "4971673",
+            "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+            "name": "USDC",
+            "reputation": "ok",
+            "symbol": "USDC",
+            "total_supply": "316454544835226970",
+            "type": "ERC-20",
+            "volume_24h": null
+          },
+          "token_type": "ERC-20",
+          "total": {
+            "decimals": "6",
+            "value": "1778129"
+          },
+          "transaction_hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+          "type": "token_transfer"
+        },
+        {
+          "block_hash": "0x364ecfeb0b1708b4c86a675d1819110011426175e352652057f00f76a3a053a3",
+          "block_number": 64942876,
+          "from": {
+            "ens_domain_name": null,
+            "hash": "0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1",
+            "implementations": [],
+            "is_contract": true,
+            "is_scam": false,
+            "is_verified": true,
+            "metadata": {
+              "tags": [
+                {
+                  "meta": {
+                    "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "textColor": "#C163D4",
+                    "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                    "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                    "tooltipDescription": "Provided by OLI"
+                  },
+                  "name": "XyloStablePool",
+                  "ordinal": 0,
+                  "slug": "xylostablepool",
+                  "tagType": "name"
+                }
+              ]
+            },
+            "name": "XyloStablePool",
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "log_index": 28,
+          "method": null,
+          "timestamp": null,
+          "to": {
+            "ens_domain_name": null,
+            "hash": "0x4E47882c9374e91F650688fC0E6227B7d467BdA1",
+            "implementations": [],
+            "is_contract": false,
+            "is_scam": false,
+            "is_verified": false,
+            "metadata": null,
+            "name": null,
+            "private_tags": [],
+            "proxy_type": null,
+            "public_tags": [],
+            "reputation": "ok",
+            "watchlist_names": []
+          },
+          "token": {
+            "address_hash": "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+            "circulating_market_cap": null,
+            "circulating_supply": null,
+            "decimals": "6",
+            "exchange_rate": null,
+            "holders_count": "1856345",
+            "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/EURC_latest.svg",
+            "name": "EURC",
+            "reputation": "ok",
+            "symbol": "EURC",
+            "total_supply": "2002459069683265892",
+            "type": "ERC-20",
+            "volume_24h": null
+          },
+          "token_type": "ERC-20",
+          "total": {
+            "decimals": "6",
+            "value": "1461879"
+          },
+          "transaction_hash": "0x73ce9ebfdd9e6edf1db860ff801e9e4958321f710070d437412cc3964f2009f6",
+          "type": "token_transfer"
+        }
+      ],
+      "next_page_params": null
+    }
+  },
+  "mapping": {
+    "hash": true,
+    "logIndex": true,
+    "block": true,
+    "timestamp": true,
+    "from": true,
+    "to": true,
+    "asset": true,
+    "amount": true,
+    "fromContract": true,
+    "toContract": true
+  },
+  "matches": true,
+  "writes": 0,
+  "paidRequests": 0
+}

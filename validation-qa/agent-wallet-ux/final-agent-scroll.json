@@ -1,0 +1,3175 @@
+{
+  "origin": "http://localhost:5173",
+  "durationMs": 16200,
+  "account": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+  "results": [
+    {
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "route": "Agent",
+      "start": {
+        "initial": 650,
+        "maximum": 1008,
+        "scrollSurface": "window",
+        "documentHeight": 1728,
+        "viewportHeight": 720,
+        "url": "http://localhost:5173/"
+      },
+      "evidence": {
+        "end": 650,
+        "min": 650,
+        "max": 650,
+        "elapsed": 16283,
+        "sameMain": true,
+        "sameFocus": true,
+        "sameUrl": true,
+        "calls": [],
+        "samples": [
+          {
+            "elapsed": 204,
+            "y": 650
+          },
+          {
+            "elapsed": 413,
+            "y": 650
+          },
+          {
+            "elapsed": 603,
+            "y": 650
+          },
+          {
+            "elapsed": 801,
+            "y": 650
+          },
+          {
+            "elapsed": 1000,
+            "y": 650
+          },
+          {
+            "elapsed": 1208,
+            "y": 650
+          },
+          {
+            "elapsed": 1410,
+            "y": 650
+          },
+          {
+            "elapsed": 1607,
+            "y": 650
+          },
+          {
+            "elapsed": 1800,
+            "y": 650
+          },
+          {
+            "elapsed": 2001,
+            "y": 650
+          },
+          {
+            "elapsed": 2204,
+            "y": 650
+          },
+          {
+            "elapsed": 2407,
+            "y": 650
+          },
+          {
+            "elapsed": 2607,
+            "y": 650
+          },
+          {
+            "elapsed": 2800,
+            "y": 650
+          },
+          {
+            "elapsed": 3000,
+            "y": 650
+          },
+          {
+            "elapsed": 3201,
+            "y": 650
+          },
+          {
+            "elapsed": 3414,
+            "y": 650
+          },
+          {
+            "elapsed": 3612,
+            "y": 650
+          },
+          {
+            "elapsed": 3801,
+            "y": 650
+          },
+          {
+            "elapsed": 4001,
+            "y": 650
+          },
+          {
+            "elapsed": 4209,
+            "y": 650
+          },
+          {
+            "elapsed": 4406,
+            "y": 650
+          },
+          {
+            "elapsed": 4608,
+            "y": 650
+          },
+          {
+            "elapsed": 4801,
+            "y": 650
+          },
+          {
+            "elapsed": 5000,
+            "y": 650
+          },
+          {
+            "elapsed": 5215,
+            "y": 650
+          },
+          {
+            "elapsed": 5402,
+            "y": 650
+          },
+          {
+            "elapsed": 5605,
+            "y": 650
+          },
+          {
+            "elapsed": 5801,
+            "y": 650
+          },
+          {
+            "elapsed": 6000,
+            "y": 650
+          },
+          {
+            "elapsed": 6212,
+            "y": 650
+          },
+          {
+            "elapsed": 6401,
+            "y": 650
+          },
+          {
+            "elapsed": 6614,
+            "y": 650
+          },
+          {
+            "elapsed": 6800,
+            "y": 650
+          },
+          {
+            "elapsed": 7000,
+            "y": 650
+          },
+          {
+            "elapsed": 7214,
+            "y": 650
+          },
+          {
+            "elapsed": 7410,
+            "y": 650
+          },
+          {
+            "elapsed": 7613,
+            "y": 650
+          },
+          {
+            "elapsed": 7800,
+            "y": 650
+          },
+          {
+            "elapsed": 8000,
+            "y": 650
+          },
+          {
+            "elapsed": 8208,
+            "y": 650
+          },
+          {
+            "elapsed": 8413,
+            "y": 650
+          },
+          {
+            "elapsed": 8613,
+            "y": 650
+          },
+          {
+            "elapsed": 8801,
+            "y": 650
+          },
+          {
+            "elapsed": 9001,
+            "y": 650
+          },
+          {
+            "elapsed": 9214,
+            "y": 650
+          },
+          {
+            "elapsed": 9404,
+            "y": 650
+          },
+          {
+            "elapsed": 9609,
+            "y": 650
+          },
+          {
+            "elapsed": 9800,
+            "y": 650
+          },
+          {
+            "elapsed": 10001,
+            "y": 650
+          },
+          {
+            "elapsed": 10211,
+            "y": 650
+          },
+          {
+            "elapsed": 10415,
+            "y": 650
+          },
+          {
+            "elapsed": 10601,
+            "y": 650
+          },
+          {
+            "elapsed": 10801,
+            "y": 650
+          },
+          {
+            "elapsed": 11015,
+            "y": 650
+          },
+          {
+            "elapsed": 11206,
+            "y": 650
+          },
+          {
+            "elapsed": 11407,
+            "y": 650
+          },
+          {
+            "elapsed": 11613,
+            "y": 650
+          },
+          {
+            "elapsed": 11800,
+            "y": 650
+          },
+          {
+            "elapsed": 12001,
+            "y": 650
+          },
+          {
+            "elapsed": 12205,
+            "y": 650
+          },
+          {
+            "elapsed": 12409,
+            "y": 650
+          },
+          {
+            "elapsed": 12611,
+            "y": 650
+          },
+          {
+            "elapsed": 12800,
+            "y": 650
+          },
+          {
+            "elapsed": 13000,
+            "y": 650
+          },
+          {
+            "elapsed": 13208,
+            "y": 650
+          },
+          {
+            "elapsed": 13401,
+            "y": 650
+          },
+          {
+            "elapsed": 13614,
+            "y": 650
+          },
+          {
+            "elapsed": 13801,
+            "y": 650
+          },
+          {
+            "elapsed": 14000,
+            "y": 650
+          },
+          {
+            "elapsed": 14209,
+            "y": 650
+          },
+          {
+            "elapsed": 14407,
+            "y": 650
+          },
+          {
+            "elapsed": 14614,
+            "y": 650
+          },
+          {
+            "elapsed": 14800,
+            "y": 650
+          },
+          {
+            "elapsed": 15001,
+            "y": 650
+          },
+          {
+            "elapsed": 15204,
+            "y": 650
+          },
+          {
+            "elapsed": 15415,
+            "y": 650
+          },
+          {
+            "elapsed": 15612,
+            "y": 650
+          },
+          {
+            "elapsed": 15800,
+            "y": 650
+          },
+          {
+            "elapsed": 16000,
+            "y": 650
+          },
+          {
+            "elapsed": 16202,
+            "y": 650
+          }
+        ],
+        "overflow": false,
+        "mode": "watch",
+        "theme": "light",
+        "language": "vi"
+      },
+      "success": true,
+      "networkPolls": 2,
+      "walletPolls": 1,
+      "errors": [],
+      "backgroundRequests": [
+        {
+          "at": 1790850704213,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850714180,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850716446,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "responses": [
+        {
+          "at": 1790850704443,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850715534,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850716646,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "screenshots": [
+        "final-agent-scroll-1440-vi-light-agent-before.png",
+        "final-agent-scroll-1440-vi-light-agent-after.png"
+      ]
+    },
+    {
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "route": "Agent",
+      "start": {
+        "initial": 650,
+        "maximum": 1008,
+        "scrollSurface": "window",
+        "documentHeight": 1728,
+        "viewportHeight": 720,
+        "url": "http://localhost:5173/"
+      },
+      "evidence": {
+        "end": 650,
+        "min": 650,
+        "max": 650,
+        "elapsed": 16364,
+        "sameMain": true,
+        "sameFocus": true,
+        "sameUrl": true,
+        "calls": [],
+        "samples": [
+          {
+            "elapsed": 217,
+            "y": 650
+          },
+          {
+            "elapsed": 406,
+            "y": 650
+          },
+          {
+            "elapsed": 601,
+            "y": 650
+          },
+          {
+            "elapsed": 811,
+            "y": 650
+          },
+          {
+            "elapsed": 1011,
+            "y": 650
+          },
+          {
+            "elapsed": 1213,
+            "y": 650
+          },
+          {
+            "elapsed": 1411,
+            "y": 650
+          },
+          {
+            "elapsed": 1601,
+            "y": 650
+          },
+          {
+            "elapsed": 1809,
+            "y": 650
+          },
+          {
+            "elapsed": 2001,
+            "y": 650
+          },
+          {
+            "elapsed": 2209,
+            "y": 650
+          },
+          {
+            "elapsed": 2409,
+            "y": 650
+          },
+          {
+            "elapsed": 2601,
+            "y": 650
+          },
+          {
+            "elapsed": 2814,
+            "y": 650
+          },
+          {
+            "elapsed": 3017,
+            "y": 650
+          },
+          {
+            "elapsed": 3202,
+            "y": 650
+          },
+          {
+            "elapsed": 3402,
+            "y": 650
+          },
+          {
+            "elapsed": 3614,
+            "y": 650
+          },
+          {
+            "elapsed": 3804,
+            "y": 650
+          },
+          {
+            "elapsed": 4001,
+            "y": 650
+          },
+          {
+            "elapsed": 4209,
+            "y": 650
+          },
+          {
+            "elapsed": 4412,
+            "y": 650
+          },
+          {
+            "elapsed": 4602,
+            "y": 650
+          },
+          {
+            "elapsed": 4802,
+            "y": 650
+          },
+          {
+            "elapsed": 5016,
+            "y": 650
+          },
+          {
+            "elapsed": 5208,
+            "y": 650
+          },
+          {
+            "elapsed": 5416,
+            "y": 650
+          },
+          {
+            "elapsed": 5601,
+            "y": 650
+          },
+          {
+            "elapsed": 5801,
+            "y": 650
+          },
+          {
+            "elapsed": 6001,
+            "y": 650
+          },
+          {
+            "elapsed": 6211,
+            "y": 650
+          },
+          {
+            "elapsed": 6406,
+            "y": 650
+          },
+          {
+            "elapsed": 6601,
+            "y": 650
+          },
+          {
+            "elapsed": 6814,
+            "y": 650
+          },
+          {
+            "elapsed": 7016,
+            "y": 650
+          },
+          {
+            "elapsed": 7213,
+            "y": 650
+          },
+          {
+            "elapsed": 7412,
+            "y": 650
+          },
+          {
+            "elapsed": 7601,
+            "y": 650
+          },
+          {
+            "elapsed": 7801,
+            "y": 650
+          },
+          {
+            "elapsed": 8011,
+            "y": 650
+          },
+          {
+            "elapsed": 8216,
+            "y": 650
+          },
+          {
+            "elapsed": 8416,
+            "y": 650
+          },
+          {
+            "elapsed": 8601,
+            "y": 650
+          },
+          {
+            "elapsed": 8802,
+            "y": 650
+          },
+          {
+            "elapsed": 9001,
+            "y": 650
+          },
+          {
+            "elapsed": 9206,
+            "y": 650
+          },
+          {
+            "elapsed": 9413,
+            "y": 650
+          },
+          {
+            "elapsed": 9601,
+            "y": 650
+          },
+          {
+            "elapsed": 9815,
+            "y": 650
+          },
+          {
+            "elapsed": 10015,
+            "y": 650
+          },
+          {
+            "elapsed": 10202,
+            "y": 650
+          },
+          {
+            "elapsed": 10403,
+            "y": 650
+          },
+          {
+            "elapsed": 10602,
+            "y": 650
+          },
+          {
+            "elapsed": 10801,
+            "y": 650
+          },
+          {
+            "elapsed": 11008,
+            "y": 650
+          },
+          {
+            "elapsed": 11211,
+            "y": 650
+          },
+          {
+            "elapsed": 11416,
+            "y": 650
+          },
+          {
+            "elapsed": 11601,
+            "y": 650
+          },
+          {
+            "elapsed": 11804,
+            "y": 650
+          },
+          {
+            "elapsed": 12009,
+            "y": 650
+          },
+          {
+            "elapsed": 12212,
+            "y": 650
+          },
+          {
+            "elapsed": 12413,
+            "y": 650
+          },
+          {
+            "elapsed": 12601,
+            "y": 650
+          },
+          {
+            "elapsed": 12811,
+            "y": 650
+          },
+          {
+            "elapsed": 13010,
+            "y": 650
+          },
+          {
+            "elapsed": 13210,
+            "y": 650
+          },
+          {
+            "elapsed": 13402,
+            "y": 650
+          },
+          {
+            "elapsed": 13601,
+            "y": 650
+          },
+          {
+            "elapsed": 13802,
+            "y": 650
+          },
+          {
+            "elapsed": 14001,
+            "y": 650
+          },
+          {
+            "elapsed": 14210,
+            "y": 650
+          },
+          {
+            "elapsed": 14401,
+            "y": 650
+          },
+          {
+            "elapsed": 14601,
+            "y": 650
+          },
+          {
+            "elapsed": 14815,
+            "y": 650
+          },
+          {
+            "elapsed": 15007,
+            "y": 650
+          },
+          {
+            "elapsed": 15208,
+            "y": 650
+          },
+          {
+            "elapsed": 15402,
+            "y": 650
+          },
+          {
+            "elapsed": 15601,
+            "y": 650
+          },
+          {
+            "elapsed": 15801,
+            "y": 650
+          },
+          {
+            "elapsed": 16004,
+            "y": 650
+          },
+          {
+            "elapsed": 16205,
+            "y": 650
+          }
+        ],
+        "overflow": false,
+        "mode": "watch",
+        "theme": "light",
+        "language": "en"
+      },
+      "success": true,
+      "networkPolls": 2,
+      "walletPolls": 1,
+      "errors": [],
+      "backgroundRequests": [
+        {
+          "at": 1790850704180,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850713345,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850716389,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "responses": [
+        {
+          "at": 1790850704381,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850714822,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850716592,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "screenshots": [
+        "final-agent-scroll-1440-en-light-agent-before.png",
+        "final-agent-scroll-1440-en-light-agent-after.png"
+      ]
+    },
+    {
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "route": "Agent",
+      "start": {
+        "initial": 650,
+        "maximum": 1008,
+        "scrollSurface": "window",
+        "documentHeight": 1728,
+        "viewportHeight": 720,
+        "url": "http://localhost:5173/"
+      },
+      "evidence": {
+        "end": 650,
+        "min": 650,
+        "max": 650,
+        "elapsed": 16362,
+        "sameMain": true,
+        "sameFocus": true,
+        "sameUrl": true,
+        "calls": [],
+        "samples": [
+          {
+            "elapsed": 216,
+            "y": 650
+          },
+          {
+            "elapsed": 405,
+            "y": 650
+          },
+          {
+            "elapsed": 600,
+            "y": 650
+          },
+          {
+            "elapsed": 810,
+            "y": 650
+          },
+          {
+            "elapsed": 1011,
+            "y": 650
+          },
+          {
+            "elapsed": 1212,
+            "y": 650
+          },
+          {
+            "elapsed": 1410,
+            "y": 650
+          },
+          {
+            "elapsed": 1600,
+            "y": 650
+          },
+          {
+            "elapsed": 1809,
+            "y": 650
+          },
+          {
+            "elapsed": 2005,
+            "y": 650
+          },
+          {
+            "elapsed": 2208,
+            "y": 650
+          },
+          {
+            "elapsed": 2409,
+            "y": 650
+          },
+          {
+            "elapsed": 2612,
+            "y": 650
+          },
+          {
+            "elapsed": 2813,
+            "y": 650
+          },
+          {
+            "elapsed": 3017,
+            "y": 650
+          },
+          {
+            "elapsed": 3201,
+            "y": 650
+          },
+          {
+            "elapsed": 3415,
+            "y": 650
+          },
+          {
+            "elapsed": 3613,
+            "y": 650
+          },
+          {
+            "elapsed": 3803,
+            "y": 650
+          },
+          {
+            "elapsed": 4001,
+            "y": 650
+          },
+          {
+            "elapsed": 4208,
+            "y": 650
+          },
+          {
+            "elapsed": 4411,
+            "y": 650
+          },
+          {
+            "elapsed": 4601,
+            "y": 650
+          },
+          {
+            "elapsed": 4801,
+            "y": 650
+          },
+          {
+            "elapsed": 5015,
+            "y": 650
+          },
+          {
+            "elapsed": 5207,
+            "y": 650
+          },
+          {
+            "elapsed": 5415,
+            "y": 650
+          },
+          {
+            "elapsed": 5600,
+            "y": 650
+          },
+          {
+            "elapsed": 5816,
+            "y": 650
+          },
+          {
+            "elapsed": 6000,
+            "y": 650
+          },
+          {
+            "elapsed": 6210,
+            "y": 650
+          },
+          {
+            "elapsed": 6401,
+            "y": 650
+          },
+          {
+            "elapsed": 6600,
+            "y": 650
+          },
+          {
+            "elapsed": 6813,
+            "y": 650
+          },
+          {
+            "elapsed": 7015,
+            "y": 650
+          },
+          {
+            "elapsed": 7212,
+            "y": 650
+          },
+          {
+            "elapsed": 7411,
+            "y": 650
+          },
+          {
+            "elapsed": 7610,
+            "y": 650
+          },
+          {
+            "elapsed": 7805,
+            "y": 650
+          },
+          {
+            "elapsed": 8010,
+            "y": 650
+          },
+          {
+            "elapsed": 8215,
+            "y": 650
+          },
+          {
+            "elapsed": 8415,
+            "y": 650
+          },
+          {
+            "elapsed": 8600,
+            "y": 650
+          },
+          {
+            "elapsed": 8802,
+            "y": 650
+          },
+          {
+            "elapsed": 9001,
+            "y": 650
+          },
+          {
+            "elapsed": 9205,
+            "y": 650
+          },
+          {
+            "elapsed": 9412,
+            "y": 650
+          },
+          {
+            "elapsed": 9600,
+            "y": 650
+          },
+          {
+            "elapsed": 9814,
+            "y": 650
+          },
+          {
+            "elapsed": 10000,
+            "y": 650
+          },
+          {
+            "elapsed": 10201,
+            "y": 650
+          },
+          {
+            "elapsed": 10403,
+            "y": 650
+          },
+          {
+            "elapsed": 10601,
+            "y": 650
+          },
+          {
+            "elapsed": 10821,
+            "y": 650
+          },
+          {
+            "elapsed": 11007,
+            "y": 650
+          },
+          {
+            "elapsed": 11210,
+            "y": 650
+          },
+          {
+            "elapsed": 11415,
+            "y": 650
+          },
+          {
+            "elapsed": 11601,
+            "y": 650
+          },
+          {
+            "elapsed": 11803,
+            "y": 650
+          },
+          {
+            "elapsed": 12008,
+            "y": 650
+          },
+          {
+            "elapsed": 12211,
+            "y": 650
+          },
+          {
+            "elapsed": 12412,
+            "y": 650
+          },
+          {
+            "elapsed": 12613,
+            "y": 650
+          },
+          {
+            "elapsed": 12810,
+            "y": 650
+          },
+          {
+            "elapsed": 13009,
+            "y": 650
+          },
+          {
+            "elapsed": 13209,
+            "y": 650
+          },
+          {
+            "elapsed": 13401,
+            "y": 650
+          },
+          {
+            "elapsed": 13612,
+            "y": 650
+          },
+          {
+            "elapsed": 13809,
+            "y": 650
+          },
+          {
+            "elapsed": 14000,
+            "y": 650
+          },
+          {
+            "elapsed": 14209,
+            "y": 650
+          },
+          {
+            "elapsed": 14412,
+            "y": 650
+          },
+          {
+            "elapsed": 14600,
+            "y": 650
+          },
+          {
+            "elapsed": 14815,
+            "y": 650
+          },
+          {
+            "elapsed": 15006,
+            "y": 650
+          },
+          {
+            "elapsed": 15207,
+            "y": 650
+          },
+          {
+            "elapsed": 15401,
+            "y": 650
+          },
+          {
+            "elapsed": 15601,
+            "y": 650
+          },
+          {
+            "elapsed": 15815,
+            "y": 650
+          },
+          {
+            "elapsed": 16003,
+            "y": 650
+          },
+          {
+            "elapsed": 16204,
+            "y": 650
+          }
+        ],
+        "overflow": false,
+        "mode": "watch",
+        "theme": "dark",
+        "language": "vi"
+      },
+      "success": true,
+      "networkPolls": 2,
+      "walletPolls": 1,
+      "errors": [],
+      "backgroundRequests": [
+        {
+          "at": 1790850704230,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850714153,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850716450,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "responses": [
+        {
+          "at": 1790850704447,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850715008,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850716663,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "screenshots": [
+        "final-agent-scroll-1440-vi-dark-agent-before.png",
+        "final-agent-scroll-1440-vi-dark-agent-after.png"
+      ]
+    },
+    {
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "route": "Agent",
+      "start": {
+        "initial": 650,
+        "maximum": 1008,
+        "scrollSurface": "window",
+        "documentHeight": 1728,
+        "viewportHeight": 720,
+        "url": "http://localhost:5173/"
+      },
+      "evidence": {
+        "end": 650,
+        "min": 650,
+        "max": 650,
+        "elapsed": 16361,
+        "sameMain": true,
+        "sameFocus": true,
+        "sameUrl": true,
+        "calls": [],
+        "samples": [
+          {
+            "elapsed": 215,
+            "y": 650
+          },
+          {
+            "elapsed": 404,
+            "y": 650
+          },
+          {
+            "elapsed": 600,
+            "y": 650
+          },
+          {
+            "elapsed": 809,
+            "y": 650
+          },
+          {
+            "elapsed": 1010,
+            "y": 650
+          },
+          {
+            "elapsed": 1211,
+            "y": 650
+          },
+          {
+            "elapsed": 1409,
+            "y": 650
+          },
+          {
+            "elapsed": 1600,
+            "y": 650
+          },
+          {
+            "elapsed": 1808,
+            "y": 650
+          },
+          {
+            "elapsed": 2000,
+            "y": 650
+          },
+          {
+            "elapsed": 2207,
+            "y": 650
+          },
+          {
+            "elapsed": 2408,
+            "y": 650
+          },
+          {
+            "elapsed": 2611,
+            "y": 650
+          },
+          {
+            "elapsed": 2812,
+            "y": 650
+          },
+          {
+            "elapsed": 3015,
+            "y": 650
+          },
+          {
+            "elapsed": 3200,
+            "y": 650
+          },
+          {
+            "elapsed": 3400,
+            "y": 650
+          },
+          {
+            "elapsed": 3600,
+            "y": 650
+          },
+          {
+            "elapsed": 3802,
+            "y": 650
+          },
+          {
+            "elapsed": 4000,
+            "y": 650
+          },
+          {
+            "elapsed": 4207,
+            "y": 650
+          },
+          {
+            "elapsed": 4410,
+            "y": 650
+          },
+          {
+            "elapsed": 4600,
+            "y": 650
+          },
+          {
+            "elapsed": 4800,
+            "y": 650
+          },
+          {
+            "elapsed": 5014,
+            "y": 650
+          },
+          {
+            "elapsed": 5206,
+            "y": 650
+          },
+          {
+            "elapsed": 5414,
+            "y": 650
+          },
+          {
+            "elapsed": 5600,
+            "y": 650
+          },
+          {
+            "elapsed": 5815,
+            "y": 650
+          },
+          {
+            "elapsed": 6012,
+            "y": 650
+          },
+          {
+            "elapsed": 6209,
+            "y": 650
+          },
+          {
+            "elapsed": 6400,
+            "y": 650
+          },
+          {
+            "elapsed": 6600,
+            "y": 650
+          },
+          {
+            "elapsed": 6812,
+            "y": 650
+          },
+          {
+            "elapsed": 7014,
+            "y": 650
+          },
+          {
+            "elapsed": 7211,
+            "y": 650
+          },
+          {
+            "elapsed": 7410,
+            "y": 650
+          },
+          {
+            "elapsed": 7609,
+            "y": 650
+          },
+          {
+            "elapsed": 7804,
+            "y": 650
+          },
+          {
+            "elapsed": 8009,
+            "y": 650
+          },
+          {
+            "elapsed": 8214,
+            "y": 650
+          },
+          {
+            "elapsed": 8414,
+            "y": 650
+          },
+          {
+            "elapsed": 8614,
+            "y": 650
+          },
+          {
+            "elapsed": 8816,
+            "y": 650
+          },
+          {
+            "elapsed": 9000,
+            "y": 650
+          },
+          {
+            "elapsed": 9204,
+            "y": 650
+          },
+          {
+            "elapsed": 9411,
+            "y": 650
+          },
+          {
+            "elapsed": 9610,
+            "y": 650
+          },
+          {
+            "elapsed": 9813,
+            "y": 650
+          },
+          {
+            "elapsed": 10012,
+            "y": 650
+          },
+          {
+            "elapsed": 10215,
+            "y": 650
+          },
+          {
+            "elapsed": 10402,
+            "y": 650
+          },
+          {
+            "elapsed": 10600,
+            "y": 650
+          },
+          {
+            "elapsed": 10803,
+            "y": 650
+          },
+          {
+            "elapsed": 11006,
+            "y": 650
+          },
+          {
+            "elapsed": 11209,
+            "y": 650
+          },
+          {
+            "elapsed": 11414,
+            "y": 650
+          },
+          {
+            "elapsed": 11600,
+            "y": 650
+          },
+          {
+            "elapsed": 11802,
+            "y": 650
+          },
+          {
+            "elapsed": 12007,
+            "y": 650
+          },
+          {
+            "elapsed": 12210,
+            "y": 650
+          },
+          {
+            "elapsed": 12411,
+            "y": 650
+          },
+          {
+            "elapsed": 12613,
+            "y": 650
+          },
+          {
+            "elapsed": 12809,
+            "y": 650
+          },
+          {
+            "elapsed": 13008,
+            "y": 650
+          },
+          {
+            "elapsed": 13208,
+            "y": 650
+          },
+          {
+            "elapsed": 13400,
+            "y": 650
+          },
+          {
+            "elapsed": 13611,
+            "y": 650
+          },
+          {
+            "elapsed": 13808,
+            "y": 650
+          },
+          {
+            "elapsed": 14000,
+            "y": 650
+          },
+          {
+            "elapsed": 14208,
+            "y": 650
+          },
+          {
+            "elapsed": 14411,
+            "y": 650
+          },
+          {
+            "elapsed": 14600,
+            "y": 650
+          },
+          {
+            "elapsed": 14814,
+            "y": 650
+          },
+          {
+            "elapsed": 15005,
+            "y": 650
+          },
+          {
+            "elapsed": 15206,
+            "y": 650
+          },
+          {
+            "elapsed": 15400,
+            "y": 650
+          },
+          {
+            "elapsed": 15600,
+            "y": 650
+          },
+          {
+            "elapsed": 15814,
+            "y": 650
+          },
+          {
+            "elapsed": 16002,
+            "y": 650
+          },
+          {
+            "elapsed": 16203,
+            "y": 650
+          }
+        ],
+        "overflow": false,
+        "mode": "watch",
+        "theme": "dark",
+        "language": "en"
+      },
+      "success": true,
+      "networkPolls": 2,
+      "walletPolls": 1,
+      "errors": [],
+      "backgroundRequests": [
+        {
+          "at": 1790850704189,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850713280,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850716414,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "responses": [
+        {
+          "at": 1790850704406,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850714415,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850716631,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "screenshots": [
+        "final-agent-scroll-1440-en-dark-agent-before.png",
+        "final-agent-scroll-1440-en-dark-agent-after.png"
+      ]
+    },
+    {
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "route": "Agent",
+      "start": {
+        "initial": 650,
+        "maximum": 1255,
+        "scrollSurface": "window",
+        "documentHeight": 2099,
+        "viewportHeight": 844,
+        "url": "http://localhost:5173/"
+      },
+      "evidence": {
+        "end": 650,
+        "min": 650,
+        "max": 650,
+        "elapsed": 16267,
+        "sameMain": true,
+        "sameFocus": true,
+        "sameUrl": true,
+        "calls": [],
+        "samples": [
+          {
+            "elapsed": 201,
+            "y": 650
+          },
+          {
+            "elapsed": 402,
+            "y": 650
+          },
+          {
+            "elapsed": 601,
+            "y": 650
+          },
+          {
+            "elapsed": 815,
+            "y": 650
+          },
+          {
+            "elapsed": 1001,
+            "y": 650
+          },
+          {
+            "elapsed": 1209,
+            "y": 650
+          },
+          {
+            "elapsed": 1415,
+            "y": 650
+          },
+          {
+            "elapsed": 1601,
+            "y": 650
+          },
+          {
+            "elapsed": 1808,
+            "y": 650
+          },
+          {
+            "elapsed": 2004,
+            "y": 650
+          },
+          {
+            "elapsed": 2201,
+            "y": 650
+          },
+          {
+            "elapsed": 2401,
+            "y": 650
+          },
+          {
+            "elapsed": 2606,
+            "y": 650
+          },
+          {
+            "elapsed": 2800,
+            "y": 650
+          },
+          {
+            "elapsed": 3011,
+            "y": 650
+          },
+          {
+            "elapsed": 3206,
+            "y": 650
+          },
+          {
+            "elapsed": 3400,
+            "y": 650
+          },
+          {
+            "elapsed": 3615,
+            "y": 650
+          },
+          {
+            "elapsed": 3801,
+            "y": 650
+          },
+          {
+            "elapsed": 4009,
+            "y": 650
+          },
+          {
+            "elapsed": 4200,
+            "y": 650
+          },
+          {
+            "elapsed": 4415,
+            "y": 650
+          },
+          {
+            "elapsed": 4601,
+            "y": 650
+          },
+          {
+            "elapsed": 4801,
+            "y": 650
+          },
+          {
+            "elapsed": 5015,
+            "y": 650
+          },
+          {
+            "elapsed": 5215,
+            "y": 650
+          },
+          {
+            "elapsed": 5402,
+            "y": 650
+          },
+          {
+            "elapsed": 5614,
+            "y": 650
+          },
+          {
+            "elapsed": 5812,
+            "y": 650
+          },
+          {
+            "elapsed": 6010,
+            "y": 650
+          },
+          {
+            "elapsed": 6209,
+            "y": 650
+          },
+          {
+            "elapsed": 6401,
+            "y": 650
+          },
+          {
+            "elapsed": 6601,
+            "y": 650
+          },
+          {
+            "elapsed": 6801,
+            "y": 650
+          },
+          {
+            "elapsed": 7011,
+            "y": 650
+          },
+          {
+            "elapsed": 7201,
+            "y": 650
+          },
+          {
+            "elapsed": 7405,
+            "y": 650
+          },
+          {
+            "elapsed": 7613,
+            "y": 650
+          },
+          {
+            "elapsed": 7812,
+            "y": 650
+          },
+          {
+            "elapsed": 8012,
+            "y": 650
+          },
+          {
+            "elapsed": 8201,
+            "y": 650
+          },
+          {
+            "elapsed": 8400,
+            "y": 650
+          },
+          {
+            "elapsed": 8601,
+            "y": 650
+          },
+          {
+            "elapsed": 8816,
+            "y": 650
+          },
+          {
+            "elapsed": 9001,
+            "y": 650
+          },
+          {
+            "elapsed": 9210,
+            "y": 650
+          },
+          {
+            "elapsed": 9400,
+            "y": 650
+          },
+          {
+            "elapsed": 9630,
+            "y": 650
+          },
+          {
+            "elapsed": 9801,
+            "y": 650
+          },
+          {
+            "elapsed": 10000,
+            "y": 650
+          },
+          {
+            "elapsed": 10200,
+            "y": 650
+          },
+          {
+            "elapsed": 10402,
+            "y": 650
+          },
+          {
+            "elapsed": 10612,
+            "y": 650
+          },
+          {
+            "elapsed": 10800,
+            "y": 650
+          },
+          {
+            "elapsed": 11010,
+            "y": 650
+          },
+          {
+            "elapsed": 11206,
+            "y": 650
+          },
+          {
+            "elapsed": 11412,
+            "y": 650
+          },
+          {
+            "elapsed": 11601,
+            "y": 650
+          },
+          {
+            "elapsed": 11815,
+            "y": 650
+          },
+          {
+            "elapsed": 12014,
+            "y": 650
+          },
+          {
+            "elapsed": 12201,
+            "y": 650
+          },
+          {
+            "elapsed": 12415,
+            "y": 650
+          },
+          {
+            "elapsed": 12600,
+            "y": 650
+          },
+          {
+            "elapsed": 12810,
+            "y": 650
+          },
+          {
+            "elapsed": 13012,
+            "y": 650
+          },
+          {
+            "elapsed": 13209,
+            "y": 650
+          },
+          {
+            "elapsed": 13400,
+            "y": 650
+          },
+          {
+            "elapsed": 13614,
+            "y": 650
+          },
+          {
+            "elapsed": 13801,
+            "y": 650
+          },
+          {
+            "elapsed": 14000,
+            "y": 650
+          },
+          {
+            "elapsed": 14209,
+            "y": 650
+          },
+          {
+            "elapsed": 14400,
+            "y": 650
+          },
+          {
+            "elapsed": 14602,
+            "y": 650
+          },
+          {
+            "elapsed": 14801,
+            "y": 650
+          },
+          {
+            "elapsed": 15006,
+            "y": 650
+          },
+          {
+            "elapsed": 15206,
+            "y": 650
+          },
+          {
+            "elapsed": 15408,
+            "y": 650
+          },
+          {
+            "elapsed": 15611,
+            "y": 650
+          },
+          {
+            "elapsed": 15812,
+            "y": 650
+          },
+          {
+            "elapsed": 16001,
+            "y": 650
+          },
+          {
+            "elapsed": 16201,
+            "y": 650
+          }
+        ],
+        "overflow": false,
+        "mode": "watch",
+        "theme": "dark",
+        "language": "vi"
+      },
+      "success": true,
+      "networkPolls": 2,
+      "walletPolls": 1,
+      "errors": [],
+      "backgroundRequests": [
+        {
+          "at": 1790850733049,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850742129,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850745247,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "responses": [
+        {
+          "at": 1790850733245,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850743658,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850745454,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "screenshots": [
+        "final-agent-scroll-390-vi-dark-agent-before.png",
+        "final-agent-scroll-390-vi-dark-agent-after.png"
+      ]
+    },
+    {
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "route": "Agent",
+      "start": {
+        "initial": 650,
+        "maximum": 1255,
+        "scrollSurface": "window",
+        "documentHeight": 2099,
+        "viewportHeight": 844,
+        "url": "http://localhost:5173/"
+      },
+      "evidence": {
+        "end": 650,
+        "min": 650,
+        "max": 650,
+        "elapsed": 16283,
+        "sameMain": true,
+        "sameFocus": true,
+        "sameUrl": true,
+        "calls": [],
+        "samples": [
+          {
+            "elapsed": 201,
+            "y": 650
+          },
+          {
+            "elapsed": 412,
+            "y": 650
+          },
+          {
+            "elapsed": 601,
+            "y": 650
+          },
+          {
+            "elapsed": 805,
+            "y": 650
+          },
+          {
+            "elapsed": 1013,
+            "y": 650
+          },
+          {
+            "elapsed": 1207,
+            "y": 650
+          },
+          {
+            "elapsed": 1415,
+            "y": 650
+          },
+          {
+            "elapsed": 1601,
+            "y": 650
+          },
+          {
+            "elapsed": 1814,
+            "y": 650
+          },
+          {
+            "elapsed": 2001,
+            "y": 650
+          },
+          {
+            "elapsed": 2201,
+            "y": 650
+          },
+          {
+            "elapsed": 2401,
+            "y": 650
+          },
+          {
+            "elapsed": 2607,
+            "y": 650
+          },
+          {
+            "elapsed": 2803,
+            "y": 650
+          },
+          {
+            "elapsed": 3014,
+            "y": 650
+          },
+          {
+            "elapsed": 3201,
+            "y": 650
+          },
+          {
+            "elapsed": 3401,
+            "y": 650
+          },
+          {
+            "elapsed": 3607,
+            "y": 650
+          },
+          {
+            "elapsed": 3814,
+            "y": 650
+          },
+          {
+            "elapsed": 4000,
+            "y": 650
+          },
+          {
+            "elapsed": 4200,
+            "y": 650
+          },
+          {
+            "elapsed": 4411,
+            "y": 650
+          },
+          {
+            "elapsed": 4601,
+            "y": 650
+          },
+          {
+            "elapsed": 4811,
+            "y": 650
+          },
+          {
+            "elapsed": 5014,
+            "y": 650
+          },
+          {
+            "elapsed": 5210,
+            "y": 650
+          },
+          {
+            "elapsed": 5408,
+            "y": 650
+          },
+          {
+            "elapsed": 5605,
+            "y": 650
+          },
+          {
+            "elapsed": 5805,
+            "y": 650
+          },
+          {
+            "elapsed": 6000,
+            "y": 650
+          },
+          {
+            "elapsed": 6205,
+            "y": 650
+          },
+          {
+            "elapsed": 6401,
+            "y": 650
+          },
+          {
+            "elapsed": 6601,
+            "y": 650
+          },
+          {
+            "elapsed": 6808,
+            "y": 650
+          },
+          {
+            "elapsed": 7009,
+            "y": 650
+          },
+          {
+            "elapsed": 7201,
+            "y": 650
+          },
+          {
+            "elapsed": 7407,
+            "y": 650
+          },
+          {
+            "elapsed": 7601,
+            "y": 650
+          },
+          {
+            "elapsed": 7813,
+            "y": 650
+          },
+          {
+            "elapsed": 8005,
+            "y": 650
+          },
+          {
+            "elapsed": 8201,
+            "y": 650
+          },
+          {
+            "elapsed": 8401,
+            "y": 650
+          },
+          {
+            "elapsed": 8601,
+            "y": 650
+          },
+          {
+            "elapsed": 8807,
+            "y": 650
+          },
+          {
+            "elapsed": 9000,
+            "y": 650
+          },
+          {
+            "elapsed": 9206,
+            "y": 650
+          },
+          {
+            "elapsed": 9408,
+            "y": 650
+          },
+          {
+            "elapsed": 9617,
+            "y": 650
+          },
+          {
+            "elapsed": 9805,
+            "y": 650
+          },
+          {
+            "elapsed": 10000,
+            "y": 650
+          },
+          {
+            "elapsed": 10205,
+            "y": 650
+          },
+          {
+            "elapsed": 10401,
+            "y": 650
+          },
+          {
+            "elapsed": 10601,
+            "y": 650
+          },
+          {
+            "elapsed": 10800,
+            "y": 650
+          },
+          {
+            "elapsed": 11001,
+            "y": 650
+          },
+          {
+            "elapsed": 11200,
+            "y": 650
+          },
+          {
+            "elapsed": 11400,
+            "y": 650
+          },
+          {
+            "elapsed": 11601,
+            "y": 650
+          },
+          {
+            "elapsed": 11800,
+            "y": 650
+          },
+          {
+            "elapsed": 12000,
+            "y": 650
+          },
+          {
+            "elapsed": 12201,
+            "y": 650
+          },
+          {
+            "elapsed": 12400,
+            "y": 650
+          },
+          {
+            "elapsed": 12600,
+            "y": 650
+          },
+          {
+            "elapsed": 12801,
+            "y": 650
+          },
+          {
+            "elapsed": 13000,
+            "y": 650
+          },
+          {
+            "elapsed": 13200,
+            "y": 650
+          },
+          {
+            "elapsed": 13401,
+            "y": 650
+          },
+          {
+            "elapsed": 13600,
+            "y": 650
+          },
+          {
+            "elapsed": 13801,
+            "y": 650
+          },
+          {
+            "elapsed": 14001,
+            "y": 650
+          },
+          {
+            "elapsed": 14200,
+            "y": 650
+          },
+          {
+            "elapsed": 14400,
+            "y": 650
+          },
+          {
+            "elapsed": 14600,
+            "y": 650
+          },
+          {
+            "elapsed": 14800,
+            "y": 650
+          },
+          {
+            "elapsed": 15000,
+            "y": 650
+          },
+          {
+            "elapsed": 15200,
+            "y": 650
+          },
+          {
+            "elapsed": 15401,
+            "y": 650
+          },
+          {
+            "elapsed": 15600,
+            "y": 650
+          },
+          {
+            "elapsed": 15815,
+            "y": 650
+          },
+          {
+            "elapsed": 16001,
+            "y": 650
+          },
+          {
+            "elapsed": 16200,
+            "y": 650
+          }
+        ],
+        "overflow": false,
+        "mode": "watch",
+        "theme": "light",
+        "language": "vi"
+      },
+      "success": true,
+      "networkPolls": 2,
+      "walletPolls": 1,
+      "errors": [],
+      "backgroundRequests": [
+        {
+          "at": 1790850733180,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850742596,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850745510,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "responses": [
+        {
+          "at": 1790850733506,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850743947,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850745727,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "screenshots": [
+        "final-agent-scroll-390-vi-light-agent-before.png",
+        "final-agent-scroll-390-vi-light-agent-after.png"
+      ]
+    },
+    {
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "route": "Agent",
+      "start": {
+        "initial": 650,
+        "maximum": 1094,
+        "scrollSurface": "window",
+        "documentHeight": 1938,
+        "viewportHeight": 844,
+        "url": "http://localhost:5173/"
+      },
+      "evidence": {
+        "end": 650,
+        "min": 650,
+        "max": 650,
+        "elapsed": 16300,
+        "sameMain": true,
+        "sameFocus": true,
+        "sameUrl": true,
+        "calls": [],
+        "samples": [
+          {
+            "elapsed": 201,
+            "y": 650
+          },
+          {
+            "elapsed": 413,
+            "y": 650
+          },
+          {
+            "elapsed": 601,
+            "y": 650
+          },
+          {
+            "elapsed": 806,
+            "y": 650
+          },
+          {
+            "elapsed": 1014,
+            "y": 650
+          },
+          {
+            "elapsed": 1208,
+            "y": 650
+          },
+          {
+            "elapsed": 1416,
+            "y": 650
+          },
+          {
+            "elapsed": 1602,
+            "y": 650
+          },
+          {
+            "elapsed": 1815,
+            "y": 650
+          },
+          {
+            "elapsed": 2001,
+            "y": 650
+          },
+          {
+            "elapsed": 2201,
+            "y": 650
+          },
+          {
+            "elapsed": 2401,
+            "y": 650
+          },
+          {
+            "elapsed": 2609,
+            "y": 650
+          },
+          {
+            "elapsed": 2804,
+            "y": 650
+          },
+          {
+            "elapsed": 3016,
+            "y": 650
+          },
+          {
+            "elapsed": 3213,
+            "y": 650
+          },
+          {
+            "elapsed": 3401,
+            "y": 650
+          },
+          {
+            "elapsed": 3608,
+            "y": 650
+          },
+          {
+            "elapsed": 3815,
+            "y": 650
+          },
+          {
+            "elapsed": 4001,
+            "y": 650
+          },
+          {
+            "elapsed": 4200,
+            "y": 650
+          },
+          {
+            "elapsed": 4413,
+            "y": 650
+          },
+          {
+            "elapsed": 4601,
+            "y": 650
+          },
+          {
+            "elapsed": 4802,
+            "y": 650
+          },
+          {
+            "elapsed": 5015,
+            "y": 650
+          },
+          {
+            "elapsed": 5212,
+            "y": 650
+          },
+          {
+            "elapsed": 5409,
+            "y": 650
+          },
+          {
+            "elapsed": 5607,
+            "y": 650
+          },
+          {
+            "elapsed": 5807,
+            "y": 650
+          },
+          {
+            "elapsed": 6000,
+            "y": 650
+          },
+          {
+            "elapsed": 6207,
+            "y": 650
+          },
+          {
+            "elapsed": 6401,
+            "y": 650
+          },
+          {
+            "elapsed": 6607,
+            "y": 650
+          },
+          {
+            "elapsed": 6809,
+            "y": 650
+          },
+          {
+            "elapsed": 7010,
+            "y": 650
+          },
+          {
+            "elapsed": 7201,
+            "y": 650
+          },
+          {
+            "elapsed": 7415,
+            "y": 650
+          },
+          {
+            "elapsed": 7616,
+            "y": 650
+          },
+          {
+            "elapsed": 7815,
+            "y": 650
+          },
+          {
+            "elapsed": 8004,
+            "y": 650
+          },
+          {
+            "elapsed": 8201,
+            "y": 650
+          },
+          {
+            "elapsed": 8401,
+            "y": 650
+          },
+          {
+            "elapsed": 8610,
+            "y": 650
+          },
+          {
+            "elapsed": 8808,
+            "y": 650
+          },
+          {
+            "elapsed": 9001,
+            "y": 650
+          },
+          {
+            "elapsed": 9216,
+            "y": 650
+          },
+          {
+            "elapsed": 9410,
+            "y": 650
+          },
+          {
+            "elapsed": 9615,
+            "y": 650
+          },
+          {
+            "elapsed": 9802,
+            "y": 650
+          },
+          {
+            "elapsed": 10000,
+            "y": 650
+          },
+          {
+            "elapsed": 10207,
+            "y": 650
+          },
+          {
+            "elapsed": 10407,
+            "y": 650
+          },
+          {
+            "elapsed": 10609,
+            "y": 650
+          },
+          {
+            "elapsed": 10805,
+            "y": 650
+          },
+          {
+            "elapsed": 11009,
+            "y": 650
+          },
+          {
+            "elapsed": 11213,
+            "y": 650
+          },
+          {
+            "elapsed": 11414,
+            "y": 650
+          },
+          {
+            "elapsed": 11601,
+            "y": 650
+          },
+          {
+            "elapsed": 11809,
+            "y": 650
+          },
+          {
+            "elapsed": 12005,
+            "y": 650
+          },
+          {
+            "elapsed": 12201,
+            "y": 650
+          },
+          {
+            "elapsed": 12408,
+            "y": 650
+          },
+          {
+            "elapsed": 12609,
+            "y": 650
+          },
+          {
+            "elapsed": 12812,
+            "y": 650
+          },
+          {
+            "elapsed": 13014,
+            "y": 650
+          },
+          {
+            "elapsed": 13209,
+            "y": 650
+          },
+          {
+            "elapsed": 13402,
+            "y": 650
+          },
+          {
+            "elapsed": 13602,
+            "y": 650
+          },
+          {
+            "elapsed": 13807,
+            "y": 650
+          },
+          {
+            "elapsed": 14001,
+            "y": 650
+          },
+          {
+            "elapsed": 14202,
+            "y": 650
+          },
+          {
+            "elapsed": 14400,
+            "y": 650
+          },
+          {
+            "elapsed": 14604,
+            "y": 650
+          },
+          {
+            "elapsed": 14804,
+            "y": 650
+          },
+          {
+            "elapsed": 15005,
+            "y": 650
+          },
+          {
+            "elapsed": 15215,
+            "y": 650
+          },
+          {
+            "elapsed": 15401,
+            "y": 650
+          },
+          {
+            "elapsed": 15616,
+            "y": 650
+          },
+          {
+            "elapsed": 15801,
+            "y": 650
+          },
+          {
+            "elapsed": 16003,
+            "y": 650
+          },
+          {
+            "elapsed": 16201,
+            "y": 650
+          }
+        ],
+        "overflow": false,
+        "mode": "watch",
+        "theme": "light",
+        "language": "en"
+      },
+      "success": true,
+      "networkPolls": 2,
+      "walletPolls": 1,
+      "errors": [],
+      "backgroundRequests": [
+        {
+          "at": 1790850733423,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850742313,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850745629,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "responses": [
+        {
+          "at": 1790850733627,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850743469,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850745738,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "screenshots": [
+        "final-agent-scroll-390-en-light-agent-before.png",
+        "final-agent-scroll-390-en-light-agent-after.png"
+      ]
+    },
+    {
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "route": "Agent",
+      "start": {
+        "initial": 650,
+        "maximum": 1094,
+        "scrollSurface": "window",
+        "documentHeight": 1938,
+        "viewportHeight": 844,
+        "url": "http://localhost:5173/"
+      },
+      "evidence": {
+        "end": 650,
+        "min": 650,
+        "max": 650,
+        "elapsed": 16299,
+        "sameMain": true,
+        "sameFocus": true,
+        "sameUrl": true,
+        "calls": [],
+        "samples": [
+          {
+            "elapsed": 201,
+            "y": 650
+          },
+          {
+            "elapsed": 412,
+            "y": 650
+          },
+          {
+            "elapsed": 600,
+            "y": 650
+          },
+          {
+            "elapsed": 805,
+            "y": 650
+          },
+          {
+            "elapsed": 1013,
+            "y": 650
+          },
+          {
+            "elapsed": 1207,
+            "y": 650
+          },
+          {
+            "elapsed": 1415,
+            "y": 650
+          },
+          {
+            "elapsed": 1601,
+            "y": 650
+          },
+          {
+            "elapsed": 1814,
+            "y": 650
+          },
+          {
+            "elapsed": 2000,
+            "y": 650
+          },
+          {
+            "elapsed": 2200,
+            "y": 650
+          },
+          {
+            "elapsed": 2400,
+            "y": 650
+          },
+          {
+            "elapsed": 2608,
+            "y": 650
+          },
+          {
+            "elapsed": 2803,
+            "y": 650
+          },
+          {
+            "elapsed": 3015,
+            "y": 650
+          },
+          {
+            "elapsed": 3212,
+            "y": 650
+          },
+          {
+            "elapsed": 3400,
+            "y": 650
+          },
+          {
+            "elapsed": 3607,
+            "y": 650
+          },
+          {
+            "elapsed": 3814,
+            "y": 650
+          },
+          {
+            "elapsed": 4000,
+            "y": 650
+          },
+          {
+            "elapsed": 4208,
+            "y": 650
+          },
+          {
+            "elapsed": 4412,
+            "y": 650
+          },
+          {
+            "elapsed": 4600,
+            "y": 650
+          },
+          {
+            "elapsed": 4801,
+            "y": 650
+          },
+          {
+            "elapsed": 5014,
+            "y": 650
+          },
+          {
+            "elapsed": 5211,
+            "y": 650
+          },
+          {
+            "elapsed": 5408,
+            "y": 650
+          },
+          {
+            "elapsed": 5607,
+            "y": 650
+          },
+          {
+            "elapsed": 5805,
+            "y": 650
+          },
+          {
+            "elapsed": 6005,
+            "y": 650
+          },
+          {
+            "elapsed": 6206,
+            "y": 650
+          },
+          {
+            "elapsed": 6400,
+            "y": 650
+          },
+          {
+            "elapsed": 6606,
+            "y": 650
+          },
+          {
+            "elapsed": 6808,
+            "y": 650
+          },
+          {
+            "elapsed": 7009,
+            "y": 650
+          },
+          {
+            "elapsed": 7200,
+            "y": 650
+          },
+          {
+            "elapsed": 7414,
+            "y": 650
+          },
+          {
+            "elapsed": 7615,
+            "y": 650
+          },
+          {
+            "elapsed": 7814,
+            "y": 650
+          },
+          {
+            "elapsed": 8000,
+            "y": 650
+          },
+          {
+            "elapsed": 8200,
+            "y": 650
+          },
+          {
+            "elapsed": 8400,
+            "y": 650
+          },
+          {
+            "elapsed": 8600,
+            "y": 650
+          },
+          {
+            "elapsed": 8807,
+            "y": 650
+          },
+          {
+            "elapsed": 9001,
+            "y": 650
+          },
+          {
+            "elapsed": 9215,
+            "y": 650
+          },
+          {
+            "elapsed": 9409,
+            "y": 650
+          },
+          {
+            "elapsed": 9614,
+            "y": 650
+          },
+          {
+            "elapsed": 9801,
+            "y": 650
+          },
+          {
+            "elapsed": 10000,
+            "y": 650
+          },
+          {
+            "elapsed": 10206,
+            "y": 650
+          },
+          {
+            "elapsed": 10406,
+            "y": 650
+          },
+          {
+            "elapsed": 10606,
+            "y": 650
+          },
+          {
+            "elapsed": 10804,
+            "y": 650
+          },
+          {
+            "elapsed": 11008,
+            "y": 650
+          },
+          {
+            "elapsed": 11212,
+            "y": 650
+          },
+          {
+            "elapsed": 11413,
+            "y": 650
+          },
+          {
+            "elapsed": 11600,
+            "y": 650
+          },
+          {
+            "elapsed": 11808,
+            "y": 650
+          },
+          {
+            "elapsed": 12004,
+            "y": 650
+          },
+          {
+            "elapsed": 12200,
+            "y": 650
+          },
+          {
+            "elapsed": 12407,
+            "y": 650
+          },
+          {
+            "elapsed": 12608,
+            "y": 650
+          },
+          {
+            "elapsed": 12806,
+            "y": 650
+          },
+          {
+            "elapsed": 13013,
+            "y": 650
+          },
+          {
+            "elapsed": 13208,
+            "y": 650
+          },
+          {
+            "elapsed": 13402,
+            "y": 650
+          },
+          {
+            "elapsed": 13601,
+            "y": 650
+          },
+          {
+            "elapsed": 13807,
+            "y": 650
+          },
+          {
+            "elapsed": 14000,
+            "y": 650
+          },
+          {
+            "elapsed": 14201,
+            "y": 650
+          },
+          {
+            "elapsed": 14411,
+            "y": 650
+          },
+          {
+            "elapsed": 14603,
+            "y": 650
+          },
+          {
+            "elapsed": 14803,
+            "y": 650
+          },
+          {
+            "elapsed": 15004,
+            "y": 650
+          },
+          {
+            "elapsed": 15214,
+            "y": 650
+          },
+          {
+            "elapsed": 15408,
+            "y": 650
+          },
+          {
+            "elapsed": 15616,
+            "y": 650
+          },
+          {
+            "elapsed": 15816,
+            "y": 650
+          },
+          {
+            "elapsed": 16002,
+            "y": 650
+          },
+          {
+            "elapsed": 16210,
+            "y": 650
+          }
+        ],
+        "overflow": false,
+        "mode": "watch",
+        "theme": "dark",
+        "language": "en"
+      },
+      "success": true,
+      "networkPolls": 2,
+      "walletPolls": 1,
+      "errors": [],
+      "backgroundRequests": [
+        {
+          "at": 1790850733329,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850742396,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850745446,
+          "method": "GET",
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "responses": [
+        {
+          "at": 1790850733442,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        },
+        {
+          "at": 1790850743535,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/wallet?address=0x16299b74c616994eaecb9b20e37d369d5d62586b"
+        },
+        {
+          "at": 1790850745651,
+          "status": 200,
+          "url": "http://localhost:5173/api/arc/network"
+        }
+      ],
+      "screenshots": [
+        "final-agent-scroll-390-en-dark-agent-before.png",
+        "final-agent-scroll-390-en-dark-agent-after.png"
+      ]
+    }
+  ]
+}

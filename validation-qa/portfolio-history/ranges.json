@@ -1,0 +1,27 @@
+[
+  {
+    "max": "2",
+    "range": "1D",
+    "state": "chart"
+  },
+  {
+    "max": "2",
+    "range": "1W",
+    "state": "chart"
+  },
+  {
+    "max": "2",
+    "range": "1M",
+    "state": "chart"
+  },
+  {
+    "max": "2",
+    "range": "1Y",
+    "state": "chart"
+  },
+  {
+    "max": "2",
+    "range": "ALL",
+    "state": "chart"
+  }
+]

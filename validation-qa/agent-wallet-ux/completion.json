@@ -1,0 +1,57 @@
+{
+  "completedAt": "2026-10-01T10:35:30.405Z",
+  "workstreams": {
+    "A": "COMPLETE",
+    "B": "COMPLETE",
+    "C": "COMPLETE",
+    "D": "COMPLETE",
+    "E": "COMPLETE",
+    "F": "COMPLETE",
+    "G": "COMPLETE",
+    "H": "COMPLETE",
+    "I": "COMPLETE",
+    "J": "COMPLETE",
+    "K": "COMPLETE",
+    "L": "COMPLETE",
+    "M": "COMPLETE",
+    "N": "COMPLETE",
+    "O": "COMPLETE",
+    "P": "COMPLETE",
+    "Q": "COMPLETE"
+  },
+  "changesSinceRecovery": [
+    "frontend/src/pages/Agent.tsx",
+    "frontend/tests/agent-task-locale.test.mjs",
+    "docs/AGENT_HOME_UX.md",
+    "docs/PROJECT_STATE.md"
+  ],
+  "automatedTests": {
+    "frontendSuites": 233,
+    "liveLocale": 2,
+    "total": 235
+  },
+  "browser": {
+    "homeLayouts": 12,
+    "askClicks": 60,
+    "taskHandoffs": 20,
+    "workflowHandoffs": 6,
+    "walletCases": 30,
+    "scrollCases": 24,
+    "finalAgentScrollCases": 8
+  },
+  "validation": {
+    "typeCheck": "PASS",
+    "lintErrors": 0,
+    "lintWarnings": 12,
+    "clientBuild": "PASS",
+    "ssrBuild": "PASS"
+  },
+  "preserved": {
+    "backendFiles": 27,
+    "sensitiveFiles": 61,
+    "missing": 0
+  },
+  "brokenDocumentationLinks": [],
+  "noRealSignaturesOrBlockchainWrites": true,
+  "noCommitPushOrDeploy": true
+}

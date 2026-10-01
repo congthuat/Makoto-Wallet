@@ -1,0 +1,20 @@
+{
+  "url": "https://explorer.testnet.arc.io/api/v2/tokens/0x3600000000000000000000000000000000000000",
+  "status": 200,
+  "observedAt": "2026-10-01T11:17:53.249Z",
+  "data": {
+    "address_hash": "0x3600000000000000000000000000000000000000",
+    "circulating_market_cap": null,
+    "circulating_supply": null,
+    "decimals": "6",
+    "exchange_rate": null,
+    "holders_count": "4971255",
+    "icon_url": "https://raw.githubusercontent.com/ulyanas/frontend-configs/add-usdc-eurc-latest-token-icons/configs/token-icons/USDC_latest.svg",
+    "name": "USDC",
+    "reputation": "ok",
+    "symbol": "USDC",
+    "total_supply": "316454545617798957",
+    "type": "ERC-20",
+    "volume_24h": null
+  }
+}

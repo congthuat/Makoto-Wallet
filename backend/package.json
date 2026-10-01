@@ -1,0 +1,19 @@
+{
+  "name": "backend",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/check-env.js node --watch server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@surf-ai/sdk": "1.0.5",
+    "connect-sqlite3": "0.9.18",
+    "croner": "9.1.0",
+    "ethers": "6.17.0",
+    "express": "4.22.1",
+    "express-rate-limit": "8.7.0",
+    "express-session": "1.19.0",
+    "siwe": "3.0.0",
+    "sqlite3": "6.0.1"
+  }
+}

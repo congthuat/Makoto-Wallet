@@ -1,0 +1,17 @@
+{
+  "url": "http://localhost:3001/api/arc/stats",
+  "status": 200,
+  "observedAt": "2026-10-01T11:17:52.718Z",
+  "data": {
+    "totalTransactions": 764530768,
+    "transactionsToday": 1108332,
+    "totalAddresses": 55175776,
+    "totalBlocks": 64930136,
+    "utilization": 4.336179133333333,
+    "gas": {
+      "slow": 22.34,
+      "average": 23.04,
+      "fast": 24.73
+    }
+  }
+}

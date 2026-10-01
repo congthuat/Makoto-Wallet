@@ -1,0 +1,8 @@
+{
+  "url": "http://localhost:3001/api/sentiment",
+  "status": 502,
+  "observedAt": "2026-10-01T11:17:53.408Z",
+  "data": {
+    "error": "API error 402: {\"error\":{\"code\":\"PAID_BALANCE_ZERO\",\"message\":\"insufficient credit\"}}\n"
+  }
+}

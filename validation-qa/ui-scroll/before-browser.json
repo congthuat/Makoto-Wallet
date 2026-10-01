@@ -1,0 +1,3482 @@
+[
+  {
+    "phase": "before",
+    "mode": "demo",
+    "route": "Home",
+    "durationMs": 11480,
+    "initial": {
+      "y": 650,
+      "height": 1735,
+      "title": "Makoto Wallet — The wallet you can just ask",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 13086,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "demo",
+    "route": "Portfolio",
+    "durationMs": 11501,
+    "initial": {
+      "y": 597,
+      "height": 1197,
+      "title": "Portfolio · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12769.5,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "demo",
+    "route": "Assets",
+    "durationMs": 11505,
+    "initial": {
+      "y": 273,
+      "height": 873,
+      "title": "Assets · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12790.900000000373,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "demo",
+    "route": "Activity",
+    "durationMs": 11443,
+    "initial": {
+      "y": 280,
+      "height": 880,
+      "title": "Activity · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12842.5,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "demo",
+    "route": "Settings",
+    "durationMs": 11472,
+    "initial": {
+      "y": 650,
+      "height": 2236,
+      "title": "Settings · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12885.099999999627,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "demo",
+    "route": "Tasks",
+    "durationMs": 11478,
+    "initial": {
+      "y": 0,
+      "height": 600,
+      "title": "Tasks · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12983.699999999255,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "route": "Home",
+    "durationMs": 11430,
+    "initial": {
+      "y": 650,
+      "height": 1735,
+      "title": "Makoto Wallet — The wallet you can just ask",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1735,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12964.599999999627,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "route": "Portfolio",
+    "durationMs": 11508,
+    "initial": {
+      "y": 597,
+      "height": 1197,
+      "title": "Portfolio · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 597,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 1197,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12761.400000000373,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "route": "Assets",
+    "durationMs": 11460,
+    "initial": {
+      "y": 273,
+      "height": 873,
+      "title": "Assets · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 273,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 873,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12837.299999998882,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "route": "Activity",
+    "durationMs": 11511,
+    "initial": {
+      "y": 280,
+      "height": 880,
+      "title": "Activity · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 280,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 880,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12859.699999999255,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "route": "Settings",
+    "durationMs": 11469,
+    "initial": {
+      "y": 650,
+      "height": 2236,
+      "title": "Settings · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 650,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 2236,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12891.5,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "route": "Tasks",
+    "durationMs": 11503,
+    "initial": {
+      "y": 0,
+      "height": 600,
+      "title": "Tasks · Makoto Wallet",
+      "focus": "<body>\n    <div id=\"root\"><div data-vivid=\"on\" class=\"mk-shell min-h-screen text-[#F5F5F5] flex antialiased\" style=\"font-family: Montserrat, system-ui, sans-serif; background: rgb("
+    },
+    "samples": [
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      },
+      {
+        "y": 0,
+        "height": 600,
+        "sameMain": true,
+        "focus": "BODY"
+      }
+    ],
+    "calls": [
+      {
+        "at": 12883.700000001118,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:10:75)\n    at http://localhost:5173/src/App.tsx?t=1790844985747:1183:12\n    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:18567:20)\n    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:997:72)\n    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9411:163)\n    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:9465:60)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)\n    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=1de7727f:11010:13)"
+      }
+    ],
+    "errors": []
+  }
+]

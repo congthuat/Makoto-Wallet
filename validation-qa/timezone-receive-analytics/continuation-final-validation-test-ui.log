@@ -1,0 +1,30 @@
+
+> frontend@0.0.0 test:ui
+> node --test tests/product-ui.test.mjs
+
+✔ en demo Home renders intact with concise product copy (2681.2178ms)
+✔ en connected Home renders intact with concise product copy (47.0645ms)
+✔ en Portfolio keeps totals and actions with footer attribution (7.2242ms)
+✔ en attribution is a small muted linked source credit (1.17ms)
+✔ en Settings removes development rows and preserves real controls (25.6281ms)
+✔ vi demo Home renders intact with concise product copy (55.4365ms)
+✔ vi connected Home renders intact with concise product copy (55.0525ms)
+✔ vi Portfolio keeps totals and actions with footer attribution (5.6454ms)
+✔ vi attribution is a small muted linked source credit (0.963ms)
+✔ vi Settings removes development rows and preserves real controls (26.4728ms)
+✔ meaningful wallet failure remains visible with a retry action (56.5301ms)
+✔ meaningful pricing failure remains visible with a localized retry action (57.8633ms)
+✔ Agent recovery preserves stored PLAN_READY state and cannot grant a handoff without review (2.0761ms)
+✔ en Agent statuses communicate product states without changing evidence (0.4825ms)
+✔ en missing Agent fields use localized product labels (0.3904ms)
+✔ vi Agent statuses communicate product states without changing evidence (0.1969ms)
+✔ vi missing Agent fields use localized product labels (0.1935ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3694.1812
+

@@ -1,28 +1,10 @@
 {
-  "name": "makoto-wallet-contracts",
-  "version": "0.2.0-beta.2",
+  "name": "makoto-wallet-local",
   "private": true,
-  "description": "Makoto Wallet smart-contract workspace for Arc, including PenguJar V3 savings.",
   "scripts": {
-    "compile": "hardhat compile",
-    "test": "hardhat test test/PenguJar.js test/PenguJarV2.js",
-    "test:legacy": "hardhat test test/PenguJar.js",
-    "deploy:validate": "hardhat run scripts/validate-deployment.js",
-    "deploy:arc": "hardhat run scripts/deploy-pengujar-v2.js --network arcTestnet",
-    "deploy:verify": "hardhat run scripts/verify-pengujar-v2.js --network arcTestnet",
-    "deploy:v3:arc": "hardhat run scripts/deploy-pengujar-v3.js --network arcTestnet",
-    "validate:v3:arc": "hardhat run scripts/validate-pengujar-v3.js --network arcTestnet",
-    "verify:v3:arc": "hardhat run scripts/verify-pengujar-v3.js --network arcTestnet",
-    "smoke:v3:arc": "hardhat run scripts/smoke-test-pengujar-v3.js --network arcTestnet",
-    "clean": "hardhat clean"
+    "dev": "node scripts/dev.mjs"
   },
-  "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^6.1.2",
-    "ethers": "^6.13.0",
-    "hardhat": "^2.22.5"
-  },
-  "dependencies": {
-    "@openzeppelin/contracts": "^5.6.1",
-    "dotenv": "^17.4.2"
+  "engines": {
+    "node": ">=24"
   }
 }

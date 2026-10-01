@@ -1,0 +1,849 @@
+{
+  "origin": "http://localhost:5173",
+  "timestamp": "2026-10-01T11:30:39.965Z",
+  "total": 12,
+  "passed": 12,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "receive-1440-vi-dark",
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Nhận token",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 1440,
+        "documentWidth": 1440,
+        "width": 438,
+        "scrollWidth": 438,
+        "left": 500,
+        "right": 940
+      },
+      "finalLayout": {
+        "viewport": 1440,
+        "documentWidth": 1440,
+        "width": 1208,
+        "scrollWidth": 1208,
+        "left": 232,
+        "right": 1440
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": false,
+      "mobileMoreActionsPreserved": false,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "vi",
+        "theme": "dark"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-1440-vi-light",
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Nhận token",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 1440,
+        "documentWidth": 1440,
+        "width": 438,
+        "scrollWidth": 438,
+        "left": 500,
+        "right": 940
+      },
+      "finalLayout": {
+        "viewport": 1440,
+        "documentWidth": 1440,
+        "width": 1208,
+        "scrollWidth": 1208,
+        "left": 232,
+        "right": 1440
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": false,
+      "mobileMoreActionsPreserved": false,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "vi",
+        "theme": "light"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-1440-en-dark",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Faucet",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 1440,
+        "documentWidth": 1440,
+        "width": 438,
+        "scrollWidth": 438,
+        "left": 500,
+        "right": 940
+      },
+      "finalLayout": {
+        "viewport": 1440,
+        "documentWidth": 1440,
+        "width": 1208,
+        "scrollWidth": 1208,
+        "left": 232,
+        "right": 1440
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": false,
+      "mobileMoreActionsPreserved": false,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "en",
+        "theme": "dark"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-1440-en-light",
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Faucet",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 1440,
+        "documentWidth": 1440,
+        "width": 438,
+        "scrollWidth": 438,
+        "left": 500,
+        "right": 940
+      },
+      "finalLayout": {
+        "viewport": 1440,
+        "documentWidth": 1440,
+        "width": 1208,
+        "scrollWidth": 1208,
+        "left": 232,
+        "right": 1440
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": false,
+      "mobileMoreActionsPreserved": false,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "en",
+        "theme": "light"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-1280-vi-dark",
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Nhận token",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "width": 438,
+        "scrollWidth": 438,
+        "left": 420,
+        "right": 860
+      },
+      "finalLayout": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "width": 1048,
+        "scrollWidth": 1048,
+        "left": 232,
+        "right": 1280
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": false,
+      "mobileMoreActionsPreserved": false,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "vi",
+        "theme": "dark"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-1280-vi-light",
+      "width": 1280,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Nhận token",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "width": 438,
+        "scrollWidth": 438,
+        "left": 420,
+        "right": 860
+      },
+      "finalLayout": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "width": 1048,
+        "scrollWidth": 1048,
+        "left": 232,
+        "right": 1280
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": false,
+      "mobileMoreActionsPreserved": false,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "vi",
+        "theme": "light"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-1280-en-dark",
+      "width": 1280,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Faucet",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "width": 438,
+        "scrollWidth": 438,
+        "left": 420,
+        "right": 860
+      },
+      "finalLayout": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "width": 1048,
+        "scrollWidth": 1048,
+        "left": 232,
+        "right": 1280
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": false,
+      "mobileMoreActionsPreserved": false,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "en",
+        "theme": "dark"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-1280-en-light",
+      "width": 1280,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Faucet",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "width": 438,
+        "scrollWidth": 438,
+        "left": 420,
+        "right": 860
+      },
+      "finalLayout": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "width": 1048,
+        "scrollWidth": 1048,
+        "left": 232,
+        "right": 1280
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": false,
+      "mobileMoreActionsPreserved": false,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "en",
+        "theme": "light"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-390-vi-dark",
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Nhận token",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "width": 388,
+        "scrollWidth": 388,
+        "left": 0,
+        "right": 390
+      },
+      "finalLayout": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "width": 390,
+        "scrollWidth": 390,
+        "left": 0,
+        "right": 390
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": true,
+      "mobileMoreActionsPreserved": true,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "vi",
+        "theme": "dark"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-390-vi-light",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Nhận token",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "width": 388,
+        "scrollWidth": 388,
+        "left": 0,
+        "right": 390
+      },
+      "finalLayout": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "width": 390,
+        "scrollWidth": 390,
+        "left": 0,
+        "right": 390
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": true,
+      "mobileMoreActionsPreserved": true,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "vi",
+        "theme": "light"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-390-en-dark",
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Faucet",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "width": 388,
+        "scrollWidth": 388,
+        "left": 0,
+        "right": 390
+      },
+      "finalLayout": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "width": 390,
+        "scrollWidth": 390,
+        "left": 0,
+        "right": 390
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": true,
+      "mobileMoreActionsPreserved": true,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "en",
+        "theme": "dark"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    },
+    {
+      "name": "receive-390-en-light",
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "pass": true,
+      "order": [
+        "send",
+        "receive",
+        "swap",
+        "bridge",
+        "faucet"
+      ],
+      "faucetName": "Faucet",
+      "focus": {
+        "visible": true,
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+      },
+      "dimensions": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "width": 388,
+        "scrollWidth": 388,
+        "left": 0,
+        "right": 390
+      },
+      "finalLayout": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "width": 390,
+        "scrollWidth": 390,
+        "left": 0,
+        "right": 390
+      },
+      "canonicalModalMatchesHome": true,
+      "drawerClosesAfterReceive": true,
+      "mobileMoreActionsPreserved": true,
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "en",
+        "theme": "light"
+      },
+      "apiMethods": [
+        {
+          "method": "GET",
+          "path": "/api/arc/stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session"
+        },
+        {
+          "method": "GET",
+          "path": "/api/prices"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/network"
+        },
+        {
+          "method": "GET",
+          "path": "/api/arc/wallet"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "externalNavigations": []
+    }
+  ]
+}

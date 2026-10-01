@@ -1,0 +1,120 @@
+{
+  "startedAt": "2026-10-01T12:11:32.643Z",
+  "results": [
+    {
+      "suite": "test:brain",
+      "exitCode": 0,
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 914
+    },
+    {
+      "suite": "test:agent",
+      "exitCode": 0,
+      "tests": 31,
+      "pass": 31,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 2788
+    },
+    {
+      "suite": "test:tasks",
+      "exitCode": 0,
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1425
+    },
+    {
+      "suite": "test:portfolio",
+      "exitCode": 0,
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1745
+    },
+    {
+      "suite": "test:ux",
+      "exitCode": 0,
+      "tests": 59,
+      "pass": 59,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 2831
+    },
+    {
+      "suite": "test:migration",
+      "exitCode": 0,
+      "tests": 82,
+      "pass": 82,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 3070
+    },
+    {
+      "suite": "test:ui",
+      "exitCode": 0,
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 4337
+    },
+    {
+      "suite": "test:polish",
+      "exitCode": 0,
+      "tests": 58,
+      "pass": 58,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 7103
+    },
+    {
+      "suite": "type-check",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 6388
+    },
+    {
+      "suite": "lint",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 5835,
+      "lintErrors": 0,
+      "lintWarnings": 12
+    },
+    {
+      "suite": "build:client",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 10261,
+      "buildWarningCategories": [
+        "Dashboard mixed static/dynamic imports",
+        "Insights mixed static/dynamic imports",
+        "Chunks over 500 kB"
+      ]
+    },
+    {
+      "suite": "build:server",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1425
+    }
+  ]
+}

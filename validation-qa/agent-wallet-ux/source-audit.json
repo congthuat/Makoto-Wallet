@@ -1,0 +1,83 @@
+{
+  "baseline": "start-baseline/source-sha256.json",
+  "baselineFiles": 180,
+  "unchanged": 171,
+  "changed": [
+    {
+      "file": "frontend/package.json",
+      "before": "ce1fe2dca85da54709e2e7c02be17aaf108857702c5c080bf133d615461d91d2",
+      "current": "283fe97a7295ca841c36c9cf8001d664a019125e5c3f15d14cab16bc8fbbf3f9"
+    },
+    {
+      "file": "frontend/src/brain/parser.ts",
+      "before": "a2d148b04ed0ee8fb6ad4e66ba02bc40e584f353ff3d8b3808e5b6efe24f23b5",
+      "current": "2c9db33ba3ec6c84d7209973fa3ad10688835d9822cda95e8cf90109a9f11609"
+    },
+    {
+      "file": "frontend/src/components/wallet/shared.tsx",
+      "before": "73d7ca7a57ced300c181ab27d67c6f7cb12d1a9fd677469ee206fde94b959fdb",
+      "current": "81930b56a7ceab3de806a972997e41e97cd3900ef00c7b44049d9b4a081c9e7d"
+    },
+    {
+      "file": "frontend/src/lib/i18n-extra.ts",
+      "before": "20e7d2e843ef278b28f235061fa2f2d73f5e7199a80ac4278dae9576ca9d49cd",
+      "current": "53e6f23b0b429af880e672d781ee957c2f1977b0f7b2316e80b3c6a5d54c490b"
+    },
+    {
+      "file": "frontend/src/lib/store.tsx",
+      "before": "14c983e912a41e71120f3710a39d3aa898338008dc89de0158889c8dab00c530",
+      "current": "636879a1805836bba3439dba3064ea95ecb78220b799c77e848ae727f08dbe6a"
+    },
+    {
+      "file": "frontend/src/lib/wallet.ts",
+      "before": "3b3e0de36ac120ba96c88716badf976e5ec211cff32b48d67526e28bdd3e4169",
+      "current": "a432483627cb15360b55099e938b52f1da7795e960785af91e4fd0d688d50849"
+    },
+    {
+      "file": "frontend/src/migrated/toolLayer.ts",
+      "before": "60cd72890b13fdc1fde48b37ade199bd4ed206429cd1e49a59569f285524fbd4",
+      "current": "82572c20b3a9a09a2611cedeb39d2f3295fafe07945fe5023ff79e665d94eb0f"
+    },
+    {
+      "file": "frontend/src/pages/Agent.tsx",
+      "before": "19aa0b00e9f676654588ff85ad8907e8ed055350a8fc49a6571981d5938b1b4e",
+      "current": "34a4380d6925884e36fefdc0b17f9e13c23313c30d805b2298193c560e84e1bc"
+    },
+    {
+      "file": "frontend/src/pages/Home.tsx",
+      "before": "7f2556120f0f02f640eccd1c5f16667078ab4fb928428d4fe444482cfe78b3b6",
+      "current": "51f819fac2f2c06572eeefc89e3d8a6f5f1af2af51e87f4b880f320a15c0b45b"
+    }
+  ],
+  "missing": [],
+  "backend": {
+    "filesCompared": 27,
+    "changed": [],
+    "missing": []
+  },
+  "sensitive": {
+    "filesCompared": 61,
+    "changed": [],
+    "missing": []
+  },
+  "walletBoundaries": {
+    "changed": [
+      {
+        "file": "frontend/src/lib/store.tsx",
+        "before": "14c983e912a41e71120f3710a39d3aa898338008dc89de0158889c8dab00c530",
+        "current": "636879a1805836bba3439dba3064ea95ecb78220b799c77e848ae727f08dbe6a"
+      },
+      {
+        "file": "frontend/src/lib/wallet.ts",
+        "before": "3b3e0de36ac120ba96c88716badf976e5ec211cff32b48d67526e28bdd3e4169",
+        "current": "a432483627cb15360b55099e938b52f1da7795e960785af91e4fd0d688d50849"
+      },
+      {
+        "file": "frontend/src/migrated/toolLayer.ts",
+        "before": "60cd72890b13fdc1fde48b37ade199bd4ed206429cd1e49a59569f285524fbd4",
+        "current": "82572c20b3a9a09a2611cedeb39d2f3295fafe07945fe5023ff79e665d94eb0f"
+      }
+    ],
+    "missing": []
+  }
+}

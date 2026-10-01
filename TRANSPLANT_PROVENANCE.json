@@ -1,0 +1,13 @@
+{
+  "created_utc": "2026-09-28T12:14:23.752461+00:00",
+  "target": {
+    "name": "makoto-wallet(1).zip",
+    "sha256": "54d48a084fc96376df937f95957b28a504e4fdac9b1b2c2c7bd162124b1f2d5c"
+  },
+  "donor": {
+    "name": "Makoto-Wallet-Current-Surf.zip",
+    "sha256": "53a15552be18043074927a7776ecda79a907c5467ec185256357f63104d45760"
+  },
+  "rule": "Target is canonical. Donor contributes brain logic; target features/UI are preserved.",
+  "phase13_started": false
+}

@@ -1,0 +1,22 @@
+
+> frontend@0.0.0 test:tasks
+> node --experimental-strip-types --test src/lib/tasks.test.ts src/lib/taskAuth.test.ts
+
+✔ explicit SIWE verification signs the exact server message and sends no transaction (40.4406ms)
+✔ a wallet change during signing aborts before signature submission (1.345ms)
+✔ task intent cues route recurring and conditional writes to task safety parsing (3.8289ms)
+✔ task binding requires a real public address and the supported Arc chain (1.2837ms)
+✔ task parse client sends binding and locale, preserving backend blocked authority (54.8099ms)
+✔ task display derives VI text from typed definition and observed result (1.0892ms)
+✔ task previews and alerts are scoped to the active account (0.6647ms)
+✔ optional language summary stays separate from the structured result (0.5338ms)
+✔ portfolio unit prices come only from valid observed price records (0.6655ms)
+✔ portfolio result keeps partial and unavailable inputs explicit (0.3659ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1044.2482

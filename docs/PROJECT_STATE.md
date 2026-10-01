@@ -1,55 +1,177 @@
-﻿# Makoto Wallet — Project State
+# Project state — 2026-10-01
 
-> Current execution pointer. Update after each completed sub-phase.
+Makotowallet.xyz is the canonical Vite/React plus Express runtime. `brain-donor-reference/` remains reference material. The inherited Phase 8–12 implementation was completed within the current supported protocol scope; see `PHASE_8_12_MIGRATION_CLOSEOUT.md` for provenance, exact tests, browser QA and limitations. Phase 13 **review is allowed**; Phase 13 implementation has **not started**.
 
-## Current
-- **Major phase:** Phase 7 — Ledger Calm
-- **Sub-phase:** 7J
-- **Status:** COMPLETE
-- **Next:** 8A — Tool Layer Audit
-- **After Phase 7:** 8A — Tool Layer Audit
-- **Branch captured at setup:** phase7-astra-ledger-calm
-- **HEAD captured at setup:** `4fad37b6f479c20a306741e4b08a0cb29a13a8f4`
-- **Handoff branch:** phase7-astra-ledger-calm
-- **Handoff implementation commit:** `3410ed350cbf34b19537f6743799aafb51058d10` (`feat(wallet): complete Ledger Calm and native wallet foundation`)
-- **Verification:** frontend 1162/1162; focused 7J / Native Wallet 64/64; contracts 19/19; compile PASS; typecheck PASS; build PASS; lint 0 errors / 7 inherited warnings; git diff --check PASS.
-- **Native Wallet:** post-7J adjunct scope completed and included in the handoff commit.
-- **Known risks:** 7 inherited lint warnings and 26 dependency advisories remain disclosed; no dependency upgrade was included.
-- **Last refresh:** 2026-09-22 16:42:55 +07:00
+## Timezone, Receive navigation and Analytics polish — 2026-10-01
 
-## Authority note
-Phase 7J completion and handoff are user-confirmed. Branch/HEAD captured at setup above remain historical setup values, not the live HEAD.
+The current filesystem was recovered without assuming Git metadata or restoring an older baseline. Already implemented timezone presentation, canonical Receive behavior, verified-data guards, localization and provider audit were preserved. The task binding still detects the actual browser/system IANA zone with `Intl.DateTimeFormat().resolvedOptions().timeZone`; both an un-emulated browser and Node observed `Asia/Bangkok`. Stored tasks retain their IANA zone, while review/card/edit presentation uses the existing date-sensitive Intl formatter: Bangkok `UTC+7`, Tokyo `UTC+9`, New York winter `UTC-5` / summer `UTC-4`. Local review copy is `UTC+7 · Giờ địa phương` / `UTC+7 · Local time`; saved nonlocal tasks show their own zone rather than claiming local time.
 
-If code/history/docs appear to contradict this pointer:
-- do not guess;
-- inspect the repository and existing Phase 7 artifacts;
-- surface the conflict;
-- do not advance the roadmap automatically.
+Receive remains the existing shared address/QR modal, opened by Home, Sidebar and mobile More actions. It follows Send and activates through the preserved modal-open state; Get test tokens remains the separate Faucet page. This continuation completed the requested EN navigation copy `TRANSACTIONS` and `Get test tokens`. The shared mobile drawer contains the same transaction items; the existing five bottom tabs remain intact.
 
-## Before every coding session
-1. Read docs/PROJECT_STATE.md.
-2. Read docs/ROADMAP.md.
-3. Read docs/ARCHITECTURE_DECISIONS.md.
-4. Run git status --short, git branch --show-current, git rev-parse HEAD.
-5. Inspect active sub-phase code/tests/docs before editing.
-6. Work only inside the current sub-phase unless the user explicitly changes scope.
+Analytics remains a secondary read-only footer destination using the existing Arc RPC and Explorer routes. Unsupported generic Fear & Greed, mixed nominal-asset dollar volume and holder supply percentages remain absent. Fresh real-source checks matched seven transfer events and all ten indexed holder ranks/balances against raw Explorer records. Current default lists show **five largest / five recent / five holder rows**, replacing the recovered **7 / 14 / 7** presentation. Independent localized View more/Show less controls reveal all current validated fetched rows and return to five, preserving source order, backend collection and ranking, keyboard access and expanded state. There are no card inner scrollbars or empty height fillers. The intro uses the preferred neutral Arc onchain/network sentence in VI and EN; source labels and observation timing remain truthful.
 
-## Completion gate
-Record files changed, checks actually run, exact results, unresolved risks, commit SHA, and next approved sub-phase.
-Never claim tests passed if they were not run.
+A live expanded-list poll reproduced a 54px native browser scroll-anchor shift. The smallest presentation fix disables anchoring only inside the Analytics page; the existing global route-only scroll-to-top effect remains unchanged. Final post-fix validation passed **291/291** tests with zero failures/skips: Brain 17, Agent 31, Tasks 10, Portfolio 17, UX 59, migration 82, UI 17, polish 58. Type-check, lint, client build and SSR build passed; lint retains 12 inherited warnings and the client build retains existing mixed-import/chunk-size notices. Earlier successful validation and failure evidence were preserved separately.
 
-## State history
-- Canonical roadmap/state/architecture memory initialized while Phase 7H is active.
-- **Phase 7H COMPLETE** — branch `phase7-astra-ledger-calm`; implementation commit `947aeceda404ed1aac9e18b9a1099f2fac9084f6` (`feat(ui): complete Phase 7H Ledger Calm hardening`).
-- Completed validation: frontend 1082/1082 PASS; contracts 19/19 PASS; typecheck PASS; production build PASS; git diff --check PASS; lint: 0 errors, 7 existing warnings.
-- Activity accessibility/responsive validation PASS; Pay accessibility/responsive validation PASS. Chrome was used for browser QA because the previously documented headless runner could not launch.
-- Connected Unified Balance state: environment-blocked / uncertified. Connected Vault state: environment-blocked / uncertified. These connected states were not tested.
-- **Phase 7I COMPLETE** — branch `phase7-astra-ledger-calm`; implementation commit `b2fa432dd575b800f4eecff334f0a7b41c7224cf` (`fix: complete Phase 7I robustness audit`).
-- Completed validation: frontend tests 1086/1086 PASS; repair gates 24/24 PASS; contract tests 19/19 PASS; contract compile PASS; frontend typecheck PASS; production build PASS; git diff --check PASS; lint: 0 errors, 7 existing warnings; no stale `.network` RPC references remain.
-- Phase 7I robustness scope completed: preserved partial activity truthfulness; standardized the Arc RPC endpoint to `.io`; added stale async/account guards to Universal Bridge, Send, Swap, and CCTP; protected pending review/approval states from Back/reset races; added `phase7iRobustness.test.ts`.
-- Remaining disclosed gaps: live connected-wallet/funded Arc Testnet browser QA remains environment-dependent; 7 baseline lint warnings remain; `frontend/next-env.d.ts` is a pre-existing unrelated unstaged modification and remains untouched.
-- Next approved sub-phase: **7J — Final Visual Regression + Release Handoff**.
-- **Phase 7J COMPLETE** — branch `phase7-astra-ledger-calm`; handoff commit `3410ed350cbf34b19537f6743799aafb51058d10` (`feat(wallet): complete Ledger Calm and native wallet foundation`).
-- Completed validation: frontend 1162/1162 PASS; focused 7J / Native Wallet 64/64 PASS; contracts 19/19 PASS; compile PASS; typecheck PASS; production build PASS; git diff --check PASS; lint: 0 errors, 7 inherited warnings.
-- Native Wallet was completed as a post-7J adjunct scope and included in the handoff commit. No live transaction was triggered during verification.
-- Next approved sub-phase: **8A — Tool Layer Audit**. Phase 8A implementation has not started.
+All **26 recorded backend files** and **87 protected architecture files** remain unchanged by SHA-256, as do dependencies, existing scripts, receiving functionality, scheduler/auth/persistence, transaction/Policy/Strategy/receipt paths, wallet discovery, prices and portfolio history. Backend tests were not rerun because backend Analytics code was unchanged. No commit, push, deployment, real wallet signature or blockchain write occurred. Source/refresh limits are documented in [ANALYTICS_PRODUCT_SCOPE.md](ANALYTICS_PRODUCT_SCOPE.md); the complete requested report and final browser evidence are under `validation-qa/timezone-receive-analytics/continuation-*`.
+
+Final browser coverage combines **24 preserved Home/Tasks checks** with **36 completed Analytics/Receive/Settings checks**, giving **60/60 unique surface cases**, each page 12/12 at `1440/1280/390 × VI/EN × dark/light`. All three Analytics disclosures passed keyboard expansion/collapse in all twelve configurations; five-row prefixes and order were preserved, sources stayed real, mobile had no horizontal overflow or nested scroll, and the footer was visible after natural scrolling. Desktop card heights were 398–480.5px and default document height was 1,148px; stacked mobile height was 2,220–2,260px. **36/36** default/expanded Analytics and Settings holds exceeded fifteen seconds with **0px drift**; expanded Analytics held Y=650 and Settings Y=250 during successful real RPC polling. Final console/page errors were zero. React DevTools/Vite information notices and inherited build/lint warnings are recorded separately. See [browser evidence](../validation-qa/timezone-receive-analytics/continuation-browser-summary.md) and the [59-point report](../validation-qa/timezone-receive-analytics/continuation-report.md). Earlier failure and fixture records remain preserved and are excluded from final unique-case totals.
+
+An additional **12/12 targeted feed-response checks** held expanded Analytics at Y=650 for 19.027–31.783 seconds, through an actual feed HTTP 200 and a subsequent rendered-position sample, with **0px drift** and zero console/page errors. These prove the native anchoring fix through the row refresh that caused the observed failure; they do not increase the 60 unique surface-case total. Read-only browser QA skipped automatic portfolio captures and used no wallet provider or blockchain write.
+
+## Home Agent and multi-wallet UX — 2026-10-01
+
+The current filesystem checkpoint was preserved. Home now answers proven deterministic portfolio, holdings, balances, recent-activity, and Arc-network questions inline through the existing Planner/Brain and read-only Tool Layer. It uses canonical verified balances and portfolio valuation, revalidates connected wallet identity, and invalidates wallet evidence after account/mode/chain changes. Workflow, transaction, task, and deeper conversation requests still hand off to Agent. Original user input remains separate from normalized intent; the portfolio chip no longer submits a different English sample prompt. Generated quick answers follow current app locale without rewriting user history.
+
+The wallet modal now lists individual OKX, MetaMask, Rabby, and other discovered EIP-6963/legacy providers. Detected and absent states are truthful; the explicitly selected provider feeds shared `getProvider()`. Connection success requires fresh Arc chain and account readback. Rejection/cancellation retains the picker, and missing or ambiguous remembered providers do not silently fall back. Public-address watch mode and existing execution guards are preserved. Local official MetaMask/Rabby icon assets supplement safe announced images.
+
+Home shows exactly five ordinary-input suggestions per mode and language. Ask covers current deterministic reads. Monitor uses supported token thresholds, replacing balance-change/portfolio-value predicates. Automate uses explicit daily HH:MM schedules, replacing unsupported weekly/vague schedules. No hidden command or mock response supplies product suggestions. Task creation retains its existing SIWE ownership gate.
+
+Final continuation validation passed **233/233 frontend suite tests**: Brain 17, Agent 31, Tasks 10, Portfolio 17, migration 82, UI 17, UX 59, plus **2/2 live locale regressions** (235 automated tests total). Agent now re-renders retained static action/task copy, labels, strategy steps, observed evidence/time, and local fallback copy using current locale without rewriting user/provider text or transaction truth. Type-check passed; lint has zero errors and 12 inherited warnings; client and SSR builds passed with existing mixed-import and chunk-size notices. Home passed 12 layout combinations (`1440/1280/390 × VI/EN × dark/light`), 60 Ask clicks, immediate mode/language changes, and 20 normal task handoffs. Six VI/EN Send/Swap/Bridge handoffs and **30/30** wallet fixture cases passed. Home, populated Agent, and Settings passed **24/24** live scroll cases, holding Y=650 for over 16 seconds with real Arc polling active and zero console/page errors. After the final presentation fix, the affected Agent matrix passed **8/8** again with both network and wallet polling observed.
+
+SHA-256 comparison preserves all 27 recorded backend source/test files and all 61 selected execution, Policy/Strategy, receipt, Activity, pricing/history, task/auth, and LLM files. Tool Layer changes only add two read-only snapshot adapters; existing transaction preparations are unchanged. Backend tests were not rerun because backend source is unchanged. The package change only adds `test:ux`, with no dependency or lockfile change. No commit, push, deployment, real wallet signature, or blockchain write occurred. See [AGENT_HOME_UX.md](AGENT_HOME_UX.md) and the [50-item continuation report](../validation-qa/agent-wallet-ux/resume-report.md) for checkpoint classification, exact suggestions, provider fixtures, evidence, and limits. The prior 47-item report and validation logs remain preserved.
+
+## Real portfolio balance history — 2026-10-01
+
+Home and Portfolio now chart real backend-persisted wallet observations using the existing SVG chart style. A dedicated `backend/data/portfolio-history.sqlite` file follows the existing transactional `node:sqlite`/WAL conventions. The shared valuation consumes the existing Arc wallet reader and normalized CoinGecko prices; snapshots accept no caller-supplied totals, prices, balances or timestamps. Only complete finite portfolios with all required `FRESH` prices are recorded. Existing price mappings, five-minute cache, fallback, attribution and transaction/auth implementation modules are preserved.
+
+Collection starts with one truthful starting state and then captures at least five minutes apart during visible active app use. Two or more actual points in the selected range render the chart. UTC ranges are trailing 1/7/30/365 days and all retained history, with 366-day raw retention, a 105,409-row per-dataset cap and at most 2,048 exact observations per display response. No fake, demo, seeded, backfilled or copied-backward history was inserted. Local history is isolated by an opaque browser capability plus normalized wallet and chain; nonlocal/production requires the existing verified matching wallet session without forcing a new Home SIWE flow. Current capture support is Arc Testnet only.
+
+Live local QA collected six real snapshots for the currently connected wallet, starting at `2026-10-01T07:55:29.613Z`. Every inspected stored total exactly recomputed from its retained asset observations. The one-point state and subsequent chart survived browser reloads and a canonical backend restart. All five range controls and **24/24 Home/Portfolio surface checks** (`1440/1280/390 × VI/EN × light/dark`) passed with 0px overflow. Final clean browser console had zero errors. Wallet/chain switching isolation was tested in focused frontend/backend tests; actual wallet-extension switching was not performed.
+
+Regression: Brain **17/17**, Agent **11/11**, Tasks/auth **10/10**, migration **82/82**, frontend portfolio **17/17**, backend **97/97**; **234/234 total**, no failures/skips, including **63 new history tests**. Type-check passed; frontend lint passed with 0 errors and 12 inherited warnings; changed backend lint had 0 errors and two inherited prices-adapter warnings. Client and SSR builds passed with existing chunking notices. No commit, push, deployment, wallet signature or blockchain transaction occurred. See [PORTFOLIO_HISTORY.md](PORTFOLIO_HISTORY.md) and the [38-item QA report](../validation-qa/portfolio-history/report.md) for exact policies, files, evidence and limits.
+
+## Official Circle CCTP v2 integration — 2026-10-01
+
+The current connected Direct CCTP path now uses pinned official `@circle-fin/adapter-viem-v2@1.18.0/next` and `@circle-fin/provider-cctp-v2@1.14.0` primitives for **USDC only, Arc Testnet → Base Sepolia**. Circle runtime metadata was checked against Makoto's registry; the verified Arc Testnet custom bridge is the approval spender and prepared burn target. The provider's fee/route/burn/status methods are isolated behind `frontend/src/protocols/circle/cctpAdapter.ts`. Approval stays a separate exact finite USDC allowance; the Circle provider's incrementing approval primitive is not used. The burn is prepared from Circle provider calldata and captured with `/next`, simulated read-only, reviewed, structurally re-prepared, then submitted once through the connected EIP-1193 wallet only after explicit user confirmation.
+
+The existing Tool → Policy/Risk → Strategy Controller → Review → receipt/reconciliation path remains authoritative. Approval receipt plus allowance reread gates the burn review; source success requires Arc receipt plus the official CCTP `MessageSent`; Circle attestation/forwarding does not alone establish completion; Base completion requires a confirmed destination receipt and matching USDC Transfer to the reviewed recipient. Reload recovery uses saved hash/evidence and cannot restore review authority. EURC and cirBTC CCTPx writes remain disabled. Universal Bridge remains partial/disabled; no `kit.bridge()` fallback or Bridge Kit dependency was added.
+
+`/next` runtime, Vite client, and SSR resolution passed. The published `/next` declaration issue is handled by the narrow documented `frontend/src/types/circle-adapter-viem-next.d.ts` shim; no vendor files were patched. Final regression passed: Brain 17/17, Agent 11/11, Tasks/auth 10/10, migration 82/82, backend 51/51 (**171/171**). Type-check passed; lint passed with 0 errors and 12 existing warnings; client and SSR builds passed. Circle adapter/provider code is lazy-loaded; its `/next` chunk is 551.24 kB minified (148.61 kB gzip), which triggers Vite's 500 kB chunk-size warning. Rendered QA exercised the approval review, a rejected fake wallet request, and five isolated fixture-state reload checkpoints. A read-only live Circle quote verified route/fee availability. Browser Flow A had a public-RPC allowance mismatch against its dummy wallet fixture, while intercepted-RPC automation verified Flow A. No real signature, approval, burn, commit, push, or deployment occurred. The separate live test still requires explicit user authorization. See `validation-qa/cctp-official-circle/report.md`.
+
+See [CIRCLE_CCTP_V2_INTEGRATION.md](CIRCLE_CCTP_V2_INTEGRATION.md) and the dated post-integration addendum in [CIRCLE_SDK_PREPARE_COMPATIBILITY_AUDIT.md](CIRCLE_SDK_PREPARE_COMPATIBILITY_AUDIT.md). Historical sections below are retained as checkpoint evidence.
+
+## UI cleanup continuation — 2026-09-30
+
+The current filesystem was recovered as the checkpoint; no Git metadata is present, so exact pre-continuation diffs cannot be reconstructed. Existing Home, Agent, Send, Swap, Bridge, task, wallet, theme, and localization edits were inspected and preserved. The inherited neutral field treatment was verified in the rendered UI: Home and Agent inputs and the Send, Swap, Bridge, Settings, wallet, and task surfaces have subtle resting borders, with one restrained keyboard focus indicator. No onboarding appeared in a fresh isolated browser session.
+
+This continuation localized the Feedback modal and Home document title; gave pricing failures the exact VI/EN copy “Không thể tải dữ liệu định giá.” / “Pricing data is unavailable.”; made Swap/CCTP errors translate when the locale changes; localized “MAX” as “TỐI ĐA” and the sample-wallet “Demo” badge as “Mẫu”; and added `min-w-0` to the Home Assets and Activity cards to eliminate mobile inner-control clipping. VI rendered review covered Home, Agent, Tasks/auth gate, Portfolio, Assets, Activity, Send, Receive, Swap, Bridge, Faucet, Settings, notifications, account menu, and connected read-only Swap/CCTP review states. VI → EN → VI updated UI labels and placeholders immediately. Existing chat messages remained in their original language. No remaining user-facing English leakage was found in the audited states beyond proper nouns, identifiers, and protocol names.
+
+Pricing and wallet balances remain separate. The earlier Surf `HTTP 402 PAID_BALANCE_ZERO` result is retained as historical context; it no longer supplies the canonical portfolio price route. `/api/prices` now uses the backend-only CoinGecko adapter described in [PRICING_PROVIDER.md](PRICING_PROVIDER.md), while wallet reads and transaction paths remain unchanged. The historical connected and demo balance fixtures below are still balance evidence, not price evidence.
+
+## CoinGecko pricing migration — 2026-09-30
+
+The canonical `/api/prices` route now makes one combined CoinGecko `/simple/price` request for the officially verified IDs `usd-coin`, `euro-coin`, and `circle-wrapped-btc`, with USD, `last_updated_at`, and 24-hour change fields. It keeps a five-minute fresh cache, shares concurrent requests, and serves last-known-good values with `STALE` status during a provider outage. Missing or invalid values remain `UNAVAILABLE`; no zero or synthetic prices are emitted. Demo mode is configured in the server `.env`, and the API key never crosses the frontend boundary. A linked “Data provided by CoinGecko” attribution is visible beside Home and Portfolio totals.
+
+The current credential successfully verifies `/coins/list` and the three IDs, but enriched multi-asset `/simple/price` requests are currently rejected by CoinGecko with intermittent `401`/`429` responses. The adapter therefore returns truthful unavailable or stale records until the provider credential/rate limit is healthy; the exact connectivity blocker is recorded in the completion report.
+
+Browser QA closed the **12 exact combinations** `1440/1280/390 × VI/EN × light/dark` across **Home, Agent, Tasks, Send, Swap, and Bridge**: **72/72 priority surface checks** with 0px document overflow, zero clipped controls after the mobile Home card fix, no error boundary, and no onboarding. Spot checks covered Assets, Activity, Receive, Faucet, Settings, notifications, and the account overlay. Representative rendered captures: [1440 VI light Home](qa-continuation-home-vi-light-1440.png), [1280 VI dark Swap](qa-continuation-swap-vi-dark-1280.png), [390 VI dark Send](qa-continuation-390-VI-dark-Send.png), and [390 EN light Bridge](qa-continuation-390-EN-light-Bridge.png). Connected mock Swap and standard Arc → Base Sepolia CCTP reached read-only quote/review states; no approval, signature, transaction, or burn was submitted. Universal Bridge remains disabled by the inspected provider/SDK step-visibility limitation.
+
+After the runner restart, frontend and backend health both returned 200. A clean browser reload had **zero uncaught page/console errors** and one `/api/prices` request returning HTTP 200 with unavailable values. Pricing polling is every 60 seconds in the frontend; there was no tight retry loop. Vite Fast Refresh emitted transient development warnings during active source edits and once briefly showed the ErrorBoundary; a clean reload restored the page, and no warning or crash remained after edits stopped. Final regression: frontend Brain **17/17**, Agent **11/11**, Tasks **10/10**, migration **71/71**, backend **46/46**; **155/155 total**, no failures or skips. Type check passed. Lint passed with zero errors and 12 existing warnings. Client and SSR build passed with two existing chunking notices. No commit, push, deployment, real wallet signature, or blockchain write was performed.
+
+## Current task-security continuation — 2026-09-30
+
+The current filesystem was used as the checkpoint; this directory has no Git metadata. The inherited SIWE/auth modules, owner-scoped task routes, Verify wallet gate, SQLite claims, and Monitor/Automation engine were preserved. The earlier unauthenticated API and duplicate-worker findings below describe the previous checkpoint. This continuation completed missing auth edge, ownership-spoofing, rate-limit, and two-process stress coverage.
+
+| Boundary | Current result |
+| --- | --- |
+| Local wallet auth | **VERIFIED with offline fixtures.** `siwe@3.0.0` verifies the server-issued ERC-4361 message and signature. The five-minute nonce is server-generated, session-bound, persistent, one-time, and atomically consumed. Tests cover valid auth, invalid signature, wrong wallet/nonce/domain/URI/chain/issued-at, malformed or expired messages, replay, session expiry, logout, and A-to-B re-verification. ERC-1271 contract wallets are not claimed. |
+| Session, origin, and abuse | **VERIFIED locally.** `express-session` and `connect-sqlite3` store an opaque server-side session and rotate its ID after verification. Cookies are HttpOnly, SameSite=Strict, have a 12-hour maximum age, and are Secure with the `__Host-` prefix over HTTPS. Mutations require exact configured Origin and `X-Makoto-Request: 1`. SQLite-backed `express-rate-limit` counters are shared by same-file workers. Nonce and verify allow 20 each per 15 minutes; task mutations allow 120. Thresholds were tested. |
+| Owner-scoped API | **VERIFIED.** The session address controls create, list, get, edit, pause, resume, delete, run-now, run history, notifications, and parse. Two offline SIWE wallets see only their own tasks. Foreign IDs return 404 for reads and mutations. Forged `account`, `ownerAddress`, and `walletAddress` cannot grant or change ownership. Logout revokes access. |
+| Frontend account binding | **VERIFIED by state and unit tests.** Task and notification queries run only when `eth_accounts` confirms the connected address equals the session address. Wallet changes hide task data on mismatch. Only the visible Verify wallet action requests `personal_sign`; switching wallets does not rewrite the server identity. |
+| Mock browser auth and CRUD QA | **VERIFIED with offline fixtures.** An isolated browser stack on 5175/3003 used the real auth/task routes and temporary SQLite. All 13 auth-flow checkpoints passed. Connecting requested no signature; Verify signed once for A; switching to B hid A's task and alert without signing; explicit B verification showed no B tasks and returned 404 for A's GET and Run now; logout restored the gate and task API 401. A's UI Create/List/Get/Edit/Pause/Resume/Run now/Delete passed. A threshold edit produced one visible monitor alert. Browser errors and blockchain write-method calls were both zero. This is fixture evidence, not a real-wallet or live-chain proof. |
+| Same-file worker claims | **VERIFIED on one host using temporary SQLite files.** 100 real two-process races (50 daily, 50 false-to-true monitors) yielded 100 successful scheduled reads/runs, zero duplicate executions, run rows, or notifications, and zero worker or SQLite busy errors. Each monitor committed one edge and alert. Crash lease recovery, heartbeat, and stale-token fencing passed. |
+| SQLite guarantees | The tested file used WAL and a 5,000 ms busy timeout. Short `BEGIN IMMEDIATE` transactions, a deterministic scheduled occurrence key, unique run/notification indexes, and token fencing provide one committed result and at most one notification per occurrence. External reads occur after claim commit; crash recovery can repeat a read. |
+| Legacy local data | Read-only inspection found two rows in `backend/data/tasks.sqlite`, still with the pre-auth schema. The existing backup and default file were left untouched. An isolated migration test verified old rows become `owner_address = NULL`, stay invisible to authenticated owners, and cannot execute. The normal engine migrates the default file when next opened. |
+| Deployment | **LOCAL SINGLE PROCESS: VERIFIED. SAME-HOST / SAME-SQLITE MULTI-PROCESS: VERIFIED** for tested local locks and shared auth-store assumptions. **MULTI-HOST / INDEPENDENT FILESYSTEM: UNSUPPORTED / NOT VERIFIED.** No public task datastore or deployment topology is selected; SQLite WAL does not coordinate independent hosts. |
+| Wallet authority | SIWE authenticates task management only. The scheduler remains read/notify. Conditional financial writes stay `PREPARE_ONLY` / `TASK_WRITE_REQUIRES_USER`. No user wallet signature or blockchain transaction was submitted. |
+
+**READY FOR USER-AUTHORIZED SIWE TEST.** The real wallet signature remains a separate user action; no such signature was requested or approved here. The browser Automation flow was not repeated in this continuation; its scheduler, persistence, and notification regressions passed in the task suite.
+
+| Fresh regression gate | Result |
+| --- | --- |
+| Frontend Brain | 17/17 passed |
+| Frontend Agent | 11/11 passed |
+| Frontend Tasks/auth helpers | 10/10 passed |
+| Frontend migration | 71/71 passed |
+| Backend full suite | 45/45 passed: Agent 10, CCTP 2, auth 9, claims 5, ownership 2, task/scheduler 17 |
+| Total | **154/154 passed**, no failures or skips |
+| Frontend type check | Passed |
+| Lint | Passed: 0 errors, 13 inherited warnings |
+| Client and SSR build | Passed with 2 existing chunking notices |
+
+Ports 5173 and 3001 were inspected without killing any user-owned process. Browser QA used only isolated 5175/3003 services, then closed them and removed its verified temporary databases. The root strict-port `npm run dev` runner remains intact. The backend `.env`, default task/auth databases, and live chain state were not changed. No commit, push, or deployment was performed. Claim counts and limitations are in [TASK_EXECUTION_CLAIMS.md](TASK_EXECUTION_CLAIMS.md); auth and legacy policy are in [TASK_AUTH_AND_OWNERSHIP.md](TASK_AUTH_AND_OWNERSHIP.md).
+
+## Active behavior
+
+- **Send:** Live Arc Testnet USDC/EURC/cirBTC execution remains in `frontend/src/lib/sendExecution.ts` and `frontend/src/pages/Send.tsx`, with exact amount, metadata, gas, account/chain and request revalidation, wallet-only signing, receipt plus Transfer verification and Activity reconciliation. The user previously observed a real USDC Send; this closeout performed no real write.
+- **Swap:** Connected Arc Xylo USDC/EURC quotes and finite approvals use the shared tool/policy layer and `strategyController.ts`. Approval and Swap have distinct reviews and wallet requests. A Swap completes only with matching output Transfer evidence.
+- **Direct CCTP:** Connected Arc→Base Sepolia USDC forwarding uses a fresh Circle fee quote, allowance check, optional finite approval, separate source burn review, source receipt, Circle message progress, and Base receipt plus matching USDC Transfer for destination completion. Source confirmation alone is not completion.
+- **Recovery:** Account-bound local strategy data restore hashed requests for read-only evidence checks; stale reviews expire. A request without a hash becomes UNKNOWN and cannot be blindly retried. Activity keeps UNKNOWN distinct from pending and confirmed.
+- **Agent:** Local EN/VI parsing, typed reads, structured ACTION/STRATEGY plans and fresh first-step wallet/quote/prepare preflight are wired. The existing Agent session guards plan, review and one-time handoff. Reloaded sessions are history only. The Agent never signs or automatically executes a later goal.
+- **LLM chat layer:** **REAL PROVIDER VERIFIED 2026-09-29.** The existing backend-only adapter at `POST /api/agent/chat` uses the OpenAI-compatible Responses API at `https://api.openai.com/v1` with model `gpt-5.6-luna`. The key remains backend-only and is recorded only as present. Short-term browser-session context is text-only and bounded to 12 recent user/assistant messages, 600 characters per item and 6,000 characters total; it is separate from transaction/session state and is not permanent memory. Local EN/VI fallback replies and canonical read/preparation behavior remain available for provider failures. Current date/time is a deterministic browser-local tool and does not depend on the provider. See `LLM_AGENT_INTEGRATION.md`.
+- **Universal Bridge:** **BLOCKED BY PROVIDER/SDK CAPABILITY.** Circle App Kit's inspected high-level `bridge()` operation does not expose each unsigned step for Makoto's review boundary. The connected UI shows an unavailable disabled action. Gateway remains an optional donor-only product adapter.
+- **Other product surfaces:** Receive is an address/QR dialog; Activity shows Arc explorer and local protocol records; Faucet links to Circle's external faucet; Tasks now use the local backend monitoring and automation engine described in `TASK_AUTOMATION_ENGINE.md`; App Lock remains preview. Vault and Pay are not current runtimes.
+
+## Architecture status
+
+| Phase | Current classification |
+|---|---|
+| 8 Tool Layer | **COMPLETE for Send, Xylo Swap and Direct CCTP** |
+| 9 Policy & Risk | **COMPLETE for supported current writes** |
+| 10 Sequential Strategy | **COMPLETE for Swap/CCTP dependent approval and action steps** |
+| 11 Intent Planner | **COMPLETE for validated current intents and first-step evidence replanning** |
+| 12 Agent State Machine | **COMPLETE for prepare-only Agent handoff and historical reload recovery** |
+
+Arbitrary multi-goal Agent plans are descriptive and never silently execute. Universal Bridge and Gateway are optional integrations, not falsely counted as live. Connected Swap and Direct CCTP are **READY FOR USER-AUTHORIZED LIVE TEST**; the mock regression is not live chain evidence. Surf DB access remains externally unavailable and was not bypassed.
+
+## Prior Phase 8–12/LLM verification
+
+Frontend brain **17/17**, Agent **11/11**, migration **71/71**, backend **12/12**; type check passes; lint passes with **0 errors and 14 inherited warnings**; client and SSR build pass with **2 existing chunking notices**. Connected mock browser QA covered the Vietnamese greeting -> current-time -> capabilities -> USDC balance -> EURC follow-up sequence, English current-time routing, provider-unavailable fallback, and prepare-only boundaries. The current-time turn made no provider chat request; deterministic wallet rows remained available while chat requests were aborted. Desktop 1440px and mobile 390px light/dark checks had no horizontal overflow and no uncaught page errors. No real Swap, CCTP, Bridge or new Send was submitted. No commit, push or deployment was performed.
+
+The LLM layer does not change the Phase 8–12 authority boundary: it cannot sign, submit, bypass Policy/Risk, fabricate deterministic facts, or continue a strategy. Phase 13 **review remains allowed; implementation is not started**.
+
+## Real provider verification
+
+The real provider checkpoint completed on 2026-09-29 through the existing backend adapter. The key was checked only as present. The configured OpenAI-compatible base URL is `https://api.openai.com/v1` and the model is `gpt-5.6-luna`; the marker response `REAL_PROVIDER_OK` was returned through `POST /api/agent/chat`. A clean two-turn provider route returned HTTP 200 for both turns with bounded history. The earlier observed fallback was HTTP 503 `LLM_PROVIDER_UNAVAILABLE` from a stale/direct backend process that had not loaded `backend/.env`; the adapter had treated missing configuration as provider unavailable. `backend/server.js` now loads the same server-only `.env` values for direct starts, while the route and adapter preserve bounded retry and safe error mapping. Deterministic time and wallet reads remain available when the provider is unavailable. EN/VI browser QA used a connected mock wallet, and no write was approved or submitted. Phase 13 implementation remains not started.
+
+Post-fix stability verification completed with ten sequential route requests: **10/10** HTTP 200, **10/10** `REAL_PROVIDER`, non-empty text, average **1,386.0 ms**, minimum **1,067 ms**, maximum **1,878 ms**. The final provider request is `POST https://api.openai.com/v1/responses` using `gpt-5.6-luna` with a 12,000 ms per-attempt timeout and one 150 ms retry only for provider 5xx or non-timeout network errors. Focused backend tests cover 401/403/408/429/5xx, network retry, malformed Responses output and route status mapping. Phase 13 implementation remains not started.
+
+## Monitor and automation continuation — 2026-09-29
+
+The recovered checkpoint already contained the typed task parser/API, `node:sqlite` task/run/notification store, one backend scheduler, Arc read adapters, edge-triggered balance monitors, daily summaries, task review, Tasks page, Home task card, Agent routing, and in-app alerts. The inherited backend suite passed **25/25**. This checkout has no Git metadata, so provenance is based on recovered files, tests, and file timestamps; the prior Phase 8–12 history above remains historical.
+
+This continuation completed the frontend route for Vietnamese conditional financial requests, account-scoped Home/Agent previews and notification history, refreshed persisted error state after a failed manual run, and displayed optional scheduled language separately from structured observations. The backend now calls the existing server-only LLM adapter with bounded observed rows for optional summary wording; on provider failure it stores deterministic fallback wording. Balance/price/Activity evidence, condition truth, notification content, and scheduling never come from the model. The Activity summary's stored period now correctly says it covers explorer-indexed transfers since the task timezone's local midnight. No live scheduled LLM request was made for this continuation; injected provider success and failure were tested.
+
+The local scheduler scans persisted active tasks every 15 seconds. Monitors compare exact token units and alert on false-to-true observations; a repeated true result does not alert, and false rearms the condition. Daily tasks store an IANA timezone and Croner calculates each next occurrence. On restart, monitors check the current state; at most one daily run due within 24 hours catches up, while older missed runs are skipped. Pause persists, resume recalculates the next due time, edit keeps the same task ID, and delete cascades history. A successful scheduled run stores a result and in-app notification. A local backend/computer that is off cannot monitor or deliver at that time.
+
+The task parser rejects conditional or recurring financial writes as `PREPARE_ONLY` / `TASK_WRITE_REQUIRES_USER`; it creates no autonomous Send, Swap, Bridge, approval, or signing job. The task API is local-development scope and still lacks user authentication and account ownership proof, so public multi-user deployment requires that protection. The UI's account filtering is presentation, not server authorization.
+
+The 2026-09-29 regression above is historical. Final task QA on 2026-09-30 used an isolated SQLite file and a watch-only public Arc address; it did not touch the normal development task database. Live read-only Arc RPC returned an observed USDC balance for that address. This proves public read connectivity for this check, not connected-wallet ownership, continuous delivery, or a transaction. No transaction, commit, push, or deployment was performed.
+
+### Monitor and automation final QA — 2026-09-30
+
+The exact Vietnamese Home prompt “Báo tôi khi số dư USDC dưới 500” opened an Agent review with account, Arc Testnet, `USDC < 500`, Asia/Bangkok, and a two-minute cadence. A separate Create task click stored one `CONDITION_MONITOR`; the Agent and Home task cards updated. The first live read observed 4746.468777 USDC, so the condition was false. The exact 600 → 490 → 480 → 510 → 495 sequence is verified by injected engine reads in `backend/tests/tasks.test.js`: false, trigger, no duplicate, reset, trigger. It is fixture evidence, not a claim that those five balances appeared on chain or in the browser.
+
+The exact Vietnamese Home prompt “Gửi tôi tóm tắt danh mục lúc 08:00 mỗi ngày” opened a review with Asia/Bangkok and created one `SCHEDULED_AUTOMATION`. Its next scheduled time was 2026-10-01T01:00:00Z. **Run now** succeeded using observed read-only balances, stored a result and one in-app notification, and displayed both on the Tasks page. Surf pricing returned unavailable, so the result had `pricingStatus: UNAVAILABLE` and no estimated portfolio total. The optional language summary from the existing provider was labelled separately and also stated that a total could not be determined. Activity was marked partial.
+
+In the browser, Pause set that automation to `PAUSED` with no next run. After a backend restart, the same task ID remained paused, with its single manual run and notification unchanged. Resume recalculated the next 08:00 occurrence. Editing its schedule to 09:00 recalculated the next run to 2026-10-01T02:00:00Z; a further restart restored the edited 09:00 definition under the same ID with one run and one notification. Deleting it in the Tasks UI removed the task and cascaded its notification. A further backend restart restored only the separate monitor: the deleted automation did not return. Reloads reflected backend state. Single-process scheduler start is idempotent in the backend suite; no duplicate automation run or notification occurred in these restarts.
+
+For the remaining monitor, editing the threshold to 5000 made the observed live read true and created one alert. A further **Run now** while true kept `triggerCount: 1` and one alert. Another backend restart restored one active monitor with `triggerCount: 1`, one notification, and no deleted automation. The Tasks alert history and header popover displayed the alert. Conditional Swap and Pay requests returned `PREPARE_ONLY` / `TASK_WRITE_REQUIRES_USER` from the live parser API; the task engine has no signer or transaction-write path.
+
+This is a **local, single-backend-process** verification. If the computer or backend is off, checks and notifications do not execute then; restart recovery follows the policy in `TASK_AUTOMATION_ENGINE.md`. The task API currently has no production authentication or server-side ownership proof; UI account filtering is presentation only. Concurrent backend processes do not share an execution claim: an isolated two-engine test produced duplicate runs and notifications. Public multi-user or multi-process deployment needs auth and a shared claim/lease before it can be called verified.
+
+### Final regression — 2026-09-30
+
+| Gate | Result |
+| --- | --- |
+| Frontend brain | **17/17** passed |
+| Frontend Agent | **11/11** passed |
+| Frontend Tasks | **8/8** passed |
+| Frontend migration | **71/71** passed |
+| Backend, including task/scheduler | **29/29** passed: task/scheduler **17/17**, backend Agent **10/10**, CCTP **2/2** |
+| Total | **136/136** passed; no failures or skips |
+| Type check | Passed |
+| Lint | Passed, 0 errors and 13 warnings |
+| Client and SSR build | Passed, with 2 existing chunking warnings |
+
+The new backend regressions cover additional financial write verbs and SQLite edit/resume/delete-after-restart behavior. Responsive QA found that the inactive Monitor/Automation tab text on the Tasks page was nearly white on pale gray in light theme. The Tasks-only style now uses the existing theme-aware secondary text color, including its hover state. The 390px light-theme browser rechecks showed readable dark text, and the post-fix Tasks tests, type check, lint and build passed. The [exact responsive QA matrix](qa-monitor-automation-responsive-matrix.md) covers **12/12** combinations and **84/84** surface checks: 1440, 1280, and 390px × EN and VI × light and dark. Every cell had 0px document overflow, one task card, one alert, enabled controls, review availability, no stuck loading, and no browser page or console errors. [VI raw measurements](qa-responsive-vi-matrix.json) and representative screenshots are linked from the matrix.

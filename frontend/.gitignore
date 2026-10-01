@@ -1,9 +1,0 @@
-.next/
-node_modules/
-coverage/
-*.log
-*.tsbuildinfo
-.env*
-!.env.example
-AGENTS.md
-CLAUDE.md

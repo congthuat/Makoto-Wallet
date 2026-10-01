@@ -1,0 +1,14 @@
+{
+  "name": "Makoto Wallet",
+  "short_name": "Makoto",
+  "description": "The wallet you can just ask — an AI agent wallet prototype for Arc Testnet.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0b10",
+  "theme_color": "#0b0b10",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

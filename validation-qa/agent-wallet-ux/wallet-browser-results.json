@@ -1,0 +1,1491 @@
+{
+  "origin": "http://localhost:5173",
+  "timestamp": "2026-10-01T10:15:12.193Z",
+  "total": 30,
+  "passed": 30,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "wallet-none-1440-vi-dark",
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "scenario": "none",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "dark",
+        "lang": "vi"
+      },
+      "watchValidation": true,
+      "watchReload": true,
+      "signingControlsUnavailable": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-one-1440-vi-dark",
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "scenario": "one",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "dark",
+        "lang": "vi"
+      },
+      "selected": "metamask",
+      "calls": [
+        {
+          "kind": "metamask",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-multi-1440-vi-dark",
+      "width": 1440,
+      "language": "vi",
+      "theme": "dark",
+      "scenario": "multi",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "dark",
+        "lang": "vi"
+      },
+      "selected": "rabby",
+      "calls": [
+        {
+          "kind": "rabby",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-none-1440-vi-light",
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "none",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "light",
+        "lang": "vi"
+      },
+      "watchValidation": true,
+      "watchReload": true,
+      "signingControlsUnavailable": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-one-1440-vi-light",
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "one",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "light",
+        "lang": "vi"
+      },
+      "selected": "metamask",
+      "calls": [
+        {
+          "kind": "metamask",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-multi-1440-vi-light",
+      "width": 1440,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "multi",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "light",
+        "lang": "vi"
+      },
+      "selected": "rabby",
+      "calls": [
+        {
+          "kind": "rabby",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-none-1440-en-dark",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "scenario": "none",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "dark",
+        "lang": "en"
+      },
+      "watchValidation": true,
+      "watchReload": true,
+      "signingControlsUnavailable": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-one-1440-en-dark",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "scenario": "one",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "dark",
+        "lang": "en"
+      },
+      "selected": "metamask",
+      "calls": [
+        {
+          "kind": "metamask",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-multi-1440-en-dark",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "scenario": "multi",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "dark",
+        "lang": "en"
+      },
+      "selected": "rabby",
+      "calls": [
+        {
+          "kind": "rabby",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-none-1440-en-light",
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "scenario": "none",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "light",
+        "lang": "en"
+      },
+      "watchValidation": true,
+      "watchReload": true,
+      "signingControlsUnavailable": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-one-1440-en-light",
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "scenario": "one",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "light",
+        "lang": "en"
+      },
+      "selected": "metamask",
+      "calls": [
+        {
+          "kind": "metamask",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-multi-1440-en-light",
+      "width": 1440,
+      "language": "en",
+      "theme": "light",
+      "scenario": "multi",
+      "pass": true,
+      "dimensions": {
+        "viewport": 1440,
+        "pageWidth": 1440,
+        "modalWidth": 438,
+        "modalClientWidth": 438,
+        "left": 500,
+        "right": 940,
+        "theme": "light",
+        "lang": "en"
+      },
+      "selected": "rabby",
+      "calls": [
+        {
+          "kind": "rabby",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-none-390-vi-dark",
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "scenario": "none",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "dark",
+        "lang": "vi"
+      },
+      "watchValidation": true,
+      "watchReload": true,
+      "signingControlsUnavailable": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-one-390-vi-dark",
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "scenario": "one",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "dark",
+        "lang": "vi"
+      },
+      "selected": "metamask",
+      "calls": [
+        {
+          "kind": "metamask",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-multi-390-vi-dark",
+      "width": 390,
+      "language": "vi",
+      "theme": "dark",
+      "scenario": "multi",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "dark",
+        "lang": "vi"
+      },
+      "selected": "rabby",
+      "calls": [
+        {
+          "kind": "rabby",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-none-390-vi-light",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "none",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "light",
+        "lang": "vi"
+      },
+      "watchValidation": true,
+      "watchReload": true,
+      "signingControlsUnavailable": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-one-390-vi-light",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "one",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "light",
+        "lang": "vi"
+      },
+      "selected": "metamask",
+      "calls": [
+        {
+          "kind": "metamask",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-multi-390-vi-light",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "multi",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "light",
+        "lang": "vi"
+      },
+      "selected": "rabby",
+      "calls": [
+        {
+          "kind": "rabby",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-none-390-en-dark",
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "scenario": "none",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "dark",
+        "lang": "en"
+      },
+      "watchValidation": true,
+      "watchReload": true,
+      "signingControlsUnavailable": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-one-390-en-dark",
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "scenario": "one",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "dark",
+        "lang": "en"
+      },
+      "selected": "metamask",
+      "calls": [
+        {
+          "kind": "metamask",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-multi-390-en-dark",
+      "width": 390,
+      "language": "en",
+      "theme": "dark",
+      "scenario": "multi",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "dark",
+        "lang": "en"
+      },
+      "selected": "rabby",
+      "calls": [
+        {
+          "kind": "rabby",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-none-390-en-light",
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "scenario": "none",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "light",
+        "lang": "en"
+      },
+      "watchValidation": true,
+      "watchReload": true,
+      "signingControlsUnavailable": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-one-390-en-light",
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "scenario": "one",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "light",
+        "lang": "en"
+      },
+      "selected": "metamask",
+      "calls": [
+        {
+          "kind": "metamask",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "metamask",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-multi-390-en-light",
+      "width": 390,
+      "language": "en",
+      "theme": "light",
+      "scenario": "multi",
+      "pass": true,
+      "dimensions": {
+        "viewport": 390,
+        "pageWidth": 390,
+        "modalWidth": 388,
+        "modalClientWidth": 388,
+        "left": 0,
+        "right": 390,
+        "theme": "light",
+        "lang": "en"
+      },
+      "selected": "rabby",
+      "calls": [
+        {
+          "kind": "rabby",
+          "method": "eth_requestAccounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "wallet_switchEthereumChain"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_accounts"
+        },
+        {
+          "kind": "rabby",
+          "method": "eth_chainId"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "forbidden": []
+    },
+    {
+      "name": "wallet-behavior-legacy",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "legacy",
+      "pass": true,
+      "observed": {
+        "mode": "connected",
+        "address": "0x1111111111111111111111111111111111111111",
+        "preference": {
+          "source": "legacy",
+          "kind": "metamask"
+        },
+        "calls": [
+          {
+            "kind": "metamask",
+            "method": "eth_requestAccounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "wallet_switchEthereumChain"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          }
+        ],
+        "forbidden": []
+      },
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "name": "wallet-behavior-watch-legacy",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "watch-legacy",
+      "pass": true,
+      "observed": {
+        "mode": "watch",
+        "address": "0x2222222222222222222222222222222222222222",
+        "preference": null,
+        "calls": [],
+        "forbidden": []
+      },
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "name": "wallet-behavior-reject",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "reject",
+      "pass": true,
+      "observed": {
+        "mode": "connected",
+        "address": "0x1111111111111111111111111111111111111111",
+        "preference": {
+          "source": "eip6963",
+          "rdns": "io.metamask",
+          "name": "MetaMask"
+        },
+        "calls": [
+          {
+            "kind": "rabby",
+            "method": "eth_requestAccounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_requestAccounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "wallet_switchEthereumChain"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          }
+        ],
+        "forbidden": []
+      },
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "name": "wallet-behavior-no-account",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "no-account",
+      "pass": true,
+      "observed": {
+        "mode": "connected",
+        "address": "0x1111111111111111111111111111111111111111",
+        "preference": {
+          "source": "eip6963",
+          "rdns": "io.metamask",
+          "name": "MetaMask"
+        },
+        "calls": [
+          {
+            "kind": "rabby",
+            "method": "eth_requestAccounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_requestAccounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "wallet_switchEthereumChain"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          }
+        ],
+        "forbidden": []
+      },
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "name": "wallet-behavior-wrong-chain",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "wrong-chain",
+      "pass": true,
+      "observed": {
+        "mode": "connected",
+        "address": "0x1111111111111111111111111111111111111111",
+        "preference": {
+          "source": "eip6963",
+          "rdns": "io.metamask",
+          "name": "MetaMask"
+        },
+        "calls": [
+          {
+            "kind": "rabby",
+            "method": "eth_requestAccounts"
+          },
+          {
+            "kind": "rabby",
+            "method": "wallet_switchEthereumChain"
+          },
+          {
+            "kind": "rabby",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_requestAccounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "wallet_switchEthereumChain"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          }
+        ],
+        "forbidden": []
+      },
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "name": "wallet-behavior-pending",
+      "width": 390,
+      "language": "vi",
+      "theme": "light",
+      "scenario": "pending",
+      "pass": true,
+      "observed": {
+        "mode": "connected",
+        "address": "0x1111111111111111111111111111111111111111",
+        "preference": {
+          "source": "eip6963",
+          "rdns": "io.metamask",
+          "name": "MetaMask"
+        },
+        "calls": [
+          {
+            "kind": "rabby",
+            "method": "eth_requestAccounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_requestAccounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "wallet_switchEthereumChain"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_accounts"
+          },
+          {
+            "kind": "metamask",
+            "method": "eth_chainId"
+          }
+        ],
+        "forbidden": []
+      },
+      "consoleErrors": [],
+      "pageErrors": []
+    }
+  ]
+}

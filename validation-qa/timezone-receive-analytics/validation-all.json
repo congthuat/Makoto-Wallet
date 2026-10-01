@@ -1,0 +1,113 @@
+{
+  "observedAt": "2026-10-01T11:48:35.539Z",
+  "results": [
+    {
+      "suite": "test:brain",
+      "exitCode": 0,
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 911
+    },
+    {
+      "suite": "test:agent",
+      "exitCode": 0,
+      "tests": 31,
+      "pass": 31,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 2744
+    },
+    {
+      "suite": "test:tasks",
+      "exitCode": 0,
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1435
+    },
+    {
+      "suite": "test:portfolio",
+      "exitCode": 0,
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1727
+    },
+    {
+      "suite": "test:ux",
+      "exitCode": 0,
+      "tests": 59,
+      "pass": 59,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 2871
+    },
+    {
+      "suite": "test:migration",
+      "exitCode": 0,
+      "tests": 82,
+      "pass": 82,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 3023
+    },
+    {
+      "suite": "test:ui",
+      "exitCode": 0,
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 4213
+    },
+    {
+      "suite": "test:polish",
+      "exitCode": 0,
+      "tests": 56,
+      "pass": 56,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 6924
+    },
+    {
+      "suite": "type-check",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 5547
+    },
+    {
+      "suite": "lint",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 5683
+    },
+    {
+      "suite": "build:client",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 10198
+    },
+    {
+      "suite": "build:server",
+      "exitCode": 0,
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 1410
+    }
+  ]
+}

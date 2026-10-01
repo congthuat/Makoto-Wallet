@@ -1,0 +1,1407 @@
+[
+  {
+    "phase": "before",
+    "mode": "connected",
+    "wallet": "isolated read-only provider fixture",
+    "baseline": "Only saved App.tsx served from memory",
+    "route": "Home",
+    "durationMs": 11917,
+    "initial": {
+      "y": 650,
+      "height": 1734,
+      "title": "Makoto Wallet — The wallet you can just ask",
+      "storedMode": "connected"
+    },
+    "samples": [
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1734
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1734
+      }
+    ],
+    "firstJumpMs": 10000,
+    "calls": [
+      {
+        "at": 14365.199999999255,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:51:108)\n    at http://127.0.0.1:5174/src/App.tsx:1091:12\n    at Object.react_stack_bottom_frame (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:18567:20)\n    at runWithFiberInDEV (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:997:72)\n    at commitHookEffectListMount (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9411:163)\n    at commitHookPassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9465:60)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)"
+      }
+    ],
+    "walletMethods": [
+      "eth_chainId",
+      "eth_chainId",
+      "eth_chainId",
+      "eth_accounts",
+      "eth_chainId"
+    ],
+    "errors": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "httpFailures": [
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      },
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      }
+    ]
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "wallet": "isolated read-only provider fixture",
+    "baseline": "Only saved App.tsx served from memory",
+    "route": "Portfolio",
+    "durationMs": 12016,
+    "initial": {
+      "y": 597,
+      "height": 1197,
+      "title": "Portfolio · Makoto Wallet",
+      "storedMode": "connected"
+    },
+    "samples": [
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 597,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 1197
+      }
+    ],
+    "firstJumpMs": 9250,
+    "calls": [
+      {
+        "at": 14389.300000000745,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:51:108)\n    at http://127.0.0.1:5174/src/App.tsx:1091:12\n    at Object.react_stack_bottom_frame (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:18567:20)\n    at runWithFiberInDEV (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:997:72)\n    at commitHookEffectListMount (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9411:163)\n    at commitHookPassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9465:60)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)"
+      }
+    ],
+    "walletMethods": [
+      "eth_chainId",
+      "eth_chainId",
+      "eth_chainId",
+      "eth_accounts",
+      "eth_chainId"
+    ],
+    "errors": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "httpFailures": [
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      },
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      }
+    ]
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "wallet": "isolated read-only provider fixture",
+    "baseline": "Only saved App.tsx served from memory",
+    "route": "Assets",
+    "durationMs": 12016,
+    "initial": {
+      "y": 273,
+      "height": 873,
+      "title": "Assets · Makoto Wallet",
+      "storedMode": "connected"
+    },
+    "samples": [
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 273,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 873
+      }
+    ],
+    "firstJumpMs": 9250,
+    "calls": [
+      {
+        "at": 14311.400000000373,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:51:108)\n    at http://127.0.0.1:5174/src/App.tsx:1091:12\n    at Object.react_stack_bottom_frame (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:18567:20)\n    at runWithFiberInDEV (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:997:72)\n    at commitHookEffectListMount (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9411:163)\n    at commitHookPassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9465:60)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)"
+      }
+    ],
+    "walletMethods": [
+      "eth_chainId",
+      "eth_chainId",
+      "eth_chainId",
+      "eth_accounts",
+      "eth_chainId"
+    ],
+    "errors": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "httpFailures": [
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      },
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      }
+    ]
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "wallet": "isolated read-only provider fixture",
+    "baseline": "Only saved App.tsx served from memory",
+    "route": "Settings",
+    "durationMs": 12016,
+    "initial": {
+      "y": 650,
+      "height": 2093,
+      "title": "Settings · Makoto Wallet",
+      "storedMode": "connected"
+    },
+    "samples": [
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 2093
+      }
+    ],
+    "firstJumpMs": 9250,
+    "calls": [
+      {
+        "at": 14353.199999999255,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:51:108)\n    at http://127.0.0.1:5174/src/App.tsx:1091:12\n    at Object.react_stack_bottom_frame (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:18567:20)\n    at runWithFiberInDEV (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:997:72)\n    at commitHookEffectListMount (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9411:163)\n    at commitHookPassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9465:60)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)"
+      }
+    ],
+    "walletMethods": [
+      "eth_chainId",
+      "eth_chainId",
+      "eth_chainId",
+      "eth_accounts",
+      "eth_chainId"
+    ],
+    "errors": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "httpFailures": [
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      },
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      }
+    ]
+  },
+  {
+    "phase": "before",
+    "mode": "connected",
+    "wallet": "isolated read-only provider fixture",
+    "baseline": "Only saved App.tsx served from memory",
+    "route": "Activity",
+    "durationMs": 12003,
+    "initial": {
+      "y": 650,
+      "height": 4161,
+      "title": "Activity · Makoto Wallet",
+      "storedMode": "connected"
+    },
+    "samples": [
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 650,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      },
+      {
+        "y": 0,
+        "sameMain": true,
+        "height": 4161
+      }
+    ],
+    "firstJumpMs": 8750,
+    "calls": [
+      {
+        "at": 14394.099999999627,
+        "args": [
+          {
+            "top": 0
+          }
+        ],
+        "stack": "Error\n    at window.scrollTo (<anonymous>:51:108)\n    at http://127.0.0.1:5174/src/App.tsx:1091:12\n    at Object.react_stack_bottom_frame (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:18567:20)\n    at runWithFiberInDEV (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:997:72)\n    at commitHookEffectListMount (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9411:163)\n    at commitHookPassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:9465:60)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11040:29)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)\n    at commitPassiveMountOnFiber (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11201:13)\n    at recursivelyTraversePassiveMountEffects (http://127.0.0.1:5174/@fs/C:/Users/Admin/Downloads/Makotowallet.xyz/makoto-wallet/validation-qa/ui-scroll/isolated-vite-cache/deps/react-dom_client.js?v=fbb0f43e:11010:13)"
+      }
+    ],
+    "walletMethods": [
+      "eth_chainId",
+      "eth_chainId",
+      "eth_chainId",
+      "eth_accounts",
+      "eth_chainId"
+    ],
+    "errors": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "httpFailures": [
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      },
+      {
+        "url": "http://127.0.0.1:5174/api/portfolio/history?walletAddress=0x1111111111111111111111111111111111111111&chainId=5042002&range=1d",
+        "status": 403,
+        "code": "PORTFOLIO_ORIGIN_DENIED"
+      }
+    ]
+  }
+]

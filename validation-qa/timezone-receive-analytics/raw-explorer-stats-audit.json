@@ -1,0 +1,29 @@
+{
+  "url": "https://explorer.testnet.arc.io/api/v2/stats",
+  "status": 200,
+  "observedAt": "2026-10-01T11:17:53.250Z",
+  "data": {
+    "average_block_time": 510,
+    "coin_image": null,
+    "coin_price": null,
+    "coin_price_change_percentage": null,
+    "gas_price_updated_at": "2026-10-01T11:17:41.019035Z",
+    "gas_prices": {
+      "slow": 22.34,
+      "average": 23.04,
+      "fast": 24.73
+    },
+    "gas_prices_update_in": 19681,
+    "gas_used_today": "113859924628",
+    "market_cap": "0",
+    "network_utilization_percentage": 4.356175266666667,
+    "secondary_coin_image": null,
+    "secondary_coin_price": null,
+    "static_gas_price": null,
+    "total_addresses": "55175776",
+    "total_blocks": "64930136",
+    "total_transactions": "764530768",
+    "transactions_today": "1108332",
+    "tvl": null
+  }
+}

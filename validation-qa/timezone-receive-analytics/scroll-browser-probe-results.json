@@ -1,0 +1,1763 @@
+{
+  "origin": "http://localhost:5173",
+  "timestamp": "2026-10-01T11:46:18.688Z",
+  "holdDurationMs": 17200,
+  "partial": false,
+  "total": 2,
+  "passed": 2,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "scroll-probe-analytics-1280-vi-dark",
+      "width": 1280,
+      "language": "vi",
+      "theme": "dark",
+      "pageName": "analytics",
+      "pass": true,
+      "targetY": 650,
+      "heldY": 650,
+      "actualHoldDurationMs": 17205,
+      "endpointCounts": {
+        "/api/arc/network": {
+          "total": 2,
+          "duringHold": 1
+        },
+        "/api/arc/feed": {
+          "total": 2,
+          "duringHold": 1
+        },
+        "/api/arc/stats": {
+          "total": 1,
+          "duringHold": 0
+        }
+      },
+      "samples": [
+        {
+          "elapsed": 0,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 1004,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 2021,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 3036,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 4041,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 5056,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 6073,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 7088,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 8106,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 9122,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 10140,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 11155,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 12173,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 13188,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 14206,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 15211,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 16223,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 17202,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1280,
+          "documentWidth": 1280,
+          "mainWidth": 1048,
+          "mainScrollWidth": 1048,
+          "scrollingTag": "HTML",
+          "documentId": "c6da98f9-5e7d-4486-a229-b17e262aed6e",
+          "timeOrigin": 1790855153987.5,
+          "title": "Phân tích · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 512.5,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        }
+      ],
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "vi",
+        "theme": "dark"
+      },
+      "navigations": [
+        {
+          "at": 81,
+          "url": "http://localhost:5173/"
+        }
+      ],
+      "blockedMutations": [],
+      "requests": [
+        {
+          "at": 811,
+          "path": "/api/arc/stats",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 818,
+          "observed": {
+            "totalTransactions": 764632065,
+            "transactionsToday": 1108332,
+            "totalBlocks": 64928743
+          }
+        },
+        {
+          "at": 812,
+          "path": "/api/auth/session",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 841
+        },
+        {
+          "at": 814,
+          "path": "/api/prices",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 841
+        },
+        {
+          "at": 814,
+          "path": "/api/arc/network",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 1214,
+          "observed": {
+            "blockNumber": 64941254,
+            "rpcLatencyMs": 363
+          }
+        },
+        {
+          "at": 815,
+          "path": "/api/arc/wallet",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 2468
+        },
+        {
+          "at": 1436,
+          "path": "/api/arc/feed",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 5015,
+          "observed": {
+            "sampled": 200,
+            "liveCount": 30,
+            "whalesCount": 12
+          }
+        },
+        {
+          "at": 1734,
+          "path": "/api/arc/holders",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 1743
+        },
+        {
+          "at": 13230,
+          "path": "/api/arc/network",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 13430,
+          "observed": {
+            "blockNumber": 64941278,
+            "rpcLatencyMs": 191
+          }
+        },
+        {
+          "at": 20030,
+          "path": "/api/arc/feed",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 23967,
+          "observed": {
+            "sampled": 200,
+            "liveCount": 30,
+            "whalesCount": 12
+          }
+        },
+        {
+          "at": 22481,
+          "path": "/api/arc/wallet",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 23937
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "name": "scroll-probe-analytics-1440-en-dark",
+      "width": 1440,
+      "language": "en",
+      "theme": "dark",
+      "pageName": "analytics",
+      "pass": true,
+      "targetY": 650,
+      "heldY": 650,
+      "actualHoldDurationMs": 17211,
+      "endpointCounts": {
+        "/api/arc/network": {
+          "total": 2,
+          "duringHold": 1
+        },
+        "/api/arc/feed": {
+          "total": 2,
+          "duringHold": 1
+        },
+        "/api/arc/stats": {
+          "total": 1,
+          "duringHold": 0
+        }
+      },
+      "samples": [
+        {
+          "elapsed": 0,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 1002,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 2012,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 3029,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 4046,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 5062,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 6080,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 7110,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 8130,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 9147,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 10161,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 11180,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 12196,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 13212,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 14230,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 15246,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 16261,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        },
+        {
+          "elapsed": 17208,
+          "y": 650,
+          "scrollingY": 650,
+          "maxY": 845,
+          "viewportWidth": 1440,
+          "documentWidth": 1440,
+          "mainWidth": 1208,
+          "mainScrollWidth": 1208,
+          "scrollingTag": "HTML",
+          "documentId": "765aad88-34b5-4427-aad4-094d55436225",
+          "timeOrigin": 1790855154009.7,
+          "title": "Insights · Makoto Wallet",
+          "analyticsCards": [
+            {
+              "card": "pulse",
+              "documentTop": 211.5,
+              "height": 261,
+              "rows": 0
+            },
+            {
+              "card": "largest-transfers",
+              "documentTop": 492.5,
+              "height": 493,
+              "rows": 7
+            },
+            {
+              "card": "recent-transfers",
+              "documentTop": 492.5,
+              "height": 1077.5,
+              "rows": 14
+            },
+            {
+              "card": "holders",
+              "documentTop": 492.5,
+              "height": 482.5,
+              "rows": 7
+            }
+          ],
+          "nestedScrollers": []
+        }
+      ],
+      "session": {
+        "mode": "watch",
+        "address": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "providerPresent": false,
+        "language": "en",
+        "theme": "dark"
+      },
+      "navigations": [
+        {
+          "at": 63,
+          "url": "http://localhost:5173/"
+        }
+      ],
+      "blockedMutations": [],
+      "requests": [
+        {
+          "at": 771,
+          "path": "/api/arc/stats",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 786,
+          "observed": {
+            "totalTransactions": 764632065,
+            "transactionsToday": 1108332,
+            "totalBlocks": 64928743
+          }
+        },
+        {
+          "at": 773,
+          "path": "/api/auth/session",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 809
+        },
+        {
+          "at": 773,
+          "path": "/api/prices",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 809
+        },
+        {
+          "at": 774,
+          "path": "/api/arc/network",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 1003,
+          "observed": {
+            "blockNumber": 64941253,
+            "rpcLatencyMs": 218
+          }
+        },
+        {
+          "at": 775,
+          "path": "/api/arc/wallet",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 2444
+        },
+        {
+          "at": 1412,
+          "path": "/api/arc/feed",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 5381,
+          "observed": {
+            "sampled": 200,
+            "liveCount": 30,
+            "whalesCount": 12
+          }
+        },
+        {
+          "at": 1710,
+          "path": "/api/arc/holders",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 1719
+        },
+        {
+          "at": 13009,
+          "path": "/api/arc/network",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 13236,
+          "observed": {
+            "blockNumber": 64941278,
+            "rpcLatencyMs": 218
+          }
+        },
+        {
+          "at": 20391,
+          "path": "/api/arc/feed",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 23719,
+          "observed": {
+            "sampled": 200,
+            "liveCount": 30,
+            "whalesCount": 12
+          }
+        },
+        {
+          "at": 22457,
+          "path": "/api/arc/wallet",
+          "method": "GET",
+          "status": 200,
+          "responseAt": 23686
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": []
+    }
+  ]
+}

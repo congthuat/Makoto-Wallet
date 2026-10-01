@@ -1,0 +1,81 @@
+{
+  "url": "http://localhost:3001/api/arc/holders",
+  "status": 200,
+  "observedAt": "2026-10-01T11:17:52.242Z",
+  "data": {
+    "holdersCount": 4971250,
+    "totalSupply": 316454545629.24335,
+    "items": [
+      {
+        "address": "0x4E42177AB52202Ced872A5EF661dfc4794bB37bF",
+        "name": null,
+        "contract": false,
+        "balance": 247176458004.9963,
+        "share": 78.10804471571316
+      },
+      {
+        "address": "0x591e17159fB5385bDC254Af2997554303F844cc7",
+        "name": null,
+        "contract": false,
+        "balance": 46399028010.149704,
+        "share": 14.662146160008263
+      },
+      {
+        "address": "0xF192691256Ad47EE5d4033d6979cDAeA23180Ad8",
+        "name": null,
+        "contract": false,
+        "balance": 9999892549.0964,
+        "share": 3.15997753459741
+      },
+      {
+        "address": "0x57414adbBbc4BBA36f1dE26b2dc1648b28ae7799",
+        "name": null,
+        "contract": false,
+        "balance": 8999899458.884674,
+        "share": 2.8439785691778035
+      },
+      {
+        "address": "0xb51ff1E163Ee26144E627fF525766E60b07E21CE",
+        "name": null,
+        "contract": false,
+        "balance": 1000000000,
+        "share": 0.31600114892064
+      },
+      {
+        "address": "0x4f1c3a0359A7fAd8Fa8E9E872F7C06dAd97C91Fd",
+        "name": null,
+        "contract": false,
+        "balance": 999999736.912972,
+        "share": 0.3160010657848369
+      },
+      {
+        "address": "0x23FAfBB6A25bb42985a9eF7fF7837fe94118B531",
+        "name": null,
+        "contract": false,
+        "balance": 506108397.832799,
+        "share": 0.15993083519354886
+      },
+      {
+        "address": "0xF8891cB59BfF4D4a10C50727a613c7d0Bec2F778",
+        "name": null,
+        "contract": false,
+        "balance": 100000011.01,
+        "share": 0.031600118371236656
+      },
+      {
+        "address": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107",
+        "name": null,
+        "contract": false,
+        "balance": 99887058.14282,
+        "share": 0.03156442513543389
+      },
+      {
+        "address": "0x6063e834928EaC1ca47ac5Da27838079a103e305",
+        "name": null,
+        "contract": false,
+        "balance": 97864388.95352,
+        "share": 0.03092525934772871
+      }
+    ]
+  }
+}
