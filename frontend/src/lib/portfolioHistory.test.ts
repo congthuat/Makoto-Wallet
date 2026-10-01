@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { PORTFOLIO_ASSETS, valuePortfolio, type PortfolioAssetValue } from '../../../shared/portfolioValuation.mjs'
-import { captureEligible, HISTORY_RANGES, historyDisplayState, historyPoints, historyQueryKey, historyScope, portfolioHistoryApi, type HistoryResponse, type HistorySnapshot } from './portfolioHistory.ts'
+import { captureEligible, HISTORY_RANGES, historyAccessEnabled, historyDisplayState, historyPoints, historyQueryKey, historyScope, portfolioHistoryApi, type HistoryResponse, type HistorySnapshot } from './portfolioHistory.ts'
 import { chartCoordinates, closestPointIndex } from './chartGeometry.ts'
 import type { Prices, WalletApi } from './wallet.ts'
 
@@ -31,6 +31,13 @@ test('history scopes a confirmed connected wallet by normalized address and know
   assert.deepEqual(historyScope({ mode: 'connected', address: address.toUpperCase().replace('0X', '0x'), chainId, accountConfirmed: true }), scope)
   assert.equal(historyScope({ mode: 'connected', address, chainId, accountConfirmed: false }), null)
   assert.equal(historyScope({ mode: 'connected', address: `0x${'0'.repeat(40)}`, chainId, accountConfirmed: true }), null)
+})
+
+test('history access requires both a valid scope and the current verified wallet session', () => {
+  assert.equal(historyAccessEnabled(scope, true), true)
+  assert.equal(historyAccessEnabled(scope, false), false)
+  assert.equal(historyAccessEnabled(null, true), false)
+  assert.equal(historyAccessEnabled(null, false), false)
 })
 
 test('demo, watch, disconnected and unknown-chain wallets cannot capture or expose history', () => {

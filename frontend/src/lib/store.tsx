@@ -7,7 +7,7 @@ import { checkBridgeRecord, checkSwapRecord, mergeBridgeRecord, mergeSwapRecord,
 import { taskApi, type TaskCandidate, type TaskStatus } from './tasks'
 import { taskAuthApi } from './taskAuth'
 import { valuePortfolio } from '../../../shared/portfolioValuation.mjs'
-import { captureEligible, historyPoints, historyQueryKey, historyScope, portfolioHistoryApi } from './portfolioHistory'
+import { captureEligible, historyAccessEnabled, historyPoints, historyQueryKey, historyScope, portfolioHistoryApi } from './portfolioHistory'
 import { browserWalletRevision, clearBrowserProvider, discoverBrowserWallets, subscribeBrowserWallets, type BrowserWallet } from './walletProviders'
 import { translate } from './i18n'
 import {
@@ -329,26 +329,28 @@ function useWalletState() {
   const balanceError = walletError ? 'Wallet data unavailable' : priceError ? 'Pricing data is unavailable.' : null
 
   const portfolioScope = useMemo(() => historyScope({ mode, address, accountConfirmed: walletAccountConfirmed, chainId: walletChainId }), [mode, address, walletAccountConfirmed, walletChainId])
+  const portfolioHistoryAccess = historyAccessEnabled(portfolioScope, taskAuthenticated)
   const portfolioScopeKey = portfolioScope ? `${portfolioScope.walletAddress}:${portfolioScope.chainId}` : ''
   const captureSchedule = useRef(new Map<string, number>())
   const captureRequest = useRef<{ scopeKey: string; controller: AbortController } | null>(null)
   const activePortfolioScope = useRef(portfolioScopeKey)
-  // Establish the local browser capability cookie before the first capture.
+  // Read history only after verification, before allowing the first capture.
   const portfolioHistoryQuery = useQuery({
     queryKey: historyQueryKey(portfolioScope, '1d'),
     queryFn: ({ signal }) => portfolioHistoryApi.history(portfolioScope!, '1d', signal),
-    enabled: !!portfolioScope, staleTime: 30_000, refetchInterval: 60_000, retry: 1,
+    enabled: portfolioHistoryAccess, staleTime: 30_000, refetchInterval: 60_000, retry: 1,
   })
   useEffect(() => {
     activePortfolioScope.current = portfolioScopeKey
-    if (captureRequest.current?.scopeKey !== portfolioScopeKey) {
+    if (!portfolioHistoryAccess) void queryClient.cancelQueries({ queryKey: ['portfolio-history'] })
+    if (!portfolioHistoryAccess || captureRequest.current?.scopeKey !== portfolioScopeKey) {
       captureRequest.current?.controller.abort()
       captureRequest.current = null
     }
     return () => { captureRequest.current?.controller.abort() }
-  }, [portfolioScopeKey])
+  }, [portfolioScopeKey, portfolioHistoryAccess, queryClient])
   useEffect(() => {
-    if (!portfolioScope || !portfolioHistoryQuery.isSuccess || document.visibilityState !== 'visible' || captureRequest.current || !captureEligible({
+    if (!portfolioHistoryAccess || !portfolioScope || !portfolioHistoryQuery.isSuccess || document.visibilityState !== 'visible' || captureRequest.current || !captureEligible({
       scope: portfolioScope, wallet: wallet.data, balanceFailed: wallet.isError,
       complete: pricesReady, totalUsd: valuation.totalUsd, assets: valuation.assets,
     })) return
@@ -375,7 +377,7 @@ function useWalletState() {
     }).finally(() => {
       if (captureRequest.current?.controller === controller) captureRequest.current = null
     })
-  }, [portfolioScope, portfolioScopeKey, portfolioHistoryQuery.isSuccess, portfolioHistoryQuery.data, pricesReady, valuation, wallet.data, wallet.dataUpdatedAt, wallet.isError, prices.dataUpdatedAt, queryClient, address])
+  }, [portfolioHistoryAccess, portfolioScope, portfolioScopeKey, portfolioHistoryQuery.isSuccess, portfolioHistoryQuery.data, pricesReady, valuation, wallet.data, wallet.dataUpdatedAt, wallet.isError, prices.dataUpdatedAt, queryClient, address])
 
   const refreshTasks = async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['tasks'] }), queryClient.invalidateQueries({ queryKey: ['task-notifications'] })]) }
   const verifyTaskWallet = async () => {
@@ -412,8 +414,8 @@ function useWalletState() {
     prices: prices.data, network: network.data, networkError: network.isError,
     walletError, balanceError,
     holdings, activity, total, pricesReady, loading, portfolioScope,
-    portfolioDayPoints: historyPoints(portfolioHistoryQuery.data, portfolioScope),
-    portfolioHistoryReady: portfolioHistoryQuery.isSuccess, portfolioHistoryError: portfolioHistoryQuery.isError,
+    portfolioDayPoints: portfolioHistoryAccess ? historyPoints(portfolioHistoryQuery.data, portfolioScope) : [],
+    portfolioHistoryReady: portfolioHistoryAccess && portfolioHistoryQuery.isSuccess, portfolioHistoryError: portfolioHistoryAccess && portfolioHistoryQuery.isError,
     txCount: wallet.data?.txCount ?? null,
     walletRefreshing: wallet.isFetching,
     refetchWallet: () => wallet.refetch(),

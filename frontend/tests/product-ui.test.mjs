@@ -15,7 +15,7 @@ const account = '0x1111111111111111111111111111111111111111'
 const noOp = () => {}
 const fixtureKey = '__makotoProductUiFixture'
 let server
-let App, SettingsPage, PortfolioCard, PriceAttribution, translate, TOKENS, agentSession, agentPresentation
+let App, SettingsPage, PortfolioCard, PriceAttribution, translate, TOKENS, agentSession, agentPresentation, historyQueryKey
 const storage = new Map()
 const previousStorage = globalThis.localStorage
 const previousFixture = globalThis[fixtureKey]
@@ -58,6 +58,7 @@ before(async () => {
   TOKENS = (await server.ssrLoadModule('/src/lib/wallet.ts')).TOKENS
   agentSession = await server.ssrLoadModule('/src/brain/agentSession.ts')
   agentPresentation = await server.ssrLoadModule('/src/lib/agentPresentation.ts')
+  historyQueryKey = (await server.ssrLoadModule('/src/lib/portfolioHistory.ts')).historyQueryKey
 })
 
 after(async () => {
@@ -74,6 +75,7 @@ function walletFixture(mode, overrides = {}) {
     total: 368.24, pricesReady: true, loading: false, balanceError: null, walletError: null,
     holdings: TOKENS.map((token, index) => ({ ...token, symbol: token.sym, verified: true, balance: index ? 0 : 368.24, value: index ? 0 : 368.24, price: 1, change24h: 0 })),
     activity: [], tasks: [], contacts: [], taskNotifications: [], tasksLoading: false, tasksError: false, taskNotificationsError: false,
+    taskAuthenticated: false, taskAuthLoading: false, verifyTaskWallet: async () => {},
     network: { blockNumber: 123, rpcLatencyMs: 50, tokenTransferFeeUsdc: 0.001 }, networkError: false,
     settings: { hideSmall: false, hideSpam: true, txAlerts: true, vivid: true }, hidden: false,
     portfolioScope: null, portfolioHistoryReady: false, portfolioHistoryError: false, portfolioDayPoints: [],
@@ -85,10 +87,11 @@ function walletFixture(mode, overrides = {}) {
   }
 }
 
-function render(Component, { language = 'en', mode = 'connected', overrides = {} } = {}) {
+function render(Component, { language = 'en', mode = 'connected', overrides = {}, historyData } = {}) {
   globalThis[fixtureKey] = { language, wallet: walletFixture(mode, overrides) }
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
   client.setQueryData(['arc-stats'], { transactionsToday: 42 })
+  if (historyData) client.setQueryData(historyQueryKey(overrides.portfolioScope, '1d'), historyData)
   try {
     return renderToStaticMarkup(createElement(QueryClientProvider, { client }, createElement(Component)))
   } finally { client.clear() }
@@ -97,6 +100,42 @@ function render(Component, { language = 'en', mode = 'connected', overrides = {}
 function visibleText(html) {
   return html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/g, '').replace(/<[^>]*>/g, ' ')
     .replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim()
+}
+
+function assertHistoryRanges(html, language, disabled) {
+  const labels = ['1D', '1W', '1M', '1Y', translate('ALL', language)]
+  const buttons = [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)]
+    .filter((match) => labels.includes(visibleText(match[2])))
+  assert.deepEqual(buttons.map((match) => visibleText(match[2])), labels)
+  for (const button of buttons) assert.equal(/\bdisabled=/.test(button[1]), disabled, `History range ${visibleText(button[2])} disabled state`)
+}
+
+const portfolioScope = { walletAddress: account, chainId: 5042002 }
+const historyGateCopy = {
+  en: {
+    title: 'Verify your wallet to enable balance history',
+    description: 'Sign a message to prove wallet ownership. No gas or transaction is involved.',
+    button: 'Verify wallet',
+  },
+  vi: {
+    title: 'Xác minh ví để bật lịch sử số dư',
+    description: 'Ký thông điệp để chứng minh quyền sở hữu ví. Không tốn phí gas hay tạo giao dịch.',
+    button: 'Xác minh ví',
+  },
+}
+
+function historyFixture(count) {
+  const capturedAt = Date.parse('2026-10-01T08:00:00.000Z')
+  return {
+    ...portfolioScope, range: '1d', nextCaptureAt: null, totalSnapshots: count,
+    snapshots: Array.from({ length: count }, (_, index) => {
+      const time = new Date(capturedAt + index * 300_000).toISOString()
+      return {
+        ...portfolioScope, id: `recorded-${index}`, capturedAt: time, totalUsd: 368.24 + index,
+        assets: [], priceProvider: 'COINGECKO', priceStatus: 'FRESH', priceObservedAt: time, balanceObservedAt: time,
+      }
+    }),
+  }
 }
 
 function assertNoRemovedNoise(text, language) {
@@ -121,6 +160,58 @@ function assertAttribution(html, language) {
 }
 
 for (const language of ['en', 'vi']) {
+  test(`${language} connected Portfolio requires explicit wallet verification before balance history`, () => {
+    let verificationCalls = 0
+    const html = render(PortfolioCard, { language, mode: 'connected', overrides: {
+      portfolioScope, taskAuthLoading: false, taskAuthenticated: false,
+      portfolioHistoryReady: false, portfolioHistoryError: false,
+      verifyTaskWallet: async () => { verificationCalls += 1 },
+    } })
+    const text = visibleText(html)
+    for (const copy of Object.values(historyGateCopy[language])) assert.ok(text.includes(copy), `Missing localized history gate copy: ${copy}`)
+    const verifyButton = [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)]
+      .find((match) => visibleText(match[2]) === historyGateCopy[language].button)
+    assert.ok(verifyButton, 'The history gate must offer an explicit localized Verify wallet button')
+    assert.doesNotMatch(verifyButton[1], /\bdisabled=/)
+    assert.ok(!text.includes('Could not load balance history.'))
+    assert.ok(!text.includes('Không thể tải lịch sử số dư.'))
+    assertHistoryRanges(html, language, true)
+    assert.equal(verificationCalls, 0, 'Rendering the connected wallet must never request a signature')
+  })
+
+  test(`${language} Portfolio keeps history neutral while the wallet session lookup is unresolved`, () => {
+    let verificationCalls = 0
+    const html = render(PortfolioCard, { language, overrides: {
+      portfolioScope, taskAuthLoading: true, taskAuthenticated: false,
+      portfolioHistoryReady: false, portfolioHistoryError: false,
+      verifyTaskWallet: async () => { verificationCalls += 1 },
+    } })
+    const text = visibleText(html)
+    assert.match(html, /data-history-state="loading"/)
+    for (const copy of Object.values(historyGateCopy[language])) assert.ok(!text.includes(copy), `Auth gate must wait for the session lookup: ${copy}`)
+    assert.ok(!text.includes(translate('Could not load balance history.', language)))
+    assertHistoryRanges(html, language, true)
+    assert.equal(verificationCalls, 0, 'Session lookup must never request a signature')
+  })
+
+  for (const [count, state, copy] of [
+    [0, 'empty', 'No balance history yet'],
+    [1, 'starting', 'Starting to record balance history.'],
+    [2, 'chart', null],
+  ]) {
+    test(`${language} authenticated Portfolio preserves the ${state} state for ${count} recorded snapshots`, () => {
+      const html = render(PortfolioCard, { language, historyData: historyFixture(count), overrides: {
+        portfolioScope, taskAuthenticated: true, taskAuthLoading: false, portfolioHistoryReady: true,
+      } })
+      const text = visibleText(html)
+      assert.ok(html.includes(`data-history-state="${state}"`))
+      if (copy) assert.ok(text.includes(translate(copy, language)))
+      assert.equal(/role="slider"/.test(html), count >= 2, 'Only two or more recorded points render the real history chart')
+      assert.ok(!text.includes(historyGateCopy[language].title))
+      assertHistoryRanges(html, language, false)
+    })
+  }
+
   for (const mode of ['demo', 'connected']) {
     test(`${language} ${mode} Home renders intact with concise product copy`, () => {
       const html = render(App, { language, mode })
@@ -177,6 +268,31 @@ for (const language of ['en', 'vi']) {
       const content = visibleText(section[1].replace(/<h2\b[^>]*>[\s\S]*?<\/h2>/, ''))
       assert.ok(content.length > 0, 'Settings must not leave an empty section')
     }
+  })
+}
+
+test('cached balance history cannot bypass a missing current wallet session', () => {
+  const html = render(PortfolioCard, { historyData: historyFixture(0), overrides: {
+    portfolioScope, taskAuthenticated: false, taskAuthLoading: false, portfolioHistoryReady: true,
+  } })
+  const text = visibleText(html)
+  assert.ok(text.includes(historyGateCopy.en.title))
+  assert.doesNotMatch(html, /role="slider"/)
+  assertHistoryRanges(html, 'en', true)
+})
+
+for (const [name, authLoading, historyReady] of [
+  ['session lookup', true, true],
+  ['history readiness', false, false],
+]) {
+  test(`authenticated Portfolio waits for ${name} before enabling cached history controls`, () => {
+    const html = render(PortfolioCard, { historyData: historyFixture(2), overrides: {
+      portfolioScope, taskAuthenticated: true, taskAuthLoading: authLoading, portfolioHistoryReady: historyReady,
+    } })
+    assert.match(html, /data-history-state="loading"/)
+    assert.doesNotMatch(html, /role="slider"/)
+    assert.ok(!visibleText(html).includes(historyGateCopy.en.button))
+    assertHistoryRanges(html, 'en', true)
   })
 }
 

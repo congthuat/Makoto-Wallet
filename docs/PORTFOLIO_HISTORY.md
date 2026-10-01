@@ -51,10 +51,11 @@ A unique owner/address/chain/capture-millisecond key prevents duplicate instants
 The scope/time index supports ranges; a capture-time index supports retention.
 
 Collection starts immediately when a connected, confirmed wallet on supported
-Arc Testnet has a complete fresh portfolio. Further successful captures are at
-least five minutes apart for the same history owner, normalized wallet address,
-and chain ID. Collection is driven by active app usage and its existing wallet
-polls; there is no permanent background collector. Concurrent requests are
+Arc Testnet has a complete fresh portfolio and history access is authorized.
+Production collection requires the existing verified wallet session. Further
+successful captures are at least five minutes apart for the same history owner,
+normalized wallet address, and chain ID. Collection is driven by active app
+usage and its existing wallet polls; there is no permanent background collector. Concurrent requests are
 bounded, and SQLite transactions enforce the interval across processes sharing
 the file. Identical values are allowed after the interval because they are new
 real observations of time progression. There is no early balance-change bypass.
@@ -67,11 +68,17 @@ points replace deleted history.
 
 ## Access and isolation
 
-Home connection currently does not authenticate wallet ownership; SIWE is an
-explicit Tasks action. History does not request a signature or impose a new
-Home login. In nonproduction loopback development, an opaque server-issued
-HttpOnly, SameSite=Strict browser cookie scopes the local history tenant. Only
-the token's hash is used for ownership in SQLite. Exact configured loopback
+Connecting the wallet alone never opens a signature request. Production history
+is protected by the existing verified wallet session. When ownership proof is
+needed, Home history shows an explicit "Verify wallet" action. Only clicking
+that action starts the existing SIWE `personal_sign` flow, which proves wallet
+ownership, spends no gas, and is not a blockchain transaction. Until verification
+succeeds, the production frontend does not read or capture wallet history.
+
+The local loopback capability behavior is unchanged. In nonproduction loopback
+development, an opaque server-issued HttpOnly, SameSite=Strict browser cookie
+scopes the local history tenant. Only the token's hash is used for ownership in
+SQLite. Exact configured loopback
 frontend origin, a loopback backend peer, and the Makoto request header are
 required. The Vite proxy alone is not proof of browser origin.
 
@@ -86,8 +93,9 @@ remains until retention cleanup. History is not stored authoritatively in
 localStorage, and browser cookies are not historical-value storage.
 
 Nonlocal/production access must use the existing verified wallet session and
-match its wallet address. It fails closed without that proof. Public deployment
-and multi-host SQLite operation are not claimed as verified by local QA.
+match its wallet address. The backend continues to fail closed without that
+proof. Public deployment and multi-host SQLite operation are not claimed as
+verified by local QA.
 
 Wallet changes, account confirmation loss, disconnects, or chain changes hide
 the preceding dataset immediately. Arc Testnet data cannot be reused as Arc
@@ -124,5 +132,7 @@ and localization are preserved.
 Automated tests use isolated temporary databases and controlled observations.
 Those fixtures are never inserted into the normal runtime history database.
 Live local QA uses read-only observations for the currently connected wallet.
-No signature, blockchain transaction, commit, push, or deployment is required.
+Backend loopback capability checks require no wallet signature or blockchain
+transaction. Production history access requires the explicit wallet verification
+described above. No commit, push, or deployment is required for these checks.
 The dated QA report records exact checks and any remaining limitations.

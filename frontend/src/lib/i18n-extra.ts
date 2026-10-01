@@ -1,5 +1,11 @@
 /** Translations for Agent, Send, Swap, Bridge, Tasks, Assets, Activity, Portfolio, Insights and shared modals. English → [vi, zh, ja, ko]. */
 export const EXTRA: Record<string, [string, string, string, string]> = {
+  // Portfolio history uses the existing wallet verification flow.
+  'Verify your wallet to enable balance history': ['Xác minh ví để bật lịch sử số dư', '验证钱包以启用余额历史记录', '残高履歴を有効にするにはウォレットを認証してください', '잔액 내역을 활성화하려면 지갑을 인증하세요'],
+  'Sign a message to prove wallet ownership. No gas or transaction is involved.': ['Ký thông điệp để chứng minh quyền sở hữu ví. Không tốn phí gas hay tạo giao dịch.', '签署消息以证明钱包所有权。无需支付 Gas 费，也不会发起交易。', 'メッセージに署名してウォレットの所有権を証明してください。ガス代はかからず、トランザクションも発生しません。', '메시지에 서명하여 지갑 소유권을 증명하세요. 가스 비용이 들거나 거래가 발생하지 않습니다.'],
+  'Verify wallet': ['Xác minh ví', '验证钱包', 'ウォレットを認証', '지갑 인증'],
+  'Verifying…': ['Đang xác minh…', '正在验证…', '認証中…', '인증 중…'],
+  "Wallet verification was not completed. Try again when you're ready.": ['Chưa hoàn tất xác minh ví. Hãy thử lại khi bạn sẵn sàng.', '钱包验证尚未完成。准备好后请重试。', 'ウォレットの認証が完了しませんでした。準備ができたら、もう一度お試しください。', '지갑 인증이 완료되지 않았습니다. 준비되면 다시 시도하세요.'],
   // Runtime copy added for Vietnamese; other locales retain their English fallback.
   'No balance history yet': ['Chưa có lịch sử số dư.', '', '', ''],
   'Starting to record balance history.': ['Đang bắt đầu ghi lịch sử số dư.', '', '', ''],

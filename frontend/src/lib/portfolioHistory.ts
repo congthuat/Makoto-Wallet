@@ -42,8 +42,12 @@ export function historyScope(input: { mode: string; address: string; accountConf
   return { walletAddress: input.address.toLowerCase(), chainId: input.chainId }
 }
 
-// The query cache lives only in this browser; its HttpOnly backend capability
-// scopes all history requests independently of any task/SIWE session.
+export function historyAccessEnabled(scope: HistoryScope | null, authenticated: boolean): boolean {
+  return !!scope && authenticated
+}
+
+// The query cache lives only in this browser. The backend scopes requests by
+// verified wallet ownership in production or a local loopback capability.
 export function historyQueryKey(scope: HistoryScope | null, range?: HistoryRange) {
   const base = ['portfolio-history', 'local-browser', scope?.walletAddress ?? '', scope?.chainId ?? 0] as const
   return range ? [...base, range] as const : base
