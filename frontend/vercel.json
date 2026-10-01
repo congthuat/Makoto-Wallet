@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "npm ci",
+  "buildCommand": "BACKEND_PORT=3001 BASE_PATH='' npm run build",
+  "outputDirectory": "dist/client",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://makoto-backend-production.up.railway.app/api/:path*"
+    }
+  ]
+}
