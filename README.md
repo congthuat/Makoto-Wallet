@@ -6,6 +6,20 @@ Makoto Wallet is a non-custodial agent wallet for Arc Testnet that combines natu
 
 **Network:** Arc Testnet — Chain ID `5042002`
 
+<p align="center">
+  <a href="https://makotowallet.xyz">
+    <img
+      src="docs/assets/hero/makoto-wallet-production-home-2026-10-02.png"
+      alt="Makoto Wallet production interface on Arc Testnet"
+      width="1200"
+    />
+  </a>
+</p>
+
+<p align="center">
+  <sub>Makoto Wallet production interface · Arc Testnet</sub>
+</p>
+
 ## What is Makoto?
 
 Makoto Agent is the conversational interface to the wallet. It answers questions from observed wallet, portfolio, and network data, and helps prepare Send, Swap, and Bridge requests. The deterministic planner, tool layer, and Policy/Risk checks remain authoritative for financial actions and transaction state.
