@@ -49,6 +49,6 @@ The existing 15 Send browser assertions are unchanged. Their Vite/Chrome lifecyc
 
 ## Publication boundary
 
-The repository's two Vercel configurations disable automatic deployment for the exact fix branch only. This allows the requested branch push and PR without automatically publishing a preview; production and other branch rules remain unchanged. The setting follows [Vercel's `git.deploymentEnabled` documentation](https://vercel.com/docs/project-configuration/git-configuration).
+The temporary branch-specific Vercel deployment guards used for the initial PR publication were removed at the user's request. Both `vercel.json` and `frontend/vercel.json` now match the production base; no deployment configuration change remains in the PR. Swap/CCTP completion code and tests are unchanged by this cleanup. All frontend validation was repeated after removal.
 
-No real wallet request, signature, blockchain transaction, merge or deployment was performed for this QA. The fix is for review in a PR targeting `makoto-wallet`.
+No real wallet request, signature, blockchain transaction, merge or production deployment was performed for this QA. Normal Vercel preview automation may run when the cleanup is pushed. The fix is for review in a PR targeting `makoto-wallet`.
