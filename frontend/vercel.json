@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "fix/swap-cctp-completion-reset-2026-10-13": false
+    }
+  },
   "framework": "vite",
   "installCommand": "npm ci",
   "buildCommand": "BACKEND_PORT=3001 BASE_PATH='' npm run build",

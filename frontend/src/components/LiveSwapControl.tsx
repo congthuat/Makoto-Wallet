@@ -13,9 +13,9 @@ import type { SwapRecord } from '../lib/protocolActivity.ts'
 import { createStrategyRun, recoverStrategyRun, restoreStrategyRun, saveStrategyRun, transitionStrategy, type StrategyEvent, type StrategyRun } from '../migrated/strategyController.ts'
 
 type Stage = 'idle' | 'review-approval' | 'review-swap' | 'pending' | 'approval-confirmed' | 'confirmed' | 'failed' | 'rejected' | 'unknown'
-type Props = { account: string; from: string; to: string; amount: string; slip: '0.5%' | '1%' | '3%'; onConfirmed: () => Promise<unknown> }
+type Props = { account: string; from: string; to: string; amount: string; slip: '0.5%' | '1%' | '3%'; onConfirmed: () => Promise<unknown>; onComplete: () => void }
 
-export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed }: Props) {
+export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, onComplete }: Props) {
   const { upsertSwap } = useWallet()
   const [tr, lang] = useT()
   const vi = lang === 'vi'
@@ -163,6 +163,16 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed }
     }
   }
 
+  function complete() {
+    if (stage !== 'confirmed' || busy) return
+    const freshRun = createStrategyRun('swap', account)
+    run.current = freshRun
+    if (typeof localStorage !== 'undefined') saveStrategyRun(localStorage, freshRun)
+    setStage('idle'); setQuote(undefined); setPrepared(undefined); setReview(undefined); setHash(undefined)
+    setError(''); setErrorFallback('Review unavailable.'); setReviewedInput('')
+    onComplete()
+  }
+
   return <div className="mt-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5 text-[13px] space-y-3" aria-live="polite">
     <div className="font-semibold">{say('Live XyloNet swap', 'Hoán đổi trực tiếp qua XyloNet')}</div>
     {quote && <div className={T.sub}>{say('Live output', 'Nhận dự kiến')}: {formatUnits(quote.quote.amountOut, 6)} {to} · {say('Minimum', 'Tối thiểu')}: {formatUnits(quote.minimumReceive, 6)} {to} · {say('Quote expires in 45 seconds', 'Báo giá hết hạn sau 45 giây')}</div>}
@@ -176,7 +186,8 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed }
     {stage === 'unknown' && <p>{say('Final status unknown. Check the hash before any new attempt.', 'Chưa rõ trạng thái cuối. Kiểm tra mã giao dịch trước khi thử lại.')}</p>}
     {hash && <a href={explorerTx(hash)} target="_blank" rel="noreferrer" className="text-neon-300 break-all">{hash}</a>}
     {error && <p className="text-rose-300 break-words">{vi && tr(error) === error ? tr(errorFallback) : tr(error)}</p>}
-    {(stage === 'idle' || stage === 'approval-confirmed' || stage === 'failed' || stage === 'rejected' || stage === 'confirmed') && <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Loading…', 'Đang tải…') : say('Get live quote and review', 'Lấy báo giá trực tiếp và xem lại')}</Button>}
+    {(stage === 'idle' || stage === 'approval-confirmed' || stage === 'failed' || stage === 'rejected') && <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Loading…', 'Đang tải…') : say('Get live quote and review', 'Lấy báo giá trực tiếp và xem lại')}</Button>}
+    {stage === 'confirmed' && <Button variant="primary" disabled={busy} onClick={complete}>{say('Done', 'Hoàn tất')}</Button>}
     {(stage === 'review-approval' || stage === 'review-swap') && <div className="flex gap-2"><Button variant="primary" disabled={busy} onClick={confirm}>{busy ? say('Checking…', 'Đang kiểm tra…') : stage === 'review-approval' ? say('Confirm approval in wallet', 'Xác nhận phê duyệt trong ví') : say('Confirm swap in wallet', 'Xác nhận hoán đổi trong ví')}</Button><Button disabled={busy} onClick={() => { setStage('idle'); setPrepared(undefined); setReview(undefined) }}>{say('Cancel', 'Hủy')}</Button></div>}
     {(stage === 'unknown' || stage === 'pending') && hash && <Button disabled={busy} onClick={checkAgain}>{say('Check receipt again', 'Kiểm tra lại biên nhận')}</Button>}
   </div>

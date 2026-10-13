@@ -15,10 +15,10 @@ import { createStrategyRun, recoverStrategyRun, restoreStrategyRun, saveStrategy
 
 type Stage = 'idle' | 'review-approval' | 'review-burn' | 'source-pending' | 'source-unknown' | 'source-confirmed' | 'attestation-pending' | 'attestation-available' | 'forwarding-pending' | 'forwarding-failed' | 'destination-pending' | 'destination-confirmed' | 'destination-failed' | 'status-unavailable' | 'failed' | 'rejected'
 export type LiveQuote = Readonly<{ amount: bigint; expectedReceive: bigint; maxFee: bigint; speed: CctpTransferSpeed }>
-type LiveCctpProps = { account: string; amount: string; transferSpeed: CctpTransferSpeed; onSourceConfirmed: () => Promise<unknown>; onQuoteChange?: (quote?: LiveQuote) => void }
+type LiveCctpProps = { account: string; amount: string; transferSpeed: CctpTransferSpeed; onSourceConfirmed: () => Promise<unknown>; onComplete: () => void; onQuoteChange?: (quote?: LiveQuote) => void }
 
 /** Arc Testnet → Base Sepolia USDC CCTP v2 only. Each approval and burn needs its own review and click. */
-export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfirmed, onQuoteChange }: LiveCctpProps) {
+export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfirmed, onComplete, onQuoteChange }: LiveCctpProps) {
   const { upsertBridge } = useWallet()
   const [tr, lang] = useT()
   const say = (en: string, vn: string) => lang === 'vi' ? vn : en
@@ -296,6 +296,21 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     finally { setBusy(false) }
   }
 
+  function complete() {
+    if (busy || stage !== 'destination-confirmed') return
+    rememberRun(createStrategyRun('cctp', account))
+    setStage('idle')
+    setQuote(undefined)
+    setPrepared(undefined)
+    setReview(undefined)
+    setReviewedInput('')
+    setHash(undefined)
+    setDestinationHash('')
+    setError('')
+    onQuoteChange?.(undefined)
+    onComplete()
+  }
+
   const liveMaxGas = prepared?.gasEstimate ? formatUnits(prepared.gasEstimate.maximumFee, 18) : undefined
   return <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5 text-[13px] space-y-3" aria-live="polite">
     <div className="font-semibold">{say('Direct Circle CCTP v2 · Arc → Base Sepolia', 'Circle CCTP v2 trực tiếp · Arc → Base Sepolia')}</div>
@@ -322,7 +337,8 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     {hash && <a className="block break-all text-neon-300" href={explorerTx(hash)} target="_blank" rel="noreferrer">{hash}</a>}
     {destinationHash && <a className="block break-all text-neon-300" href={`https://sepolia.basescan.org/tx/${destinationHash}`} target="_blank" rel="noreferrer">{destinationHash}</a>}
     {error && <p className="text-rose-300 break-words">{lang === 'vi' && tr(error) === error ? tr('CCTP review or status unavailable.') : tr(error)}</p>}
-    {['idle', 'source-confirmed', 'failed', 'rejected', 'destination-confirmed'].includes(stage) && (stage === 'idle' || prepared?.kind === 'approval' || run.current?.phase === 'REVALIDATING' || ['failed', 'rejected', 'destination-confirmed'].includes(stage)) && <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Checking…', 'Đang kiểm tra…') : say('Get live Circle quote and review', 'Lấy báo giá Circle và xem lại')}</Button>}
+    {['idle', 'source-confirmed', 'failed', 'rejected'].includes(stage) && (stage === 'idle' || prepared?.kind === 'approval' || run.current?.phase === 'REVALIDATING' || ['failed', 'rejected'].includes(stage)) && <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Checking…', 'Đang kiểm tra…') : say('Get live Circle quote and review', 'Lấy báo giá Circle và xem lại')}</Button>}
+    {stage === 'destination-confirmed' && <Button variant="primary" disabled={busy} onClick={complete}>{say('Done', 'Hoàn tất')}</Button>}
     {(stage === 'review-approval' || stage === 'review-burn') && <div className="flex gap-2 flex-wrap"><Button variant="primary" disabled={busy} onClick={confirm}>{busy ? say('Checking…', 'Đang kiểm tra…') : stage === 'review-approval' ? say('Review exact approval', 'Xem phê duyệt chính xác') : say('Review CCTP burn', 'Xem lệnh đốt CCTP')}</Button><Button disabled={busy} onClick={() => { rememberRun(createStrategyRun('cctp', account)); setPrepared(undefined); setReview(undefined); setStage('idle'); setError('') }}>{say('Cancel', 'Hủy')}</Button></div>}
     {hash && ['source-pending', 'source-unknown', 'source-confirmed', 'attestation-pending', 'attestation-available', 'forwarding-pending', 'forwarding-failed', 'destination-pending', 'destination-failed', 'status-unavailable'].includes(stage) && <Button disabled={busy} onClick={checkAgain}>{say('Check Arc receipt, Circle status and Base destination', 'Kiểm tra biên nhận Arc, trạng thái Circle và đích Base')}</Button>}
   </div>
