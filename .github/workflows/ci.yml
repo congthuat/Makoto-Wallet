@@ -46,6 +46,9 @@ jobs:
       - name: Agent tests
         run: npm run test:agent --prefix frontend
 
+      - name: Send handoff browser regressions (mock wallet)
+        run: npm run test:send --prefix frontend
+
       - name: Tasks/auth tests
         run: npm run test:tasks --prefix frontend
 

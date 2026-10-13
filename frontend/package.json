@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit --incremental",
     "test:brain": "node --experimental-strip-types --test src/brain/brain.test.ts src/lib/sendExecution.test.ts src/lib/activity.test.ts src/lib/faucet.test.ts",
     "test:agent": "node --experimental-strip-types --test src/agent/*.test.ts",
+    "test:send": "node --test tests/send-handoff.test.mjs",
     "test:tasks": "node --experimental-strip-types --test src/lib/tasks.test.ts src/lib/taskAuth.test.ts",
     "test:portfolio": "node --experimental-strip-types --test src/lib/portfolioHistory.test.ts",
     "test:ux": "node --experimental-strip-types --test src/lib/agentSuggestions.test.ts src/lib/walletProviders.test.ts",
