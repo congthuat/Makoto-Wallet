@@ -3,7 +3,7 @@ import { AlertTriangle, ArrowLeft, BookUser, Check, CheckCircle2, Circle, Clock,
 import { useWallet } from '../lib/store'
 import { ARC, TOKENS, fmtAmt, getProvider, isAddress, short, usd } from '../lib/wallet'
 import { Avatar, Badge, Button, Card, Field, PageHeader, PreviewTag, Segmented, T, TokenIcon, inputCls } from '../components/wallet/ui'
-import { useT } from '../lib/i18n'
+import { translate, useT } from '../lib/i18n'
 import { consumeBrainHandoff } from '../brain/handoff'
 import { useDismissibleOverlay } from '../lib/useDismissibleOverlay'
 import { prepareBrainReview, revalidateBrainReview } from '../brain/policy'
@@ -68,12 +68,12 @@ const SEND_VI: Record<string, string> = {
 export default function SendPage() {
   const { holdings, network, contacts, sendDraft, setSendDraft, mode, address, walletChainId, settings, activity, go, mask, notify, upsertSend, refetchWallet } = useWallet()
   const [tr, lang] = useT()
-  const s = (value: string) => lang === 'vi' ? SEND_VI[value] ?? tr(value) : tr(value)
-  const localError = (error: unknown) => {
+  const s = useCallback((value: string) => lang === 'vi' ? SEND_VI[value] ?? translate(value, lang) : translate(value, lang), [lang])
+  const localError = useCallback((error: unknown) => {
     const message = error instanceof Error ? error.message : ''
     const translated = s(message)
     return lang === 'vi' && translated === message ? s('Unable to complete this wallet request. Check the wallet and try again.') : translated
-  }
+  }, [lang, s])
   const [symbol, setSymbol] = useState('USDC')
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
@@ -93,6 +93,8 @@ export default function SendPage() {
   const [sendError, setSendError] = useState('')
   const [busy, setBusy] = useState(false)
   const submitGuard = useRef(new SendSubmissionGuard())
+  const reviewGeneration = useRef(0)
+  const reviewInFlight = useRef(false)
 
   useEffect(() => {
     if (!sendDraft) return
@@ -113,7 +115,12 @@ export default function SendPage() {
     setWantReview(true)
   }, [mode, address])
 
-  useEffect(() => { setBrainReview(null); setPrepared(null); setStage((current) => current === 'review' ? 'form' : current) }, [mode, address, walletChainId])
+  useEffect(() => {
+    // A pending preparation must not restore review after its inputs change.
+    reviewGeneration.current += 1
+    setBrainReview(null); setPrepared(null); setStage((current) => current === 'review' ? 'form' : current)
+  }, [mode, address, walletChainId, symbol, to, amount])
+  useEffect(() => () => { reviewGeneration.current += 1 }, [])
 
   const meta = TOKENS.find((t) => t.sym === symbol)!
   const h = holdings.find((x) => x.verified && x.symbol === symbol)
@@ -140,14 +147,14 @@ export default function SendPage() {
   const usdValue = price != null ? amt * price : undefined
   const large = settings.confirmLarge && (usdValue ?? 0) >= 100
 
-  const brainAction = (): BrainPreparation => ({ kind: 'send', rawUserText: 'Manual Send flow', asset: symbol, amount: amount || undefined, recipient: to || undefined })
-  const brainContext = () => ({
+  const brainAction = useCallback((): BrainPreparation => ({ kind: 'send', rawUserText: 'Manual Send flow', asset: symbol, amount: amount || undefined, recipient: to || undefined }), [symbol, amount, to])
+  const brainContext = useCallback(() => ({
     connected: mode === 'connected',
     account: mode === 'connected' ? address : undefined,
     chainId: walletChainId,
     balances: Object.fromEntries(holdings.filter((x) => x.verified).map((x) => [x.symbol, x.balance])),
     knownRecipients: [...contacts.map((c) => c.address), ...activity.map((a) => a.counterparty)],
-  })
+  }), [mode, address, walletChainId, holdings, contacts, activity])
 
   const warnings = useMemo(() => {
     const w: string[] = []
@@ -156,7 +163,6 @@ export default function SendPage() {
     return w
   }, [toValid, contact, knownBefore, large])
 
-  useEffect(() => { if (wantReview) { if (canReview) setStage('review'); setWantReview(false) } }, [wantReview, canReview])
   const steps = [
     { l: 'Recipient', ok: toValid && !toErr },
     { l: 'Asset', ok: !!symbol },
@@ -176,18 +182,31 @@ export default function SendPage() {
     } catch (e) { notify(localError(e), 'err') } finally { setBusy(false) }
   }
 
-  const startReview = async () => {
-    if (!canReview || busy) return
+  const startReview = useCallback(async () => {
+    if (!canReview || busy || reviewInFlight.current) return
+    const generation = ++reviewGeneration.current
+    setPrepared(null); setBrainReview(null); setAck(false); setStage('form')
     if (mode !== 'connected') { const review = prepareBrainReview(brainAction(), brainContext()); setBrainReview(review); setStage('review'); return }
     const p = getProvider(); if (!p) { notify(s('Wallet disconnected'), 'err'); return }
+    reviewInFlight.current = true
     setBusy(true)
     try {
       const live = await prepareSend(p, { account: address, recipient: to, symbol, amount })
+      if (generation !== reviewGeneration.current) return
       const review = prepareBrainReview(brainAction(), { connected: true, account: live.account, chainId: live.chainId, balances: { [symbol]: Number(formatSendAmount(live.tokenBalance, meta.decimals)) }, knownRecipients: brainContext().knownRecipients })
       if (review.assessment.status === 'blocked' || review.assessment.status === 'unknown') throw new Error(review.assessment.blockers[0] ?? 'Unavailable until live checks pass')
       setBrainReview(review); setPrepared(live); setAck(false); setStage('review')
-    } catch (e) { notify(localError(e), 'err') } finally { setBusy(false) }
-  }
+    } catch (e) {
+      if (generation === reviewGeneration.current) { notify(localError(e), 'err'); setStage('form') }
+    } finally { reviewInFlight.current = false; setBusy(false) }
+  }, [canReview, busy, mode, address, to, symbol, amount, meta.decimals, brainAction, brainContext, notify, s, localError])
+
+  useEffect(() => {
+    if (!wantReview || busy || reviewInFlight.current) return
+    // Consume the handoff once; both entry paths use the manual live checks.
+    setWantReview(false)
+    void startReview()
+  }, [wantReview, busy, startReview])
 
   const confirmSend = async () => {
     if (!prepared || !brainReview || (large && !ack)) return
@@ -377,7 +396,7 @@ export default function SendPage() {
                   {tr("I've verified the recipient address and understand this can't be undone.")}
                 </label>
               )}
-              <Button variant="primary" size="lg" className="w-full" disabled={(large && !ack) || busy} onClick={mode === 'connected' ? confirmSend : () => { const snapshot = brainReview ?? prepareBrainReview(brainAction(), brainContext()); const checked = revalidateBrainReview(snapshot, brainAction(), brainContext()); if (!checked.valid) { notify(s('Review expired or details changed. Review again.'), 'err'); setStage('form'); setBrainReview(null); return } setPv('Wallet signature'); setStage('preview') }}>
+              <Button variant="primary" size="lg" className="w-full" disabled={(large && !ack) || busy || (mode === 'connected' && (!prepared || !brainReview))} onClick={mode === 'connected' ? confirmSend : () => { const snapshot = brainReview ?? prepareBrainReview(brainAction(), brainContext()); const checked = revalidateBrainReview(snapshot, brainAction(), brainContext()); if (!checked.valid) { notify(s('Review expired or details changed. Review again.'), 'err'); setStage('form'); setBrainReview(null); return } setPv('Wallet signature'); setStage('preview') }}>
                 {s(mode === 'connected' ? 'Confirm in wallet' : 'Preview wallet step')}
               </Button>
               {mode !== 'connected' && <p className={`text-[12px] text-center ${T.mute}`}>{s('In this preview your wallet won’t open and nothing is sent. In the full app, you approve every transfer in your own wallet.')}</p>}

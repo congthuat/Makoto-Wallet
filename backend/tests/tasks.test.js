@@ -85,6 +85,40 @@ test('EN/VI parser yields only typed candidates and asks for missing schedule va
   assert.throws(() => decimalUnits('0.000000001', 8), { code: 'TASK_INVALID' })
 })
 
+test('Vietnamese daily portfolio variants preserve the exact 07:00 schedule', () => {
+  for (const text of [
+    'Gửi tôi tóm tắt danh mục lúc 07:00 mỗi ngày',
+    'Tóm tắt danh mục hằng ngày lúc 07:00',
+    'Lập lịch tóm tắt portfolio lúc 07:00 mỗi ngày',
+    'Mỗi ngày lúc 07:00 tóm tắt danh mục cho tôi',
+    'Mỗi sáng lúc 07:00 tóm tắt danh mục cho tôi',
+  ]) {
+    const result = parseIntent({ ...BASE, mode: 'automation', locale: 'vi', text })
+    assert.equal(result.candidate?.type, 'SCHEDULED_AUTOMATION', text)
+    assert.deepEqual(result.candidate?.schedule, { kind: 'DAILY', time: '07:00', action: 'PORTFOLIO_SUMMARY' }, text)
+    assert.deepEqual(result.missingFields, [], text)
+    assert.equal(result.blocked, undefined, text)
+  }
+})
+
+test('recurring financial writes remain prepare-only even beside a valid summary', () => {
+  for (const text of [
+    'Gửi 10 USDC mỗi ngày lúc 08:00',
+    'Send 10 USDC every day at 08:00',
+    'Swap 10 USDC every day',
+    'Bridge USDC every morning',
+    'Gửi 1 USDC mỗi ngày lúc 08:00',
+    'Send 1 USDC every day at 08:00',
+    'Send 10 USDC every day and send me a portfolio summary at 08:00',
+    'Gửi 100 USDC mỗi ngày và tóm tắt danh mục lúc 08:00',
+    'Send 10.5 USDC every day and send me a portfolio summary at 08:00',
+  ]) {
+    assert.deepEqual(parseIntent({ ...BASE, mode: 'automation', text }), {
+      candidate: null, missingFields: [], blocked: { code: 'TASK_WRITE_REQUIRES_USER', authority: 'PREPARE_ONLY' },
+    }, text)
+  }
+})
+
 test('conditional and recurring financial writes stay prepare-only', () => {
   const context = { ...BASE, mode: 'monitor' }
   for (const text of [

@@ -16,6 +16,25 @@ test('task intent cues route recurring and conditional writes to task safety par
   assert.equal(taskIntentMode('Swap 10 USDC to EURC'), null)
 })
 
+test('Vietnamese daily portfolio requests route to automation at 07:00', () => {
+  for (const text of [
+    'Gửi tôi tóm tắt danh mục lúc 07:00 mỗi ngày',
+    'Tóm tắt danh mục hằng ngày lúc 07:00',
+    'Lập lịch tóm tắt portfolio lúc 07:00 mỗi ngày',
+    'Mỗi ngày lúc 07:00 tóm tắt danh mục cho tôi',
+    'Mỗi sáng lúc 07:00 tóm tắt danh mục cho tôi',
+  ]) assert.equal(taskIntentMode(text), 'automation', text)
+})
+
+test('recurring Send, Swap, and Bridge requests route to task safety parsing', () => {
+  for (const text of [
+    'Gửi 10 USDC mỗi ngày lúc 08:00',
+    'Send 10 USDC every day at 08:00',
+    'Swap 10 USDC every day',
+    'Bridge USDC every morning',
+  ]) assert.equal(taskIntentMode(text), 'automation', text)
+})
+
 test('task binding requires a real public address and the supported Arc chain', () => {
   assert.deepEqual(taskBinding({ mode: 'demo', address, timezone: 'Asia/Bangkok' }), { ok: false, reason: 'ACCOUNT_REQUIRED' })
   assert.deepEqual(taskBinding({ mode: 'connected', address, walletChainId: 1, timezone: 'Asia/Bangkok' }), { ok: false, reason: 'CHAIN_REQUIRED' })

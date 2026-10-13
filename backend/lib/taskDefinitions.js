@@ -106,7 +106,7 @@ function parseIntent(input) {
     return { candidate: null, missingFields: [], blocked: { code: 'TASK_INVALID', authority: 'PREPARE_ONLY' } }
   }
   // Financial writes never become executable background tasks; "send me a summary" remains a read-only request.
-  if (/\b(swap|bridge|approve|approval|buy|sell|pay|withdraw|stake|unstake|deposit|mint|burn|redeem|lend|borrow|repay|mua|ban|rut|nap|vay|tra no|doi token|hoan doi)\b/.test(s) || /\b(send|transfer|gui|chuyen)\s+(?:\d|them|more|usdc|eurc|cirbtc)\b/.test(s)) {
+  if (/\b(swap|bridge|approve|approval|buy|sell|pay|withdraw|stake|unstake|deposit|mint|burn|redeem|lend|borrow|repay|mua|ban|rut|nap|vay|tra no|doi token|hoan doi)\b/.test(s) || /\b(send|transfer|gui|chuyen)\s+(?:\d+|them|more|usdc|eurc|cirbtc)\b/.test(s)) {
     return { candidate: null, missingFields: [], blocked: { code: 'TASK_WRITE_REQUIRES_USER', authority: 'PREPARE_ONLY' } }
   }
   if (mode === 'monitor') {
