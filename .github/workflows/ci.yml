@@ -49,6 +49,9 @@ jobs:
       - name: Send handoff browser regressions (mock wallet)
         run: npm run test:send --prefix frontend
 
+      - name: Swap and CCTP completion browser regressions (mock transactions)
+        run: npm run test:completion --prefix frontend
+
       - name: Tasks/auth tests
         run: npm run test:tasks --prefix frontend
 
