@@ -11,7 +11,15 @@ export function mergeBridgeRecord(old: BridgeRecord | undefined, next: BridgeRec
   if (old?.status === 'destination-confirmed' || old?.status === 'destination-failed' || old?.status === 'forwarding-failed' || old?.status === 'failed') return old
   if (old?.status === 'source-unknown' && next.status === 'source-pending') return old
   const rank: Record<BridgeRecord['status'], number> = { 'source-pending': 0, 'source-unknown': 0, 'source-confirmed': 1, attesting: 2, 'destination-pending': 3, 'destination-confirmed': 4, 'forwarding-failed': 4, 'destination-failed': 4, failed: 4 }
-  if (old && rank[next.status] < rank[old.status]) return old
+  if (old && rank[next.status] < rank[old.status]) {
+    // A temporarily unavailable status read must not erase verified progress,
+    // but its newly observed forward hash should survive a refresh.
+    return old.hash === next.hash && !old.destinationHash && typeof next.destinationHash === 'string' && isHash(next.destinationHash)
+      ? { ...old, destinationHash: next.destinationHash } : old
+  }
+  if (old?.hash === next.hash && !next.destinationHash && typeof old.destinationHash === 'string' && isHash(old.destinationHash)) {
+    return { ...next, destinationHash: old.destinationHash }
+  }
   return next
 }
 

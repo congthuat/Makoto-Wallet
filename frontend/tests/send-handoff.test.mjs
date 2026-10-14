@@ -3,6 +3,8 @@ import { after, before, test } from 'node:test'
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { mkdir, writeFile } from 'node:fs/promises'
+import tailwindcss from '@tailwindcss/vite'
 import { createBrowserHarness, delay } from './browser-harness.mjs'
 
 // Actual React Send/Swap/Bridge components, policy and preparation modules.
@@ -37,7 +39,7 @@ const walletFixture = `
       activity: [{direction: 'out', verified: true, counterparty: '${secondRecipient}', symbol: 'USDC'}],
       settings: {confirmLarge: true},
       sendDraft: ['draft', 'both'].includes(q.get('source')) ? {symbol: 'USDC', to: '${recipient}', amount: '1', review: true} : null,
-      swapDraft: null,
+      swapDraft: q.get('kind') === 'bridge' && ['draft', 'both'].includes(q.get('source')) ? {amount: '1', dest: q.get('to') || 'Base Sepolia'} : null,
     });
     const [setters] = useState(() => ({
       setSendDraft: (sendDraft) => setState((s) => ({...s, sendDraft})),
@@ -55,6 +57,7 @@ const walletFixture = `
 `
 
 const entry = `
+  import '/src/index.css';
   import { createElement, StrictMode } from 'react';
   import { createRoot } from 'react-dom/client';
   import { WalletFixture, useWallet } from '/__send_test__/wallet.jsx';
@@ -62,6 +65,8 @@ const entry = `
   const q = new URLSearchParams(location.search);
   const h = window.__sendHarness = {calls: [], notices: [], records: [], ready: false, release: null};
   localStorage.setItem('mk.lang', q.get('lang') || 'en');
+  document.documentElement.dataset.theme = q.get('theme') || 'dark';
+  document.documentElement.className = q.get('theme') || 'dark';
   const symbolHex = (s) => '0x' + '20'.padStart(64, '0') + s.length.toString(16).padStart(64, '0') + [...s].map((x) => x.charCodeAt(0).toString(16).padStart(2, '0')).join('').padEnd(64, '0');
   window.ethereum = { isMetaMask: true, request: async ({method, params = []}) => {
     h.calls.push({method, params});
@@ -86,7 +91,7 @@ const entry = `
   }};
   const kind = q.get('kind') || 'send';
   if (['handoff', 'both'].includes(q.get('source'))) {
-    const action = {kind, rawUserText: 'Agent test handoff', amount: '1', asset: 'USDC', recipient: '${recipient}', outputAsset: 'EURC', sourceChain: 'Arc Testnet', destinationChain: 'Base Sepolia'};
+    const action = {kind, rawUserText: 'Agent test handoff', amount: '1', asset: 'USDC', recipient: '${recipient}', outputAsset: 'EURC', sourceChain: q.get('from') || 'Arc Testnet', destinationChain: q.get('to') || 'Base Sepolia'};
     storeBrainHandoff(sessionStorage, createBrainHandoff(action, '${account}'));
   }
   const Component = kind === 'send' ? (await import('/src/pages/Send.tsx')).default : (await import('/src/pages/SwapBridge.tsx'))[kind === 'swap' ? 'SwapPage' : 'BridgePage'];
@@ -104,7 +109,7 @@ before(async () => {
   if (baselineRef) assert.match(baselineRef, /^[0-9a-f]{40}$/i, 'Negative control requires a full production commit SHA')
   const baselineSend = baselineRef ? execFileSync('git', ['show', `${baselineRef}:frontend/src/pages/Send.tsx`], { cwd: frontendRoot, encoding: 'utf8' }) : undefined
   browser = createBrowserHarness({ frontendRoot, name: 'send', ready: 'window.__sendHarness?.ready && document.querySelector("input")',
-    plugins: [{
+    plugins: [tailwindcss(), {
       name: 'mocked-send-handoff-browser-fixture', enforce: 'pre',
       resolveId(source) {
         if (/\/lib\/store(?:\.tsx)?$/.test(source)) return '/__send_test__/wallet.jsx'
@@ -118,7 +123,7 @@ before(async () => {
       configureServer(vite) {
         vite.middlewares.use(async (req, res, next) => {
           if (!req.url?.startsWith('/__send_test__?')) return next()
-          const html = await vite.transformIndexHtml(req.url, '<!doctype html><html><body><div id="app"></div><script type="module" src="/__send_test__/entry.js"></script></body></html>')
+          const html = await vite.transformIndexHtml(req.url, '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><main id="app" class="mk-app p-4"></main><script type="module" src="/__send_test__/entry.js"></script></body></html>')
           res.setHeader('Content-Type', 'text/html'); res.end(html)
         })
       },
@@ -170,8 +175,8 @@ test('MOCKED clickable Vietnamese Bridge suggestion and natural wording produce 
         await fill(0, command)
         await evaluate('document.querySelector("form").requestSubmit()')
       } else await click(command)
-      await wait(`!!document.querySelector('select[id$="-dest"]')`, 'Vietnamese request must create Bridge parameters')
-      assert.deepEqual(await evaluate(`({asset: document.querySelector('select[id$="-asset"]').value, amount: document.querySelector('input[id$="-amt"]').value, destination: document.querySelector('select[id$="-dest"]').value})`), { asset: 'USDC', amount: '10', destination: 'Base Sepolia' })
+      await wait(`!!document.querySelector('span[id$="-dest"]')`, 'Vietnamese request must create Bridge parameters')
+      assert.deepEqual(await evaluate(`({asset: document.querySelector('select[id$="-asset"]').value, amount: document.querySelector('input[id$="-amt"]').value, destination: document.querySelector('span[id$="-dest"]').textContent})`), { asset: 'USDC', amount: '10', destination: 'Base Sepolia' })
       assert.equal(await evaluate(`document.querySelector('input[id$="-to"]') !== null`), false)
       assert.doesNotMatch(await evaluate('document.body.textContent'), /Thiếu.*Người nhận/)
       assert.equal(await evaluate(sendCount), 0)
@@ -181,6 +186,87 @@ test('MOCKED clickable Vietnamese Bridge suggestion and natural wording produce 
     })
   }
 })
+
+test('MOCKED actual Vietnamese Agent Bridge suggestion confirms parameters and hands off only to Arc Testnet → Base Sepolia', async () => {
+  await fixture({ kind: 'bridge', source: 'agent-ui', lang: 'vi' }, async ({ evaluate, wait, click }) => {
+    await click('Chuyển chuỗi 10 USDC sang Base Sepolia')
+    await wait(`!!document.querySelector('span[id$="-dest"]')`, 'Agent must prepare the supported Bridge parameters')
+    assert.equal(await evaluate(`document.querySelector('span[id$="-dest"]').textContent`), 'Base Sepolia')
+    assert.equal(await evaluate(`document.querySelector('select[id$="-dest"]') !== null`), false, 'Agent cannot select an unsupported route')
+    await click('Xác nhận thông số')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Mở màn hình Chuyển chuỗi')`, 'Translated Bridge preview button must appear')
+    assert.equal(await evaluate(sendCount), 0)
+    assert.equal(await evaluate(estimateCount), 0)
+    await click('Mở màn hình Chuyển chuỗi')
+    await wait('window.__sendHarness.wallet.page === "bridge" && document.querySelector("input").value === "10"', 'Agent must fill the actual fixed-route Bridge page')
+    const text = await evaluate('document.body.innerText')
+    assert.match(text, /Arc Testnet → Base Sepolia/)
+    assert.match(text, /Circle CCTP v2/)
+    assert.match(text, /Tuyến thử nghiệm hiện được hỗ trợ/)
+    assert.doesNotMatch(text, /Ethereum Sepolia|Arbitrum Sepolia|Avalanche Fuji|OP Sepolia|To Arc|Base Sepolia → Arc/)
+    assert.equal(await evaluate('document.querySelectorAll("select").length'), 0)
+    assert.equal(await evaluate('sessionStorage.getItem("mk.brain.handoff.v1")'), null)
+    assert.equal(await evaluate('window.__sendHarness.wallet.swapDraft'), null)
+    assert.equal(await evaluate(sendCount), 0, 'Agent handoff must never open the wallet or resubmit a burn')
+    assert.equal(await evaluate(estimateCount), 0, 'User must explicitly request a fresh Circle review')
+  })
+})
+
+for (const lang of ['en', 'vi']) for (const theme of ['dark', 'light']) for (const width of [390, 1440]) {
+  test(`MOCKED Bridge exposes only Arc Testnet → Base Sepolia in ${lang}/${theme} at ${width}px`, async () => {
+    await fixture({ kind: 'bridge', source: 'handoff', lang, theme }, async ({ evaluate, wait, setViewport, screenshot }) => {
+      await setViewport(width, 900)
+      await wait('document.querySelector("input").value === "1" && getComputedStyle(document.querySelector("section")).borderRadius !== "0px"', 'Supported handoff and production CSS must load')
+      const text = await evaluate('document.body.innerText')
+      assert.match(text, /Arc Testnet → Base Sepolia/)
+      assert.match(text, /Circle CCTP v2/)
+      assert.match(text, lang === 'vi' ? /Chỉ USDC/ : /USDC only/)
+      assert.doesNotMatch(text, /Ethereum Sepolia|Arbitrum Sepolia|Avalanche Fuji|OP Sepolia|To Arc|Base Sepolia → Arc/)
+      assert.equal(await evaluate('document.querySelectorAll("select").length'), 0)
+      assert.equal(await evaluate('document.querySelectorAll("button[aria-pressed]").length'), 2, 'Both quote-supported transfer modes remain')
+      assert.equal(await evaluate('document.querySelector("button[aria-pressed=true]").textContent.includes(' + JSON.stringify(lang === 'vi' ? 'Nhanh' : 'Fast') + ')'), true)
+      await evaluate('document.querySelectorAll("button[aria-pressed]")[1].click()')
+      await wait('document.querySelectorAll("button[aria-pressed]")[1].getAttribute("aria-pressed") === "true"', 'Standard mode must be selectable before live quote')
+      await wait(`!![...document.querySelectorAll('button')].find((b) => b.textContent.trim() === ${JSON.stringify(lang === 'vi' ? 'Lấy báo giá Circle và xem lại' : 'Get live Circle quote and review')} && !b.disabled)`, 'Supported handoff must allow an explicit live quote request')
+      assert.equal(await evaluate('document.documentElement.dataset.theme'), theme)
+      assert.equal(await evaluate('getComputedStyle(document.querySelector("section")).backgroundColor'), theme === 'light' ? 'rgb(255, 255, 255)' : 'rgba(18, 18, 25, 0.72)')
+      assert.equal(await evaluate('window.innerWidth'), width)
+      assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'Production Bridge layout must not overflow horizontally')
+      assert.deepEqual(await evaluate('window.__sendHarness.calls'), [], 'Route display, mode selection and supported handoff are read-only')
+      assert.equal(await evaluate(sendCount), 0)
+      const directory = process.env.MAKOTO_BRIDGE_SCREENSHOT_DIR
+      if (directory) {
+        await delay(250) // Let the selected mode's existing CSS transition finish.
+        await mkdir(directory, { recursive: true })
+        await writeFile(path.join(directory, `bridge-${lang}-${theme}-${width}.png`), Buffer.from(await screenshot(), 'base64'))
+      }
+    })
+  })
+}
+
+for (const source of ['draft', 'both']) {
+  test(`MOCKED supported ${source} Bridge handoff keeps the fixed route without automatic preparation`, async () => {
+    await fixture({ kind: 'bridge', source }, async ({ evaluate, wait }) => {
+      await wait('document.querySelector("input").value === "1"', 'Supported Bridge draft must fill the amount')
+      assert.equal(await evaluate('window.__sendHarness.wallet.swapDraft'), null)
+      assert.match(await evaluate('document.body.innerText'), /Arc Testnet → Base Sepolia/)
+      assert.equal(await evaluate('document.querySelectorAll("select").length'), 0)
+      assert.deepEqual(await evaluate('window.__sendHarness.calls'), [])
+    })
+  })
+}
+
+for (const route of [{ from: 'Base Sepolia', to: 'Arc Testnet' }, { from: 'Arc Testnet', to: 'Ethereum Sepolia' }]) {
+  test(`MOCKED unsupported ${route.from} → ${route.to} handoff cannot silently prepare the supported route`, async () => {
+    await fixture({ kind: 'bridge', source: 'handoff', ...route }, async ({ evaluate, wait }) => {
+      await wait('!!document.querySelector("p[role=status]")', 'Unsupported route handoff must fail closed')
+      assert.equal(await evaluate('document.querySelector("input").value'), '')
+      assert.match(await evaluate('document.body.innerText'), /Only Arc Testnet → Base Sepolia USDC is supported/)
+      assert.equal(await evaluate(`!![...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Get live Circle quote and review' && b.disabled)`), true)
+      assert.deepEqual(await evaluate('window.__sendHarness.calls'), [])
+    })
+  })
+}
 
 test('MOCKED actual Agent parses Vietnamese Send, confirms parameters, then hands off to live review', async () => {
   await fixture({ source: 'agent-ui', hold: '1' }, async ({ evaluate, wait, click, fill }) => {

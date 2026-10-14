@@ -15,7 +15,7 @@ const account = '0x1111111111111111111111111111111111111111'
 const noOp = () => {}
 const fixtureKey = '__makotoProductUiFixture'
 let server
-let App, SettingsPage, PortfolioCard, PriceAttribution, translate, TOKENS, agentSession, agentPresentation, historyQueryKey
+let App, SettingsPage, PortfolioCard, PriceAttribution, translate, TOKENS, agentSession, agentPresentation, historyQueryKey, AgentStepper, AgentReviewCard, AgentContextPanel, agentSteps, agentPlanner
 const storage = new Map()
 const previousStorage = globalThis.localStorage
 const previousFixture = globalThis[fixtureKey]
@@ -48,6 +48,12 @@ before(async () => {
           };
         `
       },
+      transform(code, id) {
+        if (id.replaceAll('\\', '/').endsWith('/src/pages/Agent.tsx')) {
+          // Test-only access to the actual private presentation components.
+          return `${code}\nexport { Stepper, ReviewCard, ContextPanel };`
+        }
+      },
     }],
   })
   App = (await server.ssrLoadModule('/src/App.tsx')).default
@@ -59,6 +65,12 @@ before(async () => {
   agentSession = await server.ssrLoadModule('/src/brain/agentSession.ts')
   agentPresentation = await server.ssrLoadModule('/src/lib/agentPresentation.ts')
   historyQueryKey = (await server.ssrLoadModule('/src/lib/portfolioHistory.ts')).historyQueryKey
+  const agent = await server.ssrLoadModule('/src/pages/Agent.tsx')
+  AgentStepper = agent.Stepper
+  AgentReviewCard = agent.ReviewCard
+  AgentContextPanel = agent.ContextPanel
+  agentSteps = agent.STEPS
+  agentPlanner = await server.ssrLoadModule('/src/migrated/planner.ts')
 })
 
 after(async () => {
@@ -87,13 +99,13 @@ function walletFixture(mode, overrides = {}) {
   }
 }
 
-function render(Component, { language = 'en', mode = 'connected', overrides = {}, historyData } = {}) {
+function render(Component, { language = 'en', mode = 'connected', overrides = {}, historyData, props } = {}) {
   globalThis[fixtureKey] = { language, wallet: walletFixture(mode, overrides) }
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
   client.setQueryData(['arc-stats'], { transactionsToday: 42 })
   if (historyData) client.setQueryData(historyQueryKey(overrides.portfolioScope, '1d'), historyData)
   try {
-    return renderToStaticMarkup(createElement(QueryClientProvider, { client }, createElement(Component)))
+    return renderToStaticMarkup(createElement(QueryClientProvider, { client }, createElement(Component, props)))
   } finally { client.clear() }
 }
 
@@ -361,3 +373,155 @@ for (const language of ['en', 'vi']) {
     }
   })
 }
+
+test('Vietnamese Agent progress renders every production step without English fallback', () => {
+  const expected = [
+    'Yêu cầu của bạn', 'Planner đề xuất', 'Xem lại thông số', 'Đã xác nhận thông số', 'Đã chuẩn bị chiến lược',
+    'Xem lại giao dịch', 'Xác nhận trong ví', 'Đã gửi lên mạng', 'Đang xác nhận', 'Hoàn tất',
+  ]
+  assert.equal(agentSteps.length, expected.length)
+  const text = visibleText(render(AgentStepper, { language: 'vi', props: { stage: 3 } }))
+  agentSteps.forEach((key, index) => {
+    assert.equal(translate(key, 'vi'), expected[index])
+    assert.ok(text.includes(expected[index]), `Missing translated progress label: ${key}`)
+    assert.ok(!text.includes(key), `English progress label appeared: ${key}`)
+    assert.equal(translate(key, 'en'), key, 'English progress copy must stay unchanged')
+  })
+  const compact = visibleText(render(AgentStepper, { language: 'vi', props: { stage: 2, compact: true } }))
+  assert.ok(compact.includes('Bước 3 · Xem lại thông số'))
+  assert.doesNotMatch(compact, /Step|Review parameters/)
+})
+
+function reviewFlow(intent, stage = 3, params = {}) {
+  return {
+    intent, stage, session: { stage: stage >= 3 ? 'REVIEW_READY' : 'PLAN_READY' },
+    params: { asset: 'USDC', amount: '1', recipient: account, toAsset: 'EURC', dest: 'Base Sepolia', ...params },
+  }
+}
+
+function reviewProps(flow) {
+  return { msg: { id: 'localized-review', flow }, onChange: noOp, onConfirm: noOp, onContinue: noOp, onEdit: noOp }
+}
+
+for (const [intent, english, vietnamese] of [
+  ['send', 'Continue to Send preview', 'Mở màn hình Gửi'],
+  ['swap', 'Open Swap preview', 'Mở màn hình Hoán đổi'],
+  ['bridge', 'Open Bridge preview', 'Mở màn hình Chuyển chuỗi'],
+]) {
+  test(`Vietnamese Agent ${intent} review translates its preview action and prototype label`, () => {
+    const html = render(AgentReviewCard, { language: 'vi', props: reviewProps(reviewFlow(intent)) })
+    const text = visibleText(html)
+    assert.ok(text.includes(vietnamese))
+    assert.ok(text.includes('Đã xác nhận thông số'))
+    assert.ok(text.includes('Tương tác thử nghiệm'))
+    assert.ok(!text.includes(english))
+    assert.doesNotMatch(text, /Prototype interaction|Parameters confirmed/)
+    assert.equal(translate('Open Send preview', 'vi'), 'Mở màn hình Gửi')
+    const englishText = visibleText(render(AgentReviewCard, { props: reviewProps(reviewFlow(intent)) }))
+    assert.ok(englishText.includes(english), 'English preview action stays unchanged')
+    assert.ok(englishText.includes('Prototype interaction'))
+  })
+}
+
+test('Vietnamese Agent context explains the confirmed preview boundary', () => {
+  const text = visibleText(render(AgentContextPanel, { language: 'vi', props: { flow: reviewFlow('bridge') } }))
+  assert.ok(text.includes('Bản xem trước dừng ở bước xác nhận thông số. Các bước sau chỉ hiển thị để tham khảo.'))
+  assert.ok(!text.includes('The preview stops at Parameters confirmed. Later steps are shown for reference only.'))
+  const waiting = visibleText(render(AgentContextPanel, { language: 'vi', props: { flow: reviewFlow('send', 2) } }))
+  assert.ok(waiting.includes('Đang chờ bạn xem lại thông số.'))
+  assert.ok(!waiting.includes('Waiting for you to review the parameters.'))
+})
+
+test('Agent Bridge review shows the supported fixed route without a destination selector', () => {
+  for (const language of ['en', 'vi']) {
+    const html = render(AgentReviewCard, { language, props: reviewProps(reviewFlow('bridge', 2)) })
+    const text = visibleText(html)
+    assert.ok(text.includes('Arc Testnet'))
+    assert.ok(text.includes('Base Sepolia'))
+    assert.doesNotMatch(html, /<select[^>]*id="localized-review-dest"/)
+    assert.doesNotMatch(text, /Ethereum Sepolia|Arbitrum Sepolia|Avalanche Fuji|OP Sepolia/)
+  }
+  const html = render(AgentReviewCard, { language: 'vi', props: reviewProps(reviewFlow('bridge', 2, { dest: 'Arc Testnet' })) })
+  assert.ok(visibleText(html).includes('Hiện chỉ hỗ trợ Arc Testnet → Base Sepolia.'))
+  const confirm = [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)]
+    .find((match) => visibleText(match[2]) === 'Xác nhận thông số')
+  assert.ok(confirm)
+  assert.match(confirm[1], /\bdisabled=/, 'Unsupported routes cannot pass Agent review')
+})
+
+test('Vietnamese Agent review validation and Send evidence use translated presentation copy', () => {
+  for (const [intent, params, vietnamese] of [
+    ['send', { recipient: '0x1234' }, 'Nhập địa chỉ người nhận 0x hợp lệ'],
+    ['swap', { toAsset: 'USDC' }, 'Chọn tài sản khác để nhận'],
+  ]) {
+    const text = visibleText(render(AgentReviewCard, { language: 'vi', props: reviewProps(reviewFlow(intent, 2, params)) }))
+    assert.ok(text.includes(vietnamese))
+    assert.doesNotMatch(text, /Add a valid 0x recipient address|Choose a different asset to receive/)
+  }
+  assert.equal(translate('Balance observed; Send performs its own review and revalidation', 'vi'),
+    'Đã kiểm tra số dư; mục Gửi sẽ yêu cầu xem lại và kiểm tra lại giao dịch')
+  for (const value of ['USDC', 'EURC', 'cirBTC', 'Circle CCTP v2', 'Arc Testnet', 'Base Sepolia', `0x${'a'.repeat(64)}`]) {
+    assert.equal(translate(value, 'vi'), value, 'Protocol, asset, chain and hash identifiers must be preserved')
+  }
+})
+
+test('Vietnamese Agent orchestration blockers use exact translated source keys', () => {
+  for (const [english, vietnamese] of [
+    ['Agent MAX requests require the manual flow.', 'Yêu cầu MAX của Agent cần dùng màn hình giao dịch để nhập thông số.'],
+    ['Recipient address is malformed.', 'Địa chỉ người nhận không hợp lệ.'],
+    ['Zero address is blocked.', 'Không thể dùng địa chỉ 0.'],
+    ['Swap input and output assets must differ.', 'Tài sản hoán đổi đầu vào và đầu ra phải khác nhau.'],
+    ['Bridge source and destination must differ.', 'Mạng nguồn và mạng đích phải khác nhau.'],
+  ]) {
+    assert.equal(translate(english, 'vi'), vietnamese)
+    assert.equal(translate(english, 'en'), english)
+  }
+})
+
+test('Vietnamese Agent translates actual read-only Send and Bridge evidence reasons', async () => {
+  const calls = []
+  function provider({ walletAccount = account, chainId = 5042002, balance = 2_000_000n } = {}) {
+    return { request: async ({ method, params = [] }) => {
+      calls.push(method)
+      if (method === 'eth_accounts') return [walletAccount]
+      if (method === 'eth_chainId') return `0x${chainId.toString(16)}`
+      if (method === 'eth_getCode') return '0x6000'
+      if (method === 'eth_call') {
+        if (params[0].data === '0x313ce567') return '0x6'
+        if (params[0].data === '0x95d89b41') return `0x${'20'.padStart(64, '0')}${'4'.padStart(64, '0')}${Buffer.from('USDC').toString('hex').padEnd(64, '0')}`
+        if (params[0].data.startsWith('0x70a08231')) return `0x${balance.toString(16)}`
+      }
+      throw new Error(`Unexpected read-only mock request: ${method}`)
+    } }
+  }
+  const recipient = '0x2222222222222222222222222222222222222222'
+  const send = agentPlanner.planAgentRequest(`Send 1 USDC to ${recipient}`)
+  const bridge = agentPlanner.planAgentRequest(`Bridge 1 USDC to Base Sepolia for ${recipient}`)
+  assert.equal(send.status, 'ACTION')
+  assert.equal(bridge.status, 'ACTION')
+  const before = JSON.stringify([send, bridge])
+  for (const [plan, wallet, english, vietnamese] of [
+    [{ status: 'INFORMATION', topic: 'wallet-overview' }, provider(), 'No actionable plan', 'Chưa có kế hoạch hành động'],
+    [{ ...send, intents: [] }, provider(), 'Plan has no goal', 'Kế hoạch chưa có hành động'],
+    [send, undefined, 'Wallet provider unavailable', 'Không thể kết nối nhà cung cấp ví'],
+    [send, provider({ walletAccount: recipient }), 'Account changed', 'Tài khoản đã thay đổi'],
+    [send, provider({ chainId: 1 }), 'Chain changed', 'Mạng đã thay đổi'],
+    [send, provider(), 'Balance observed; Send performs its own review and revalidation', 'Đã kiểm tra số dư; mục Gửi sẽ yêu cầu xem lại và kiểm tra lại giao dịch'],
+    [send, provider({ balance: 0n }), 'Balance changed or insufficient', 'Số dư đã thay đổi hoặc không đủ'],
+    [bridge, provider(), 'Direct CCTP currently supports the connected account as recipient', 'CCTP trực tiếp hiện chỉ hỗ trợ tài khoản đang kết nối làm người nhận'],
+  ]) {
+    const observed = await agentPlanner.replanAgentFromEvidence(plan, wallet, account)
+    assert.equal(observed.reason, english)
+    assert.equal(translate(observed.reason, 'vi'), vietnamese)
+    assert.equal(translate(observed.reason, 'en'), english)
+    assert.equal(observed.executionEnabled, false)
+  }
+  assert.equal(JSON.stringify([send, bridge]), before, 'Localization must preserve plan evidence')
+  assert.ok(calls.length > 0)
+  assert.ok(calls.every((method) => ['eth_accounts', 'eth_chainId', 'eth_getCode', 'eth_call'].includes(method)), 'Evidence localization never signs or submits')
+  for (const [english, vietnamese] of [
+    ['Swap preparation failed', 'Không thể chuẩn bị lệnh hoán đổi'],
+    ['CCTP preparation failed', 'Không thể chuẩn bị giao dịch CCTP'],
+    ['Insufficient USDC or balance unavailable', 'Không đủ USDC hoặc không thể lấy số dư'],
+  ]) assert.equal(translate(english, 'vi'), vietnamese)
+})

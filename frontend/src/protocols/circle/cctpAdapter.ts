@@ -43,6 +43,9 @@ import type {
 const BASE_SEPOLIA_CHAIN_ID = 84532
 const CCTP_QUOTE_MAX_AGE_MS = 45_000
 const PREPARED_ACTION_TTL_MS = 60_000
+// SDK maxRetries counts total HTTP attempts. Keep a status check bounded while
+// allowing real sandbox latency and spacing the one retry by Circle's interval.
+const CCTP_STATUS_POLLING = { timeout: 10_000, maxRetries: 2, retryDelay: 5_000, backoff: 'fixed' } satisfies NonNullable<Parameters<CircleProvider['fetchAttestation']>[2]>
 const toHex = (value: bigint): Hex => `0x${value.toString(16)}`
 type CircleProvider = InstanceType<typeof CCTPV2BridgingProvider>
 type CircleViemAdapter = ReturnType<typeof createViemAdapterFromProvider>
@@ -399,7 +402,7 @@ export async function getOfficialCctpStatus(
     const route = await exactRoute(p, input.account, dependencies)
     const result = await route.provider.fetchAttestation(
       sourceContext(route, input.account), input.burnHash,
-      { timeout: 1500, maxRetries: 1, retryDelay: 0 },
+      CCTP_STATUS_POLLING,
     )
     if (!result.message.startsWith('0x') || !result.attestation.startsWith('0x') || result.cctpVersion !== 2 || !result.eventNonce) throw new Error('Circle returned incomplete CCTP v2 message evidence')
     const decoded = result.decodedMessage
@@ -431,7 +434,9 @@ export async function getOfficialCctpStatus(
     }
     return { state: 'attestation-available', eventNonce: result.eventNonce, messageHash, actualReceive }
   } catch (error) {
-    if (error instanceof Error && /No attestation (?:found|messages found)/i.test(error.message)) return { state: 'attestation-pending' }
+    // The installed SDK rejects expected pending/empty responses and HTTP 404
+    // after its bounded attempts; none of these is destination evidence.
+    if (error instanceof Error && /No attestation (?:found|messages found)|Attestation not ready|\bHTTP 404\b/i.test(error.message)) return { state: 'attestation-pending' }
     return { state: 'unavailable', reason: error instanceof Error ? error.message : 'Official Circle CCTP status unavailable' }
   }
 }
