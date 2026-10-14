@@ -43,7 +43,8 @@ function parsePreparation(raw: string, text: string): BrainPreparation | undefin
     return Object.freeze({ kind: 'swap', rawUserText: raw, amount: amount === 'MAX' ? undefined : amount, maxRequested: amount === 'MAX', asset: input, outputAsset: output })
   }
 
-  if (has(text, ['bridge', 'chuyển chuỗi', 'cross-chain', 'cross chain'])) {
+  const vietnameseChainTransfer = asset === 'USDC' && /(?:^|\s)chuyển\s+/.test(text) && /(?:^|\s)(?:sang|tới|đến)\s+(?:base\s+sepolia|arc\s+testnet)\b/.test(text) && !ADDRESS_LIKE.test(raw)
+  if (has(text, ['bridge', 'chuyển chuỗi', 'cross-chain', 'cross chain']) || vietnameseChainTransfer) {
     const chains = chainsOf(text)
     let sourceChain: BrainPreparation['sourceChain']
     let destinationChain: BrainPreparation['destinationChain']

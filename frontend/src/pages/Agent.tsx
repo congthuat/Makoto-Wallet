@@ -423,13 +423,13 @@ export default function AgentPage() {
               <p className={`mt-1.5 text-[13.5px] max-w-[420px] mx-auto ${T.sub}`}>{tr('Describe it in plain language. Makoto proposes the parameters, you review them.')}</p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {SUGGEST.map(({ icon: Icon, t }) => (
-                  <button key={t} onClick={() => ask(tr(t))} className={`h-9 px-3 rounded-lg border border-white/[0.07] bg-white/[0.02] text-[12.5px] ${T.sub} hover:text-white hover:bg-white/[0.05] inline-flex items-center gap-2`}><Icon size={14} className="text-neon-300" />{tr(t)}</button>
+                  <button key={t} onClick={() => ask(tr(t))} title={tr(t)} className={`h-9 max-w-full min-w-0 px-3 rounded-lg border border-white/[0.07] bg-white/[0.02] text-[12.5px] ${T.sub} hover:text-white hover:bg-white/[0.05] inline-flex items-center gap-2`}><Icon size={14} className="text-neon-300 shrink-0" /><span className="truncate">{tr(t)}</span></button>
                 ))}
               </div>
             </div>
           )}
           {msgs.map((m) => m.role === 'user' ? (
-            <div key={m.id} className="flex justify-end mk-in"><div className="max-w-[80%] px-3.5 py-2 rounded-2xl rounded-br-md bg-neon-500/10 border border-white/[0.08] text-[14px]">{m.text}</div></div>
+            <div key={m.id} className="flex justify-end mk-in"><div className="max-w-[80%] [overflow-wrap:anywhere] px-3.5 py-2 rounded-2xl rounded-br-md bg-neon-500/10 border border-white/[0.08] text-[14px]">{m.text}</div></div>
           ) : (
             <div key={m.id} className="flex gap-2.5 mk-in">
               <span className="mt-0.5"><Orb size={26} /></span>
@@ -461,7 +461,7 @@ export default function AgentPage() {
 
         <form onSubmit={(e) => { e.preventDefault(); ask(input) }} className="p-3 sm:p-4 border-t border-white/[0.06]">
           <div className="mk-field-shell flex items-center gap-2 rounded-xl border border-white/[0.08] bg-black/25 p-1.5 transition">
-            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={tr('Send 10 EURC to 0x1234…7890')} aria-label={tr('Message Makoto')} className="flex-1 min-w-0 bg-transparent px-2.5 py-2 text-[14px] outline-none placeholder:text-[#6f6d7a]" />
+            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={tr(SAMPLE_PROMPTS.send)} aria-label={tr('Message Makoto')} className="flex-1 min-w-0 bg-transparent px-2.5 py-2 text-[14px] outline-none placeholder:text-[#6f6d7a]" />
             <button disabled={!input.trim() || typing} className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg bg-neon-500 text-[#0b0b10] hover:bg-neon-400 disabled:bg-white/[0.06] disabled:text-white/30" aria-label={tr('Send message')}><ArrowUp size={17} /></button>
           </div>
         </form>

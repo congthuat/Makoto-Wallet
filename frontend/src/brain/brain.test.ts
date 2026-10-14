@@ -18,6 +18,55 @@ test('parses send preparation', () => {
   assert.equal(routeBrainIntent(intent).draftAllowed, true)
 })
 
+test('Vietnamese Send demo preserves its full recipient and validation', () => {
+  const recipient = '0x836504101e1afa38ff8fa8dd6f75b2ba428039ca'
+  const intent = parseBrainRequest(`Gửi 1 USDC tới ${recipient}`, 'vi')
+  assert.equal(intent.kind, 'prepare-action')
+  assert.equal(intent.preparation?.kind, 'send')
+  assert.equal(intent.preparation?.asset, 'USDC')
+  assert.equal(intent.preparation?.amount, '1')
+  assert.equal(intent.preparation?.recipient, recipient)
+  assert.equal(intent.preparation?.invalidRecipient, false)
+  assert.equal(routeBrainIntent(intent).draftAllowed, true)
+})
+
+test('explicit and natural Vietnamese chain transfers prepare Bridge', () => {
+  for (const text of ['Chuyển chuỗi 10 USDC sang Base Sepolia', 'Chuyển 10 USDC sang Base Sepolia']) {
+    const intent = parseBrainRequest(text, 'vi')
+    assert.equal(intent.kind, 'prepare-action', text)
+    assert.equal(intent.preparation?.kind, 'bridge', text)
+    assert.equal(intent.preparation?.asset, 'USDC', text)
+    assert.equal(intent.preparation?.amount, '10', text)
+    assert.equal(intent.preparation?.sourceChain, 'Arc Testnet', text)
+    assert.equal(intent.preparation?.destinationChain, 'Base Sepolia', text)
+    assert.equal(intent.preparation?.recipient, undefined, text)
+    assert.equal(routeBrainIntent(intent).draftAllowed, true, text)
+  }
+})
+
+test('natural Vietnamese chain wording never rewrites unsupported assets to USDC', () => {
+  for (const asset of ['EURC', 'cirBTC']) {
+    const intent = parseBrainRequest(`Chuyển 1 ${asset} sang Base Sepolia`, 'vi')
+    assert.equal(intent.preparation?.kind, 'send', 'Preserve the previous transfer classification')
+    assert.equal(intent.preparation?.asset, asset)
+    assert.equal(routeBrainIntent(intent).draftAllowed, false)
+    assert.ok(routeBrainIntent(intent).missingFields.includes('recipient'))
+  }
+})
+
+test('generic Vietnamese address transfers remain Send even with a destination chain', () => {
+  for (const text of [`Chuyển 1 USDC tới ${RECIPIENT}`, `Chuyển 1 USDC tới ${RECIPIENT} sang Base Sepolia`]) {
+    const intent = parseBrainRequest(text, 'vi')
+    assert.equal(intent.preparation?.kind, 'send', text)
+    assert.equal(intent.preparation?.recipient, RECIPIENT, text)
+    assert.equal(intent.preparation?.invalidRecipient, false, text)
+  }
+  const malformed = parseBrainRequest('Chuyển 1 USDC tới 0x1234…7890 sang Base Sepolia', 'vi')
+  assert.equal(malformed.preparation?.kind, 'send')
+  assert.equal(malformed.preparation?.invalidRecipient, true)
+  assert.equal(routeBrainIntent(malformed).draftAllowed, false)
+})
+
 test('parses swap and bridge', () => {
   const swap = parseBrainRequest('Swap 20 USDC to EURC', 'en')
   assert.equal(swap.preparation?.kind, 'swap')
