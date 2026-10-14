@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createBrowserHarness } from './browser-harness.mjs'
@@ -20,6 +21,13 @@ const destinationHash = `0x${'c'.repeat(64)}`
 const previousHash = `0x${'d'.repeat(64)}`
 const otherAccount = '0x3333333333333333333333333333333333333333'
 const otherSourceHash = `0x${'e'.repeat(64)}`
+const realCircleResponse = JSON.parse(readFileSync(new URL('./fixtures/cctp-v2-completed-arc-base-sepolia.json', import.meta.url), 'utf8'))
+const realCircleMessage = realCircleResponse.messages[0]
+const realBurnHash = '0x452e3fcc7a2112e4940b19e23e065cf62dadcd20ffb53d620361ab57d605dba4'
+const realForwardHash = realCircleMessage.forwardTxHash
+const realBody = realCircleMessage.decodedMessage.decodedMessageBody
+const realAccount = realBody.mintRecipient
+const realReceiveUnits = '945701'
 let browser
 
 const walletFixture = `
@@ -126,17 +134,19 @@ const protocolFixture = `
 `
 
 const circleFixture = `
+  import { getOfficialCctpStatus as readActualCircleStatus } from '/src/protocols/circle/cctpAdapter.ts';
   export const simulatePreparedCctpCall = async () => { await window.__completionHarness.gate('Simulation'); return {success: true}; };
   export const sameCctpActionMaterial = () => true;
   export const sameCctpQuoteMaterial = () => true;
   export const cctpGasEstimateChanged = () => false;
-  export async function getOfficialCctpStatus(_, input) {
+  export async function getOfficialCctpStatus(provider, input) {
     const h = window.__completionHarness;
     h.statusReads++;
     h.statusInputs.push(input);
     const state = h.circleState;
     await h.gate('Status');
     if (h.statusError) throw new Error('MOCK Circle unavailable');
+    if (h.realShape) return readActualCircleStatus(provider, input);
     return ['destination-pending', 'destination-confirmed'].includes(state)
       ? {state: 'forwarding-pending', forwardTxHash: '${destinationHash}'}
       : {state};
@@ -148,6 +158,7 @@ const entry = `
   import { createRoot } from 'react-dom/client';
   import { WalletFixture, useWallet } from '/__completion_test__/wallet.jsx';
   const q = new URLSearchParams(location.search);
+  const realShape = q.get('realShape') === '1';
   localStorage.clear(); sessionStorage.clear();
   localStorage.setItem('mk.lang', q.get('lang') || 'en');
   const previous = {hash: '${previousHash}', account: '${account}', target: '${target}', calldata: '0x1234',
@@ -155,12 +166,13 @@ const entry = `
     status: 'completed', amount: '9', expectedReceiveUnits: '8999000', destinationDomain: 6, maxFeeUnits: '1000', finalityThreshold: '1000'};
   const h = window.__completionHarness = {
     ready: false, calls: [], quotes: [], walletRequests: [], receipts: [], reads: 0, statusReads: 0, refreshes: 0,
-    activeAccount: '${account}', activeChain: 5042002, recoveries: [], statusInputs: [], activityWrites: [], storageWrites: [],
+    activeAccount: realShape ? '${realAccount}' : '${account}', activeChain: 5042002, recoveries: [], statusInputs: [], activityWrites: [], storageWrites: [],
     completeCallbacks: 0, sourceCallbacks: 0, quoteCallbacks: 0, consoleErrors: [], destinationReads: 0,
     holds: new Set(q.get('gate') ? [q.get('gate')] : []), releases: {}, settled: {},
     outcome: q.get('outcome') || 'confirmed', holdReceipt: q.get('hold') === '1',
     needsApproval: q.get('approval') === '1', approved: false,
     circleState: q.get('circle') || 'destination-confirmed',
+    realShape, circleHttpReads: [], destinationInputs: [],
     quoteUnavailable: q.get('quoteUnavailable') === '1', destinationState: q.get('destination'),
     swap: [previous], bridge: [{...previous, status: 'destination-confirmed', destinationHash: '${previousHash}'}],
   };
@@ -186,7 +198,12 @@ const entry = `
     return value;
   };
   if (q.get('lifecycle') === '1' && q.get('seed') !== '0') {
-    h.seedRun('${account}', '${sourceHash}'); h.seedRun('${otherAccount}', '${otherSourceHash}');
+    if (realShape) h.seedRun('${realAccount}', '${realBurnHash}', {
+      binding: {from: '${realAccount}', to: '${realBody.messageSender}', data: '0x1234', amount: '1',
+        expectedReceiveUnits: '${realReceiveUnits}', recipient: '${realAccount}', destinationDomain: 6,
+        maxFeeUnits: '${realBody.maxFee}', finalityThreshold: '${realCircleMessage.decodedMessage.minFinalityThreshold}'},
+    });
+    else { h.seedRun('${account}', '${sourceHash}'); h.seedRun('${otherAccount}', '${otherSourceHash}'); }
   }
   localStorage.setItem('mk.swap.records.v1', JSON.stringify(h.swap));
   localStorage.setItem('mk.bridge.records.v1', JSON.stringify(h.bridge));
@@ -197,8 +214,14 @@ const entry = `
     throw new Error('Unexpected provider request in MOCKED completion QA: ' + method);
   }};
   window.fetch = async (url) => {
+    if (h.realShape && String(url).startsWith('https://iris-api-sandbox.circle.com/v2/messages/26?transactionHash=')) {
+      h.circleHttpReads.push(String(url));
+      if (new URL(String(url)).searchParams.get('transactionHash') !== '${realBurnHash}') throw new Error('Wrong captured Circle burn hash');
+      return Response.json(${JSON.stringify(realCircleResponse)});
+    }
     if (!String(url).includes('/cctp/destination?')) throw new Error('Unexpected fetch in MOCKED completion QA: ' + url);
     h.destinationReads = (h.destinationReads || 0) + 1;
+    h.destinationInputs.push(String(url));
     const state = h.destinationState || (h.circleState === 'destination-confirmed' ? 'confirmed' : 'pending');
     await h.gate('Destination');
     return {ok: h.destinationState !== 'http-error', json: async () => { await h.gate('DestinationBody'); return {status: state}; }};
@@ -573,6 +596,68 @@ test('MOCKED CCTP lifecycle: ten synchronous checks run one recovery/Circle/Base
     assert.deepEqual(await ui.evaluate(`${h}.quotes`), [])
   })
 })
+
+for (const lang of ['en', 'vi']) {
+  test(`CAPTURED Circle COMPLETE ${lang}: saved real-shape burn reconciles once through actual adapter and the independent Base gate before explicit Done`, async () => {
+    await fixture({kind: 'bridge', lifecycle: '1', realShape: '1', lang, gate: 'DestinationBody'}, async (ui) => {
+      const names = labels('bridge', lang)
+      await ui.wait(enabled(names.check), 'The isolated saved SOURCE_CONFIRMED transfer must restore Check Again')
+      const saved = await ui.evaluate(`JSON.parse(${checkpoint(realAccount)})`)
+      assert.equal(saved.phase, 'SOURCE_CONFIRMED')
+      assert.equal(saved.hash, realBurnHash)
+      assert.equal(saved.binding.recipient, realAccount)
+      assert.equal(saved.binding.expectedReceiveUnits, realReceiveUnits)
+      assert.equal(await ui.evaluate(exists(names.start)), false, 'The saved transfer must block a new Bridge')
+      await ui.evaluate(`(() => { const button = ${buttons(names.check)}[0]; for (let i = 0; i < 10; i++) button.click(); })()`)
+      await ui.wait(`!!${h}.releases.DestinationBody`, 'The actual Circle adapter must expose the recovered hash for independent Base verification')
+      assert.equal(await ui.evaluate(`${h}.recoveries.length`), 1)
+      assert.equal(await ui.evaluate(`${h}.statusReads`), 1)
+      assert.equal(await ui.evaluate(`${h}.circleHttpReads.length`), 1, 'The real SDK must consume the captured HTTP response')
+      const statusInput = JSON.parse(await ui.evaluate(`JSON.stringify(${h}.statusInputs[0], (_, value) => typeof value === 'bigint' ? value.toString() : value)`))
+      assert.equal(statusInput.account, realAccount)
+      assert.equal(statusInput.burnHash, realBurnHash)
+      assert.equal(statusInput.recipient, realAccount)
+      assert.equal(statusInput.expectedReceive, realReceiveUnits)
+      assert.equal(statusInput.maxFee, realBody.maxFee)
+      assert.equal(statusInput.finalityThreshold, realCircleMessage.decodedMessage.minFinalityThreshold)
+      const destinationInput = new URL(await ui.evaluate(`${h}.destinationInputs[0]`), 'http://fixture.invalid')
+      assert.equal(destinationInput.searchParams.get('txHash'), realForwardHash)
+      assert.equal(destinationInput.searchParams.get('recipient'), realAccount)
+      assert.equal(destinationInput.searchParams.get('minimumUnits'), realReceiveUnits)
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(realForwardHash))
+      assert.equal(await ui.evaluate(`JSON.parse(${checkpoint(realAccount)}).phase`), 'SOURCE_CONFIRMED', 'Circle COMPLETE and forward hash cannot complete before Base evidence')
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(`${h}.activityWrites.filter((w) => w.record.status === 'destination-confirmed').length`), 0)
+      await settleGate(ui, 'DestinationBody')
+      await ui.wait(enabled(names.done), 'Only the independent Base confirmation may expose localized Done')
+      assert.equal(await ui.evaluate(`JSON.parse(${checkpoint(realAccount)}).phase`), 'COMPLETED')
+      assert.equal(await ui.evaluate(`${h}.destinationReads`), 1)
+      assert.equal(await ui.evaluate(`${h}.activityWrites.filter((w) => w.record.status === 'destination-confirmed').length`), 1)
+      assert.equal(await ui.evaluate(`${h}.storageWrites.filter((w) => w.key.startsWith('mk.strategy.') && JSON.parse(w.value).phase === 'COMPLETED').length`), 1)
+      assert.equal(await ui.evaluate(`${h}.completeCallbacks`), 0, 'The completed checkpoint remains until explicit acknowledgment')
+      assert.equal(await ui.evaluate(amount), '1')
+      const record = await ui.evaluate(`${h}.bridge.find((r) => r.hash === '${realBurnHash}')`)
+      assert.equal(record.status, 'destination-confirmed')
+      assert.equal(record.destinationHash, realForwardHash)
+      assert.equal(record.expectedReceiveUnits, realReceiveUnits)
+      const activity = await ui.evaluate(`localStorage.getItem('mk.bridge.records.v1')`)
+      const reads = await ui.evaluate(`JSON.stringify({recovery: ${h}.recoveries, circle: ${h}.circleHttpReads, destination: ${h}.destinationReads})`)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [], 'Recovery must never request a new approval or burn')
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [], 'Recovery must never poll a newly submitted transaction')
+      assert.deepEqual(await ui.evaluate(`${h}.quotes`), [], 'Recovery must use the exact saved review rather than prepare a new burn')
+      assert.equal(await ui.evaluate(`${h}.calls.some((method) => ['eth_sendTransaction', 'eth_sendRawTransaction', 'eth_requestAccounts', 'personal_sign', 'eth_sign'].includes(method))`), false)
+      await ui.click(names.done)
+      await ui.wait(`${amount} === '' && ${exists(names.start)}`, 'Explicit isolated-fixture Done may acknowledge the transfer and return to IDLE')
+      assert.equal(await ui.evaluate(`JSON.parse(${checkpoint(realAccount)}).phase`), 'IDLE')
+      assert.equal(await ui.evaluate(`${h}.completeCallbacks`), 1)
+      assert.equal(await ui.evaluate(`localStorage.getItem('mk.bridge.records.v1')`), activity, 'Done preserves the single Activity completion')
+      assert.equal(await ui.evaluate(`JSON.stringify({recovery: ${h}.recoveries, circle: ${h}.circleHttpReads, destination: ${h}.destinationReads})`), reads, 'Acknowledgment must perform no additional protocol work')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+      assert.deepEqual(await ui.evaluate(`${h}.quotes`), [])
+    })
+  })
+}
 
 for (const replacement of ['hash', 'binding']) {
   test(`MOCKED CCTP lifecycle: replacing same-account saved ${replacement} discards prior evidence`, async () => {

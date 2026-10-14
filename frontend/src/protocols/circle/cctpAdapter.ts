@@ -410,16 +410,15 @@ export async function getOfficialCctpStatus(
     const messageAmount = BigInt(body.amount)
     const feeExecuted = BigInt(body.feeExecuted ?? body.maxFee ?? input.maxFee)
     const actualReceive = messageAmount - feeExecuted
-    const expectedRecipient = pad(getAddress(input.recipient), { size: 32 }).toLowerCase()
-    const destinationTransmitter = route.destination.cctp.contracts.v2.messageTransmitter
+    const destinationMessenger = route.destination.cctp.contracts.v2.tokenMessenger
     if (
       Number(decoded.sourceDomain) !== route.source.cctp.domain ||
       Number(decoded.destinationDomain) !== input.destinationDomain ||
       !sameAddressOrPadded(decoded.sender, route.source.cctp.contracts.v2.tokenMessenger) ||
-      !sameAddressOrPadded(decoded.recipient, destinationTransmitter) ||
+      !sameAddressOrPadded(decoded.recipient, destinationMessenger) ||
       !sameAddressOrPadded(body.burnToken, route.usdc) ||
       !sameAddressOrPadded(body.messageSender, route.spender) ||
-      body.mintRecipient.toLowerCase() !== expectedRecipient ||
+      !sameAddressOrPadded(body.mintRecipient, input.recipient) ||
       !body.maxFee || BigInt(body.maxFee) !== input.maxFee || feeExecuted > input.maxFee ||
       messageAmount - BigInt(body.maxFee ?? input.maxFee) < input.expectedReceive ||
       actualReceive < input.expectedReceive ||
