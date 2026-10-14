@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowUp, Pause, Play, Pencil, Trash2, ListChecks, Wallet, CalendarClock, Bell, RotateCcw } from 'lucide-react'
 import { useWallet } from '../lib/store'
 import { SAMPLE_PROMPTS } from '../lib/scenarios'
-import { taskApi, taskBinding, taskDefinition, taskDisplayTitle, taskError, taskIntentMode, taskItemsForAccount, taskLanguageSummary, taskPriceObservations, taskResultSummary, type Task, type TaskCandidate, type TaskCondition, type TaskSchedule, type TaskStatus } from '../lib/tasks'
+import { taskApi, taskBinding, taskDefinition, taskDisplaySummary, taskDisplayTitle, taskError, taskIntentMode, taskItemsForAccount, taskPriceObservations, taskResultSummary, type Task, type TaskCandidate, type TaskCondition, type TaskSchedule, type TaskStatus } from '../lib/tasks'
 import { taskDate, taskText } from '../lib/taskText'
 import { formatTaskTimezone } from '../lib/taskTimezone'
 import { short } from '../lib/wallet'
@@ -112,7 +112,7 @@ export default function TasksPage() {
       const Icon = task.type === 'CONDITION_MONITOR' ? Wallet : CalendarClock
       const otherAccount = w.mode !== 'demo' && task.account.toLowerCase() !== w.address.toLowerCase()
       const canManage = binding.ok && binding.account.toLowerCase() === task.account.toLowerCase() && binding.chainId === task.chainId
-      const languageSummary = task.type === 'SCHEDULED_AUTOMATION' ? taskLanguageSummary(task.lastResult) : null
+      const displaySummary = taskDisplaySummary(task.lastResult, locale)
       const prices = taskPriceObservations(task.lastResult)
       const timezone = formatTaskTimezone(task.timezone, locale, task.nextRunAt ?? Date.now())
       return <Card key={task.id} className="p-4 mk-in min-w-0">
@@ -125,7 +125,7 @@ export default function TasksPage() {
           <dt className={T.mute}>{taskText('last', locale)}</dt><dd>{taskDate(task.lastRunAt, locale, task.timezone)}</dd>
           <dt className={T.mute}>{taskText('result', locale)}</dt><dd className="break-words">{taskResultSummary(task, task.lastResult, locale)}</dd>
           {!!prices.length && <><dt className={T.mute}>{taskText('prices', locale)}</dt><dd className="break-words">{prices.map((price) => <span key={price.asset} className="block">{price.asset}: {new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 8 }).format(price.usd)} <span className={T.mute}>· {taskDate(price.observedAt, locale, task.timezone)}</span></span>)}</dd></>}
-          {languageSummary && <><dt className={T.mute}>{taskText('languageSummary', locale)}</dt><dd className="break-words">{languageSummary.text}<span className={`block text-[11px] ${T.mute}`}>{taskText(languageSummary.source === 'REAL_PROVIDER' ? 'providerSummary' : 'localSummary', locale)}</span></dd></>}
+          {displaySummary && <><dt className={T.mute}>{taskText('languageSummary', locale)}</dt><dd className="break-words">{displaySummary}<span className={`block text-[11px] ${T.mute}`}>{taskText('verifiedSummary', locale)}</span></dd></>}
           {task.lastError != null ? <><dt className={T.mute}>{taskText('error', locale)}</dt><dd className="break-words text-rose-300">{taskError(new Error(typeof task.lastError === 'object' && 'code' in task.lastError ? String(task.lastError.code) : 'TASK_EXECUTION_FAILED'), locale)}</dd></> : null}
         </dl>
         <div className="mt-4 pt-3 border-t border-white/[0.05] flex flex-wrap items-center gap-1.5">

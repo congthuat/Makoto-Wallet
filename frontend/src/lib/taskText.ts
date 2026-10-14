@@ -11,6 +11,7 @@ const copy = {
   timezoneUnavailable: ['Timezone unavailable', 'Múi giờ chưa khả dụng'], offsetUnavailable: ['UTC offset unavailable', 'Độ lệch UTC chưa khả dụng'],
   result: ['Latest result', 'Kết quả gần nhất'], error: ['Last error', 'Lỗi gần nhất'],
   languageSummary: ['Makoto summary', 'Makoto tóm tắt'], providerSummary: ['AI phrasing', 'Diễn đạt bằng AI'], localSummary: ['Local summary', 'Tóm tắt cục bộ'],
+  verifiedSummary: ['Summary from verified task data', 'Tóm tắt từ dữ liệu đã xác minh'],
   prices: ['Observed unit prices', 'Giá đơn vị quan sát được'],
   never: ['Never', 'Chưa có'], none: ['None', 'Không có'],
   otherAccount: ['Belongs to another account', 'Thuộc ví khác'],
