@@ -89,3 +89,28 @@ test('missing source receipts cannot downgrade UNKNOWN or later bridge evidence 
   const swap: SwapRecord = { hash, account, target, calldata: '0x1234', fromSymbol: 'USDC', toSymbol: 'EURC', amount: '1', minimumOutputUnits: '1', timestamp: 1, status: 'unknown' }
   assert.equal(await checkSwapRecord(provider(null), swap), 'unknown')
 })
+
+test('an unavailable read can retain a new forward hash without downgrading or completing saved progress', () => {
+  const destinationHash = `0x${'b'.repeat(64)}`
+  for (const status of ['attesting', 'destination-pending'] as const) {
+    const observed = { ...base, status }
+    const merged = mergeBridgeRecord(observed, { ...base, status: 'source-confirmed', destinationHash })
+    assert.deepEqual(merged, { ...observed, destinationHash })
+    assert.equal(merged.status, status)
+    assert.equal(mergeBridgeRecord(observed, { ...base, hash: destinationHash, status: 'source-confirmed', destinationHash }), observed)
+    assert.equal(mergeBridgeRecord(observed, { ...base, status: 'source-confirmed', destinationHash: 'bad' }), observed)
+    assert.equal(mergeBridgeRecord(observed, { ...base, status: 'source-confirmed' }), observed)
+  }
+  const completed = { ...base, status: 'destination-confirmed' as const, destinationHash: hash }
+  assert.equal(mergeBridgeRecord(completed, { ...base, destinationHash, status: 'source-confirmed' }), completed)
+})
+
+test('repeated source-confirmed reads retain a verified forward hash across retry and further progress', () => {
+  const destinationHash = `0x${'b'.repeat(64)}`
+  const saved = { ...base, status: 'source-confirmed' as const, destinationHash }
+  for (const status of ['source-confirmed', 'attesting', 'destination-pending'] as const) {
+    assert.deepEqual(mergeBridgeRecord(saved, { ...base, status }), { ...base, status, destinationHash })
+  }
+  const unrelated = { ...base, status: 'source-confirmed' as const }
+  assert.equal(mergeBridgeRecord({ ...saved, hash: destinationHash }, unrelated), unrelated)
+})

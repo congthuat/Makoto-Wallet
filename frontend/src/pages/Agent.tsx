@@ -41,7 +41,6 @@ const SUGGEST = [
   { icon: PieChart, t: SAMPLE_PROMPTS.portfolio },
   { icon: Radar, t: SAMPLE_PROMPTS.alert },
 ]
-const DESTS = ['Base Sepolia', 'Ethereum Sepolia', 'Arbitrum Sepolia']
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 let uid = 0
 const nid = () => `m${Date.now()}${uid++}`
@@ -87,6 +86,7 @@ function ReviewCard({ msg, onChange, onConfirm, onContinue, onEdit }: {
   if (!(amt > 0)) errs.push('Enter an amount')
   if (f.intent === 'send' && !isAddress(p.recipient)) errs.push('Add a valid 0x recipient address')
   if (f.intent === 'swap' && p.toAsset === p.asset) errs.push('Choose a different asset to receive')
+  if (f.intent === 'bridge' && p.dest !== 'Base Sepolia') errs.push('Only Arc Testnet → Base Sepolia is supported.')
   const field = 'h-9 w-full min-w-0 px-2.5 rounded-lg bg-black/30 border border-white/[0.08] text-[13px] disabled:opacity-100 disabled:bg-transparent disabled:border-transparent disabled:px-0'
   const assets = f.intent === 'bridge' ? ['USDC'] : TOKENS.map((t) => t.sym)
   const title = f.intent === 'send' ? 'Transfer' : f.intent === 'swap' ? 'Swap' : 'Bridge'
@@ -118,13 +118,15 @@ function ReviewCard({ msg, onChange, onConfirm, onContinue, onEdit }: {
           </select>
         </>}
         {f.intent === 'bridge' && <>
-          <label htmlFor={`${msg.id}-dest`} className={T.mute}>{tr('Destination')}</label>
-          <select id={`${msg.id}-dest`} disabled={locked} value={p.dest} onChange={(e) => onChange({ dest: e.target.value })} className={field}>
-            {DESTS.map((d) => <option key={d} className="bg-[#17171d]">{d}</option>)}
-          </select>
+          <span className={T.mute}>{tr('Source')}</span>
+          <span className="h-9 flex items-center">{ARC.name}</span>
+          <span className={T.mute}>{tr('Destination')}</span>
+          <span id={`${msg.id}-dest`} className="h-9 flex items-center">Base Sepolia</span>
         </>}
-        <span className={T.mute}>{tr('Network')}</span>
-        <span className="h-9 flex items-center">Arc</span>
+        {f.intent !== 'bridge' && <>
+          <span className={T.mute}>{tr('Network')}</span>
+          <span className="h-9 flex items-center">Arc</span>
+        </>}
       </div>
       {!locked && (
         <div className="px-4 pb-4">
@@ -306,6 +308,7 @@ export default function AgentPage() {
       }
       if (a.kind === 'send') return flow('send', { ...base, asset: a.asset ?? 'USDC', amount: a.amount ?? '', recipient: a.recipient ?? '' }, 'I parsed the transfer locally. Review the parameters before anything reaches your wallet.')
       if (a.kind === 'swap') return flow('swap', { ...base, asset: a.asset ?? 'USDC', amount: a.amount ?? '', toAsset: a.outputAsset ?? 'EURC' }, 'I parsed the swap locally. A fresh quote and safety revalidation are still required before wallet confirmation.')
+      if ((a.sourceChain && a.sourceChain !== ARC.name) || (a.destinationChain && a.destinationChain !== 'Base Sepolia')) return { id: nid(), role: 'agent', text: 'Only Arc Testnet → Base Sepolia is supported.' }
       return flow('bridge', { ...base, asset: a.asset ?? 'USDC', amount: a.amount ?? '', dest: a.destinationChain ?? 'Base Sepolia' }, 'I parsed the bridge locally. Source submission and destination completion remain separate states.')
     }
     if (brain.intent.kind === 'safety-capabilities') return { id: nid(), role: 'agent', text: 'Makoto prepares actions but never signs for you. Every write must be reviewed again immediately before the connected wallet is opened.', rows: [['Policy', 'Prepare-only Agent'], ['Signing', 'User wallet only'], ['Revalidation', 'Required before wallet request'], ['Bridge completion', 'Destination evidence required']] }

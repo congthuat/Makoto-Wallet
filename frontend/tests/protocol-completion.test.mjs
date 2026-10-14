@@ -18,6 +18,8 @@ const swapHash = `0x${'a'.repeat(64)}`
 const sourceHash = `0x${'b'.repeat(64)}`
 const destinationHash = `0x${'c'.repeat(64)}`
 const previousHash = `0x${'d'.repeat(64)}`
+const otherAccount = '0x3333333333333333333333333333333333333333'
+const otherSourceHash = `0x${'e'.repeat(64)}`
 let browser
 
 const walletFixture = `
@@ -29,8 +31,13 @@ const walletFixture = `
   export function WalletFixture({ children }) {
     const h = window.__completionHarness;
     const [draft, setSwapDraft] = useState(null);
+    const [who, setWho] = useState(h.activeAccount);
+    const [chain, setChain] = useState(h.activeChain);
+    h.changeAccount = (next) => { h.activeAccount = next; setWho(next); };
+    h.changeChain = (next) => { h.activeChain = next; setChain(next); };
     const [setters] = useState(() => {
       const upsert = (kind, merge, record) => {
+        h.activityWrites.push({kind, record});
         const records = h[kind];
         const previous = records.find((r) => r.hash === record.hash);
         h[kind] = [merge(previous, record), ...records.filter((r) => r.hash !== record.hash)];
@@ -44,7 +51,7 @@ const walletFixture = `
       };
     });
     const wallet = {
-      mode: 'connected', address: '${account}', walletChainId: ARC.chainId,
+      mode: 'connected', address: who, walletChainId: chain,
       holdings: TOKENS.map((t) => ({...t, symbol: t.sym, verified: true, balance: 10, price: 1})),
       prices: {USDC: {price: 1}, EURC: {price: 1}, BTC: {price: 1}},
       network: {tokenTransferFeeUsdc: 0.002}, swapDraft: draft, ...setters,
@@ -58,11 +65,11 @@ const toolFixture = `
   const ok = (data) => ({status: 'OK', data});
   const expiry = () => Date.now() + 60_000;
   const action = (kind, q) => ({
-    kind, account: '${account}', chainId: 5042002, expiresAt: expiry(),
-    request: {from: '${account}', to: '${target}', data: '0x1234', value: '0x0', gas: '0x186a0', gasPrice: '0x1'},
+    kind, account: h().activeAccount, chainId: 5042002, expiresAt: expiry(),
+    request: {from: h().activeAccount, to: '${target}', data: '0x1234', value: '0x0', gas: '0x186a0', gasPrice: '0x1'},
     gasEstimate: {maximumFee: 100000n}, cctp: {finalityThreshold: 1000n},
   });
-  export async function readWallet() { h().reads++; return ok({account: '${account}', chainId: 5042002}); }
+  export async function readWallet() { h().reads++; return ok({account: h().activeAccount, chainId: h().activeChain}); }
   export async function readBalance() { h().reads++; return ok({units: 10000000n}); }
   export async function readAllowance() { h().reads++; return ok({units: h().needsApproval && !h().approved ? 0n : 10000000n}); }
   export async function readGasBalance() { h().reads++; return ok(10000000000000000000n); }
@@ -75,9 +82,11 @@ const toolFixture = `
   export async function prepareApproval() { throw new Error('Unexpected MOCK approval path'); }
   export async function quoteBridge(_, input) {
     h().quotes.push({kind: 'bridge', ...input});
+    await h().gate('Quote');
+    if (h().quoteUnavailable) return {status: 'UNAVAILABLE', reason: 'MOCK raw English Circle error'};
     const amount = BigInt(input.amount) * 1000000n;
     return ok({amount, expectedReceive: amount - 1000n, maxFee: 1000n, totalDebit: amount, transferSpeed: input.transferSpeed,
-      spender: '${target}', recipient: '${account}', destinationDomain: 6, expiresAt: expiry()});
+      spender: '${target}', recipient: input.account, destinationDomain: 6, expiresAt: expiry()});
   }
   export async function prepareCctpBurn(_, q) { return action('cctp-burn', q); }
   export async function prepareCctpApproval(_, q) { return {...action('approval', q), cctp: {approvalAmount: q.totalDebit}}; }
@@ -104,30 +113,40 @@ const protocolFixture = `
     h().receipts.push(hash);
     onPending();
     if (h().holdReceipt) await new Promise((resolve) => { h().releaseReceipt = resolve; });
+    await h().gate('Receipt');
     if (action.kind === 'approval') h().approved = true;
     return h().outcome === 'failed' ? 'failed' : 'confirmed';
   }
-  export async function checkProtocolReceipt() { h().reads++; return 'confirmed'; }
+  export async function checkProtocolReceipt(_, action, hash) {
+    h().reads++; h().recoveries.push({account: action.account, hash});
+    await h().gate('Recovery');
+    if (h().recoveryError) throw new Error('MOCK recovery unavailable');
+    return 'confirmed';
+  }
 `
 
 const circleFixture = `
-  export const simulatePreparedCctpCall = async () => ({success: true});
+  export const simulatePreparedCctpCall = async () => { await window.__completionHarness.gate('Simulation'); return {success: true}; };
   export const sameCctpActionMaterial = () => true;
   export const sameCctpQuoteMaterial = () => true;
   export const cctpGasEstimateChanged = () => false;
-  export async function getOfficialCctpStatus() {
+  export async function getOfficialCctpStatus(_, input) {
     const h = window.__completionHarness;
     h.statusReads++;
-    return ['destination-pending', 'destination-confirmed'].includes(h.circleState)
+    h.statusInputs.push(input);
+    const state = h.circleState;
+    await h.gate('Status');
+    if (h.statusError) throw new Error('MOCK Circle unavailable');
+    return ['destination-pending', 'destination-confirmed'].includes(state)
       ? {state: 'forwarding-pending', forwardTxHash: '${destinationHash}'}
-      : {state: h.circleState};
+      : {state};
   }
 `
 
 const entry = `
   import { createElement, StrictMode, useState } from 'react';
   import { createRoot } from 'react-dom/client';
-  import { WalletFixture } from '/__completion_test__/wallet.jsx';
+  import { WalletFixture, useWallet } from '/__completion_test__/wallet.jsx';
   const q = new URLSearchParams(location.search);
   localStorage.clear(); sessionStorage.clear();
   localStorage.setItem('mk.lang', q.get('lang') || 'en');
@@ -136,11 +155,39 @@ const entry = `
     status: 'completed', amount: '9', expectedReceiveUnits: '8999000', destinationDomain: 6, maxFeeUnits: '1000', finalityThreshold: '1000'};
   const h = window.__completionHarness = {
     ready: false, calls: [], quotes: [], walletRequests: [], receipts: [], reads: 0, statusReads: 0, refreshes: 0,
+    activeAccount: '${account}', activeChain: 5042002, recoveries: [], statusInputs: [], activityWrites: [], storageWrites: [],
+    completeCallbacks: 0, sourceCallbacks: 0, quoteCallbacks: 0, consoleErrors: [], destinationReads: 0,
+    holds: new Set(q.get('gate') ? [q.get('gate')] : []), releases: {}, settled: {},
     outcome: q.get('outcome') || 'confirmed', holdReceipt: q.get('hold') === '1',
     needsApproval: q.get('approval') === '1', approved: false,
     circleState: q.get('circle') || 'destination-confirmed',
+    quoteUnavailable: q.get('quoteUnavailable') === '1', destinationState: q.get('destination'),
     swap: [previous], bridge: [{...previous, status: 'destination-confirmed', destinationHash: '${previousHash}'}],
   };
+  h.gate = async (name) => {
+    if (!h.holds.has(name)) return;
+    await new Promise((resolve) => { h.releases[name] = resolve; });
+    h.settled[name] = (h.settled[name] || 0) + 1;
+  };
+  h.release = (name) => { h.holds.delete(name); h.releases[name](); };
+  const originalSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(key, value) {
+    if (this === localStorage && key.startsWith('mk.strategy.') && h.failStrategySave) throw new Error('MOCK checkpoint storage failure');
+    if (this === localStorage && (key.startsWith('mk.strategy.') || key === 'mk.bridge.records.v1')) h.storageWrites.push({key, value});
+    return originalSetItem.call(this, key, value);
+  };
+  const originalError = console.error;
+  console.error = (...args) => { h.consoleErrors.push(args.map(String).join(' ')); originalError(...args); };
+  h.seedRun = (who, hash, extra = {}) => {
+    const value = {version: 1, protocol: 'cctp', account: who, chainId: 5042002, phase: 'SOURCE_CONFIRMED', step: 'cctp-burn', hash, updatedAt: 1,
+      binding: {from: who, to: '${target}', data: '0x1234', amount: '1', expectedReceiveUnits: '999000', recipient: who,
+        destinationDomain: 6, maxFeeUnits: '1000', finalityThreshold: '1000'}, ...extra};
+    localStorage.setItem('mk.strategy.v1:cctp:' + who, JSON.stringify(value));
+    return value;
+  };
+  if (q.get('lifecycle') === '1' && q.get('seed') !== '0') {
+    h.seedRun('${account}', '${sourceHash}'); h.seedRun('${otherAccount}', '${otherSourceHash}');
+  }
   localStorage.setItem('mk.swap.records.v1', JSON.stringify(h.swap));
   localStorage.setItem('mk.bridge.records.v1', JSON.stringify(h.bridge));
   window.ethereum = {isMetaMask: true, request: async ({method}) => {
@@ -152,16 +199,30 @@ const entry = `
   window.fetch = async (url) => {
     if (!String(url).includes('/cctp/destination?')) throw new Error('Unexpected fetch in MOCKED completion QA: ' + url);
     h.destinationReads = (h.destinationReads || 0) + 1;
-    return {ok: true, json: async () => ({status: h.circleState === 'destination-confirmed' ? 'confirmed' : 'pending'})};
+    const state = h.destinationState || (h.circleState === 'destination-confirmed' ? 'confirmed' : 'pending');
+    await h.gate('Destination');
+    return {ok: h.destinationState !== 'http-error', json: async () => { await h.gate('DestinationBody'); return {status: state}; }};
   };
   const pages = await import('/src/pages/SwapBridge.tsx');
   const Component = pages[q.get('kind') === 'bridge' ? 'BridgePage' : 'SwapPage'];
+  const { LiveCctpControl } = await import('/src/components/LiveCctpControl.tsx');
+  function LifecyclePage() {
+    const wallet = useWallet();
+    const [value, setValue] = useState('1');
+    return createElement('div', null,
+      createElement('input', {value, onChange: (event) => setValue(event.target.value)}),
+      createElement(LiveCctpControl, {account: wallet.address, amount: value, transferSpeed: 'FAST',
+        onSourceConfirmed: async () => { h.sourceCallbacks++; await h.gate('SourceCallback'); }, onComplete: () => { h.completeCallbacks++; setValue(''); },
+        onQuoteChange: () => { h.quoteCallbacks++; }}));
+  }
   function Remountable() {
     const [epoch, setEpoch] = useState(0);
     h.remount = () => setEpoch((n) => n + 1);
-    return createElement(Component, {key: epoch});
+    return createElement(q.get('lifecycle') === '1' ? LifecyclePage : Component, {key: epoch});
   }
-  createRoot(document.getElementById('app')).render(createElement(StrictMode, null, createElement(WalletFixture, null, createElement(Remountable))));
+  const root = createRoot(document.getElementById('app'));
+  h.unmount = () => root.unmount();
+  root.render(createElement(StrictMode, null, createElement(WalletFixture, null, createElement(Remountable))));
   h.ready = true;
 `
 
@@ -292,6 +353,82 @@ test('MOCKED CCTP source-pending then source-confirmed retains amount/hash/progr
   })
 })
 
+test('MOCKED Vietnamese CCTP review unavailable text is localized before any wallet request', async () => {
+  await fixture({kind: 'bridge', lang: 'vi', quoteUnavailable: '1'}, async (ui) => {
+    const names = labels('bridge', 'vi')
+    await ui.fill(0, '1')
+    await ui.click(names.start)
+    await ui.wait(`document.body.innerText.includes('Không thể lấy trạng thái CCTP lúc này. Hãy kiểm tra lại sau.')`, 'Unknown CCTP review error must use the Vietnamese fallback')
+    assert.doesNotMatch(await ui.evaluate('document.body.innerText'), /CCTP review or status unavailable\.|MOCK raw English Circle error/)
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+  })
+})
+
+for (const lang of ['en', 'vi']) {
+  test(`MOCKED CCTP ${lang} unavailable retry and refresh preserve source hash without duplicate submission`, async () => {
+    await fixture({kind: 'bridge', lang, circle: 'unavailable'}, async (ui) => {
+      const names = await submit(ui, 'bridge', lang)
+      await ui.wait(enabled(names.check), 'Source must confirm first')
+      await ui.click(names.check)
+      await ui.wait(`${h}.statusReads === 1 && ${enabled(names.check)}`, 'Unavailable Circle read must allow a safe check again')
+      const safe = lang === 'vi'
+        ? 'Không thể lấy trạng thái Circle lúc này. Không gửi lại giao dịch; hãy kiểm tra trạng thái đã lưu.'
+        : 'Circle status is unavailable. Do not resubmit the transfer; check its saved status.'
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(safe))
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(sourceHash))
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.equal(await ui.evaluate(`JSON.parse(localStorage.getItem('mk.strategy.v1:cctp:${account}')).phase`), 'SOURCE_CONFIRMED')
+      await ui.click(names.check)
+      await ui.wait(`${h}.statusReads === 2 && ${enabled(names.check)}`, 'Repeated unavailable reads must remain read-only')
+      await ui.evaluate(`${h}.remount()`)
+      await ui.wait(enabled(names.check), 'Refresh must restore the source-confirmed transfer')
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(sourceHash))
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      await ui.click(names.check)
+      await ui.wait(`${h}.statusReads === 3 && ${enabled(names.check)}`, 'Restored transfer must support read-only retry')
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(safe))
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['bridge'])
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), 1)
+      assert.equal(await ui.evaluate(`${h}.bridge.find((r) => r.hash === '${sourceHash}').status`), 'source-confirmed')
+    })
+  })
+}
+
+for (const destination of ['pending', 'unknown', 'unavailable', 'http-error']) {
+  test(`MOCKED CCTP retry cannot complete from a forward hash with ${destination} Base evidence`, async () => {
+    const lang = destination === 'unavailable' ? 'vi' : 'en'
+    await fixture({kind: 'bridge', lang, circle: 'destination-confirmed', destination}, async (ui) => {
+      const names = await submit(ui, 'bridge', lang)
+      await ui.wait(enabled(names.check), 'Arc source alone must not complete')
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      await ui.click(names.check)
+      await ui.wait(`${h}.destinationReads === 1 && ${enabled(names.check)}`, 'Forward hash requires a Base receipt read')
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(sourceHash))
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(destinationHash))
+      assert.equal(await ui.evaluate(`JSON.parse(localStorage.getItem('mk.strategy.v1:cctp:${account}')).phase`), destination === 'pending' ? 'DESTINATION_PENDING' : 'SOURCE_CONFIRMED')
+      if (destination !== 'pending') assert.match(await ui.evaluate('document.body.innerText'), lang === 'vi' ? /Không gửi lại giao dịch; hãy kiểm tra trạng thái đã lưu/ : /Do not resubmit the transfer; check its saved status/)
+      await ui.click(names.check)
+      await ui.wait(`${h}.destinationReads === 2 && ${enabled(names.check)}`, 'Repeated destination checks must preserve the observed hash')
+      await ui.evaluate(`${h}.remount(); ${h}.circleState = 'unavailable'`)
+      await ui.wait(enabled(names.check), 'Saved source progress must survive refresh')
+      await ui.click(names.check)
+      await ui.wait(`${h}.statusReads === 3 && ${enabled(names.check)}`, 'Unavailable status after refresh must remain read-only')
+      assert.equal(await ui.evaluate(`${h}.bridge.find((r) => r.hash === '${sourceHash}').destinationHash`), destinationHash)
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      await ui.evaluate(`${h}.circleState = 'destination-confirmed'`)
+      await ui.evaluate(`${h}.destinationState = 'confirmed'`)
+      await ui.click(names.check)
+      await ui.wait(enabled(names.done), 'Only confirmed Base receipt evidence may complete the transfer')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['bridge'])
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), 1)
+    })
+  })
+}
+
 test('MOCKED CCTP approval-confirmed preserves explicit fresh burn review continuation without completing or resetting the amount', async () => {
   await fixture({kind: 'bridge', approval: '1'}, async (ui) => {
     const names = labels('bridge')
@@ -356,3 +493,301 @@ for (const kind of ['swap', 'bridge']) for (const outcome of ['failed', 'rejecte
     })
   })
 }
+
+const checkpoint = (who) => `localStorage.getItem('mk.strategy.v1:cctp:${who}')`
+const lifecycleSnapshot = `JSON.stringify({a: ${checkpoint(account)}, b: ${checkpoint(otherAccount)},
+  activity: ${h}.bridge, activityWrites: ${h}.activityWrites.length, storageWrites: ${h}.storageWrites.length,
+  sourceCallbacks: ${h}.sourceCallbacks, completeCallbacks: ${h}.completeCallbacks, quoteCallbacks: ${h}.quoteCallbacks})`
+async function settleGate(ui, gate) {
+  await ui.evaluate(`${h}.release('${gate}')`)
+  await ui.wait(`${h}.settled.${gate} >= 1`, 'The delayed MOCK response must settle')
+  // Drain the async continuation and React commits before checking absence of writes.
+  await ui.evaluate('new Promise((resolve) => setTimeout(resolve, 50))')
+}
+async function startSavedCheck(ui, gate) {
+  const names = labels('bridge')
+  await ui.wait(enabled(names.check), 'A saved confirmed burn must restore a read-only check')
+  await ui.click(names.check)
+  await ui.wait(`!!${h}.releases.${gate}`, `${gate} response must be delayed`)
+  return names
+}
+
+for (const gate of ['Recovery', 'Status', 'Destination', 'DestinationBody']) {
+  test(`MOCKED CCTP lifecycle: account switch discards delayed ${gate} evidence and preserves B exactly`, async () => {
+    await fixture({kind: 'bridge', lifecycle: '1', gate}, async (ui) => {
+      const names = await startSavedCheck(ui, gate)
+      await ui.evaluate(`${h}.changeAccount('${otherAccount}')`)
+      await ui.wait(`document.body.innerText.includes('${otherSourceHash}') && ${enabled(names.check)}`, 'B must restore its own source hash and release the old lock')
+      const before = await ui.evaluate(lifecycleSnapshot)
+      await settleGate(ui, gate)
+      assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'A late evidence must perform no strategy, Activity or callback mutation')
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(otherSourceHash))
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), 0)
+      // The new account must be able to check independently after discarding A.
+      await ui.click(names.check)
+      await ui.wait(enabled(names.done), 'B can complete only from a new explicitly requested B evidence check')
+      assert.equal(await ui.evaluate(`JSON.parse(${checkpoint(otherAccount)}).phase`), 'COMPLETED')
+      assert.equal(await ui.evaluate(`${h}.statusInputs.at(-1).account`), otherAccount)
+      assert.equal(await ui.evaluate(`${h}.statusInputs.at(-1).burnHash`), otherSourceHash)
+      assert.equal(await ui.evaluate(`${h}.activityWrites.filter((w) => w.record.status === 'destination-confirmed').length`), 1)
+    })
+  })
+}
+
+for (const gate of ['Status', 'Destination', 'DestinationBody']) {
+  test(`MOCKED CCTP lifecycle: unmount makes delayed ${gate} response harmless`, async () => {
+    await fixture({kind: 'bridge', lifecycle: '1', gate}, async (ui) => {
+      await startSavedCheck(ui, gate)
+      await ui.evaluate(`${h}.unmount()`)
+      const before = await ui.evaluate(lifecycleSnapshot)
+      await settleGate(ui, gate)
+      assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'Unmounted work cannot write Activity, checkpoint, callbacks or completion')
+      assert.equal(await ui.evaluate('document.querySelectorAll("button").length'), 0)
+      assert.deepEqual(await ui.evaluate(`${h}.consoleErrors`), [], 'No late React mutation warning')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+    })
+  })
+}
+
+test('MOCKED CCTP lifecycle: ten synchronous checks run one recovery/Circle/Base sequence with no submission or duplicate completion', async () => {
+  await fixture({kind: 'bridge', lifecycle: '1', gate: 'Status'}, async (ui) => {
+    const names = labels('bridge')
+    await ui.wait(enabled(names.check), 'Saved source transfer must be checkable')
+    await ui.evaluate(`(() => { const button = ${buttons(names.check)}[0]; for (let i = 0; i < 10; i++) button.click(); })()`)
+    await ui.wait(`!!${h}.releases.Status`, 'The single Circle operation must be held')
+    assert.equal(await ui.evaluate(`${h}.recoveries.length`), 1, 'The synchronous mutex must precede the first async recovery read')
+    assert.equal(await ui.evaluate(`${h}.statusReads`), 1)
+    assert.equal(await ui.evaluate(`${h}.destinationReads`), 0)
+    await settleGate(ui, 'Status')
+    await ui.wait(enabled(names.done), 'One verified Base result may complete once')
+    assert.equal(await ui.evaluate(`${h}.recoveries.length`), 1)
+    assert.equal(await ui.evaluate(`${h}.statusReads`), 1)
+    assert.equal(await ui.evaluate(`${h}.destinationReads`), 1)
+    assert.equal(await ui.evaluate(`${h}.activityWrites.filter((w) => w.record.status === 'destination-confirmed').length`), 1)
+    assert.equal(await ui.evaluate(`${h}.storageWrites.filter((w) => w.key.startsWith('mk.strategy.') && JSON.parse(w.value).phase === 'COMPLETED').length`), 1)
+    assert.equal(await ui.evaluate(`${h}.completeCallbacks`), 0, 'Completion acknowledgment requires its own explicit Done click')
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+    assert.deepEqual(await ui.evaluate(`${h}.receipts`), [])
+    assert.deepEqual(await ui.evaluate(`${h}.quotes`), [])
+  })
+})
+
+for (const replacement of ['hash', 'binding']) {
+  test(`MOCKED CCTP lifecycle: replacing same-account saved ${replacement} discards prior evidence`, async () => {
+    await fixture({kind: 'bridge', lifecycle: '1', gate: 'Status'}, async (ui) => {
+      const names = await startSavedCheck(ui, 'Status')
+      await ui.evaluate(replacement === 'hash'
+        ? `${h}.seedRun('${account}', '${otherSourceHash}')`
+        : `(() => { const saved = JSON.parse(${checkpoint(account)}); saved.binding.expectedReceiveUnits = '1999000'; localStorage.setItem('mk.strategy.v1:cctp:${account}', JSON.stringify(saved)); })()`)
+      const before = await ui.evaluate(lifecycleSnapshot)
+      await settleGate(ui, 'Status')
+      assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'Changed immutable transfer identity rejects old completion')
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.equal(await ui.evaluate(`${h}.destinationReads`), 0)
+      await ui.evaluate(`${h}.remount()`)
+      await ui.wait(enabled(names.check), 'A fresh mount releases prior work and restores the replacement run')
+      await ui.click(names.check)
+      await ui.wait(enabled(names.done), 'Replacement requires its own fresh verification')
+      assert.equal(await ui.evaluate(`${h}.statusInputs.length`), 2)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+    })
+  })
+}
+
+test('MOCKED CCTP lifecycle: A to B to A invalidates the original A generation', async () => {
+  await fixture({kind: 'bridge', lifecycle: '1', gate: 'Status'}, async (ui) => {
+    const names = await startSavedCheck(ui, 'Status')
+    await ui.evaluate(`${h}.changeAccount('${otherAccount}')`)
+    await ui.wait(`document.body.innerText.includes('${otherSourceHash}')`, 'B must mount its identity')
+    await ui.evaluate(`${h}.changeAccount('${account}')`)
+    await ui.wait(`document.body.innerText.includes('${sourceHash}') && ${enabled(names.check)}`, 'A is a new lifecycle generation')
+    const before = await ui.evaluate(lifecycleSnapshot)
+    await settleGate(ui, 'Status')
+    assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'Returning to A cannot resurrect its invalidated operation')
+    assert.equal(await ui.evaluate(exists(names.done)), false)
+    await ui.click(names.check)
+    await ui.wait(enabled(names.done), 'A new check may verify A after the old generation settles')
+  })
+})
+
+test('MOCKED CCTP lifecycle: changing chain discards delayed destination evidence and unlocks after returning to Arc', async () => {
+  await fixture({kind: 'bridge', lifecycle: '1', gate: 'DestinationBody'}, async (ui) => {
+    const names = await startSavedCheck(ui, 'DestinationBody')
+    await ui.evaluate(`${h}.changeChain(84532)`)
+    await ui.evaluate('new Promise((resolve) => setTimeout(resolve, 50))')
+    const before = await ui.evaluate(lifecycleSnapshot)
+    await settleGate(ui, 'DestinationBody')
+    assert.equal(await ui.evaluate(lifecycleSnapshot), before)
+    assert.equal(await ui.evaluate(exists(names.done)), false)
+    await ui.evaluate(`${h}.changeChain(5042002)`)
+    await ui.wait(enabled(names.check), 'Returning to Arc must release the invalidated lock')
+    await ui.click(names.check)
+    await ui.wait(enabled(names.done), 'Only a new Arc-context operation can complete')
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+  })
+})
+
+for (const failure of ['error', 'unavailable']) {
+  test(`MOCKED CCTP lifecycle: ${failure} releases check mutex for a safe retry`, async () => {
+    await fixture({kind: 'bridge', lifecycle: '1', circle: failure === 'unavailable' ? 'unavailable' : 'destination-confirmed'}, async (ui) => {
+      const names = labels('bridge')
+      if (failure === 'error') await ui.evaluate(`${h}.statusError = true`)
+      await ui.wait(enabled(names.check), 'Saved transfer must restore')
+      await ui.click(names.check)
+      await ui.wait(`${h}.statusReads === 1 && ${enabled(names.check)}`, 'Failure must always release the immediate mutex')
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      await ui.evaluate(`${h}.statusError = false; ${h}.circleState = 'destination-confirmed'`)
+      await ui.click(names.check)
+      await ui.wait(enabled(names.done), 'Explicit retry remains available after failure')
+      assert.equal(await ui.evaluate(`${h}.recoveries.length`), 2)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+    })
+  })
+}
+
+for (const gate of ['Quote', 'Simulation']) {
+  test(`MOCKED CCTP lifecycle: delayed preparation ${gate} cannot publish review after account change`, async () => {
+    await fixture({kind: 'bridge', lifecycle: '1', seed: '0', gate}, async (ui) => {
+      const names = labels('bridge')
+      await ui.wait(enabled(names.start), 'Fresh account can explicitly prepare')
+      await ui.click(names.start)
+      await ui.wait(`!!${h}.releases.${gate}`, 'Preparation must wait at the chosen boundary')
+      await ui.evaluate(`${h}.changeAccount('${otherAccount}')`)
+      await ui.wait(enabled(names.start), 'New account must have fresh idle controls')
+      const before = await ui.evaluate(lifecycleSnapshot)
+      await settleGate(ui, gate)
+      assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'Stale preparation cannot save a review or publish a quote')
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+    })
+  })
+}
+
+for (const gate of ['Simulation', 'Receipt']) {
+  test(`MOCKED CCTP lifecycle: delayed confirm ${gate} cannot mutate after unmount`, async () => {
+    await fixture({kind: 'bridge', lifecycle: '1', seed: '0'}, async (ui) => {
+      const names = labels('bridge')
+      await ui.wait(enabled(names.start), 'A fresh transfer can be reviewed')
+      await ui.click(names.start)
+      await ui.wait(enabled(names.confirm), 'Separate explicit burn review must appear')
+      await ui.evaluate(`${h}.holds.add('${gate}')`)
+      await ui.click(names.confirm)
+      await ui.wait(`!!${h}.releases.${gate}`, 'Confirm must wait at the chosen boundary')
+      await ui.evaluate(`${h}.unmount()`)
+      const before = await ui.evaluate(lifecycleSnapshot)
+      await settleGate(ui, gate)
+      assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'Late confirm work cannot write checkpoint, Activity or callbacks')
+      assert.equal(await ui.evaluate(`${h}.walletRequests.length`), gate === 'Receipt' ? 1 : 0)
+      assert.equal(await ui.evaluate(`${h}.sourceCallbacks`), 0)
+      assert.deepEqual(await ui.evaluate(`${h}.consoleErrors`), [])
+    })
+  })
+}
+
+for (const change of ['account', 'amount']) {
+  test(`MOCKED CCTP lifecycle: ${change} change during confirmation simulation prevents the stale wallet request`, async () => {
+    await fixture({kind: 'bridge', lifecycle: '1', seed: '0'}, async (ui) => {
+      const names = labels('bridge')
+      await ui.wait(enabled(names.start), 'A fresh transfer must be explicitly reviewed')
+      await ui.click(names.start)
+      await ui.wait(enabled(names.confirm), 'Initial burn review must be ready')
+      await ui.evaluate(`${h}.holds.add('Simulation')`)
+      await ui.click(names.confirm)
+      await ui.wait(`!!${h}.releases.Simulation`, 'Confirmation simulation must be held before wallet request')
+      if (change === 'account') await ui.evaluate(`${h}.changeAccount('${otherAccount}')`)
+      else await ui.fill(0, '2')
+      await ui.wait(enabled(names.start), 'Changed input must clear the old executable review and lock')
+      const before = await ui.evaluate(lifecycleSnapshot)
+      await settleGate(ui, 'Simulation')
+      assert.equal(await ui.evaluate(lifecycleSnapshot), before)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [], 'An invalidated review must never ask any wallet to sign')
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+    })
+  })
+}
+
+test('MOCKED CCTP lifecycle: stale A finally cannot release B check lock while B response is pending', async () => {
+  await fixture({kind: 'bridge', lifecycle: '1', gate: 'Status'}, async (ui) => {
+    const names = await startSavedCheck(ui, 'Status')
+    await ui.evaluate(`${h}.releaseA = ${h}.releases.Status; ${h}.changeAccount('${otherAccount}')`)
+    await ui.wait(`document.body.innerText.includes('${otherSourceHash}') && ${enabled(names.check)}`, 'B starts with an independent unlocked context')
+    await ui.click(names.check)
+    await ui.wait(`${h}.statusReads === 2 && ${h}.releases.Status !== ${h}.releaseA`, 'B must hold its own new operation')
+    const before = await ui.evaluate(lifecycleSnapshot)
+    await ui.evaluate(`(async () => { ${h}.releaseA(); await new Promise((resolve) => setTimeout(resolve, 50)); })()`)
+    assert.equal(await ui.evaluate(lifecycleSnapshot), before)
+    assert.equal(await ui.evaluate(enabled(names.check)), false, 'A finally must not clear B busy UI or mutex')
+    assert.equal(await ui.evaluate(`${h}.destinationReads`), 0)
+    await settleGate(ui, 'Status')
+    await ui.wait(enabled(names.done), 'B finishes only after its own response is released')
+    assert.equal(await ui.evaluate(`${h}.recoveries.length`), 2)
+    assert.equal(await ui.evaluate(`${h}.statusReads`), 2)
+    assert.equal(await ui.evaluate(`${h}.destinationReads`), 1)
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+  })
+})
+
+test('MOCKED CCTP lifecycle: a terminal saved checkpoint with the same hash cannot be overwritten by an old check', async () => {
+  await fixture({kind: 'bridge', lifecycle: '1', gate: 'Status'}, async (ui) => {
+    const names = await startSavedCheck(ui, 'Status')
+    await ui.evaluate(`(() => { const saved = JSON.parse(${checkpoint(account)}); saved.phase = 'COMPLETED'; localStorage.setItem('mk.strategy.v1:cctp:${account}', JSON.stringify(saved)); })()`)
+    const before = await ui.evaluate(lifecycleSnapshot)
+    await settleGate(ui, 'Status')
+    assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'The exact checkpoint revision, beyond hash identity, binds each evidence operation')
+    assert.equal(await ui.evaluate(exists(names.done)), false, 'An externally written phase cannot fabricate verified completion in this control')
+    assert.equal(await ui.evaluate(`${h}.destinationReads`), 0)
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+  })
+})
+
+test('MOCKED CCTP lifecycle: unmount during source callback discards its continuation before Activity and Circle reads', async () => {
+  await fixture({kind: 'bridge', lifecycle: '1', gate: 'SourceCallback'}, async (ui) => {
+    await startSavedCheck(ui, 'SourceCallback')
+    assert.equal(await ui.evaluate(`${h}.sourceCallbacks`), 1, 'The callback began while the operation was mounted and current')
+    await ui.evaluate(`${h}.unmount()`)
+    const before = await ui.evaluate(lifecycleSnapshot)
+    await settleGate(ui, 'SourceCallback')
+    assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'A callback already in flight must not enable late Activity or state updates')
+    assert.equal(await ui.evaluate(`${h}.statusReads`), 0)
+    assert.equal(await ui.evaluate(`${h}.destinationReads`), 0)
+    assert.equal(await ui.evaluate(`${h}.activityWrites.length`), 0)
+    assert.deepEqual(await ui.evaluate(`${h}.consoleErrors`), [])
+  })
+})
+
+test('MOCKED CCTP lifecycle: failed strategy save preserves the run and releases the read-only check lock', async () => {
+  await fixture({kind: 'bridge', lifecycle: '1'}, async (ui) => {
+    const names = labels('bridge')
+    await ui.wait(enabled(names.check), 'Saved transfer must be available')
+    const before = await ui.evaluate(lifecycleSnapshot)
+    await ui.evaluate(`${h}.failStrategySave = true`)
+    await ui.click(names.check)
+    await ui.wait(`${h}.recoveries.length === 1 && ${enabled(names.check)}`, 'Storage failure must release the immediate lock')
+    assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'A failed checkpoint write cannot advance any in-memory run, Activity or callback')
+    assert.equal(await ui.evaluate(exists(names.done)), false)
+    assert.equal(await ui.evaluate(`${h}.statusReads`), 0)
+    await ui.evaluate(`${h}.failStrategySave = false`)
+    await ui.click(names.check)
+    await ui.wait(enabled(names.done), 'An explicit retry after storage recovery may complete')
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+  })
+})
+
+test('MOCKED CCTP lifecycle: Cancel cannot erase a replacement saved transfer from an old review', async () => {
+  await fixture({kind: 'bridge', lifecycle: '1', seed: '0'}, async (ui) => {
+    const names = labels('bridge')
+    await ui.wait(enabled(names.start), 'A fresh quote must be explicit')
+    await ui.click(names.start)
+    await ui.wait(enabled(names.confirm), 'A bounded burn review must appear')
+    await ui.evaluate(`${h}.seedRun('${account}', '${otherSourceHash}')`)
+    const before = await ui.evaluate(lifecycleSnapshot)
+    await ui.click('Cancel')
+    assert.equal(await ui.evaluate(lifecycleSnapshot), before, 'Old review cancel cannot reset a newer saved run to IDLE')
+    await ui.click(names.confirm)
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [], 'Old review cannot request the wallet after checkpoint replacement')
+    await ui.evaluate(`${h}.remount()`)
+    await ui.wait(`document.body.innerText.includes('${otherSourceHash}') && ${enabled(names.check)}`, 'The replacement transfer remains recoverable')
+  })
+})

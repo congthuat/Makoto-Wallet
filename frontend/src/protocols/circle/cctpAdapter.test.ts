@@ -4,12 +4,12 @@ import { CCTPV2BridgingProvider } from '@circle-fin/provider-cctp-v2'
 import { decodeFunctionData, encodeFunctionData, encodeFunctionResult, erc20Abi, pad, zeroHash, type Address, type Hex } from 'viem'
 import { TOKENS } from '../../lib/wallet.ts'
 import type { SendProvider } from '../../lib/sendExecution.ts'
-import { CCTP_FORWARDING_HOOK_DATA, CCTP_KIT_BRIDGE_TESTNET, CCTP_TOKEN_MESSENGER_V2 } from '../../migrated/cctp.ts'
+import { CCTP_FORWARDING_HOOK_DATA, CCTP_KIT_BRIDGE_TESTNET, CCTP_MESSAGE_TRANSMITTER_V2, CCTP_TOKEN_MESSENGER_V2 } from '../../migrated/cctp.ts'
 import type { BridgeToolQuote, PreparedToolAction } from '../../migrated/toolLayer.ts'
 import { prepareCctpApproval, prepareCctpBurn, quoteBridge } from '../../migrated/toolLayer.ts'
 import { requestReviewedCctpAction } from '../../migrated/protocolExecution.ts'
 import { SendSubmissionGuard } from '../../lib/sendExecution.ts'
-import { CIRCLE_CUSTOM_BURN_WITH_HOOK_ABI, cctpGasEstimateChanged, executePreparedCctpCall, getOfficialCctpQuote, prepareExactCctpApproval, prepareOfficialCctpBurn, sameCctpActionMaterial, simulatePreparedCctpCall } from './cctpAdapter.ts'
+import { CIRCLE_CUSTOM_BURN_WITH_HOOK_ABI, cctpGasEstimateChanged, executePreparedCctpCall, getOfficialCctpQuote, getOfficialCctpStatus, prepareExactCctpApproval, prepareOfficialCctpBurn, sameCctpActionMaterial, simulatePreparedCctpCall } from './cctpAdapter.ts'
 
 const account = '0x1111111111111111111111111111111111111111' as Address
 const txHash = `0x${'a'.repeat(64)}` as Hex
@@ -267,4 +267,129 @@ test('CCTP burn rejection returns no hash and cannot retry the same reviewed req
     assert.equal(f.calls.filter((call) => call.method === 'eth_sendTransaction').length, 1)
     await assert.rejects(executePreparedCctpCall(action), /already been used/)
   })
+})
+
+const statusInput = { account, burnHash: txHash, destinationDomain: 6, recipient: account, expectedReceive: amount - 100n, maxFee: 100n, finalityThreshold: 1000n }
+const statusMessage = () => ({
+  message: '0x01', eventNonce: '1', attestation: '0xab', cctpVersion: 2, status: 'complete',
+  forwardState: 'CONFIRMED', forwardTxHash: txHash,
+  decodedMessage: {
+    sourceDomain: '26', destinationDomain: '6', sender: pad(CCTP_TOKEN_MESSENGER_V2, { size: 32 }),
+    recipient: pad(CCTP_MESSAGE_TRANSMITTER_V2, { size: 32 }), minFinalityThreshold: '1000',
+    decodedMessageBody: { burnToken: TOKENS[0]!.address, mintRecipient: pad(account, { size: 32 }), amount: amount.toString(), messageSender: CCTP_KIT_BRIDGE_TESTNET, maxFee: '100', feeExecuted: '100' },
+  },
+})
+
+for (const pending of ['empty', 'pending', '404'] as const) {
+  test(`actual Circle SDK ${pending} response is attestation-pending after bounded read-only attempts`, async (t) => {
+    const f = fixture()
+    const previous = globalThis.fetch
+    t.mock.timers.enable({ apis: ['setTimeout'] })
+    let attempts = 0
+    let firstRequest!: () => void
+    const started = new Promise<void>((resolve) => { firstRequest = resolve })
+    globalThis.fetch = (async (url) => {
+      assert.match(String(url), /iris-api-sandbox\.circle\.com\/v2\/messages\/26\?transactionHash=/)
+      attempts++
+      firstRequest()
+      return pending === '404' ? new Response('{}', { status: 404, statusText: 'Not Found' })
+        : Response.json({ messages: pending === 'empty' ? [] : [{ ...statusMessage(), status: 'pending', attestation: 'PENDING' }] })
+    }) as typeof fetch
+    try {
+      const result = getOfficialCctpStatus(f.p, statusInput, { createProvider: f.createProvider })
+      await started
+      await new Promise(setImmediate)
+      assert.equal(attempts, 1)
+      t.mock.timers.tick(4_999)
+      await new Promise(setImmediate)
+      assert.equal(attempts, 1)
+      t.mock.timers.tick(1)
+      assert.deepEqual(await result, { state: 'attestation-pending' })
+      assert.equal(attempts, 2)
+      assert.equal(f.calls.length, 0)
+    } finally { globalThis.fetch = previous; t.mock.timers.reset() }
+  })
+}
+
+test('actual Circle SDK accepts a status response slower than the former 1.5-second cutoff', async (t) => {
+  const f = fixture()
+  const previous = globalThis.fetch
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let firstRequest!: () => void
+  const started = new Promise<void>((resolve) => { firstRequest = resolve })
+  let attempts = 0
+  globalThis.fetch = (async (_url, init) => new Promise<Response>((resolve, reject) => {
+    attempts++
+    firstRequest()
+    const timer = setTimeout(() => resolve(Response.json({ messages: [statusMessage()] })), 1_700)
+    init?.signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new DOMException('Request timed out', 'AbortError')) }, { once: true })
+  })) as typeof fetch
+  try {
+    const result = getOfficialCctpStatus(f.p, statusInput, { createProvider: f.createProvider })
+    await started
+    t.mock.timers.tick(1_700)
+    const status = await result
+    assert.equal(status.state, 'attestation-available')
+    assert.equal(status.forwardTxHash, txHash)
+    assert.equal(status.actualReceive, statusInput.expectedReceive)
+    assert.equal(attempts, 1)
+    assert.equal(f.calls.length, 0)
+  } finally { globalThis.fetch = previous; t.mock.timers.reset() }
+})
+
+test('actual Circle SDK status timeouts remain unavailable after two 10-second attempts', async (t) => {
+  const f = fixture()
+  const previous = globalThis.fetch
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let firstRequest!: () => void
+  const started = new Promise<void>((resolve) => { firstRequest = resolve })
+  let attempts = 0
+  globalThis.fetch = (async (_url, init) => new Promise<Response>((_resolve, reject) => {
+    attempts++
+    firstRequest()
+    init?.signal?.addEventListener('abort', () => reject(new DOMException('Request timed out', 'AbortError')), { once: true })
+  })) as typeof fetch
+  try {
+    const result = getOfficialCctpStatus(f.p, statusInput, { createProvider: f.createProvider })
+    await started
+    t.mock.timers.tick(9_999)
+    await new Promise(setImmediate)
+    assert.equal(attempts, 1)
+    t.mock.timers.tick(1)
+    await new Promise(setImmediate)
+    t.mock.timers.tick(5_000)
+    await new Promise(setImmediate)
+    assert.equal(attempts, 2)
+    t.mock.timers.tick(10_000)
+    const status = await result
+    assert.equal(status.state, 'unavailable')
+    assert.match(status.reason!, /Request timed out/)
+    assert.equal(attempts, 2)
+    assert.equal(f.calls.length, 0)
+  } finally { globalThis.fetch = previous; t.mock.timers.reset() }
+})
+
+test('Circle status retries preserve every reviewed message binding and cannot claim destination completion', async () => {
+  const f = fixture()
+  const circle = f.createProvider()
+  let message = statusMessage()
+  Object.defineProperty(circle, 'fetchAttestation', { value: async () => message })
+  const read = () => getOfficialCctpStatus(f.p, statusInput, { createProvider: () => circle })
+  assert.equal((await read()).state, 'attestation-available')
+  const changes = [
+    { decodedMessage: { ...message.decodedMessage, sourceDomain: '0' } },
+    { decodedMessage: { ...message.decodedMessage, destinationDomain: '0' } },
+    { decodedMessage: { ...message.decodedMessage, sender: pad(account, { size: 32 }) } },
+    { decodedMessage: { ...message.decodedMessage, recipient: pad(account, { size: 32 }) } },
+    { decodedMessage: { ...message.decodedMessage, minFinalityThreshold: '2000' } },
+    ...Object.entries({ burnToken: account, mintRecipient: pad(CCTP_KIT_BRIDGE_TESTNET, { size: 32 }), messageSender: account, maxFee: '101', feeExecuted: '101', amount: '999999' }).map(([field, value]) => ({ decodedMessage: { ...message.decodedMessage, decodedMessageBody: { ...message.decodedMessage.decodedMessageBody, [field]: value } } })),
+  ]
+  for (const change of changes) {
+    message = { ...statusMessage(), ...change }
+    const status = await read()
+    assert.equal(status.state, 'unavailable')
+    assert.match(status.reason!, /do not match the reviewed burn route and receive floor/)
+    assert.equal(status.forwardTxHash, undefined)
+  }
+  assert.equal(f.calls.length, 0)
 })

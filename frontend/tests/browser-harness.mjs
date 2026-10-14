@@ -120,11 +120,13 @@ export function createBrowserHarness({ frontendRoot, name, plugins, ready }) {
       }
       const click = (name) => evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === ${JSON.stringify(name)}); if (!b || b.disabled) throw new Error('Button missing or disabled: ' + ${JSON.stringify(name)}); b.click(); })()`)
       const fill = (index, value) => evaluate(`(() => { const input = [...document.querySelectorAll('input')].filter((i) => i.type !== 'checkbox')[${index}]; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(value)}); input.dispatchEvent(new Event('input', {bubbles: true})); })()`)
+      const setViewport = (width, height) => cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 768 }, sessionId)
+      const screenshot = async () => (await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true }, sessionId)).data
       try {
         await cdp.send('Page.enable', {}, sessionId)
         await cdp.send('Page.navigate', { url: `${origin}/${route}?${new URLSearchParams(params)}` }, sessionId)
         await wait(ready, 'Actual production component must mount')
-        await run({ evaluate, wait, click, fill })
+        await run({ evaluate, wait, click, fill, setViewport, screenshot })
       } finally { await cdp.send('Target.closeTarget', { targetId }) }
     },
   }
