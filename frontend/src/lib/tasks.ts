@@ -154,26 +154,120 @@ export function taskDisplayTitle(task: Pick<TaskCandidate, 'type' | 'condition' 
   return task.title
 }
 
-export function taskResultSummary(task: Pick<TaskCandidate, 'type' | 'condition' | 'schedule'>, value: unknown, locale: 'en' | 'vi'): string {
-  if (value == null || typeof value !== 'object') return locale === 'vi' ? 'Chưa có kết quả' : 'No result yet'
+const taskAssets = ['USDC', 'EURC', 'cirBTC'] as const
+
+// Keep observed decimal strings out of floating-point arithmetic. Only numeric
+// fields are formatted here; provider prose is never used to obtain facts.
+function taskDecimal(value: unknown): string | null {
+  if (typeof value !== 'string' || !/^\d+(?:\.\d+)?$/.test(value)) return null
+  const [whole, fraction] = value.split('.')
+  const decimals = fraction?.replace(/0+$/, '')
+  return decimals ? `${whole}.${decimals}` : whole
+}
+
+function taskBalanceRows(result: Record<string, unknown>) {
+  const balances = result.balances && typeof result.balances === 'object' && !Array.isArray(result.balances)
+    ? result.balances as Record<string, unknown> : {}
+  const rows = taskAssets.flatMap((asset) => {
+    const amount = taskDecimal(balances[asset])
+    return amount === null ? [] : [{ asset, amount }]
+  })
+  const incomplete = rows.length < taskAssets.length || (Array.isArray(result.unavailableBalances) && result.unavailableBalances.length > 0)
+  return { rows, incomplete }
+}
+
+function taskMonitorObservation(result: Record<string, unknown>) {
+  const asset = taskAssets.find((asset) => asset === result.asset)
+  const balance = taskDecimal(result.balance)
+  const threshold = taskDecimal(result.threshold)
+  const operators = { LT: '<', LTE: '≤', GT: '>', GTE: '≥' } as const
+  const operator = (Object.keys(operators) as TaskCondition['operator'][]).find((operator) => operator === result.operator)
+  // A retained result can predate an edit. Read the observed condition snapshot,
+  // never the task's current threshold, and never reevaluate conditionMet.
+  return {
+    asset, balance, threshold, operator,
+    sign: operator ? operators[operator] : null,
+    conditionMet: typeof result.conditionMet === 'boolean' ? result.conditionMet : null,
+  }
+}
+
+function taskActivityCount(result: Record<string, unknown>): number | null {
+  return ['AVAILABLE', 'PARTIAL'].includes(String(result.activityStatus)) &&
+    typeof result.activityCount === 'number' && Number.isSafeInteger(result.activityCount) && result.activityCount >= 0
+    ? result.activityCount : null
+}
+
+export function taskResultSummary(_task: Pick<TaskCandidate, 'type' | 'condition' | 'schedule'>, value: unknown, locale: 'en' | 'vi'): string {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) return locale === 'vi' ? 'Chưa có kết quả' : 'No result yet'
   const result = value as Record<string, unknown>
   if (result.kind === 'TOKEN_BALANCE') {
-    const balance = typeof result.balance === 'string' ? result.balance : '—'
-    return locale === 'vi' ? `Số dư ${result.asset}: ${balance}. Điều kiện ${taskDefinition(task, locale)} ${result.conditionMet ? 'đã đạt' : 'chưa đạt'}.` : `${result.asset} balance: ${balance}. Condition ${taskDefinition(task, locale)} ${result.conditionMet ? 'met' : 'not met'}.`
+    const { asset, balance, threshold, sign, conditionMet } = taskMonitorObservation(result)
+    if (!asset || balance === null) return locale === 'vi' ? 'Số dư chưa khả dụng.' : 'Balance unavailable.'
+    const observed = locale === 'vi' ? `Số dư ${asset}: ${balance}.` : `${asset} balance: ${balance}.`
+    if (threshold === null || !sign || conditionMet === null) return observed + (locale === 'vi' ? ' Dữ liệu điều kiện chưa khả dụng.' : ' Condition data unavailable.')
+    return observed + (locale === 'vi' ? ` Điều kiện ${asset} ${sign} ${threshold} ${conditionMet ? 'đã đạt' : 'chưa đạt'}.` : ` Condition ${asset} ${sign} ${threshold} ${conditionMet ? 'met' : 'not met'}.`)
   }
   if (result.kind === 'ACTIVITY_SUMMARY') {
-    if (result.activityStatus === 'UNAVAILABLE') return locale === 'vi' ? 'Hoạt động từ Arc explorer chưa khả dụng.' : 'Arc explorer activity unavailable.'
+    const count = taskActivityCount(result)
+    if (count === null) return locale === 'vi' ? 'Hoạt động từ Arc Explorer chưa khả dụng.' : 'Arc Explorer activity unavailable.'
     const partial = result.activityStatus === 'PARTIAL' ? locale === 'vi' ? ' (dữ liệu một phần)' : ' (partial data)' : ''
-    return locale === 'vi' ? `Giao dịch hôm nay được Arc explorer ghi nhận: ${result.activityCount ?? '—'}${partial}.` : `Arc explorer indexed transfers today: ${result.activityCount ?? '—'}${partial}.`
+    return locale === 'vi' ? `Giao dịch hôm nay được Arc Explorer ghi nhận: ${count}${partial}.` : `Arc Explorer indexed transfers today: ${count}${partial}.`
   }
   if (result.kind === 'PORTFOLIO_SUMMARY' || result.kind === 'BALANCE_CHECK') {
-    const balances = result.balances && typeof result.balances === 'object' ? Object.entries(result.balances as Record<string, unknown>).map(([asset, amount]) => `${asset}: ${amount}`).join(', ') : ''
-    const missingBalances = Array.isArray(result.unavailableBalances) && result.unavailableBalances.length ? locale === 'vi' ? ' Một số số dư chưa khả dụng.' : ' Some balances unavailable.' : ''
+    const { rows, incomplete } = taskBalanceRows(result)
+    const balances = rows.map(({ asset, amount }) => `${asset}: ${amount}`).join(', ')
+    const missingBalances = rows.length && incomplete ? locale === 'vi' ? ' Một số số dư chưa khả dụng.' : ' Some balances unavailable.' : ''
     const prices = result.pricingStatus === 'UNAVAILABLE' ? locale === 'vi' ? ' Giá chưa khả dụng.' : ' Pricing unavailable.' : result.pricingStatus === 'PARTIAL' ? locale === 'vi' ? ' Giá chỉ có một phần.' : ' Pricing partial.' : ''
     const activity = result.activityStatus === 'UNAVAILABLE' ? locale === 'vi' ? ' Hoạt động chưa khả dụng.' : ' Activity unavailable.' : result.activityStatus === 'PARTIAL' ? locale === 'vi' ? ' Hoạt động chỉ có một phần.' : ' Activity partial.' : ''
     return (locale === 'vi' ? `Số dư: ${balances || 'chưa khả dụng'}.` : `Balances: ${balances || 'unavailable'}.`) + missingBalances + prices + activity
   }
   return locale === 'vi' ? 'Có kết quả mới.' : 'New result available.'
+}
+
+/** Deterministic display copy from the structured observation, not languageSummary. */
+export function taskDisplaySummary(value: unknown, locale: 'en' | 'vi'): string | null {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) return null
+  const result = value as Record<string, unknown>
+  if (result.kind === 'TOKEN_BALANCE') {
+    const { asset, balance, threshold, operator, conditionMet } = taskMonitorObservation(result)
+    if (!asset || balance === null) return locale === 'vi' ? 'Chưa thể lấy dữ liệu số dư lúc này.' : 'Balance data is unavailable right now.'
+    const observed = locale === 'vi' ? `Số dư ${asset} hiện là ${balance}` : `The ${asset} balance is ${balance}`
+    if (threshold === null || !operator || conditionMet === null) return observed + (locale === 'vi' ? '. Chưa có đủ dữ liệu để mô tả điều kiện.' : '. There is not enough data to describe the condition.')
+    const relation = {
+      LT: ['below', 'dưới', 'bằng hoặc cao hơn'],
+      LTE: ['at or below', 'bằng hoặc thấp hơn', 'trên'],
+      GT: ['above', 'trên', 'bằng hoặc thấp hơn'],
+      GTE: ['at or above', 'bằng hoặc cao hơn', 'dưới'],
+    }[operator]
+    return locale === 'vi'
+      ? `${observed}, đang ${relation[conditionMet ? 1 : 2]} ngưỡng ${threshold} ${asset}.`
+      : `${observed}, ${conditionMet ? '' : 'not '}${relation[0]} the threshold of ${threshold} ${asset}.`
+  }
+  if (result.kind === 'ACTIVITY_SUMMARY') {
+    const count = taskActivityCount(result)
+    if (count === null) return locale === 'vi' ? 'Chưa thể lấy dữ liệu hoạt động từ Arc Explorer lúc này.' : 'Activity data from Arc Explorer is unavailable right now.'
+    const observed = locale === 'vi' ? `Hôm nay Arc Explorer ghi nhận ${count} giao dịch.` : `Arc Explorer recorded ${count} token transfer${count === 1 ? '' : 's'} today.`
+    const partial = result.activityStatus === 'PARTIAL'
+      ? locale === 'vi' ? ' Dữ liệu hiện chưa đầy đủ nên con số này có thể chưa phản ánh toàn bộ hoạt động của ví.' : ' The data is incomplete, so this count may not reflect all wallet activity.' : ''
+    return observed + partial
+  }
+  if (result.kind !== 'PORTFOLIO_SUMMARY' && result.kind !== 'BALANCE_CHECK') return null
+  const { rows, incomplete } = taskBalanceRows(result)
+  const amounts = rows.map(({ asset, amount }) => `${amount} ${asset}`)
+  const balances = amounts.length > 1 ? `${amounts.slice(0, -1).join(', ')} ${locale === 'vi' ? 'và' : 'and'} ${amounts.at(-1)}` : amounts[0]
+  let summary = balances
+    ? result.kind === 'PORTFOLIO_SUMMARY'
+      ? locale === 'vi' ? `Danh mục hiện có ${balances}.` : `Your portfolio currently holds ${balances}.`
+      : locale === 'vi' ? `Dữ liệu quan sát được: ${balances}.` : `Observed balances are ${balances}.`
+    : locale === 'vi' ? 'Dữ liệu số dư hiện chưa khả dụng.' : 'Balance data is unavailable right now.'
+  if (rows.length && incomplete) summary += locale === 'vi' ? ' Một số số dư hiện chưa khả dụng.' : ' Some balances are unavailable right now.'
+  if (result.pricingStatus === 'UNAVAILABLE') summary += locale === 'vi'
+    ? ' Giá thị trường hiện chưa khả dụng nên chưa thể tính tổng giá trị danh mục.'
+    : ' Market prices are unavailable, so the total portfolio value cannot be determined.'
+  else if (result.pricingStatus === 'PARTIAL') summary += locale === 'vi' ? ' Một phần dữ liệu giá hiện chưa khả dụng.' : ' Some market price data is unavailable.'
+  if (result.activityStatus === 'PARTIAL') summary += locale === 'vi' ? ' Dữ liệu hoạt động hiện chỉ có một phần.' : ' Activity data is incomplete.'
+  else if (result.activityStatus === 'UNAVAILABLE') summary += locale === 'vi' ? ' Dữ liệu hoạt động hiện chưa khả dụng.' : ' Activity data is unavailable right now.'
+  return summary
 }
 
 export function taskError(error: unknown, locale: 'en' | 'vi'): string {
