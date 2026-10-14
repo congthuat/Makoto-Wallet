@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readHomeAnswer, renderHomeAnswer, routeHomeRequest, type QuickReadContext, type HomeRequest } from './homeRequest.ts'
-import { ARC, TOKENS, type Tx } from '../lib/wallet.ts'
+import { ARC, TOKENS, fmtAmt, type Tx } from '../lib/wallet.ts'
 import { readAgentNetworkSnapshot, readAgentWalletSnapshot, type WalletObservation, type ToolResult } from '../migrated/toolLayer.ts'
 
 const account = '0x1111111111111111111111111111111111111111'
@@ -48,6 +48,28 @@ test('simple USDC balance query stays inline and reads only requested output', a
   const answer = renderHomeAnswer(await readHomeAnswer(request, fixture(), dependencies), 'vi')
   assert.equal(answer.text, 'Số dư hiện tại đã xác minh của bạn:')
   assert.deepEqual(answer.rows, [['USDC', '100']])
+})
+
+test('verified cirBTC balances retain up to eight meaningful decimals in wallet and Agent formatting', async () => {
+  const cases = [
+    [0.00100000, '0.001'],
+    [0.00000001, '0.00000001'],
+    [0.00001234, '0.00001234'],
+    [0.12345678, '0.12345678'],
+    [1.23456789, '1.23456789'],
+    [1.23456000, '1.23456'],
+  ] as const
+  for (const [balance, display] of cases) {
+    const context = fixture({ holdings: fixture().holdings.map((holding) => holding.symbol === 'cirBTC' ? { ...holding, balance } : holding) })
+    const holding = context.holdings.find((item) => item.symbol === 'cirBTC')!
+    assert.equal(holding.decimals, 8)
+    assert.equal(fmtAmt(holding.balance, holding.decimals), display)
+    const evidence = await readHomeAnswer(inline('What is my cirBTC balance?'), context, dependencies)
+    assert.equal(evidence.status, 'OK')
+    assert.equal(evidence.holdings?.[0].balance, holding.balance, 'Agent must reuse the verified wallet balance')
+    assert.equal(evidence.holdings?.[0].decimals, holding.decimals)
+    for (const locale of ['en', 'vi'] as const) assert.deepEqual(renderHomeAnswer(evidence, locale).rows, [['cirBTC', display]])
+  }
 })
 
 test('holdings question uses existing deterministic Brain capability', async () => {

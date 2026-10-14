@@ -8,10 +8,10 @@ export type Scenario =
   | { kind: 'portfolio' } | { kind: 'activity' }
   | { kind: 'unknown' }
 
-export const SAMPLE_RECIPIENT = '0x1234567890AbCdEf1234567890aBcDeF12347890'
+export const SAMPLE_RECIPIENT = '0x836504101e1afa38ff8fa8dd6f75b2ba428039ca'
 
 export const SAMPLE_PROMPTS = {
-  send: 'Send 10 EURC to 0x1234…7890',
+  send: `Send 1 USDC to ${SAMPLE_RECIPIENT}`,
   swap: 'Swap 20 USDC to EURC',
   bridge: 'Bridge 10 USDC to Base Sepolia',
   portfolio: 'Check my portfolio',
@@ -26,7 +26,7 @@ export function pickScenario(text: string): Scenario {
   const t = text.toLowerCase()
   if (has(t, ['swap', 'exchange', 'convert'])) return { kind: 'swap', asset: 'USDC', amount: '20', toAsset: 'EURC' }
   if (has(t, ['bridge', 'cctp', 'cross-chain'])) return { kind: 'bridge', asset: 'USDC', amount: '10', dest: 'Base Sepolia' }
-  if (has(t, ['send', 'transfer', 'pay'])) return { kind: 'send', asset: 'EURC', amount: '10', recipient: SAMPLE_RECIPIENT }
+  if (has(t, ['send', 'transfer', 'pay'])) return { kind: 'send', asset: 'USDC', amount: '1', recipient: SAMPLE_RECIPIENT }
   if (has(t, ['portfolio', 'balance', 'worth', 'holding', 'how much'])) return { kind: 'portfolio' }
   if (has(t, ['activity', 'history', 'recent', 'transaction'])) return { kind: 'activity' }
   return { kind: 'unknown' }

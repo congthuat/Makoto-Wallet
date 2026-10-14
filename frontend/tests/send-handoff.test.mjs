@@ -137,6 +137,51 @@ const estimateCount = `window.__sendHarness.calls.filter((c) => c.method === 'et
 const sendCount = `window.__sendHarness.calls.filter((c) => c.method === 'eth_sendTransaction').length`
 const rows = `Object.fromEntries([...document.querySelectorAll('dl > div')].map((row) => [row.querySelector('dt')?.textContent.trim(), row.querySelector('dd')?.textContent.trim()]))`
 
+const demoRecipient = '0x836504101e1afa38ff8fa8dd6f75b2ba428039ca'
+for (const lang of ['en', 'vi']) {
+  test(`MOCKED clickable Agent Send suggestion submits the exact full address in ${lang}`, async () => {
+    await fixture({ source: 'agent-ui', lang }, async ({ evaluate, wait }) => {
+      const command = `${lang === 'vi' ? 'Gửi 1 USDC tới' : 'Send 1 USDC to'} ${demoRecipient}`
+      const submitted = await evaluate(`(() => {
+        const suggestion = [...document.querySelectorAll('button')].find((b) => /^(Send |Gửi )/.test(b.textContent.trim()));
+        if (!suggestion) throw new Error('Actual Send suggestion missing');
+        const text = suggestion.textContent.trim(); suggestion.click(); return text;
+      })()`)
+      assert.equal(submitted, command, 'The actual click must pass a full address, never an ellipsis')
+      assert.equal(await evaluate('document.querySelector("form input").placeholder'), command)
+      await wait(`!!document.querySelector('input[id$="-to"]')`, 'Send suggestion must produce editable parameters')
+      const parameters = await evaluate(`({asset: document.querySelector('select[id$="-asset"]').value, amount: document.querySelector('input[id$="-amt"]').value, recipient: document.querySelector('input[id$="-to"]').value})`)
+      assert.deepEqual(parameters, { asset: 'USDC', amount: '1', recipient: demoRecipient })
+      assert.ok((await evaluate('document.body.textContent')).includes(command), 'User message must retain the entire command')
+      assert.doesNotMatch(await evaluate('document.body.textContent'), /Recipient address is malformed|Địa chỉ người nhận không hợp lệ|0x1234…7890/)
+      assert.equal(await evaluate(sendCount), 0)
+      assert.equal(await evaluate(estimateCount), 0, 'A suggestion only prepares Agent parameters')
+      const calls = await evaluate('window.__sendHarness.calls')
+      assert.ok(calls.every(({ method }) => ['eth_accounts', 'eth_chainId', 'eth_getCode', 'eth_call'].includes(method)), JSON.stringify(calls))
+    })
+  })
+}
+
+test('MOCKED clickable Vietnamese Bridge suggestion and natural wording produce Bridge without missing recipient', async () => {
+  for (const natural of [false, true]) {
+    await fixture({ source: 'agent-ui', lang: 'vi' }, async ({ evaluate, wait, click, fill }) => {
+      const command = natural ? 'Chuyển 10 USDC sang Base Sepolia' : 'Chuyển chuỗi 10 USDC sang Base Sepolia'
+      if (natural) {
+        await fill(0, command)
+        await evaluate('document.querySelector("form").requestSubmit()')
+      } else await click(command)
+      await wait(`!!document.querySelector('select[id$="-dest"]')`, 'Vietnamese request must create Bridge parameters')
+      assert.deepEqual(await evaluate(`({asset: document.querySelector('select[id$="-asset"]').value, amount: document.querySelector('input[id$="-amt"]').value, destination: document.querySelector('select[id$="-dest"]').value})`), { asset: 'USDC', amount: '10', destination: 'Base Sepolia' })
+      assert.equal(await evaluate(`document.querySelector('input[id$="-to"]') !== null`), false)
+      assert.doesNotMatch(await evaluate('document.body.textContent'), /Thiếu.*Người nhận/)
+      assert.equal(await evaluate(sendCount), 0)
+      assert.equal(await evaluate(estimateCount), 0)
+      const calls = await evaluate('window.__sendHarness.calls')
+      assert.ok(calls.every(({ method }) => ['eth_accounts', 'eth_chainId', 'eth_getCode', 'eth_call'].includes(method)), JSON.stringify(calls))
+    })
+  }
+})
+
 test('MOCKED actual Agent parses Vietnamese Send, confirms parameters, then hands off to live review', async () => {
   await fixture({ source: 'agent-ui', hold: '1' }, async ({ evaluate, wait, click, fill }) => {
     await fill(0, `Gửi 1 USDC cho ${recipient}`)
