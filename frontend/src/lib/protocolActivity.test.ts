@@ -14,7 +14,7 @@ const official = new CCTPV2BridgingProvider()
 const source = official.supportedChains.find((chain) => chain.type === 'evm' && chain.chainId === 5042002)!
 const destination = official.supportedChains.find((chain) => chain.type === 'evm' && chain.chainId === 84532)!
 const sourceMessenger = source.cctp!.contracts.v2!.type === 'split' ? source.cctp!.contracts.v2!.tokenMessenger : ''
-const destinationTransmitter = destination.cctp!.contracts.v2!.type === 'split' ? destination.cctp!.contracts.v2!.messageTransmitter : ''
+const destinationMessenger = destination.cctp!.contracts.v2!.type === 'split' ? destination.cctp!.contracts.v2!.tokenMessenger : ''
 const base: BridgeRecord = { hash, account, target, calldata: '0x1234', amount: '1', expectedReceiveUnits: '1000000', destinationDomain: 6, maxFeeUnits: '0', finalityThreshold: '1000', timestamp: 1, status: 'source-pending' }
 const provider = (receipt: unknown, transaction: unknown = { hash, from: account, to: target, input: '0x1234' }) => ({ request: async ({ method }: { method: string }) => method === 'eth_chainId' ? '0x4cef52' : method === 'eth_getTransactionReceipt' ? receipt : method === 'eth_getTransactionByHash' ? transaction : undefined })
 const success = { transactionHash: hash, blockHash: hash, blockNumber: '0x1', status: '0x1' }
@@ -32,9 +32,9 @@ function cctp(state: 'pending' | 'forwarding-pending' | 'forwarding-failed' | 'f
       ...(state === 'forwarded' ? { forwardTxHash: hash } : {}),
       decodedMessage: {
         sourceDomain: '26', destinationDomain: '6', nonce: '1', sender: pad(sourceMessenger as Address, { size: 32 }),
-        recipient: pad(destinationTransmitter as Address, { size: 32 }), destinationCaller: `0x${'0'.repeat(64)}`,
+        recipient: pad(destinationMessenger as Address, { size: 32 }), destinationCaller: `0x${'0'.repeat(64)}`,
         messageBody: '0x01', minFinalityThreshold: '1000', finalityThresholdExecuted: '1000',
-        decodedMessageBody: { burnToken: TOKENS[0]!.address, mintRecipient: pad(account as Address, { size: 32 }), amount: '1000000', messageSender: CCTP_KIT_BRIDGE_TESTNET, maxFee: '0', feeExecuted: '0' },
+        decodedMessageBody: { burnToken: TOKENS[0]!.address, mintRecipient: account, amount: '1000000', messageSender: CCTP_KIT_BRIDGE_TESTNET, maxFee: '0', feeExecuted: '0' },
       },
     }
   } })

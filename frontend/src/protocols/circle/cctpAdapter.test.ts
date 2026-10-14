@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { CCTPV2BridgingProvider } from '@circle-fin/provider-cctp-v2'
 import { decodeFunctionData, encodeFunctionData, encodeFunctionResult, erc20Abi, pad, zeroHash, type Address, type Hex } from 'viem'
@@ -270,15 +271,102 @@ test('CCTP burn rejection returns no hash and cannot retry the same reviewed req
 })
 
 const statusInput = { account, burnHash: txHash, destinationDomain: 6, recipient: account, expectedReceive: amount - 100n, maxFee: 100n, finalityThreshold: 1000n }
+const statusDestination = new CCTPV2BridgingProvider().supportedChains.find((chain) => chain.type === 'evm' && chain.chainId === 84532)!
+const statusDestinationMessenger = statusDestination.cctp!.contracts.v2!.type === 'split' ? statusDestination.cctp!.contracts.v2!.tokenMessenger : ''
 const statusMessage = () => ({
   message: '0x01', eventNonce: '1', attestation: '0xab', cctpVersion: 2, status: 'complete',
   forwardState: 'CONFIRMED', forwardTxHash: txHash,
   decodedMessage: {
     sourceDomain: '26', destinationDomain: '6', sender: pad(CCTP_TOKEN_MESSENGER_V2, { size: 32 }),
-    recipient: pad(CCTP_MESSAGE_TRANSMITTER_V2, { size: 32 }), minFinalityThreshold: '1000',
-    decodedMessageBody: { burnToken: TOKENS[0]!.address, mintRecipient: pad(account, { size: 32 }), amount: amount.toString(), messageSender: CCTP_KIT_BRIDGE_TESTNET, maxFee: '100', feeExecuted: '100' },
+    recipient: pad(statusDestinationMessenger as Address, { size: 32 }), minFinalityThreshold: '1000',
+    decodedMessageBody: { burnToken: TOKENS[0]!.address, mintRecipient: account, amount: amount.toString(), messageSender: CCTP_KIT_BRIDGE_TESTNET, maxFee: '100', feeExecuted: '100' },
   },
 })
+
+type CapturedCircleMessage = Awaited<ReturnType<CCTPV2BridgingProvider['fetchAttestation']>>
+type CapturedCircleResponse = { messages: CapturedCircleMessage[]; sourceTxHash: Hex }
+const capturedStatusInput = {
+  account: '0x16299b74c616994eaecb9b20e37d369d5d62586b' as Address,
+  burnHash: '0x452e3fcc7a2112e4940b19e23e065cf62dadcd20ffb53d620361ab57d605dba4' as Hex,
+  destinationDomain: 6,
+  recipient: '0x16299b74c616994eaecb9b20e37d369d5d62586b' as Address,
+  expectedReceive: 945_701n,
+  maxFee: 54_299n,
+  finalityThreshold: 1000n,
+}
+const capturedForwardHash = '0x5053ac4396a41769dd18e72f353de75533d458ecab3d5e8f7fd8c1d693e0fbe9'
+const capturedCircleResponse = () => JSON.parse(readFileSync(new URL('../../../tests/fixtures/cctp-v2-completed-arc-base-sepolia.json', import.meta.url), 'utf8')) as CapturedCircleResponse
+
+async function readCapturedCircleStatus(response: CapturedCircleResponse) {
+  const f = fixture()
+  const previous = globalThis.fetch
+  let attempts = 0
+  // Only the HTTP transport is mocked: the installed Circle SDK parses the
+  // captured sandbox response and validates its completion status normally.
+  globalThis.fetch = (async (url, init) => {
+    assert.equal(String(url), `https://iris-api-sandbox.circle.com/v2/messages/26?transactionHash=${capturedStatusInput.burnHash}`)
+    assert.equal(init?.method ?? 'GET', 'GET')
+    attempts++
+    return Response.json(response)
+  }) as typeof fetch
+  try {
+    const status = await getOfficialCctpStatus(f.p, capturedStatusInput)
+    assert.equal(attempts, 1)
+    assert.deepEqual(f.calls, [], 'status recovery must not request any wallet method')
+    return status
+  } finally { globalThis.fetch = previous }
+}
+
+test('actual Circle SDK accepts the captured completed Arc transfer with destination TokenMessenger and plain mintRecipient', async () => {
+  const response = capturedCircleResponse()
+  const message = response.messages[0]!
+  assert.equal(response.sourceTxHash, capturedStatusInput.burnHash)
+  assert.equal(message.status, 'complete')
+  assert.equal(message.forwardState, 'COMPLETE')
+  assert.equal(message.decodedMessage.recipient, '0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa')
+  assert.equal(message.decodedMessage.recipient.toLowerCase(), statusDestinationMessenger.toLowerCase())
+  assert.equal(message.decodedMessage.decodedMessageBody.mintRecipient, capturedStatusInput.recipient)
+  const status = await readCapturedCircleStatus(response)
+  assert.equal(status.state, 'attestation-available')
+  assert.equal(status.forwardTxHash, capturedForwardHash)
+  assert.equal(status.actualReceive, 945_701n)
+  assert.equal(status.eventNonce, message.eventNonce)
+})
+
+test('actual Circle SDK accepts equivalent padded TokenMessenger and mintRecipient representations', async () => {
+  const response = capturedCircleResponse()
+  const decoded = response.messages[0]!.decodedMessage
+  decoded.recipient = pad(decoded.recipient as Address, { size: 32 })
+  decoded.decodedMessageBody.mintRecipient = pad(capturedStatusInput.recipient, { size: 32 })
+  const status = await readCapturedCircleStatus(response)
+  assert.equal(status.state, 'attestation-available')
+  assert.equal(status.forwardTxHash, capturedForwardHash)
+  assert.equal(status.actualReceive, capturedStatusInput.expectedReceive)
+})
+
+const capturedInvalidBindings: [string, (message: CapturedCircleMessage) => void][] = [
+  ['wrong destination TokenMessenger', (message) => { message.decodedMessage.recipient = account }],
+  ['MessageTransmitter as message-header recipient', (message) => { message.decodedMessage.recipient = CCTP_MESSAGE_TRANSMITTER_V2 }],
+  ['wrong plain mintRecipient', (message) => { message.decodedMessage.decodedMessageBody.mintRecipient = account }],
+  ['wrong padded mintRecipient', (message) => { message.decodedMessage.decodedMessageBody.mintRecipient = pad(account, { size: 32 }) }],
+  ['nonzero bytes32 prefix on mintRecipient', (message) => { message.decodedMessage.decodedMessageBody.mintRecipient = `0x${'01'.repeat(12)}${capturedStatusInput.recipient.slice(2)}` }],
+  ['wrong destinationDomain', (message) => { message.decodedMessage.destinationDomain = '0' }],
+  ['wrong maxFee', (message) => { message.decodedMessage.decodedMessageBody.maxFee = '54300' }],
+  ['feeExecuted above the reviewed maximum', (message) => { message.decodedMessage.decodedMessageBody.feeExecuted = '54300' }],
+  ['receive amount below the reviewed floor', (message) => { message.decodedMessage.decodedMessageBody.amount = '999999' }],
+  ['wrong minimum finality threshold', (message) => { message.decodedMessage.minFinalityThreshold = '2000' }],
+]
+for (const [name, mutate] of capturedInvalidBindings) {
+  test(`actual Circle SDK rejects captured recovery evidence with ${name}`, async () => {
+    const response = capturedCircleResponse()
+    mutate(response.messages[0]!)
+    const status = await readCapturedCircleStatus(response)
+    assert.equal(status.state, 'unavailable')
+    assert.match(status.reason!, /do not match the reviewed burn route and receive floor/)
+    assert.equal(status.forwardTxHash, undefined)
+    assert.equal(status.actualReceive, undefined)
+  })
+}
 
 for (const pending of ['empty', 'pending', '404'] as const) {
   test(`actual Circle SDK ${pending} response is attestation-pending after bounded read-only attempts`, async (t) => {
