@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { formatUnits, type Hex } from 'viem'
 import { useT } from '../lib/i18n.ts'
 import { useWallet } from '../lib/store.tsx'
@@ -8,12 +8,12 @@ import { SendSubmissionGuard } from '../lib/sendExecution.ts'
 import { createReview, evaluateToolPolicy, revalidateReview, type ReviewSnapshot } from '../migrated/policy.ts'
 import { isWalletRejection, pollProtocolReceipt, requestReviewedCctpAction } from '../migrated/protocolExecution.ts'
 import { prepareCctpApproval, prepareCctpBurn, quoteBridge, readAllowance, readBalance, readGasBalance, readWallet, type BridgeToolQuote, type CctpTransferSpeed, type PreparedToolAction } from '../migrated/toolLayer.ts'
-import { cctpGasEstimateChanged, getOfficialCctpStatus, sameCctpActionMaterial, sameCctpQuoteMaterial, simulatePreparedCctpCall } from '../protocols/circle/cctpAdapter.ts'
+import { cctpGasCeilingExceeded, getOfficialCctpStatus, sameCctpActionMaterial, sameCctpQuoteMaterial, simulatePreparedCctpCall } from '../protocols/circle/cctpAdapter.ts'
 import { Button, T } from './wallet/ui.tsx'
 import type { BridgeRecord } from '../lib/protocolActivity.ts'
 import { createStrategyRun, recoverStrategyRun, restoreStrategyRun, saveStrategyRun, transitionStrategy, type StrategyEvent, type StrategyReceiptBinding, type StrategyRun } from '../migrated/strategyController.ts'
 
-type Stage = 'idle' | 'review-approval' | 'review-burn' | 'source-pending' | 'source-unknown' | 'source-confirmed' | 'attestation-pending' | 'attestation-available' | 'forwarding-pending' | 'forwarding-failed' | 'destination-pending' | 'destination-confirmed' | 'destination-failed' | 'status-unavailable' | 'failed' | 'rejected'
+type Stage = 'idle' | 'review-approval' | 'approval-confirmed' | 'review-burn' | 'source-pending' | 'source-unknown' | 'source-confirmed' | 'attestation-pending' | 'attestation-available' | 'forwarding-pending' | 'forwarding-failed' | 'destination-pending' | 'destination-confirmed' | 'destination-failed' | 'status-unavailable' | 'failed' | 'rejected'
 export type LiveQuote = Readonly<{ amount: bigint; expectedReceive: bigint; maxFee: bigint; speed: CctpTransferSpeed }>
 type LiveCctpProps = { account: string; amount: string; transferSpeed: CctpTransferSpeed; onSourceConfirmed: () => Promise<unknown>; onComplete: () => void; onQuoteChange?: (quote?: LiveQuote) => void }
 type Operation = { generation: number; account: string; chainId?: number; input?: string; run?: StrategyRun; saved: string | null | undefined }
@@ -38,6 +38,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
   const generation = useRef(0)
   const operation = useRef<Operation | undefined>(undefined)
   const checkpoint = useRef<string | null | undefined>(undefined)
+  const autoApprovalContinuation = useRef('')
   const normalizedAccount = account.toLowerCase()
   const input = `${normalizedAccount}:${amount}:${transferSpeed}`
   const context = useRef({ account: normalizedAccount, chainId: walletChainId, input })
@@ -86,17 +87,36 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     rememberRun(result.state, op)
     return result.state
   }
+  // The wallet may return after an account/chain change or unmount. Retain its
+  // actual outcome under the untouched original checkpoint, without stale UI writes.
+  const rememberWalletOutcome = (event: StrategyEvent, op: Operation) => {
+    if (!op.run || savedCheckpoint(op.account) !== op.saved) return
+    const result = transitionStrategy(op.run, event)
+    if (!result.accepted) return
+    if (isCurrent(op)) { rememberRun(result.state, op); return }
+    const serialized = JSON.stringify(result.state)
+    if (typeof localStorage !== 'undefined' && saveStrategyRun(localStorage, result.state) && savedCheckpoint(op.account) === serialized) {
+      op.run = result.state; op.saved = serialized
+    }
+  }
+  const newReviewRun = () => {
+    const next = createStrategyRun('cctp', account)
+    const approvalReceipt = run.current?.account === normalizedAccount ? run.current.approvalReceipt : undefined
+    return approvalReceipt ? Object.freeze({ ...next, approvalReceipt }) : next
+  }
 
   useLayoutEffect(() => {
     mounted.current = true
     generation.current += 1
     operation.current = undefined
+    autoApprovalContinuation.current = ''
     const restored = typeof localStorage === 'undefined' ? undefined : restoreStrategyRun(localStorage, 'cctp', normalizedAccount)
     run.current = restored
     checkpoint.current = savedCheckpoint(normalizedAccount)
     setBusy(false); setError(''); setQuote(undefined); setPrepared(undefined); setReview(undefined); setReviewedInput('')
     setHash(restored?.hash as Hex | undefined); setDestinationHash(''); setStage('idle')
-    if (restored && ['RECOVERING', 'PENDING', 'UNKNOWN', 'SOURCE_CONFIRMED', 'DESTINATION_PENDING', 'FORWARDING_FAILED', 'DESTINATION_FAILED'].includes(restored.phase)) {
+    if (restored?.phase === 'REVALIDATING') setStage('approval-confirmed')
+    else if (restored && ['RECOVERING', 'PENDING', 'UNKNOWN', 'SOURCE_CONFIRMED', 'DESTINATION_PENDING', 'FORWARDING_FAILED', 'DESTINATION_FAILED'].includes(restored.phase)) {
       const nextStage: Stage = restored.phase === 'PENDING' ? 'source-pending' : restored.phase === 'SOURCE_CONFIRMED' ? 'source-confirmed' : restored.phase === 'DESTINATION_PENDING' ? 'destination-pending' : restored.phase === 'FORWARDING_FAILED' ? 'forwarding-failed' : restored.phase === 'DESTINATION_FAILED' ? 'destination-failed' : 'source-unknown'
       setStage(nextStage)
     }
@@ -180,7 +200,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     const op = begin(true)
     if (!op) return
     try {
-      if (!phase || ['FAILED', 'USER_REJECTED', 'COMPLETED', 'EXPIRED', 'BLOCKED'].includes(phase)) rememberRun(createStrategyRun('cctp', account), op)
+      if (!phase || ['FAILED', 'USER_REJECTED', 'COMPLETED', 'EXPIRED', 'BLOCKED'].includes(phase)) rememberRun(newReviewRun(), op)
       const p = getProvider()
       if (!p) throw new Error('Wallet provider unavailable.')
       await walletContext(p)
@@ -213,6 +233,19 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     } catch (caught) { if (isCurrent(op)) setError(caught instanceof Error ? caught.message : 'CCTP review unavailable.') }
     finally { finish(op) }
   }
+
+  useEffect(() => {
+    if (stage !== 'approval-confirmed' || busy || !amount || !hash) return
+    if (run.current?.step !== 'approval' || !['REVALIDATING', 'REQUOTING'].includes(run.current.phase) || run.current.hash?.toLowerCase() !== hash.toLowerCase()) return
+    const key = `${hash.toLowerCase()}:${normalizedAccount}:${walletChainId}:${amount}:${transferSpeed}`
+    if (autoApprovalContinuation.current === key) return
+    autoApprovalContinuation.current = key
+    // Receipt-confirmed approval only authorizes fresh reads and a new burn review.
+    // The burn wallet request remains exclusively inside the user's confirm action.
+    void start()
+    // start is scoped by this input and the generation/checkpoint guards above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, busy, hash, normalizedAccount, walletChainId, amount, transferSpeed])
 
   async function reconcileDestination(p: NonNullable<ReturnType<typeof getProvider>>, burnHash: Hex, binding: StrategyReceiptBinding, baseRecord: BridgeRecord, op: Operation) {
     if (!isCurrent(op) || op.run?.hash?.toLowerCase() !== burnHash.toLowerCase() || op.run.binding !== binding) return
@@ -281,7 +314,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
         return
       }
       if (!wasApproval && current.allowance < freshQuote.totalDebit) {
-        rememberRun(createStrategyRun('cctp', account), op)
+        rememberRun(newReviewRun(), op)
         const approval = await prepareCctpApproval(p, freshQuote, current.allowance)
         if (!isCurrent(op)) return
         const policy = await simulateAndEvaluate(approval, freshQuote, current)
@@ -298,14 +331,14 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
       const policy = await simulateAndEvaluate(freshAction, freshQuote, current)
       if (!isCurrent(op)) return
       const materialSame = sameCctpQuoteMaterial(quote, freshQuote) && sameCctpActionMaterial(prepared, freshAction)
-      const gasChanged = cctpGasEstimateChanged(prepared.gasEstimate, freshAction.gasEstimate)
+      const gasCeilingExceeded = cctpGasCeilingExceeded(prepared.gasEstimate, freshAction.gasEstimate)
       const reviewExpired = Date.now() >= review.expiresAt
-      if (!materialSame || gasChanged || reviewExpired) {
+      if (!materialSame || gasCeilingExceeded || reviewExpired) {
         publishQuote(freshQuote, op)
         setPrepared(freshAction)
         setReview(createReview(freshAction, freshQuote, policy))
         setReviewedInput(captureInput())
-        setError(!materialSame ? 'Circle fee or request changed. Review the refreshed request, then confirm again.' : gasChanged ? 'Fresh gas estimate updated. Review the maximum Arc gas fee, then confirm again.' : 'Review expired. Check the refreshed request, then confirm again.')
+        setError(!materialSame ? 'Circle fee or request changed. Review the refreshed request, then confirm again.' : gasCeilingExceeded ? 'Arc gas exceeds the reviewed maximum. Review the new gas ceiling before confirming.' : 'Review expired. Check the refreshed request, then confirm again.')
         return
       }
       const validation = revalidateReview(review, {
@@ -322,21 +355,22 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
       let submitted: Hex
       try { submitted = await requestReviewedCctpAction(freshAction, guard.current) }
       catch (caught) {
+        rememberWalletOutcome({ type: isWalletRejection(caught) ? 'user-rejected' : 'unknown', now: Date.now() }, op)
         if (!isCurrent(op)) return
-        if (isWalletRejection(caught)) { advance({ type: 'user-rejected', now: Date.now() }, op); setStage('rejected'); return }
-        advance({ type: 'unknown', now: Date.now() }, op); setStage('source-unknown'); throw caught
+        if (isWalletRejection(caught)) { setStage('rejected'); return }
+        setStage('source-unknown'); throw caught
       }
-      if (!isCurrent(op)) return
-      advance({ type: 'hash', hash: submitted, now: Date.now() }, op)
-      setHash(submitted)
       if (!wasApproval) upsertBridge(recordFor(submitted, freshAction, freshQuote, 'source-pending'))
+      rememberWalletOutcome({ type: 'hash', hash: submitted, now: Date.now() }, op)
+      if (!isCurrent(op)) return
+      setHash(submitted)
       const result = await pollProtocolReceipt(p, freshAction, submitted, wasApproval ? { approval: { symbol: 'USDC', spender: freshQuote.spender, minimum: freshQuote.totalDebit } } : {}, () => {
         if (isCurrent(op) && run.current?.phase === 'SUBMITTED') advance({ type: 'pending', now: Date.now() }, op)
       })
       if (!isCurrent(op)) return
       advance({ type: result === 'confirmed' ? 'confirmed' : result === 'failed' ? 'failed' : 'unknown', now: Date.now() }, op)
       if (wasApproval) {
-        setStage(result === 'confirmed' ? 'source-confirmed' : result === 'failed' ? 'failed' : 'source-unknown')
+        setStage(result === 'confirmed' ? 'approval-confirmed' : result === 'failed' ? 'failed' : 'source-unknown')
         if (result === 'confirmed') await onSourceConfirmed()
       } else {
         const nextStatus = result === 'confirmed' ? 'source-confirmed' : result === 'failed' ? 'failed' : 'source-unknown'
@@ -367,6 +401,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
       rememberRun(recovered, op)
       if (recovered.phase === 'PENDING') { setStage('source-pending'); return }
       if (recovered.phase === 'FAILED') { setStage('failed'); return }
+      if (recovered.phase === 'REVALIDATING') { setStage('approval-confirmed'); await onSourceConfirmed(); return }
       if (recovered.phase !== 'SOURCE_CONFIRMED' && recovered.phase !== 'DESTINATION_PENDING') { setStage('source-unknown'); return }
       await onSourceConfirmed()
       if (!isCurrent(op)) return
@@ -402,7 +437,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
 
   function cancelReview() {
     if (operation.current || !mounted.current || savedCheckpoint(normalizedAccount) !== checkpoint.current) return
-    try { rememberRun(createStrategyRun('cctp', account)) }
+    try { rememberRun(newReviewRun()) }
     catch (caught) { setError(caught instanceof Error ? caught.message : 'CCTP status unavailable.'); return }
     setPrepared(undefined); setReview(undefined); setStage('idle'); setError('')
   }
@@ -420,10 +455,11 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     </div>}
     {prepared && liveMaxGas && <p className={T.sub}>{say('Estimated Arc gas ceiling', 'Phí gas Arc ước tính tối đa')}: {liveMaxGas} USDC</p>}
     {stage === 'review-approval' && quote && <p>{say('Exact finite USDC approval', 'Phê duyệt USDC hữu hạn chính xác')}: {formatUnits(quote.totalDebit, 6)} USDC. {say('This is a separate wallet confirmation.', 'Đây là xác nhận ví riêng.')}</p>}
+    {stage === 'approval-confirmed' && <p>{say('USDC approval confirmed. Preparing a fresh Circle quote and burn review; the burn still needs your separate wallet confirmation.', 'Đã xác nhận cấp quyền USDC. Đang chuẩn bị báo giá Circle mới và bước xem lại lệnh đốt; bạn vẫn cần xác nhận lệnh đốt riêng trong ví.')}</p>}
     {stage === 'review-burn' && <p>{say('Review the Circle CCTP source burn. Destination completes only after Base receipt and USDC transfer evidence.', 'Xem lại lệnh đốt CCTP của Circle. Chỉ hoàn tất khi có biên nhận Base và bằng chứng chuyển USDC.')}</p>}
     {stage === 'source-pending' && <p>{say('Awaiting Arc receipt. Do not submit this transfer again.', 'Đang chờ biên nhận Arc. Không gửi lại giao dịch này.')}</p>}
     {stage === 'source-unknown' && <p>{say('Source status is unknown. Check the saved hash before retrying.', 'Chưa rõ trạng thái nguồn. Kiểm tra mã giao dịch đã lưu trước khi thử lại.')}</p>}
-    {stage === 'source-confirmed' && <p>{prepared?.kind === 'approval' ? say('Approval confirmed. Refresh the fee quote and review the burn separately.', 'Đã xác nhận phê duyệt. Làm mới báo giá và xem lệnh đốt riêng.') : say('Arc source confirmed. Circle attestation and Base destination are still pending.', 'Nguồn Arc đã xác nhận. Chứng thực Circle và đích Base vẫn đang chờ.')}</p>}
+    {stage === 'source-confirmed' && <p>{say('Arc source confirmed. Circle attestation and Base destination are still pending.', 'Nguồn Arc đã xác nhận. Chứng thực Circle và đích Base vẫn đang chờ.')}</p>}
     {stage === 'attestation-pending' && <p>{say('Circle attestation is pending.', 'Chứng thực Circle đang chờ.')}</p>}
     {stage === 'attestation-available' && <p>{say('Circle attestation is available. Waiting for its forwarded transaction.', 'Đã có chứng thực Circle. Đang chờ giao dịch chuyển tiếp.')}</p>}
     {stage === 'forwarding-pending' && <p>{say('Circle forwarding is pending.', 'Chuyển tiếp Circle đang chờ.')}</p>}
@@ -433,13 +469,13 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     {stage === 'destination-failed' && <p>{say('The forwarded Base transaction failed. The Arc burn remains confirmed.', 'Giao dịch Base chuyển tiếp thất bại. Lệnh đốt Arc vẫn đã xác nhận.')}</p>}
     {stage === 'status-unavailable' && <p>{say('Circle status or destination evidence is unavailable. The confirmed Arc burn remains pending destination evidence.', 'Chưa thể lấy trạng thái Circle hoặc bằng chứng đích. Lệnh đốt Arc đã xác nhận nhưng vẫn thiếu bằng chứng đích.')}</p>}
     {stage === 'failed' && <p>{say('Arc source transaction failed.', 'Giao dịch nguồn Arc thất bại.')}</p>}
-    {stage === 'rejected' && <p>{say('Wallet request rejected. No transaction was submitted.', 'Ví đã từ chối yêu cầu. Chưa gửi giao dịch.')}</p>}
+    {stage === 'rejected' && <p>{say('Wallet request rejected for this step. No transaction was submitted; any earlier confirmed approval is retained.', 'Yêu cầu ví ở bước này đã bị từ chối, chưa gửi giao dịch. Bằng chứng phê duyệt đã xác nhận trước đó vẫn được giữ lại.')}</p>}
     {hash && <a className="block break-all text-neon-300" href={explorerTx(hash)} target="_blank" rel="noreferrer">{hash}</a>}
     {destinationHash && <a className="block break-all text-neon-300" href={`https://sepolia.basescan.org/tx/${destinationHash}`} target="_blank" rel="noreferrer">{destinationHash}</a>}
     {error && <p className="text-rose-300 break-words">{errorText}</p>}
-    {['idle', 'source-confirmed', 'failed', 'rejected'].includes(stage) && (stage === 'idle' || prepared?.kind === 'approval' || run.current?.phase === 'REVALIDATING' || ['failed', 'rejected'].includes(stage)) && <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Checking…', 'Đang kiểm tra…') : say('Get live Circle quote and review', 'Lấy báo giá Circle và xem lại')}</Button>}
+    {['idle', 'approval-confirmed', 'failed', 'rejected'].includes(stage) && <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Checking…', 'Đang kiểm tra…') : say('Get live Circle quote and review', 'Lấy báo giá Circle và xem lại')}</Button>}
     {stage === 'destination-confirmed' && <Button variant="primary" disabled={busy} onClick={complete}>{say('Done', 'Hoàn tất')}</Button>}
     {(stage === 'review-approval' || stage === 'review-burn') && <div className="flex gap-2 flex-wrap"><Button variant="primary" disabled={busy} onClick={confirm}>{busy ? say('Checking…', 'Đang kiểm tra…') : stage === 'review-approval' ? say('Review exact approval', 'Xem phê duyệt chính xác') : say('Review CCTP burn', 'Xem lệnh đốt CCTP')}</Button><Button disabled={busy} onClick={cancelReview}>{say('Cancel', 'Hủy')}</Button></div>}
-    {hash && ['source-pending', 'source-unknown', 'source-confirmed', 'attestation-pending', 'attestation-available', 'forwarding-pending', 'forwarding-failed', 'destination-pending', 'destination-failed', 'status-unavailable'].includes(stage) && <Button disabled={busy} onClick={checkAgain}>{say('Check Arc receipt, Circle status and Base destination', 'Kiểm tra biên nhận Arc, trạng thái Circle và đích Base')}</Button>}
+    {hash && ['source-pending', 'source-unknown', 'source-confirmed', 'attestation-pending', 'attestation-available', 'forwarding-pending', 'forwarding-failed', 'destination-pending', 'destination-failed', 'status-unavailable'].includes(stage) && <Button disabled={busy} onClick={checkAgain}>{run.current?.step === 'approval' ? say('Check approval receipt', 'Kiểm tra biên nhận cấp quyền') : say('Check Arc receipt, Circle status and Base destination', 'Kiểm tra biên nhận Arc, trạng thái Circle và đích Base')}</Button>}
   </div>
 }

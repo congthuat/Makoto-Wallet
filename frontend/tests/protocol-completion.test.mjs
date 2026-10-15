@@ -6,9 +6,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createBrowserHarness } from './browser-harness.mjs'
 
-// Actual production SwapPage/BridgePage, controls, strategy state machine and
-// Activity merge helpers. Wallet context, quote/policy/simulation, submission,
-// receipt and Circle/Base reads are explicitly MOCKED for deterministic UI QA.
+// Actual production SwapPage/BridgePage, controls, strategy state machine,
+// policy/finite-approval validation, CCTP gas/material and Activity merge helpers.
+// Wallet context, quote/prepare/simulation, submission, receipt and Circle/Base
+// reads are explicitly MOCKED for deterministic UI QA.
 // No extension, signer, real wallet request or broadcast is used.
 // MAKOTO_COMPLETION_BASELINE_REF=<full production SHA> supplies historical
 // controls + parent with read-only git show: terminal completion tests must FAIL.
@@ -21,6 +22,7 @@ const destinationHash = `0x${'c'.repeat(64)}`
 const previousHash = `0x${'d'.repeat(64)}`
 const otherAccount = '0x3333333333333333333333333333333333333333'
 const otherSourceHash = `0x${'e'.repeat(64)}`
+const approvalHash = `0x${'f'.repeat(64)}`
 const realCircleResponse = JSON.parse(readFileSync(new URL('./fixtures/cctp-v2-completed-arc-base-sepolia.json', import.meta.url), 'utf8'))
 const realCircleMessage = realCircleResponse.messages[0]
 const realBurnHash = '0x452e3fcc7a2112e4940b19e23e065cf62dadcd20ffb53d620361ab57d605dba4'
@@ -69,76 +71,103 @@ const walletFixture = `
 `
 
 const toolFixture = `
+  import { encodeFunctionData, erc20Abi, keccak256, stringToHex, parseUnits } from 'viem';
+  import { TOKENS } from '/src/lib/wallet.ts';
+  import { XYLO_ROUTER, createXyloQuote, minimumSwapOutput } from '/src/migrated/swap.ts';
+  import { CCTP_KIT_BRIDGE_TESTNET } from '/src/migrated/cctp.ts';
   const h = () => window.__completionHarness;
   const ok = (data) => ({status: 'OK', data});
-  const expiry = () => Date.now() + 60_000;
-  const action = (kind, q) => ({
-    kind, account: h().activeAccount, chainId: 5042002, expiresAt: expiry(),
-    request: {from: h().activeAccount, to: '${target}', data: '0x1234', value: '0x0', gas: '0x186a0', gasPrice: '0x1'},
-    gasEstimate: {maximumFee: 100000n}, cctp: {finalityThreshold: 1000n},
-  });
+  const expiry = () => Date.now() + h().quoteTtl;
+  const allowance = () => h().insufficientAllowance || (h().needsApproval && !h().approved) ? 0n : h().needsApproval ? BigInt(h().approvedUnits || '0') : 10000000n;
+  const fingerprint = (q) => keccak256(stringToHex(JSON.stringify(q, (key, value) => ['quotedAt', 'expiresAt'].includes(key) ? undefined : typeof value === 'bigint' ? value.toString() : value)));
+  const semantics = (q) => ({asset: q.asset, amount: q.amount, expectedReceive: q.expectedReceive,
+    destinationChainId: q.destinationChainId, destinationDomain: q.destinationDomain, recipient: q.recipient,
+    spender: q.spender, providerFee: q.providerFee, forwarderFee: q.forwarderFee, maxFee: q.maxFee,
+    transferSpeed: q.transferSpeed, finalityThreshold: 1000n});
+  const action = (kind, q) => {
+    const gasLimit = BigInt(h().gasLimit), unitPrice = BigInt(h().gasPrice);
+    const value = {kind, account: h().activeAccount, chainId: 5042002, preparedAt: Date.now(), expiresAt: Date.now() + 60_000,
+      quoteId: fingerprint(q), executionEnabled: false,
+      request: {from: h().activeAccount, to: kind === 'swap' ? XYLO_ROUTER : CCTP_KIT_BRIDGE_TESTNET,
+        data: '0x1234', value: '0x0', gas: '0x' + gasLimit.toString(16), gasPrice: '0x' + unitPrice.toString(16)},
+      gasEstimate: {gasLimit, unitPrice, maximumFee: gasLimit * unitPrice},
+      ...('totalDebit' in q ? {cctp: semantics(q)} : {})};
+    h().preparedActions.push(value);
+    return value;
+  };
+  const approval = (input, q) => {
+    const value = action('approval', q);
+    value.request.to = TOKENS.find((token) => token.sym === input.symbol).address;
+    value.request.data = encodeFunctionData({abi: erc20Abi, functionName: 'approve', args: [input.spender, input.amount]});
+    if (value.cctp) value.cctp.approvalAmount = input.amount;
+    return value;
+  };
   export async function readWallet() { h().reads++; return ok({account: h().activeAccount, chainId: h().activeChain}); }
   export async function readBalance() { h().reads++; return ok({units: 10000000n}); }
-  export async function readAllowance() { h().reads++; return ok({units: h().needsApproval && !h().approved ? 0n : 10000000n}); }
+  export async function readAllowance() { h().reads++; h().allowanceReads++; await h().gate('Allowance'); return ok({units: allowance()}); }
   export async function readGasBalance() { h().reads++; return ok(10000000000000000000n); }
   export async function quoteSwap(_, input) {
     h().quotes.push({kind: 'swap', ...input});
-    const units = BigInt(input.amount) * 1000000n;
-    return ok({expiresAt: expiry(), quote: {amountIn: units, amountOut: units}, minimumReceive: units - 1000n, balance: 10000000n, allowance: 10000000n});
+    await h().gate('Quote');
+    const units = parseUnits(input.amount, 6), output = h().swapOutput ? BigInt(h().swapOutput) : units;
+    return ok({account: input.account, slippage: input.slippage, expiresAt: expiry(),
+      quote: createXyloQuote(input.from.toLowerCase(), input.to.toLowerCase(), units, output),
+      minimumReceive: minimumSwapOutput(output, input.slippage), balance: 10000000n, allowance: allowance()});
   }
   export async function prepareSwap(_, q) { return action('swap', q); }
-  export async function prepareApproval() { throw new Error('Unexpected MOCK approval path'); }
+  export async function prepareApproval(_, input) { return approval(input, {amount: input.amount, symbol: input.symbol, spender: input.spender}); }
   export async function quoteBridge(_, input) {
     h().quotes.push({kind: 'bridge', ...input});
     await h().gate('Quote');
     if (h().quoteUnavailable) return {status: 'UNAVAILABLE', reason: 'MOCK raw English Circle error'};
-    const amount = BigInt(input.amount) * 1000000n;
-    return ok({amount, expectedReceive: amount - 1000n, maxFee: 1000n, totalDebit: amount, transferSpeed: input.transferSpeed,
-      spender: '${target}', recipient: input.account, destinationDomain: 6, expiresAt: expiry()});
+    const amount = parseUnits(input.amount, 6), maxFee = BigInt(h().circleFee);
+    return ok({account: input.account, asset: 'USDC', sourceChainId: 5042002, destinationChainId: 84532,
+      amount, expectedReceive: amount - maxFee, providerFee: maxFee, forwarderFee: 0n, maxFee, totalDebit: amount, transferSpeed: input.transferSpeed,
+      spender: CCTP_KIT_BRIDGE_TESTNET, recipient: input.account, destinationDomain: 6, quotedAt: Date.now(), expiresAt: expiry()});
   }
   export async function prepareCctpBurn(_, q) { return action('cctp-burn', q); }
-  export async function prepareCctpApproval(_, q) { return {...action('approval', q), cctp: {approvalAmount: q.totalDebit}}; }
+  export async function prepareCctpApproval(_, q) { return approval({symbol: 'USDC', spender: q.spender, amount: q.totalDebit}, q); }
 `
 
 const policyFixture = `
-  export function evaluateToolPolicy() { return {mustStop: false, findings: []}; }
-  export function createReview(action, quote, policy) { return {action, quote, policy, expiresAt: Date.now() + 60_000}; }
-  export function revalidateReview() { return {status: 'OK'}; }
-  export function verifyFiniteApproval() { throw new Error('Unexpected MOCK approval path'); }
+  export { evaluateToolPolicy, createReview, revalidateReview, verifyFiniteApproval } from '/src/migrated/policy.ts';
 `
 
 const protocolFixture = `
   const h = () => window.__completionHarness;
   export const isWalletRejection = (error) => error?.code === 4001;
-  async function submit(kind) {
+  async function submit(kind, action) {
     h().walletRequests.push(kind);
+    h().walletActions.push(action);
+    await h().gate('Submission');
     if (h().outcome === 'rejected') throw Object.assign(new Error('MOCK user rejected'), {code: 4001});
-    return kind === 'swap' ? '${swapHash}' : '${sourceHash}';
+    if (h().outcome === 'unknown') throw new Error('MOCK wallet transport lost the response');
+    return kind === 'approval' ? '${approvalHash}' : kind === 'swap' ? '${swapHash}' : '${sourceHash}';
   }
-  export const requestReviewedAction = async () => submit('swap');
-  export const requestReviewedCctpAction = async () => submit('bridge');
+  export const requestReviewedAction = async (_, action) => submit(action.kind === 'approval' ? 'approval' : 'swap', action);
+  export const requestReviewedCctpAction = async (action) => submit(action.kind === 'approval' ? 'approval' : 'bridge', action);
   export async function pollProtocolReceipt(_, action, hash, evidence, onPending) {
     h().receipts.push(hash);
     onPending();
     if (h().holdReceipt) await new Promise((resolve) => { h().releaseReceipt = resolve; });
     await h().gate('Receipt');
-    if (action.kind === 'approval') h().approved = true;
+    if (action.kind === 'approval') { h().approved = true; h().approvedUnits = evidence.approval.minimum.toString(); }
     return h().outcome === 'failed' ? 'failed' : 'confirmed';
   }
-  export async function checkProtocolReceipt(_, action, hash) {
+  export async function checkProtocolReceipt(_, action, hash, evidence) {
     h().reads++; h().recoveries.push({account: action.account, hash});
     await h().gate('Recovery');
     if (h().recoveryError) throw new Error('MOCK recovery unavailable');
-    return 'confirmed';
+    const result = h().recoveryOutcome || 'confirmed';
+    if (action.kind === 'approval' && result === 'confirmed') { h().approved = true; h().approvedUnits = evidence.approval.minimum.toString(); }
+    return result;
   }
 `
 
 const circleFixture = `
   import { getOfficialCctpStatus as readActualCircleStatus } from '/src/protocols/circle/cctpAdapter.ts';
   export const simulatePreparedCctpCall = async () => { await window.__completionHarness.gate('Simulation'); return {success: true}; };
-  export const sameCctpActionMaterial = () => true;
-  export const sameCctpQuoteMaterial = () => true;
-  export const cctpGasEstimateChanged = () => false;
+  export { sameCctpActionMaterial, sameCctpQuoteMaterial, cctpGasEstimateChanged, cctpGasCeilingExceeded } from '/src/protocols/circle/cctpAdapter.ts';
   export async function getOfficialCctpStatus(provider, input) {
     const h = window.__completionHarness;
     h.statusReads++;
@@ -159,13 +188,15 @@ const entry = `
   import { WalletFixture, useWallet } from '/__completion_test__/wallet.jsx';
   const q = new URLSearchParams(location.search);
   const realShape = q.get('realShape') === '1';
-  localStorage.clear(); sessionStorage.clear();
+  const reloaded = sessionStorage.getItem('completion.reload');
+  if (!reloaded) { localStorage.clear(); sessionStorage.clear(); }
   localStorage.setItem('mk.lang', q.get('lang') || 'en');
   const previous = {hash: '${previousHash}', account: '${account}', target: '${target}', calldata: '0x1234',
     fromSymbol: 'USDC', toSymbol: 'EURC', minimumOutputUnits: '8999000', timestamp: 1,
     status: 'completed', amount: '9', expectedReceiveUnits: '8999000', destinationDomain: 6, maxFeeUnits: '1000', finalityThreshold: '1000'};
   const h = window.__completionHarness = {
-    ready: false, calls: [], quotes: [], walletRequests: [], receipts: [], reads: 0, statusReads: 0, refreshes: 0,
+    ready: false, calls: [], quotes: [], walletRequests: [], walletActions: [], preparedActions: [], receipts: [], reads: 0, allowanceReads: 0, statusReads: 0, refreshes: 0,
+    gasLimit: '100000', gasPrice: '1', quoteTtl: 60_000, circleFee: '1000',
     activeAccount: realShape ? '${realAccount}' : '${account}', activeChain: 5042002, recoveries: [], statusInputs: [], activityWrites: [], storageWrites: [],
     completeCallbacks: 0, sourceCallbacks: 0, quoteCallbacks: 0, consoleErrors: [], destinationReads: 0,
     holds: new Set(q.get('gate') ? [q.get('gate')] : []), releases: {}, settled: {},
@@ -175,6 +206,16 @@ const entry = `
     realShape, circleHttpReads: [], destinationInputs: [],
     quoteUnavailable: q.get('quoteUnavailable') === '1', destinationState: q.get('destination'),
     swap: [previous], bridge: [{...previous, status: 'destination-confirmed', destinationHash: '${previousHash}'}],
+  };
+  if (reloaded) Object.assign(h, JSON.parse(reloaded), {
+    swap: JSON.parse(localStorage.getItem('mk.swap.records.v1')),
+    bridge: JSON.parse(localStorage.getItem('mk.bridge.records.v1')),
+  });
+  h.reload = () => {
+    const saved = Object.fromEntries(['walletRequests', 'receipts', 'quotes', 'approved', 'approvedUnits', 'recoveryOutcome', 'reboots'].map((key) => [key, h[key]]));
+    saved.reboots = (h.reboots || 0) + 1;
+    sessionStorage.setItem('completion.reload', JSON.stringify(saved));
+    location.reload();
   };
   h.gate = async (name) => {
     if (!h.holds.has(name)) return;
@@ -197,7 +238,7 @@ const entry = `
     localStorage.setItem('mk.strategy.v1:cctp:' + who, JSON.stringify(value));
     return value;
   };
-  if (q.get('lifecycle') === '1' && q.get('seed') !== '0') {
+  if (!reloaded && q.get('lifecycle') === '1' && q.get('seed') !== '0') {
     if (realShape) h.seedRun('${realAccount}', '${realBurnHash}', {
       binding: {from: '${realAccount}', to: '${realBody.messageSender}', data: '0x1234', amount: '1',
         expectedReceiveUnits: '${realReceiveUnits}', recipient: '${realAccount}', destinationDomain: 6,
@@ -210,7 +251,8 @@ const entry = `
   window.ethereum = {isMetaMask: true, request: async ({method}) => {
     h.calls.push(method);
     if (method === 'eth_call') return '0x';
-    if (method === 'eth_gasPrice') return '0x1';
+    if (method === 'eth_gasPrice') return '0x' + BigInt(h.gasPrice).toString(16);
+    if (method === 'eth_getTransactionReceipt') return null;
     throw new Error('Unexpected provider request in MOCKED completion QA: ' + method);
   }};
   window.fetch = async (url) => {
@@ -229,6 +271,7 @@ const entry = `
   const pages = await import('/src/pages/SwapBridge.tsx');
   const Component = pages[q.get('kind') === 'bridge' ? 'BridgePage' : 'SwapPage'];
   const { LiveCctpControl } = await import('/src/components/LiveCctpControl.tsx');
+  const { LiveSwapControl } = await import('/src/components/LiveSwapControl.tsx');
   function LifecyclePage() {
     const wallet = useWallet();
     const [value, setValue] = useState('1');
@@ -238,10 +281,21 @@ const entry = `
         onSourceConfirmed: async () => { h.sourceCallbacks++; await h.gate('SourceCallback'); }, onComplete: () => { h.completeCallbacks++; setValue(''); },
         onQuoteChange: () => { h.quoteCallbacks++; }}));
   }
+  function ContinuationPage() {
+    const wallet = useWallet();
+    const [value, setValue] = useState('1');
+    return createElement('div', null,
+      createElement('input', {value, onChange: (event) => setValue(event.target.value)}),
+      q.get('kind') === 'swap'
+        ? createElement(LiveSwapControl, {account: wallet.address, from: 'USDC', to: 'EURC', amount: value, slip: '0.5%',
+            onConfirmed: async () => { h.sourceCallbacks++; await h.gate('SourceCallback'); if (h.callbackError) throw new Error('MOCK wallet refresh unavailable'); }, onComplete: () => { h.completeCallbacks++; setValue(''); }})
+        : createElement(LiveCctpControl, {account: wallet.address, amount: value, transferSpeed: 'FAST',
+            onSourceConfirmed: async () => { h.sourceCallbacks++; await h.gate('SourceCallback'); }, onComplete: () => { h.completeCallbacks++; setValue(''); }}));
+  }
   function Remountable() {
     const [epoch, setEpoch] = useState(0);
     h.remount = () => setEpoch((n) => n + 1);
-    return createElement(q.get('lifecycle') === '1' ? LifecyclePage : Component, {key: epoch});
+    return createElement(q.get('lifecycle') === '1' ? LifecyclePage : q.get('continuation') === '1' ? ContinuationPage : Component, {key: epoch});
   }
   const root = createRoot(document.getElementById('app'));
   h.unmount = () => root.unmount();
@@ -452,30 +506,356 @@ for (const destination of ['pending', 'unknown', 'unavailable', 'http-error']) {
   })
 }
 
-test('MOCKED CCTP approval-confirmed preserves explicit fresh burn review continuation without completing or resetting the amount', async () => {
-  await fixture({kind: 'bridge', approval: '1'}, async (ui) => {
+const approvalLabel = (kind, lang = 'en') => kind === 'swap'
+  ? lang === 'vi' ? 'Xác nhận phê duyệt trong ví' : 'Confirm approval in wallet'
+  : lang === 'vi' ? 'Xem phê duyệt chính xác' : 'Review exact approval'
+const approvalCheck = (kind) => kind === 'swap' ? 'Check receipt again' : 'Check approval receipt'
+const runStorage = (kind) => `localStorage.getItem('mk.strategy.v1:${kind === 'swap' ? 'swap' : 'cctp'}:${account}')`
+
+async function prepareApprovalReview(ui, kind, lang = 'en') {
+  const names = labels(kind, lang)
+  await ui.fill(0, '1')
+  await ui.wait(enabled(names.start), 'An entered amount enables explicit quote preparation')
+  await ui.click(names.start)
+  await ui.wait(enabled(approvalLabel(kind, lang)), 'Insufficient allowance requires a separately reviewed finite approval')
+  assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [], 'Preparing approval has no wallet authority')
+  return names
+}
+
+for (const kind of ['swap', 'bridge']) for (const lang of ['en', 'vi']) {
+  test(`MOCKED ${kind} ${lang}: confirmed approval automatically rereads allowance and prepares a separate explicit action review`, async () => {
+    await fixture({kind, lang, approval: '1'}, async (ui) => {
+      const names = await prepareApprovalReview(ui, kind, lang)
+      await ui.click(approvalLabel(kind, lang))
+      await ui.wait(enabled(names.confirm), 'A confirmed approval must prepare the next review without a quote button click')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'], 'Read-only continuation cannot open the second wallet request')
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash])
+      assert.equal(await ui.evaluate(`${h}.approved`), true)
+      assert.ok(await ui.evaluate(`${h}.allowanceReads >= 1`), 'The confirmed approval must be followed by actual allowance evidence')
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), 2, 'A fresh post-approval quote must be obtained automatically')
+      assert.equal(await ui.evaluate(amount), '1')
+      assert.equal(await ui.evaluate(exists(names.done)), false, 'An approval receipt cannot complete Swap or Bridge')
+      assert.equal(await ui.evaluate(`${h}.${kind}.length`), 1, 'Approval creates no misleading action Activity')
+      const saved = await ui.evaluate(`JSON.parse(${runStorage(kind)})`)
+      assert.equal(saved.phase, 'REVIEW_ACTION')
+      assert.equal(saved.hash, undefined, 'The next action cannot inherit the approval hash')
+      assert.equal(saved.approvalReceipt.hash, approvalHash, 'Confirmed approval evidence survives preparing the dependent action')
+      assert.equal(await ui.evaluate(`${h}.walletActions[0].request.data.endsWith('00000000000000000000000000000000000000000000000000000000000f4240')`), true, 'Approval calldata authorizes exactly one USDC, never an infinite allowance')
+      await ui.evaluate(`(() => { const button = ${buttons(names.confirm)}[0]; for (let i = 0; i < 10; i++) button.click(); })()`)
+      await ui.wait(kind === 'swap' ? enabled(names.done) : enabled(names.check), 'The explicit second click may submit the independently reviewed action once')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval', kind])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash, kind === 'swap' ? swapHash : sourceHash])
+      assert.equal(await ui.evaluate(`${h}.calls.some((method) => ['eth_sendTransaction', 'eth_sendRawTransaction', 'personal_sign', 'eth_sign'].includes(method))`), false)
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) {
+  test(`MOCKED ${kind}: rejecting the explicit action after approval preserves approval evidence without action completion or retry`, async () => {
+    await fixture({kind, approval: '1'}, async (ui) => {
+      const names = await prepareApprovalReview(ui, kind)
+      await ui.click(approvalLabel(kind))
+      await ui.wait(enabled(names.confirm), 'Approval must prepare a separate action review')
+      await ui.evaluate(`${h}.outcome = 'rejected'`)
+      await ui.click(names.confirm)
+      await ui.wait(enabled(names.start), 'A rejected second wallet request must end without a broadcast')
+      assert.match(await ui.evaluate('document.body.innerText'), /Wallet request rejected/)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval', kind])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash], 'A rejected request has no hash or receipt poll')
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.equal(await ui.evaluate(`${h}.${kind}.length`), 1)
+      const saved = await ui.evaluate(`JSON.parse(${runStorage(kind)})`)
+      assert.equal(saved.phase, 'USER_REJECTED')
+      assert.equal(saved.hash, undefined)
+      assert.equal(saved.approvalReceipt.hash, approvalHash)
+      assert.equal(await ui.evaluate(amount), '1')
+    })
+  })
+}
+
+for (const gas of [{limit: '80000', price: '1'}, {limit: '50000', price: '2'}, {limit: '100000', price: '1'}]) {
+  test(`MOCKED CCTP gas ${gas.limit} x ${gas.price}: a valid fresh maximum within the reviewed ceiling needs no repeated review`, async () => {
+    await fixture({kind: 'bridge'}, async (ui) => {
+      const names = labels('bridge')
+      await ui.fill(0, '1'); await ui.click(names.start)
+      await ui.wait(enabled(names.confirm), 'The original 100000 wei ceiling must be reviewed')
+      await ui.evaluate(`${h}.gasLimit = '${gas.limit}'; ${h}.gasPrice = '${gas.price}'`)
+      await ui.click(names.confirm)
+      await ui.wait(enabled(names.check), 'A lower or equal valid gas maximum must submit after this explicit confirmation')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['bridge'])
+      const sent = await ui.evaluate(`({gas: ${h}.walletActions[0].request.gas, gasPrice: ${h}.walletActions[0].request.gasPrice})`)
+      assert.equal(BigInt(sent.gas) * BigInt(sent.gasPrice), BigInt(gas.limit) * BigInt(gas.price))
+    })
+  })
+}
+
+test('MOCKED CCTP gas above ceiling: refreshed maximum requires another explicit review before one wallet request', async () => {
+  await fixture({kind: 'bridge'}, async (ui) => {
     const names = labels('bridge')
-    await ui.fill(0, '1')
-    await ui.wait(enabled(names.start), 'Amount enables quote preparation')
-    await ui.click(names.start)
-    await ui.wait(enabled('Review exact approval'), 'Insufficient allowance must offer a separate approval review')
-    assert.equal(await ui.evaluate(exists(names.done)), false)
+    await ui.fill(0, '1'); await ui.click(names.start)
+    await ui.wait(enabled(names.confirm), 'The original maximum must be reviewed')
+    await ui.evaluate(`${h}.gasLimit = '100001'`)
+    await ui.click(names.confirm)
+    await ui.wait(`document.body.innerText.includes('gas exceeds the reviewed maximum') && ${enabled(names.confirm)}`, 'Exceeding the reviewed ceiling must refresh the review')
     assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
-    await ui.click('Review exact approval')
-    await ui.wait(enabled(names.start), 'Confirmed approval must retain the existing fresh quote continuation')
-    assert.match(await ui.evaluate('document.body.innerText'), /Approval confirmed.*review the burn separately/)
-    assert.equal(await ui.evaluate(amount), '1')
-    assert.equal(await ui.evaluate(exists(names.done)), false, 'An approval receipt is not bridge completion')
-    assert.equal(await ui.evaluate(`JSON.parse(localStorage.getItem('mk.strategy.v1:cctp:${account}')).phase`), 'REVALIDATING')
-    assert.equal(await ui.evaluate(`${h}.bridge.length`), 1, 'Approval must not create a completed bridge Activity record')
-    assert.equal(await ui.evaluate(`${h}.quotes.length`), 1, 'Approval completion must not automatically prepare the burn')
+    assert.deepEqual(await ui.evaluate(`${h}.receipts`), [])
+    await ui.click(names.confirm)
+    await ui.wait(enabled(names.check), 'Only a second explicit confirm authorizes the raised ceiling')
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['bridge'])
+  })
+})
+
+test('MOCKED Swap material output change: even an improved fresh quote requires explicit new review', async () => {
+  await fixture({kind: 'swap'}, async (ui) => {
+    const names = labels('swap')
+    await ui.fill(0, '1'); await ui.click(names.start)
+    await ui.wait(enabled(names.confirm), 'Original output must be reviewed')
+    await ui.evaluate(`${h}.swapOutput = '1100000'`)
+    await ui.click(names.confirm)
+    await ui.wait(enabled(names.start), 'Material fresh quote change must invalidate the old executable review')
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+    assert.equal(await ui.evaluate(exists(names.confirm)), false)
     await ui.click(names.start)
-    await ui.wait(enabled(names.confirm), 'Explicit refresh must re-read allowance and offer a separate burn review')
-    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['bridge'], 'Burn preparation must not automatically request another wallet transaction')
-    assert.equal(await ui.evaluate(amount), '1')
+    await ui.wait(enabled(names.confirm), 'Explicit start obtains the changed quote for review')
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+  })
+})
+
+for (const change of ['fee', 'expiry']) {
+  test(`MOCKED CCTP ${change}: expired review or changed Circle fee cannot submit without refreshed explicit review`, async () => {
+    await fixture({kind: 'bridge'}, async (ui) => {
+      const names = labels('bridge')
+      await ui.fill(0, '1'); await ui.click(names.start)
+      await ui.wait(enabled(names.confirm), 'Initial CCTP fee and receive floor must be reviewed')
+      await ui.evaluate(`(() => { const now = Date.now; Date.now = () => now() + 61_000; ${change === 'fee' ? `${h}.circleFee = '2000';` : ''} })()`)
+      await ui.click(names.confirm)
+      await ui.wait(`document.body.innerText.includes('${change === 'fee' ? 'Circle fee or request changed' : 'Review expired'}') && ${enabled(names.confirm)}`, 'A changed fee or expired review must expose the refreshed request first')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+      if (change === 'fee') assert.match(await ui.evaluate('document.body.innerText'), /0\.002 USDC/)
+      await ui.click(names.confirm)
+      await ui.wait(enabled(names.check), 'The refreshed review requires another explicit wallet confirmation')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['bridge'])
+    })
+  })
+}
+
+async function reloadFixture(ui) {
+  const previous = await ui.evaluate(`${h}.reboots || 0`)
+  await ui.evaluate(`setTimeout(() => ${h}.reload(), 0); undefined`)
+  // A real page navigation destroys the old execution context. Retry until the
+  // replacement fixture has mounted, preserving only explicit saved evidence.
+  const expires = Date.now() + 10_000
+  while (Date.now() < expires) {
+    try {
+      if (await ui.evaluate(`${h}?.ready && ${h}.reboots === ${previous + 1} && !!document.querySelector('input')`)) return
+    } catch { /* The navigation briefly has no execution context. */ }
+    await new Promise((resolve) => setTimeout(resolve, 30))
+  }
+  assert.fail('The isolated full-page reload did not remount')
+}
+
+for (const kind of ['swap', 'bridge']) {
+  test(`MOCKED ${kind} reload after confirmed approval: saved evidence resumes read-only review without another approval or action request`, async () => {
+    await fixture({kind, approval: '1', continuation: '1', hold: '1'}, async (ui) => {
+      const names = await prepareApprovalReview(ui, kind)
+      await ui.click(approvalLabel(kind))
+      await ui.wait(`!!${h}.releaseReceipt`, 'The separately submitted approval must be receipt-pending first')
+      await ui.evaluate(`${h}.holds.add('SourceCallback'); ${h}.releaseReceipt()`)
+      await ui.wait(`!!${h}.releases.SourceCallback`, 'The fixture must record confirmed approval before its continuation callback returns')
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).phase`), 'REVALIDATING')
+      await reloadFixture(ui)
+      await ui.wait(enabled(names.confirm), 'A full reload must safely reconstruct a fresh action review from confirmed approval evidence')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash])
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).approvalReceipt.hash`), approvalHash)
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.equal(await ui.evaluate(amount), '1')
+    })
+  })
+
+  test(`MOCKED ${kind} reload with pending approval: saved hash stays read-only through pending and confirmed checks without duplicate sends`, async () => {
+    await fixture({kind, approval: '1', continuation: '1', hold: '1'}, async (ui) => {
+      const names = await prepareApprovalReview(ui, kind)
+      await ui.click(approvalLabel(kind))
+      await ui.wait(`!!${h}.releaseReceipt`, 'Approval hash must be saved while receipt is pending')
+      await ui.evaluate(`${h}.recoveryOutcome = 'pending'`)
+      await reloadFixture(ui)
+      await ui.wait(enabled(approvalCheck(kind)), 'Reload must restore only the saved approval receipt check')
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(approvalHash))
+      await ui.click(approvalCheck(kind))
+      await ui.wait(`${h}.recoveries.length === 1 && ${enabled(approvalCheck(kind))}`, 'A pending recovery must stay pending and unlock a safe read-only retry')
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).phase`), 'PENDING')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      await ui.evaluate(`${h}.recoveryOutcome = 'confirmed'`)
+      await ui.click(approvalCheck(kind))
+      await ui.wait(enabled(names.confirm), 'A confirmed read-only recovery must continue to the fresh action review')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash])
+      assert.equal(await ui.evaluate(`${h}.statusReads`), 0, 'Approval recovery must never query Circle as though a burn already happened')
+      assert.equal(await ui.evaluate(`${h}.destinationReads`), 0)
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+    })
+  })
+
+  test(`MOCKED ${kind} approval confirmed but allowance insufficient: continuation blocks without silently skipping or resubmitting approval`, async () => {
+    await fixture({kind, approval: '1', hold: '1'}, async (ui) => {
+      const names = await prepareApprovalReview(ui, kind)
+      await ui.click(approvalLabel(kind))
+      await ui.wait(`!!${h}.releaseReceipt`, 'Approval must wait for explicit receipt evidence')
+      await ui.evaluate(`${h}.insufficientAllowance = true; ${h}.releaseReceipt()`)
+      await ui.wait(`JSON.parse(${runStorage(kind)}).phase === 'BLOCKED'`, 'Allowance evidence must block a dependent action when still insufficient')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.equal(await ui.evaluate(`${h}.${kind}.length`), 1)
+    })
+  })
+
+  for (const change of ['account', 'amount']) {
+    test(`MOCKED ${kind} approval continuation: ${change} change discards the delayed post-approval quote without an action request`, async () => {
+      await fixture({kind, approval: '1', hold: '1'}, async (ui) => {
+        const names = await prepareApprovalReview(ui, kind)
+        await ui.click(approvalLabel(kind))
+        await ui.wait(`!!${h}.releaseReceipt`, 'Approval must have a recorded pending hash')
+        await ui.evaluate(`${h}.holds.add('Quote'); ${h}.releaseReceipt()`)
+        await ui.wait(`!!${h}.releases.Quote`, 'The automatic post-approval quote must be held read-only')
+        await ui.evaluate(`${h}.staleQuoteRelease = ${h}.releases.Quote; ${h}.holds.delete('Quote')`)
+        if (change === 'account') await ui.evaluate(`${h}.changeAccount('${otherAccount}')`)
+        else await ui.fill(0, '2')
+        await ui.evaluate('new Promise((resolve) => setTimeout(resolve, 80))')
+        const before = await ui.evaluate(`JSON.stringify({run: ${runStorage(kind)}, prepared: ${h}.preparedActions.length, requests: ${h}.walletRequests})`)
+        await ui.evaluate(`${h}.staleQuoteRelease()`)
+        await ui.wait(`${h}.settled.Quote === 1`, 'The original post-approval quote must settle')
+        await ui.evaluate('new Promise((resolve) => setTimeout(resolve, 50))')
+        assert.equal(await ui.evaluate(`JSON.stringify({run: ${runStorage(kind)}, prepared: ${h}.preparedActions.length, requests: ${h}.walletRequests})`), before, 'The stale quote cannot change the current run or publish a prepared action')
+        assert.equal(await ui.evaluate(exists(names.confirm)), false, 'A stale continuation cannot publish an executable review')
+        assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
+        assert.equal(await ui.evaluate(exists(names.done)), false)
+      })
+    })
+  }
+}
+
+test('MOCKED Swap approval continuation survives an ancillary wallet refresh callback failure', async () => {
+  await fixture({kind: 'swap', approval: '1', continuation: '1'}, async (ui) => {
+    const names = await prepareApprovalReview(ui, 'swap')
+    await ui.evaluate(`${h}.callbackError = true`)
+    await ui.click(approvalLabel('swap'))
+    await ui.wait(enabled(names.confirm), 'A refresh callback failure cannot erase verified approval or prevent fresh allowance and quote reads')
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
+    assert.equal(await ui.evaluate(`${h}.quotes.length`), 2)
+    assert.equal(await ui.evaluate(`JSON.parse(${runStorage('swap')}).approvalReceipt.hash`), approvalHash)
     assert.equal(await ui.evaluate(exists(names.done)), false)
   })
 })
+
+test('MOCKED Swap stale Done cannot erase a newer saved pending transfer', async () => {
+  await fixture({kind: 'swap'}, async (ui) => {
+    const names = await submit(ui, 'swap')
+    await ui.wait(enabled(names.done), 'This tab must have independently verified its completed swap')
+    await ui.evaluate(`(() => { const saved = JSON.parse(${runStorage('swap')}); saved.phase = 'PENDING'; saved.hash = '${otherSourceHash}'; saved.updatedAt += 1; localStorage.setItem('mk.strategy.v1:swap:${account}', JSON.stringify(saved)); })()`)
+    const replacement = await ui.evaluate(runStorage('swap'))
+    const activity = await ui.evaluate(`localStorage.getItem('mk.swap.records.v1')`)
+    await ui.click(names.done)
+    assert.equal(await ui.evaluate(runStorage('swap')), replacement, 'Acknowledging an old completion cannot overwrite the newer checkpoint')
+    assert.equal(await ui.evaluate(`localStorage.getItem('mk.swap.records.v1')`), activity)
+    assert.equal(await ui.evaluate(amount), '1')
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['swap'])
+  })
+})
+
+for (const kind of ['swap', 'bridge']) {
+  test(`MOCKED ${kind} reload with pending action: saved transaction remains pending through read-only receipt recovery`, async () => {
+    await fixture({kind, continuation: '1', hold: '1'}, async (ui) => {
+      const names = await submit(ui, kind)
+      await ui.wait(`!!${h}.releaseReceipt`, 'The action must have a known hash and remain pending')
+      await ui.evaluate(`${h}.recoveryOutcome = 'pending'`)
+      const quoteCount = await ui.evaluate(`${h}.quotes.length`)
+      await reloadFixture(ui)
+      const check = kind === 'swap' ? 'Check receipt again' : names.check
+      await ui.wait(enabled(check), 'Full reload must restore a read-only receipt check for the known hash')
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      await ui.click(check)
+      await ui.wait(`JSON.parse(${runStorage(kind)}).phase === 'PENDING' && ${enabled(check)}`, 'Independent pending evidence must remain PENDING')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [kind === 'swap' ? swapHash : sourceHash])
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), quoteCount, 'Reload/recovery cannot silently prepare another transaction')
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+    })
+  })
+
+  for (const change of ['account', 'chain']) {
+    test(`MOCKED ${kind} late wallet hash after ${change} change: original checkpoint and Activity retain submitted evidence without a duplicate send`, async () => {
+      await fixture({kind, gate: 'Submission'}, async (ui) => {
+        const names = await submit(ui, kind)
+        await ui.wait(`!!${h}.releases.Submission`, 'The wallet request must be in flight before its response is delayed')
+        const sentBinding = await ui.evaluate(`JSON.parse(${runStorage(kind)}).binding`)
+        if (change === 'account') await ui.evaluate(`${h}.changeAccount('${otherAccount}')`)
+        else await ui.evaluate(`${h}.changeChain(84532)`)
+        await ui.evaluate('new Promise((resolve) => setTimeout(resolve, 50))')
+        const currentAccountCheckpoint = change === 'account'
+          ? await ui.evaluate(`localStorage.getItem('mk.strategy.v1:${kind === 'swap' ? 'swap' : 'cctp'}:${otherAccount}')`)
+          : undefined
+        await settleGate(ui, 'Submission')
+        const saved = await ui.evaluate(`JSON.parse(${runStorage(kind)})`)
+        assert.equal(saved.phase, 'SUBMITTED', 'A known returned hash must be saved even after its original UI context changed')
+        assert.equal(saved.hash, kind === 'swap' ? swapHash : sourceHash)
+        assert.deepEqual(saved.binding, sentBinding)
+        const record = await ui.evaluate(`${h}.${kind}.find((record) => record.hash === '${kind === 'swap' ? swapHash : sourceHash}')`)
+        assert.equal(record.account, account)
+        assert.equal(record.amount, '1')
+        assert.equal(record.status, kind === 'swap' ? 'pending' : 'source-pending')
+        if (change === 'account') assert.equal(await ui.evaluate(`localStorage.getItem('mk.strategy.v1:${kind === 'swap' ? 'swap' : 'cctp'}:${otherAccount}')`), currentAccountCheckpoint, 'The new account checkpoint cannot be overwritten by the old wallet response')
+        assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+        assert.deepEqual(await ui.evaluate(`${h}.receipts`), [], 'An invalidated UI must leave receipt tracking to explicit saved-state recovery')
+        assert.equal(await ui.evaluate(exists(names.done)), false)
+        if (change === 'account') await ui.evaluate(`${h}.changeAccount('${account}')`)
+        else await ui.evaluate(`${h}.changeChain(5042002)`)
+        await ui.wait(enabled(kind === 'swap' ? 'Check receipt again' : names.check), 'Returning to the original context must expose saved hash recovery')
+        assert.equal(await ui.evaluate(exists(names.start)), false)
+        assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      })
+    })
+  }
+
+  for (const outcome of ['rejected', 'unknown']) {
+    test(`MOCKED ${kind} late wallet ${outcome} after account change preserves the original request outcome without fabricated hash`, async () => {
+      await fixture({kind, gate: 'Submission', outcome}, async (ui) => {
+        await submit(ui, kind)
+        await ui.wait(`!!${h}.releases.Submission`, 'Wallet outcome must be delayed until its account context is gone')
+        await ui.evaluate(`${h}.changeAccount('${otherAccount}')`)
+        await ui.evaluate('new Promise((resolve) => setTimeout(resolve, 50))')
+        await settleGate(ui, 'Submission')
+        const saved = await ui.evaluate(`JSON.parse(${runStorage(kind)})`)
+        assert.equal(saved.phase, outcome === 'rejected' ? 'USER_REJECTED' : 'UNKNOWN')
+        assert.equal(saved.hash, undefined, 'A wallet error cannot invent transaction evidence')
+        assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+        assert.deepEqual(await ui.evaluate(`${h}.receipts`), [])
+        assert.equal(await ui.evaluate(`${h}.${kind}.length`), 1)
+      })
+    })
+  }
+}
+
+for (const change of ['account', 'amount', 'chain']) {
+  test(`MOCKED Swap ${change} change invalidates an existing review before any wallet request`, async () => {
+    await fixture({kind: 'swap'}, async (ui) => {
+      const names = labels('swap')
+      await ui.fill(0, '1'); await ui.click(names.start)
+      await ui.wait(enabled(names.confirm), 'An explicit swap review must be ready first')
+      if (change === 'account') await ui.evaluate(`${h}.changeAccount('${otherAccount}')`)
+      else if (change === 'chain') await ui.evaluate(`${h}.changeChain(84532)`)
+      else await ui.fill(0, '2')
+      await ui.wait(`!(${exists(names.confirm)})`, 'Changing reviewed input or connected context invalidates executable authority')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [])
+    })
+  })
+}
 
 for (const state of ['attestation-pending', 'attestation-available', 'forwarding-pending', 'destination-pending']) {
   test(`MOCKED CCTP ${state} retains progress and amount until verified destination confirmation`, async () => {

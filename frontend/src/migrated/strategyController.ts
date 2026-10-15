@@ -8,7 +8,8 @@ import { checkSwapRecord, type SwapRecord } from '../lib/protocolActivity.ts'
 export type StrategyPhase = 'IDLE' | 'REVIEW_APPROVAL' | 'REVIEW_ACTION' | 'AWAITING_USER' | 'SUBMITTED' | 'PENDING' | 'UNKNOWN' | 'USER_REJECTED' | 'FAILED' | 'REVALIDATING' | 'REQUOTING' | 'SOURCE_CONFIRMED' | 'DESTINATION_PENDING' | 'FORWARDING_FAILED' | 'DESTINATION_FAILED' | 'COMPLETED' | 'EXPIRED' | 'BLOCKED' | 'RECOVERING'
 export type StrategyStepKind = 'approval' | 'swap' | 'cctp-burn'
 export type StrategyReceiptBinding = Readonly<{ from: string; to: string; data: string; symbol?: 'USDC' | 'EURC'; spender?: string; requiredUnits?: string; outputSymbol?: 'USDC' | 'EURC'; minimumOutputUnits?: string; amount?: string; expectedReceiveUnits?: string; recipient?: string; destinationDomain?: number; maxFeeUnits?: string; finalityThreshold?: string }>
-export type StrategyRun = Readonly<{ version: 1; protocol: 'swap' | 'cctp'; account: string; chainId: typeof ARC.chainId; phase: StrategyPhase; step?: StrategyStepKind; hash?: string; binding?: StrategyReceiptBinding; updatedAt: number; reason?: string }>
+/** approvalReceipt is retained history; it grants no review or wallet-request authority. */
+export type StrategyRun = Readonly<{ version: 1; protocol: 'swap' | 'cctp'; account: string; chainId: typeof ARC.chainId; phase: StrategyPhase; step?: StrategyStepKind; hash?: string; binding?: StrategyReceiptBinding; approvalReceipt?: Readonly<{ hash: string; binding: StrategyReceiptBinding }>; updatedAt: number; reason?: string }>
 export type StrategyEvent =
   | { type: 'review'; step: StrategyStepKind; account: string; chainId: number; expiresAt: number; quoteFresh: boolean; policyPassed: boolean; simulationPassed: boolean; now: number }
   | { type: 'wallet-request'; binding: StrategyReceiptBinding; now: number }
@@ -46,10 +47,13 @@ export function transitionStrategy(run: StrategyRun, event: StrategyEvent): Stra
   if (event.type === 'pending' && ['SUBMITTED', 'PENDING', 'RECOVERING'].includes(run.phase)) return changed(run, 'PENDING', event.now)
   if (event.type === 'failed' && ['SUBMITTED', 'PENDING', 'UNKNOWN', 'RECOVERING'].includes(run.phase) && run.hash) return changed(run, 'FAILED', event.now)
   if (event.type === 'confirmed' && ['SUBMITTED', 'PENDING', 'UNKNOWN', 'RECOVERING'].includes(run.phase) && run.hash) {
-    if (run.step === 'approval') return changed(run, 'REVALIDATING', event.now)
+    if (run.step === 'approval') {
+      if (!run.binding) return reject('Missing approval receipt binding')
+      return changed(run, 'REVALIDATING', event.now, { approvalReceipt: Object.freeze({ hash: run.hash, binding: run.binding }) })
+    }
     return changed(run, run.protocol === 'swap' ? 'COMPLETED' : 'SOURCE_CONFIRMED', event.now)
   }
-  if (event.type === 'allowance-reread' && run.phase === 'REVALIDATING' && event.account.toLowerCase() === run.account && event.chainId === run.chainId) return event.sufficient ? changed(run, 'REQUOTING', event.now) : changed(run, 'BLOCKED', event.now, { reason: 'Approval receipt did not establish sufficient allowance' })
+  if (event.type === 'allowance-reread' && run.phase === 'REVALIDATING' && event.account.toLowerCase() === run.account && event.chainId === run.chainId) return event.sufficient ? changed(run, 'REQUOTING', event.now, run.step === 'approval' && run.hash && run.binding ? { approvalReceipt: Object.freeze({ hash: run.hash, binding: run.binding }) } : {}) : changed(run, 'BLOCKED', event.now, { reason: 'Approval receipt did not establish sufficient allowance' })
   if (event.type === 'destination-pending' && ['SOURCE_CONFIRMED', 'DESTINATION_PENDING'].includes(run.phase)) return changed(run, 'DESTINATION_PENDING', event.now)
   if (event.type === 'destination-confirmed' && ['SOURCE_CONFIRMED', 'DESTINATION_PENDING'].includes(run.phase)) return changed(run, 'COMPLETED', event.now)
   if (event.type === 'destination-failed' && ['SOURCE_CONFIRMED', 'DESTINATION_PENDING'].includes(run.phase)) return changed(run, 'DESTINATION_FAILED', event.now)
@@ -72,6 +76,7 @@ export function restoreStrategyRun(storage: Pick<Storage, 'getItem'>, protocol: 
     const run = value as StrategyRun
     if (run.version !== 1 || run.protocol !== protocol || run.account !== account.toLowerCase() || run.chainId !== ARC.chainId || !Number.isSafeInteger(run.updatedAt) || !['IDLE','REVIEW_APPROVAL','REVIEW_ACTION','AWAITING_USER','SUBMITTED','PENDING','UNKNOWN','USER_REJECTED','FAILED','REVALIDATING','REQUOTING','SOURCE_CONFIRMED','DESTINATION_PENDING','FORWARDING_FAILED','DESTINATION_FAILED','COMPLETED','EXPIRED','BLOCKED','RECOVERING'].includes(run.phase)) return undefined
     if (run.hash && !isHash(run.hash) || run.binding && (!isAddress(run.binding.from) || run.binding.from.toLowerCase() !== run.account || !isAddress(run.binding.to) || !/^0x[0-9a-f]*$/i.test(run.binding.data))) return undefined
+    if (run.approvalReceipt && (!isHash(run.approvalReceipt.hash) || !run.approvalReceipt.binding || !isAddress(run.approvalReceipt.binding.from) || run.approvalReceipt.binding.from.toLowerCase() !== run.account || !isAddress(run.approvalReceipt.binding.to) || !/^0x[0-9a-f]*$/i.test(run.approvalReceipt.binding.data))) return undefined
     if (['SUBMITTED','PENDING','REVALIDATING','SOURCE_CONFIRMED','DESTINATION_PENDING','FORWARDING_FAILED','DESTINATION_FAILED','COMPLETED','RECOVERING'].includes(run.phase) && (!run.hash || !run.binding || !run.step)) return undefined
     if (['REVIEW_APPROVAL', 'REVIEW_ACTION', 'REQUOTING'].includes(run.phase)) return Object.freeze({ ...run, phase: 'EXPIRED', binding: undefined, updatedAt: now })
     if (run.phase === 'AWAITING_USER' || run.phase === 'UNKNOWN' && !run.hash) return Object.freeze({ ...run, phase: 'UNKNOWN', updatedAt: now, reason: 'Wallet request outcome requires external reconciliation' })
@@ -89,7 +94,7 @@ export async function recoverStrategyRun(p: SendProvider, run: StrategyRun, now 
       if (!binding.symbol || !binding.spender || !binding.requiredUnits || !/^\d+$/.test(binding.requiredUnits)) return Object.freeze({ ...run, phase: 'UNKNOWN', updatedAt: now })
       const action = { kind: 'approval' as const, account: run.account as `0x${string}`, chainId: run.chainId, request: { from: binding.from as `0x${string}`, to: binding.to as `0x${string}`, data: binding.data as `0x${string}`, value: '0x0' as const, gas: '0x0' as const, gasPrice: '0x0' as const }, preparedAt: 0, expiresAt: 0, quoteId: '0x0' as `0x${string}`, executionEnabled: false as const }
       const result = await checkProtocolReceipt(p, action, run.hash as `0x${string}`, { approval: { symbol: binding.symbol, spender: binding.spender, minimum: BigInt(binding.requiredUnits) } })
-      return Object.freeze({ ...run, phase: result === 'confirmed' ? 'REVALIDATING' : result === 'failed' ? 'FAILED' : result === 'pending' && run.phase !== 'UNKNOWN' ? 'PENDING' : 'UNKNOWN', updatedAt: now })
+      return Object.freeze({ ...run, ...(result === 'confirmed' ? { approvalReceipt: Object.freeze({ hash: run.hash, binding }) } : {}), phase: result === 'confirmed' ? 'REVALIDATING' : result === 'failed' ? 'FAILED' : result === 'pending' && run.phase !== 'UNKNOWN' ? 'PENDING' : 'UNKNOWN', updatedAt: now })
     }
     if (run.step === 'swap') {
       const binding = run.binding

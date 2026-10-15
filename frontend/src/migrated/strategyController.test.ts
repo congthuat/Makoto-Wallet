@@ -63,6 +63,41 @@ test('reload restores only receipt recovery, never wallet or review authority', 
   assert.equal(restoreStrategyRun(storage, 'swap', target, 10), undefined)
 })
 
+for (const protocol of ['swap', 'cctp'] as const) test(`${protocol} retains confirmed approval evidence through action review, rejection and reload`, () => {
+  const values = new Map<string, string>()
+  const storage = { setItem: (key: string, value: string) => { values.set(key, value) }, getItem: (key: string) => values.get(key) ?? null }
+  let run = createStrategyRun(protocol, account, 1)
+  const apply = (event: Parameters<typeof transitionStrategy>[1]) => {
+    const result = transitionStrategy(run, event)
+    assert.equal(result.accepted, true)
+    if (result.accepted) run = result.state
+  }
+  apply(review('approval', 2))
+  apply({ type: 'wallet-request', binding, now: 3 })
+  apply({ type: 'hash', hash, now: 4 })
+  apply({ type: 'confirmed', now: 5 })
+  assert.deepEqual(run.approvalReceipt, { hash, binding })
+  saveStrategyRun(storage, run)
+  const restored = restoreStrategyRun(storage, protocol, account, 6)!
+  assert.equal(restored.phase, 'REVALIDATING')
+  assert.equal(transitionStrategy(restored, review(protocol === 'swap' ? 'swap' : 'cctp-burn', 7)).accepted, false)
+  // Old checkpoints without the new optional evidence are upgraded by the verified allowance gate.
+  run = { ...restored, approvalReceipt: undefined }
+  apply({ type: 'allowance-reread', sufficient: true, account, chainId: 5042002, now: 7 })
+  apply(review(protocol === 'swap' ? 'swap' : 'cctp-burn', 8))
+  assert.equal(run.hash, undefined, 'The next action has no submitted hash')
+  assert.deepEqual(run.approvalReceipt, { hash, binding })
+  apply({ type: 'wallet-request', binding: { from: account, to: target, data: '0x5678' }, now: 9 })
+  apply({ type: 'user-rejected', now: 10 })
+  saveStrategyRun(storage, run)
+  const rejected = restoreStrategyRun(storage, protocol, account, 11)!
+  assert.equal(rejected.phase, 'USER_REJECTED')
+  assert.deepEqual(rejected.approvalReceipt, { hash, binding })
+  assert.equal(transitionStrategy(rejected, { type: 'wallet-request', binding, now: 12 }).accepted, false)
+  saveStrategyRun(storage, { ...run, approvalReceipt: { hash: 'invalid', binding } })
+  assert.equal(restoreStrategyRun(storage, protocol, account, 12), undefined)
+})
+
 test('CCTP reload checkpoints restore approvals, source receipts, attestation pending, and destination pending without review authority', () => {
   const values = new Map<string, string>()
   const storage = { setItem: (key: string, value: string) => { values.set(key, value) }, getItem: (key: string) => values.get(key) ?? null }
