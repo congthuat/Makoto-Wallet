@@ -43,25 +43,29 @@ const walletFixture = `
     const [draft, setSwapDraft] = useState(null);
     const [who, setWho] = useState(h.activeAccount);
     const [chain, setChain] = useState(h.activeChain);
+    const [, setActivityRevision] = useState(0);
     h.changeAccount = (next) => { h.activeAccount = next; setWho(next); };
     h.changeChain = (next) => { h.activeChain = next; setChain(next); };
     const [setters] = useState(() => {
       const upsert = (kind, merge, record) => {
-        h.activityWrites.push({kind, record});
-        const records = h[kind];
+        h.activityWrites.push({kind, record, checkpoint: localStorage.getItem('mk.strategy.v1:' + (kind === 'swap' ? 'swap' : 'cctp') + ':' + record.account.toLowerCase())});
+        if (h.failActivity) throw new Error('MOCK Activity persistence unavailable');
+        const records = Array.isArray(h[kind]) ? h[kind] : [];
         const previous = records.find((r) => r.hash === record.hash);
         h[kind] = [merge(previous, record), ...records.filter((r) => r.hash !== record.hash)];
-        localStorage.setItem('mk.' + kind + '.records.v1', JSON.stringify(h[kind]));
+        if (!h.silentActivityFailure) localStorage.setItem('mk.' + kind + '.records.v1', JSON.stringify(h[kind]));
+        setActivityRevision((revision) => revision + 1);
       };
       return {
         upsertSwap: (record) => upsert('swap', mergeSwapRecord, record),
         upsertBridge: (record) => upsert('bridge', mergeBridgeRecord, record),
-        refetchWallet: async () => { h.refreshes++; },
+        refetchWallet: async () => { h.refreshes++; await h.gate('SourceCallback'); if (h.callbackError) throw new Error('MOCK wallet refresh unavailable'); },
         setSwapDraft, mask: (value) => value, notify: () => {},
       };
     });
     const wallet = {
       mode: 'connected', address: who, walletChainId: chain,
+      get swapRecords() { return h.swap; }, get bridgeRecords() { return h.bridge; },
       holdings: TOKENS.map((t) => ({...t, symbol: t.sym, verified: true, balance: 10, price: 1})),
       prices: {USDC: {price: 1}, EURC: {price: 1}, BTC: {price: 1}},
       network: {tokenTransferFeeUsdc: 0.002}, swapDraft: draft, ...setters,
@@ -151,8 +155,9 @@ const protocolFixture = `
     onPending();
     if (h().holdReceipt) await new Promise((resolve) => { h().releaseReceipt = resolve; });
     await h().gate('Receipt');
-    if (action.kind === 'approval') { h().approved = true; h().approvedUnits = evidence.approval.minimum.toString(); }
-    return h().outcome === 'failed' ? 'failed' : 'confirmed';
+    const result = h().receiptOutcome || (h().outcome === 'failed' ? 'failed' : 'confirmed');
+    if (action.kind === 'approval' && result === 'confirmed') { h().approved = true; h().approvedUnits = evidence.approval.minimum.toString(); }
+    return result;
   }
   export async function checkProtocolReceipt(_, action, hash, evidence) {
     h().reads++; h().recoveries.push({account: action.account, hash});
@@ -212,7 +217,7 @@ const entry = `
     bridge: JSON.parse(localStorage.getItem('mk.bridge.records.v1')),
   });
   h.reload = () => {
-    const saved = Object.fromEntries(['walletRequests', 'receipts', 'quotes', 'approved', 'approvedUnits', 'recoveryOutcome', 'reboots'].map((key) => [key, h[key]]));
+    const saved = Object.fromEntries(['walletRequests', 'receipts', 'quotes', 'approved', 'approvedUnits', 'recoveryOutcome', 'activeAccount', 'activeChain', 'outcome', 'receiptOutcome', 'reboots'].map((key) => [key, h[key]]));
     saved.reboots = (h.reboots || 0) + 1;
     sessionStorage.setItem('completion.reload', JSON.stringify(saved));
     location.reload();
@@ -307,7 +312,7 @@ before(async () => {
   const baselineRef = process.env.MAKOTO_COMPLETION_BASELINE_REF
   if (baselineRef) assert.match(baselineRef, /^[0-9a-f]{40}$/i, 'Negative control requires a full production commit SHA')
   const historical = new Map()
-  if (baselineRef) for (const file of ['pages/SwapBridge.tsx', 'components/LiveSwapControl.tsx', 'components/LiveCctpControl.tsx']) {
+  if (baselineRef) for (const file of ['pages/SwapBridge.tsx', 'components/LiveSwapControl.tsx', 'components/LiveCctpControl.tsx', 'migrated/strategyController.ts']) {
     historical.set(`/src/${file}`, execFileSync('git', ['show', `${baselineRef}:frontend/src/${file}`], {cwd: frontendRoot, encoding: 'utf8'}))
   }
   browser = createBrowserHarness({ frontendRoot, name: 'completion', ready: 'window.__completionHarness?.ready && document.querySelector("input")', plugins: [{
@@ -407,6 +412,27 @@ for (const kind of ['swap', 'bridge']) for (const lang of ['en', 'vi']) {
       await ui.wait(enabled(names.confirm), 'Only an explicit start obtains a fresh review')
       assert.equal(await ui.evaluate(`${h}.quotes.at(-1).amount`), '2')
       assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind], 'Fresh quote does not automatically open the wallet')
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) for (const corrupt of ['{}', '[null]']) {
+  test(`MOCKED actual-page ${kind} malformed Activity ${corrupt}: completed checkpoint and hash remain visible after reload`, async () => {
+    await fixture({kind}, async (ui) => {
+      const names = await prepareActualReview(ui, kind)
+      await ui.click(names.confirm)
+      if (kind === 'bridge') { await ui.wait(enabled(names.check), 'Source receipt must confirm'); await ui.click(names.check) }
+      await ui.wait(enabled(names.done), 'Protocol evidence must complete before corrupt Activity is introduced')
+      const completed = await ui.evaluate(runStorage(kind))
+      await ui.evaluate(`localStorage.setItem('mk.${kind}.records.v1', ${JSON.stringify(corrupt)})`)
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
+      await ui.wait(enabled(names.done), 'Malformed ancillary Activity must not crash the restored control')
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(kind === 'swap' ? swapHash : sourceHash))
+      assert.equal(await ui.evaluate(runStorage(kind)), completed)
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      assert.deepEqual(await ui.evaluate(`${h}.consoleErrors`), [])
     })
   })
 }
@@ -512,9 +538,9 @@ const approvalLabel = (kind, lang = 'en') => kind === 'swap'
 const approvalCheck = (kind) => kind === 'swap' ? 'Check receipt again' : 'Check approval receipt'
 const runStorage = (kind) => `localStorage.getItem('mk.strategy.v1:${kind === 'swap' ? 'swap' : 'cctp'}:${account}')`
 
-async function prepareApprovalReview(ui, kind, lang = 'en') {
+async function prepareApprovalReview(ui, kind, lang = 'en', value = '1') {
   const names = labels(kind, lang)
-  await ui.fill(0, '1')
+  await ui.fill(0, value)
   await ui.wait(enabled(names.start), 'An entered amount enables explicit quote preparation')
   await ui.click(names.start)
   await ui.wait(enabled(approvalLabel(kind, lang)), 'Insufficient allowance requires a separately reviewed finite approval')
@@ -654,32 +680,382 @@ async function reloadFixture(ui) {
   assert.fail('The isolated full-page reload did not remount')
 }
 
+const restoredAmount = '2.345678'
+async function configureActualInputs(ui, kind, lang = 'en') {
+  if (kind === 'swap') {
+    await ui.evaluate(`document.querySelector('button[aria-label="${lang === 'vi' ? 'Đảo chiều' : 'Flip'}"]').click()`)
+    await ui.evaluate(`document.querySelector('button[aria-controls="mk-swap-settings"]').click()`)
+    await ui.wait(enabled('1%'), 'The real Swap settings must expose slippage choices')
+    await ui.click('1%')
+  } else {
+    await ui.evaluate(`(() => { const button = [...document.querySelectorAll('button[aria-pressed]')].find((b) => b.textContent.trim().startsWith(${JSON.stringify(lang === 'vi' ? 'Tiêu chuẩn' : 'Standard')})); if (!button) throw new Error('Actual Bridge Standard speed missing'); button.click(); })()`)
+  }
+  await ui.fill(0, restoredAmount)
+}
+
+async function assertActualInputs(ui, kind, lang = 'en') {
+  assert.equal(await ui.evaluate(amount), restoredAmount, 'The actual parent must restore the exact nondefault amount')
+  if (kind === 'swap') {
+    assert.deepEqual(await ui.evaluate(`[...document.querySelectorAll('button > span.font-semibold')].map((span) => span.textContent).filter((label) => ['USDC', 'EURC'].includes(label))`), ['EURC', 'USDC'], 'Input/output tokens must retain their original direction')
+    await ui.evaluate(`document.querySelector('button[aria-controls="mk-swap-settings"]').click()`)
+    await ui.wait(enabled('1%'), 'Restored Swap settings must remain inspectable')
+    assert.equal(await ui.evaluate(`${buttons('1%')}[0].classList.contains('shadow')`), true, 'The actual parent must restore the selected nondefault slippage')
+    await ui.evaluate(`document.querySelector('button[aria-controls="mk-swap-settings"]').click()`)
+  } else {
+    assert.equal(await ui.evaluate(`document.querySelector('button[aria-pressed="true"]').textContent.trim().startsWith(${JSON.stringify(lang === 'vi' ? 'Tiêu chuẩn' : 'Standard')})`), true, 'The actual parent must restore Standard/SLOW transfer speed')
+  }
+}
+
+async function prepareActualReview(ui, kind, lang = 'en', approval = false) {
+  await configureActualInputs(ui, kind, lang)
+  const names = labels(kind, lang)
+  await ui.click(names.start)
+  await ui.wait(enabled(approval ? approvalLabel(kind, lang) : names.confirm), 'The actual page must prepare a separate bounded review')
+  assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+  return names
+}
+
+function assertFreshInputs(quote, kind) {
+  assert.equal(quote.amount, restoredAmount)
+  if (kind === 'swap') {
+    assert.equal(quote.from, 'EURC'); assert.equal(quote.to, 'USDC'); assert.equal(quote.slippage, 0.01)
+  } else assert.equal(quote.transferSpeed, 'SLOW')
+}
+
+for (const kind of ['swap', 'bridge']) for (const lang of ['en', 'vi']) {
+  test(`MOCKED actual-page ${kind} ${lang} reload after next review: confirmed approval inputs restore but old execution authority expires`, async () => {
+    await fixture({kind, lang, approval: '1'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind, lang, true)
+      await ui.click(approvalLabel(kind, lang))
+      await ui.wait(enabled(names.confirm), 'The verified approval must prepare the next explicit action review')
+      const previous = await ui.evaluate(`JSON.parse(${runStorage(kind)})`)
+      assert.equal(previous.phase, 'REVIEW_ACTION')
+      assert.equal(previous.approvalReceipt.hash, approvalHash)
+      const quoteCount = await ui.evaluate(`${h}.quotes.length`)
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind, lang)
+      await ui.wait(enabled(names.confirm), 'Reloaded approval evidence must obtain new reads and prepare a fresh review')
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), quoteCount + 1, 'The previous review must not survive as execution authority')
+      assertFreshInputs(await ui.evaluate(`${h}.quotes.at(-1)`), kind)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'], 'Reload may only read; an action still requires its own explicit confirmation')
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash])
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).approvalReceipt.hash`), approvalHash)
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) for (const step of ['approval', 'action']) {
+  test(`MOCKED actual-page ${kind} reload with known-hash UNKNOWN ${step}: only receipt checks remain available`, async () => {
+    await fixture({kind, approval: step === 'approval' ? '1' : '0'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind, 'en', step === 'approval')
+      await ui.evaluate(`${h}.receiptOutcome = 'unknown'; ${h}.recoveryOutcome = 'unknown'`)
+      await ui.click(step === 'approval' ? approvalLabel(kind) : names.confirm)
+      await ui.wait(`JSON.parse(${runStorage(kind)}).phase === 'UNKNOWN'`, 'An inconclusive receipt must retain UNKNOWN with the real submitted hash')
+      const hash = step === 'approval' ? approvalHash : kind === 'swap' ? swapHash : sourceHash
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).hash`), hash)
+      const activity = await ui.evaluate(`localStorage.getItem('mk.${kind}.records.v1')`)
+      const quoteCount = await ui.evaluate(`${h}.quotes.length`)
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
+      const check = step === 'approval' ? approvalCheck(kind) : kind === 'swap' ? 'Check receipt again' : names.check
+      await ui.wait(enabled(check), 'UNKNOWN with a known hash must expose only read-only recovery')
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(hash))
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      assert.equal(await ui.evaluate(exists(approvalLabel(kind))), false)
+      assert.equal(await ui.evaluate(`localStorage.getItem('mk.${kind}.records.v1')`), activity)
+      await ui.click(check)
+      await ui.wait(`JSON.parse(${runStorage(kind)}).phase === 'UNKNOWN' && ${enabled(check)}`, 'An inconclusive read remains UNKNOWN and unlocks a safe status retry')
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).hash`), hash)
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), quoteCount)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [step === 'approval' ? 'approval' : kind])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [hash])
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+    })
+  })
+
+  test(`MOCKED actual-page ${kind} reload with transport-unknown ${step}: preserve input without inventing a hash or retry`, async () => {
+    await fixture({kind, approval: step === 'approval' ? '1' : '0'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind, 'en', step === 'approval')
+      await ui.evaluate(`${h}.outcome = 'unknown'`)
+      await ui.click(step === 'approval' ? approvalLabel(kind) : names.confirm)
+      await ui.wait(`JSON.parse(${runStorage(kind)}).phase === 'UNKNOWN'`, 'A lost wallet response requires external reconciliation')
+      const quoteCount = await ui.evaluate(`${h}.quotes.length`)
+      const activity = await ui.evaluate(`localStorage.getItem('mk.${kind}.records.v1')`)
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).hash`), undefined, 'Transport failure cannot fabricate a transaction hash')
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      assert.equal(await ui.evaluate(exists(approvalLabel(kind))), false)
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.equal(await ui.evaluate(transactionLinks), 0)
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), quoteCount)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [step === 'approval' ? 'approval' : kind])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [])
+      assert.equal(await ui.evaluate(`localStorage.getItem('mk.${kind}.records.v1')`), activity)
+    })
+  })
+}
+
 for (const kind of ['swap', 'bridge']) {
-  test(`MOCKED ${kind} reload after confirmed approval: saved evidence resumes read-only review without another approval or action request`, async () => {
-    await fixture({kind, approval: '1', continuation: '1', hold: '1'}, async (ui) => {
-      const names = await prepareApprovalReview(ui, kind)
+  test(`MOCKED actual-page ${kind} second reload during fresh quote: confirmed approval and original inputs remain recoverable`, async () => {
+    await fixture({kind, approval: '1'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind, 'en', true)
+      await ui.click(approvalLabel(kind))
+      await ui.wait(enabled(names.confirm), 'The first approval must finish before exercising repeated reload')
+      await ui.evaluate(`(() => { const url = new URL(location.href); url.searchParams.set('gate', 'Quote'); history.replaceState(null, '', url); })()`)
+      await reloadFixture(ui)
+      await ui.wait(`!!${h}.releases.Quote`, 'The first restored fresh quote must be in flight')
+      await assertActualInputs(ui, kind)
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).approvalReceipt.hash`), approvalHash)
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
+      await ui.wait(`!!${h}.releases.Quote`, 'A second reload must still safely resume read-only preparation')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash])
+      await settleGate(ui, 'Quote')
+      await ui.wait(enabled(names.confirm), 'Only new reads may recreate the independently confirmed action review')
+      assertFreshInputs(await ui.evaluate(`${h}.quotes.at(-1)`), kind)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) for (const change of ['account', 'chain', 'kind']) {
+  test(`MOCKED actual-page ${kind} reload with different ${change}: input stays bound to the original account, Arc chain and protocol`, async () => {
+    await fixture({kind, hold: '1'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind)
+      await ui.click(names.confirm)
+      await ui.wait(`!!${h}.releaseReceipt`, 'A known pending action must exist before changing context')
+      const saved = await ui.evaluate(runStorage(kind))
+      const activity = await ui.evaluate(`localStorage.getItem('mk.${kind}.records.v1')`)
+      if (change === 'account') await ui.evaluate(`${h}.changeAccount('${otherAccount}')`)
+      else if (change === 'chain') await ui.evaluate(`${h}.changeChain(84532)`)
+      else await ui.evaluate(`(() => { const url = new URL(location.href); url.searchParams.set('kind', '${kind === 'swap' ? 'bridge' : 'swap'}'); history.replaceState(null, '', url); })()`)
+      await reloadFixture(ui)
+      assert.equal(await ui.evaluate(amount), '', 'Another wallet context or protocol must never inherit temporary transaction input')
+      assert.equal(await ui.evaluate(runStorage(kind)), saved, 'The original recovery checkpoint must remain intact')
+      assert.equal(await ui.evaluate(`localStorage.getItem('mk.${kind}.records.v1')`), activity)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      if (change === 'account') assert.equal(await ui.evaluate(transactionLinks), 0, 'Another account must not display the original account transaction')
+      if (change === 'kind') await ui.evaluate(`(() => { const url = new URL(location.href); url.searchParams.set('kind', '${kind}'); history.replaceState(null, '', url); })()`)
+      else if (change === 'account') await ui.evaluate(`${h}.changeAccount('${account}')`)
+      else await ui.evaluate(`${h}.changeChain(5042002)`)
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
+      await ui.wait(enabled(kind === 'swap' ? 'Check receipt again' : names.check), 'Returning to the original identity may recover its saved transaction')
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) {
+  test(`MOCKED actual-page ${kind} Activity throw: checkpoint already contains submitted hash before ancillary persistence`, async () => {
+    await fixture({kind}, async (ui) => {
+      const names = await prepareActualReview(ui, kind)
+      await ui.evaluate(`${h}.failActivity = true`)
+      await ui.click(names.confirm)
+      await ui.wait(`${h}.activityWrites.length > 0`, 'The actual submitted action must attempt Activity persistence')
+      const attempt = await ui.evaluate(`${h}.activityWrites[0]`)
+      const saved = JSON.parse(attempt.checkpoint)
+      assert.equal(saved.hash, kind === 'swap' ? swapHash : sourceHash, 'A failing Activity update must observe the hash already durably saved')
+      assert.equal(saved.phase, 'SUBMITTED')
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).hash`), saved.hash)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
+      await ui.wait(`(${enabled(kind === 'swap' ? 'Check receipt again' : names.check)}) || (${enabled(names.done)})`, 'Activity failure cannot erase saved hash recovery or independently verified completion after a full reload')
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      assert.equal(await ui.evaluate(`${h}.${kind}.length`), 1, 'A failed Activity write cannot invent transaction history')
+    })
+  })
+
+  test(`MOCKED actual-page ${kind} Done then reload: temporary input is cleared while completed Activity stays intact`, async () => {
+    await fixture({kind}, async (ui) => {
+      const names = await prepareActualReview(ui, kind)
+      await ui.click(names.confirm)
+      if (kind === 'bridge') { await ui.wait(enabled(names.check), 'Arc receipt must be confirmed first'); await ui.click(names.check) }
+      await ui.wait(enabled(names.done), 'Only complete receipt and destination evidence may expose Done')
+      const history = await ui.evaluate(`localStorage.getItem('mk.${kind}.records.v1')`)
+      const completed = await ui.evaluate(runStorage(kind))
+      const quoteCount = await ui.evaluate(`${h}.quotes.length`)
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
+      await ui.wait(enabled(names.done), 'A completed transfer reloaded before acknowledgment must still expose Done')
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(runStorage(kind)), completed)
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), quoteCount)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      await ui.click(names.done)
+      await ui.wait(`${amount} === '' && ${exists(names.start)}`, 'Done clears actual parent input')
+      const saved = await ui.evaluate(`JSON.parse(${runStorage(kind)})`)
+      assert.equal(saved.phase, 'IDLE'); assert.equal(saved.input, undefined); assert.equal(saved.hash, undefined); assert.equal(saved.binding, undefined)
+      assert.equal(await ui.evaluate(`localStorage.getItem('mk.${kind}.records.v1')`), history)
+      const quotes = await ui.evaluate(`${h}.quotes.length`)
+      await reloadFixture(ui)
+      assert.equal(await ui.evaluate(amount), '', 'Completed temporary input must not return on a later page load')
+      assert.equal(await ui.evaluate(transactionLinks), 0)
+      assert.equal(await ui.evaluate(`localStorage.getItem('mk.${kind}.records.v1')`), history)
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), quotes)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) for (const lang of ['en', 'vi']) {
+  test(`MOCKED actual-page ${kind} ${lang} Activity remains unavailable through completion and reload: Done preserves the only recovery evidence until history is repaired`, async () => {
+    await fixture({kind, lang}, async (ui) => {
+      const names = await prepareActualReview(ui, kind, lang)
+      await ui.evaluate(`${h}.failActivity = true`)
+      await ui.click(names.confirm)
+      if (kind === 'bridge') { await ui.wait(enabled(names.check), 'Source evidence survives ancillary Activity failure'); await ui.click(names.check) }
+      await ui.wait(enabled(names.done), 'Receipt and destination evidence determine completion even when Activity fails')
+      assert.match(await ui.evaluate('document.querySelector("[aria-live=polite]").innerText'), lang === 'vi' ? /Hoạt động/ : /Activity/, 'The ancillary history failure notice must be localized inside the live control')
+      assert.equal(await ui.evaluate(`${h}.${kind}.length`), 1)
+      const completed = await ui.evaluate(runStorage(kind))
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind, lang)
+      await ui.wait(enabled(names.done), 'Verified completion remains available after full reload')
+      await ui.evaluate(`${h}.failActivity = true`)
+      await ui.click(names.done)
+      assert.equal(await ui.evaluate(runStorage(kind)), completed, 'Done cannot erase the only saved transaction evidence while Activity is missing')
+      assert.equal(await ui.evaluate(amount), restoredAmount)
+      assert.equal(await ui.evaluate(`${h}.${kind}.length`), 1)
+      await ui.evaluate(`${h}.failActivity = false`)
+      if (kind === 'bridge') {
+        await ui.wait(enabled(names.check), 'Missing destination history requires fresh read-only Circle and Base evidence')
+        await ui.click(names.check)
+        await ui.wait(`${h}.bridge.some((r) => r.hash === '${sourceHash}' && r.status === 'destination-confirmed')`, 'Independent Circle and Base checks repair the destination history')
+      } else {
+        await ui.click(names.done)
+        await ui.wait(`${h}.swap.some((r) => r.hash === '${swapHash}' && r.status === 'completed')`, 'An explicit acknowledgment may first repair missing Swap history')
+      }
+      await ui.click(names.done)
+      await ui.wait(`${amount} === '' && ${exists(names.start)}`, 'Done may clear the temporary input after history has been repaired')
+      const record = await ui.evaluate(`${h}.${kind}.find((r) => r.hash === '${kind === 'swap' ? swapHash : sourceHash}')`)
+      assert.equal(record.status, kind === 'swap' ? 'completed' : 'destination-confirmed')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      assert.equal(await ui.evaluate(`${h}.${kind}.length`), 2)
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) {
+  test(`MOCKED actual-page ${kind} silent Activity storage failure: in-memory history cannot authorize clearing the durable recovery checkpoint`, async () => {
+    await fixture({kind}, async (ui) => {
+      const names = await prepareActualReview(ui, kind)
+      await ui.evaluate(`${h}.silentActivityFailure = true`)
+      await ui.click(names.confirm)
+      if (kind === 'bridge') { await ui.wait(enabled(names.check), 'Source receipt must confirm'); await ui.click(names.check) }
+      await ui.wait(enabled(names.done), 'Protocol evidence completes independently of Activity storage')
+      const hash = kind === 'swap' ? swapHash : sourceHash
+      assert.equal(await ui.evaluate(`${h}.${kind}.some((r) => r.hash === '${hash}')`), true, 'The fixture must expose the production-like in-memory history update')
+      assert.equal(await ui.evaluate(`JSON.parse(localStorage.getItem('mk.${kind}.records.v1')).some((r) => r.hash === '${hash}')`), false, 'The Activity write must actually be missing from durable storage')
+      const completed = await ui.evaluate(runStorage(kind))
+      await ui.click(names.done)
+      assert.equal(await ui.evaluate(runStorage(kind)), completed, 'A swallowed Activity save failure cannot erase the only durable hash')
+      assert.equal(await ui.evaluate(amount), restoredAmount)
+      await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
+      await ui.wait(enabled(names.done), 'The completed recovery checkpoint must still survive an actual page reload')
+      assert.equal(await ui.evaluate(`${h}.${kind}.some((r) => r.hash === '${hash}')`), false)
+      if (kind === 'bridge') {
+        await ui.wait(enabled(names.check), 'Read-only destination reconciliation repairs missing durable history')
+        await ui.click(names.check)
+        await ui.wait(`${h}.bridge.some((r) => r.hash === '${hash}' && r.status === 'destination-confirmed')`, 'Only independently reverified Base destination evidence may repair completion history')
+      } else {
+        await ui.click(names.done)
+        await ui.wait(`${h}.swap.some((r) => r.hash === '${hash}' && r.status === 'completed')`, 'A separate Done attempt may first repair verified Swap history')
+      }
+      assert.equal(await ui.evaluate(`JSON.parse(localStorage.getItem('mk.${kind}.records.v1')).some((r) => r.hash === '${hash}')`), true)
+      await ui.click(names.done)
+      await ui.wait(`${amount} === '' && ${exists(names.start)}`, 'A later explicit acknowledgment may clear checkpoint input once transaction history is durable')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+    })
+  })
+
+  test(`MOCKED actual-page ${kind} wallet refresh callback throws: verified approval and submitted action evidence remain intact`, async () => {
+    await fixture({kind, approval: '1'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind, 'en', true)
+      await ui.evaluate(`${h}.callbackError = true`)
+      await ui.click(approvalLabel(kind))
+      await ui.wait(enabled(names.confirm), 'An ancillary refresh failure cannot block fresh verified allowance and quote reads')
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).approvalReceipt.hash`), approvalHash)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
+      await ui.click(names.confirm)
+      await ui.wait(kind === 'swap' ? enabled(names.done) : enabled(names.check), 'The separately authorized action must retain its independently confirmed receipt')
+      const saved = await ui.evaluate(`JSON.parse(${runStorage(kind)})`)
+      assert.equal(saved.hash, kind === 'swap' ? swapHash : sourceHash)
+      assert.equal(saved.phase, kind === 'swap' ? 'COMPLETED' : 'SOURCE_CONFIRMED')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval', kind])
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash, kind === 'swap' ? swapHash : sourceHash])
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) for (const lang of ['en', 'vi']) {
+  test(`MOCKED actual-page ${kind} ${lang} returned hash with checkpoint storage failure: retain mounted evidence and block duplicate send`, async () => {
+    await fixture({kind, lang, gate: 'Submission'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind, lang)
+      await ui.click(names.confirm)
+      await ui.wait(`!!${h}.releases.Submission`, 'The wallet request must have been sent before storage becomes unavailable')
+      await ui.evaluate(`${h}.failStrategySave = true`)
+      await settleGate(ui, 'Submission')
+      const hash = kind === 'swap' ? swapHash : sourceHash
+      await ui.wait(`document.body.innerText.includes('${hash}')`, 'The real returned hash must remain visible even if its checkpoint cannot be saved')
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).hash`), undefined, 'The fixture must prove the checkpoint write actually failed')
+      assert.match(await ui.evaluate('document.querySelector("[aria-live=polite]").innerText'), lang === 'vi' ? /khôi phục/ : /Recovery/, 'The recovery persistence failure notice must be localized')
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      assert.equal(await ui.evaluate(exists(names.done)), false)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      assert.equal(await ui.evaluate(`${h}.${kind}.find((r) => r.hash === '${hash}').hash`), hash, 'Activity remains an independent attempt to retain the returned hash')
+      await ui.evaluate(`${h}.failStrategySave = false; ${h}.recoveryOutcome = 'pending'`)
+      const check = kind === 'swap' ? lang === 'vi' ? 'Kiểm tra lại biên nhận' : 'Check receipt again' : names.check
+      await ui.wait(enabled(check), 'The mounted returned hash must retain an explicit read-only receipt check')
+      await ui.click(check)
+      await ui.wait(`JSON.parse(${runStorage(kind)}).phase === 'PENDING' && ${enabled(check)}`, 'A fresh read after storage recovery may durably save pending evidence')
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).hash`), hash)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind], 'Repairing recovery persistence must never submit again')
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) {
+  test(`MOCKED actual-page ${kind} reload after confirmed approval: saved evidence resumes read-only review without another approval or action request`, async () => {
+    await fixture({kind, approval: '1', hold: '1'}, async (ui) => {
+      await configureActualInputs(ui, kind)
+      const names = await prepareApprovalReview(ui, kind, 'en', restoredAmount)
       await ui.click(approvalLabel(kind))
       await ui.wait(`!!${h}.releaseReceipt`, 'The separately submitted approval must be receipt-pending first')
       await ui.evaluate(`${h}.holds.add('SourceCallback'); ${h}.releaseReceipt()`)
       await ui.wait(`!!${h}.releases.SourceCallback`, 'The fixture must record confirmed approval before its continuation callback returns')
       assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).phase`), 'REVALIDATING')
       await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
       await ui.wait(enabled(names.confirm), 'A full reload must safely reconstruct a fresh action review from confirmed approval evidence')
       assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval'])
       assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash])
       assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).approvalReceipt.hash`), approvalHash)
       assert.equal(await ui.evaluate(exists(names.done)), false)
-      assert.equal(await ui.evaluate(amount), '1')
+      assert.equal(await ui.evaluate(amount), restoredAmount)
     })
   })
 
-  test(`MOCKED ${kind} reload with pending approval: saved hash stays read-only through pending and confirmed checks without duplicate sends`, async () => {
-    await fixture({kind, approval: '1', continuation: '1', hold: '1'}, async (ui) => {
-      const names = await prepareApprovalReview(ui, kind)
+  test(`MOCKED actual-page ${kind} reload with pending approval: saved hash stays read-only through pending and confirmed checks without duplicate sends`, async () => {
+    await fixture({kind, approval: '1', hold: '1'}, async (ui) => {
+      await configureActualInputs(ui, kind)
+      const names = await prepareApprovalReview(ui, kind, 'en', restoredAmount)
       await ui.click(approvalLabel(kind))
       await ui.wait(`!!${h}.releaseReceipt`, 'Approval hash must be saved while receipt is pending')
       await ui.evaluate(`${h}.recoveryOutcome = 'pending'`)
       await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
       await ui.wait(enabled(approvalCheck(kind)), 'Reload must restore only the saved approval receipt check')
       assert.equal(await ui.evaluate(exists(names.confirm)), false)
       assert.equal(await ui.evaluate(exists(names.start)), false)
@@ -768,13 +1144,18 @@ test('MOCKED Swap stale Done cannot erase a newer saved pending transfer', async
 })
 
 for (const kind of ['swap', 'bridge']) {
-  test(`MOCKED ${kind} reload with pending action: saved transaction remains pending through read-only receipt recovery`, async () => {
-    await fixture({kind, continuation: '1', hold: '1'}, async (ui) => {
-      const names = await submit(ui, kind)
+  test(`MOCKED actual-page ${kind} reload with pending action: saved transaction remains pending through read-only receipt recovery`, async () => {
+    await fixture({kind, hold: '1'}, async (ui) => {
+      await configureActualInputs(ui, kind)
+      const names = labels(kind)
+      await ui.click(names.start)
+      await ui.wait(enabled(names.confirm), 'The actual page must prepare the entered nondefault transaction')
+      await ui.click(names.confirm)
       await ui.wait(`!!${h}.releaseReceipt`, 'The action must have a known hash and remain pending')
       await ui.evaluate(`${h}.recoveryOutcome = 'pending'`)
       const quoteCount = await ui.evaluate(`${h}.quotes.length`)
       await reloadFixture(ui)
+      await assertActualInputs(ui, kind)
       const check = kind === 'swap' ? 'Check receipt again' : names.check
       await ui.wait(enabled(check), 'Full reload must restore a read-only receipt check for the known hash')
       assert.equal(await ui.evaluate(exists(names.start)), false)

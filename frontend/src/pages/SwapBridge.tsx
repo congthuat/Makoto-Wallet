@@ -11,6 +11,12 @@ import { prepareBrainReview } from '../brain/policy'
 import type { BrainPreparation } from '../brain/types'
 import { LiveSwapControl } from '../components/LiveSwapControl'
 import { LiveCctpControl, type LiveQuote } from '../components/LiveCctpControl'
+import { restoreStrategyInput, type StrategyRun } from '../migrated/strategyController'
+
+function savedInput(protocol: StrategyRun['protocol'], mode: string, address: string | undefined, chainId: number | undefined) {
+  if (mode !== 'connected' || !address || typeof localStorage === 'undefined') return undefined
+  return restoreStrategyInput(localStorage, protocol, address, chainId)
+}
 
 function TokenPill({ sym, onClick }: { sym: string; onClick?: () => void }) {
   const t = TOKENS.find((x) => x.sym === sym)!
@@ -22,12 +28,18 @@ function TokenPill({ sym, onClick }: { sym: string; onClick?: () => void }) {
 }
 
 export function SwapPage() {
+  const { mode, address, walletChainId } = useWallet()
+  return <SwapForm key={`${mode}:${address?.toLowerCase()}:${walletChainId}`} />
+}
+
+function SwapForm() {
   const { holdings, prices, network, swapDraft, setSwapDraft, mask, notify, mode, address, walletChainId, refetchWallet } = useWallet()
   const [tr] = useT()
-  const [from, setFrom] = useState('USDC')
-  const [to, setTo] = useState('EURC')
-  const [amount, setAmount] = useState('')
-  const [slip, setSlip] = useState<'0.5%' | '1%' | '3%'>('0.5%')
+  const [restored] = useState(() => savedInput('swap', mode, address, walletChainId))
+  const [from, setFrom] = useState<string>(restored?.kind === 'swap' ? restored.from : 'USDC')
+  const [to, setTo] = useState<string>(restored?.kind === 'swap' ? restored.to : 'EURC')
+  const [amount, setAmount] = useState(restored?.amount ?? '')
+  const [slip, setSlip] = useState<'0.5%' | '1%' | '3%'>(restored?.kind === 'swap' ? restored.slip : '0.5%')
   const [showSet, setShowSet] = useState(false)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const settingsPanelRef = useRef<HTMLDivElement>(null)
@@ -111,7 +123,7 @@ export function SwapPage() {
               <div className="flex justify-between"><span className={`${T.mute} inline-flex items-center gap-1`}><Route size={13} /> {tr('Route (preview)')}</span><span>{tr('Arc StableSwap pool')}</span></div>
             </div>
           )}
-          {mode === 'connected' && address ? <LiveSwapControl account={address} from={from} to={to} amount={amount} slip={slip} onConfirmed={async () => { await refetchWallet() }} onComplete={() => setAmount('')} /> : <Button variant="primary" size="lg" className="w-full mt-4" disabled={!amt || !!err} onClick={() => { const review = prepareBrainReview(brainAction(), brainContext()); if (review.assessment.status === 'blocked') notify(tr(review.assessment.blockers[0] ?? 'Swap blocked by safety policy'), 'err'); else notify(tr('Safety review prepared — a fresh live quote and simulation are required before wallet confirmation')) }}>{err ?? tr(amt ? 'Review swap (preview)' : 'Enter an amount')}</Button>}
+          {mode === 'connected' && address ? <LiveSwapControl account={address} from={from} to={to} amount={amount} slip={slip} onConfirmed={async () => { await refetchWallet() }} onComplete={() => { setAmount(''); setFrom('USDC'); setTo('EURC'); setSlip('0.5%') }} /> : <Button variant="primary" size="lg" className="w-full mt-4" disabled={!amt || !!err} onClick={() => { const review = prepareBrainReview(brainAction(), brainContext()); if (review.assessment.status === 'blocked') notify(tr(review.assessment.blockers[0] ?? 'Swap blocked by safety policy'), 'err'); else notify(tr('Safety review prepared — a fresh live quote and simulation are required before wallet confirmation')) }}>{err ?? tr(amt ? 'Review swap (preview)' : 'Enter an amount')}</Button>}
           <p className={`mt-2 text-[12px] text-center ${T.mute}`}>{tr(mode === 'connected' ? 'Reference prices above are estimates; the live XyloNet quote appears in review.' : 'Based on reference prices. You’ll see the final quote before signing.')}</p>
         </Card>
         <Card className="p-5">
@@ -134,11 +146,17 @@ export function SwapPage() {
 }
 
 export function BridgePage() {
+  const { mode, address, walletChainId } = useWallet()
+  return <BridgeForm key={`${mode}:${address?.toLowerCase()}:${walletChainId}`} />
+}
+
+function BridgeForm() {
   const { holdings, mask, swapDraft, setSwapDraft, notify, mode, address, walletChainId, refetchWallet } = useWallet()
   const [tr, lang] = useT()
   const say = (en: string, vn: string) => lang === 'vi' ? vn : tr(en)
-  const [speed, setSpeed] = useState<'Fast' | 'Standard'>('Fast')
-  const [amount, setAmount] = useState('')
+  const [restored] = useState(() => savedInput('cctp', mode, address, walletChainId))
+  const [speed, setSpeed] = useState<'Fast' | 'Standard'>(restored?.kind === 'cctp' && restored.transferSpeed === 'SLOW' ? 'Standard' : 'Fast')
+  const [amount, setAmount] = useState(restored?.amount ?? '')
   const [routeBlocked, setRouteBlocked] = useState(false)
   const [liveQuote, setLiveQuote] = useState<LiveQuote>()
   useEffect(() => {
@@ -212,7 +230,7 @@ export function BridgePage() {
           </div>
           {routeBlocked && <p role="status" className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-[12px] text-amber-200">{say('Only Arc Testnet → Base Sepolia USDC is supported. Enter an amount to prepare this route.', 'Chỉ hỗ trợ USDC từ Arc Testnet → Base Sepolia. Nhập số tiền để chuẩn bị tuyến này.')}</p>}
           {directCctp && address
-            ? <LiveCctpControl account={address} amount={routeBlocked ? '' : amount} transferSpeed={speed === 'Fast' ? 'FAST' : 'SLOW'} onQuoteChange={setLiveQuote} onSourceConfirmed={async () => { await refetchWallet() }} onComplete={() => setAmount('')} />
+            ? <LiveCctpControl account={address} amount={routeBlocked ? '' : amount} transferSpeed={speed === 'Fast' ? 'FAST' : 'SLOW'} onQuoteChange={setLiveQuote} onSourceConfirmed={async () => { await refetchWallet() }} onComplete={() => { setAmount(''); setSpeed('Fast') }} />
             : <Button variant="primary" size="lg" className="w-full" disabled={routeBlocked || !amt || amt > bal} onClick={() => { const review = prepareBrainReview(brainAction(), brainContext()); if (review.assessment.status === 'blocked') notify(tr(review.assessment.blockers[0] ?? 'Bridge blocked by safety policy'), 'err'); else notify(tr('Safety review prepared — route evidence and destination confirmation remain required before completion')) }}>{tr(amt ? (amt > bal ? 'Insufficient USDC' : 'Review bridge (preview)') : 'Enter an amount')}</Button>}
           <p className={`text-[12px] text-center ${T.mute}`}>{tr('Final route and details are confirmed before you sign in your wallet.')}</p>
         </Card>
