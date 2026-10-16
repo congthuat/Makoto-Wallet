@@ -6,7 +6,9 @@ export const ARC = {
   chainId: 5042002,
   chainHex: '0x4cef52',
   name: 'Arc Testnet',
-  rpc: 'https://rpc.testnet.arc.network',
+  // Official RPC verified 2026-10-16: rpc.testnet.arc.network is NXDOMAIN.
+  // arc-studio-allow-onchain-literal
+  rpc: 'https://rpc.testnet.arc.io',
   explorer: 'https://testnet.arcscan.app',
   faucet: 'https://faucet.circle.com',
 }

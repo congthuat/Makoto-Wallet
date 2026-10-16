@@ -197,11 +197,11 @@ export function ChangelogPage() {
 
 /* ---------------- Status ---------------- */
 export function StatusPage() {
-  const { network, networkError, prices } = useWallet()
+  const { network, networkStatus, prices } = useWallet()
   const [tr] = useT()
   const feed = useQuery({ queryKey: ['status-sentiment'], queryFn: () => fetch(api('sentiment')).then((r) => { if (!r.ok) throw new Error(); return r.json() }), staleTime: 60_000, retry: 1 })
   const rows = [
-    { name: 'Arc Testnet network', ok: !networkError && !!network, loading: !network && !networkError, detail: network ? `${tr('Block')} #${network.blockNumber.toLocaleString()} · ${network.rpcLatencyMs} ms` : '' },
+    { name: 'Arc Testnet network', ok: networkStatus === 'online' || networkStatus === 'stale', loading: networkStatus === 'loading', detail: network ? `${tr('Block')} #${network.blockNumber.toLocaleString()} · ${network.rpcLatencyMs} ms` : networkStatus === 'stale' ? tr('Stale') : '' },
     { name: 'Market prices', ok: !!prices, loading: !prices, detail: prices ? 'USDC · EURC · BTC' : '' },
     { name: 'Market sentiment', ok: feed.isSuccess, loading: feed.isLoading, detail: '' },
     { name: 'Circle faucet', ok: true, loading: false, detail: tr('External · faucet.circle.com') },

@@ -55,7 +55,7 @@ const NAV: { group: string; items: { id: SidebarDestination; icon: any; label: s
 ]
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { page, go, network, networkError, tasks, mode, address, receiveOpen, setReceiveOpen } = useWallet()
+  const { page, go, network, networkStatus, retryNetwork, tasks, mode, address, receiveOpen, setReceiveOpen } = useWallet()
   const running = taskItemsForAccount(tasks, mode, address).filter((task) => task.status === 'ACTIVE').length
   const [tr] = useT()
   const cls = (active: boolean) => `group relative w-full flex items-center gap-3 h-9 px-3 rounded-lg text-[13.5px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/70 ${active ? 'bg-white/[0.06] text-white' : `${T.sub} hover:bg-white/[0.03] hover:text-white`}`
@@ -84,8 +84,26 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       ))}
       <div className="mt-auto pt-6 space-y-2">
         <div className={`flex items-center gap-2 px-3 text-[12px] ${T.mute}`}>
-          <LiveDot off={networkError} />
-          <span className="truncate">{networkError ? tr('Arc unreachable') : network ? `${ARC.name} · #${network.blockNumber.toLocaleString()}` : tr('Connecting to Arc…')}</span>
+          <LiveDot off={networkStatus === 'unavailable' || networkStatus === 'stale'} />
+          {networkStatus === 'loading' && (
+            <span className="truncate">{tr('Connecting to Arc…')}</span>
+          )}
+          {networkStatus === 'online' && (
+            <span className="truncate">{ARC.name} · #{network!.blockNumber.toLocaleString()}</span>
+          )}
+          {networkStatus === 'stale' && (
+            <span className="truncate">{network ? `${ARC.name} · #${network.blockNumber.toLocaleString()} (${tr('Stale')})` : tr('Arc data is stale — last seen')}</span>
+          )}
+          {networkStatus === 'unavailable' && (
+            <span className="flex items-center gap-1.5 min-w-0">
+              <span className="truncate">{tr('Arc unreachable')}</span>
+              <button
+                onClick={() => retryNetwork()}
+                className="shrink-0 text-neon-400 hover:text-neon-300 underline underline-offset-2 focus-visible:outline-none"
+                aria-label={tr('Retry')}
+              >{tr('Retry')}</button>
+            </span>
+          )}
         </div>
         <nav className="space-y-0.5 border-t border-white/[0.05] pt-2">
           <FeedbackLink onClick={onNavigate} className={cls(false)}><MessageSquareText size={17} className="opacity-70" aria-hidden /> {tr('Feedback')}<ExternalLink size={13} className="ml-auto opacity-50" aria-hidden /></FeedbackLink>
@@ -431,7 +449,7 @@ function Shell() {
             <nav className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
               <button onClick={() => w.go('about')} className="hover:text-white">{tr('About')}</button>
               <button onClick={() => w.go('changelog')} className="hover:text-white">{tr("What's new")}</button>
-              <button onClick={() => w.go('status')} className="hover:text-white inline-flex items-center gap-1.5"><LiveDot off={w.networkError} /> {tr('System status')}</button>
+              <button onClick={() => w.go('status')} className="hover:text-white inline-flex items-center gap-1.5"><LiveDot off={w.networkStatus === 'unavailable' || w.networkStatus === 'stale'} /> {tr('System status')}</button>
               <button onClick={() => w.go('legal')} className="hover:text-white">{tr('Terms & Privacy')}</button>
               <button onClick={() => w.go('insights')} className="hover:text-white">{tr('Insights')}</button>
               <a href={ARC.explorer} target="_blank" rel="noreferrer" className="hover:text-white">{tr('Explorer')}</a>
