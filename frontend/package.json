@@ -20,6 +20,7 @@
     "test:ux": "node --experimental-strip-types --test src/lib/agentSuggestions.test.ts src/lib/walletProviders.test.ts",
     "test:migration": "node --experimental-strip-types --test src/migrated/*.test.ts src/brain/agentSession.test.ts src/lib/protocolActivity.test.ts src/protocols/circle/cctpAdapter.test.ts",
     "test:ui": "node --test tests/product-ui.test.mjs",
+    "test:sharing": "node --test tests/feedback-receive-share.test.mjs",
     "test:polish": "node --experimental-strip-types --test --test-concurrency=1 src/lib/taskTimezone.test.ts src/lib/analyticsPresentation.test.ts tests/task-timezone-ui.test.mjs tests/receive-navigation.test.mjs tests/analytics-ui.test.mjs"
   },
   "dependencies": {

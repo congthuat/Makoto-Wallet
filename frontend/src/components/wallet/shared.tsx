@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Rainbow, Copy, ExternalLink, AlertTriangle, Eye, Wallet, Info, Share2, ChevronRight, Check, Loader2,
@@ -11,6 +11,8 @@ import { translate, useT } from '../../lib/i18n'
 import { browserWalletRevision, discoverBrowserWallets, getBrowserWallets, getProvider, subscribeBrowserWallets, type BrowserWallet, type WalletKind } from '../../lib/walletProviders'
 import { walletPickerCopy } from '../../lib/walletPickerCopy'
 import { WalletProviderIcon } from './WalletProviderIcon'
+import { createReceiveShareData } from '../../lib/receiveShare'
+import { ReceiveSharePanel } from './ReceiveSharePanel'
 
 export async function copyText(text: string, notify: (m: string, kind?: 'ok' | 'err') => void, label = 'Copied') {
   try {
@@ -135,22 +137,92 @@ export function TxDetailModal() {
 }
 
 export function ReceiveModal() {
-  const { receiveOpen, setReceiveOpen, address, live, displayAddress, notify } = useWallet()
+  const { receiveOpen, setReceiveOpen, address, live, mode, displayAddress, notify } = useWallet()
   const [sym, setSym] = useState('USDC')
-  const [tr] = useT()
-  const full = live ? address : ''
+  const [shareOpen, setShareOpen] = useState(false)
+  const [tr, lang] = useT()
+  const shareId = useId()
+  const body = useRef<HTMLDivElement>(null)
+  const shareTrigger = useRef<HTMLDivElement>(null)
+  const restoreShareFocus = useRef(false)
+  const shareData = createReceiveShareData(address, sym, live && (mode === 'watch' || mode === 'connected'), tr)
+  const full = shareData?.address || ''
+  const currentBinding = `${full}:${sym}:${lang}:${receiveOpen}`
+  const binding = useRef(currentBinding)
+  binding.current = currentBinding
+  useEffect(() => {
+    if (!receiveOpen || !full) setShareOpen(false)
+  }, [receiveOpen, full])
+  useEffect(() => {
+    const dialog = body.current?.closest<HTMLElement>('[role="dialog"]')
+    if (dialog) dialog.scrollTop = 0
+    if (!shareOpen && restoreShareFocus.current) {
+      restoreShareFocus.current = false
+      const trigger = shareTrigger.current?.querySelector<HTMLButtonElement>('button[data-receive-share]')
+      trigger?.focus({ preventScroll: true })
+      if (trigger && dialog) {
+        const controlBounds = trigger.getBoundingClientRect(), dialogBounds = dialog.getBoundingClientRect()
+        if (controlBounds.top < dialogBounds.top || controlBounds.bottom > dialogBounds.bottom) trigger.scrollIntoView({ block: 'nearest' })
+      }
+    }
+  }, [shareOpen])
+  useEffect(() => {
+    if (!receiveOpen || !shareOpen) return
+    // Own Escape for this internal step even when focus is on the modal's
+    // shared close control or token selector, before Modal's window listener.
+    const backOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      restoreShareFocus.current = true
+      setShareOpen(false)
+    }
+    window.addEventListener('keydown', backOnEscape, true)
+    return () => window.removeEventListener('keydown', backOnEscape, true)
+  }, [receiveOpen, shareOpen])
+  useEffect(() => {
+    if (!receiveOpen) return
+    const dialog = body.current?.closest<HTMLElement>('[role="dialog"]')
+    if (!dialog) return
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const controls = () => [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')]
+      .filter((element) => element.getClientRects().length > 0)
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+      const items = controls()
+      if (!items.length) return
+      const first = items[0], last = items[items.length - 1]
+      if (!dialog.contains(document.activeElement) || (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
+        event.preventDefault()
+        ;(event.shiftKey ? last : first).focus()
+      }
+    }
+    controls()[0]?.focus()
+    document.addEventListener('keydown', trapFocus)
+    return () => {
+      document.removeEventListener('keydown', trapFocus)
+      const fallback = document.querySelector<HTMLElement>('[aria-controls="mk-mobile-actions"]')
+      const desktop = document.querySelector<HTMLElement>('[data-nav-id="receive"]')
+      const target = previous?.isConnected && previous !== document.body && previous.getClientRects().length ? previous
+        : desktop?.getClientRects().length ? desktop : fallback
+      target?.focus()
+    }
+  }, [receiveOpen])
+  const backToReceive = () => { restoreShareFocus.current = true; setShareOpen(false) }
   return (
     <Modal open={receiveOpen} onClose={() => setReceiveOpen(false)} title={tr('Receive')}>
+      <div ref={body}>
       <div className="flex gap-1.5">
         {TOKENS.map((t) => (
-          <button key={t.sym} onClick={() => setSym(t.sym)} className={`h-8 px-3 rounded-lg text-[12px] font-semibold inline-flex items-center gap-1.5 border transition ${sym === t.sym ? 'bg-white/[0.07] border-white/15 text-white' : `border-white/[0.06] ${T.mute} hover:text-white`}`}>
+          <button key={t.sym} type="button" aria-pressed={sym === t.sym} onClick={() => setSym(t.sym)} className={`min-h-11 px-3 rounded-lg text-[12px] font-semibold inline-flex items-center gap-1.5 border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${sym === t.sym ? 'bg-white/[0.07] border-white/15 text-white' : `border-white/[0.06] ${T.mute} hover:text-white`}`}>
             <TokenIcon color={t.color} glyph={t.glyph} size={16} /> {t.sym}
           </button>
         ))}
       </div>
+      {shareOpen && shareData ? <div id={shareId} className="mt-2"><ReceiveSharePanel key={`${full}:${sym}:${lang}`} data={shareData} onBack={backToReceive} notify={notify} copyText={copyText} /></div> : <>
       <div className="mt-4 mx-auto w-fit p-4 rounded-3xl bg-white relative">
         {full ? (
-          <QRCodeSVG value={full} size={188} level="M" fgColor="#0e0e12" />
+          <QRCodeSVG value={full} size={188} level="M" marginSize={4} fgColor="#0e0e12" title={tr('Your address')} />
         ) : (
           <div className="w-[188px] h-[188px] flex flex-col items-center justify-center text-center text-[#2c2c35] text-[13px] px-6 gap-2">
             <Wallet size={26} /> {tr('Connect or watch a wallet to show your QR code')}
@@ -161,16 +233,18 @@ export function ReceiveModal() {
       <div className="mt-4 p-3 rounded-xl bg-black/30 border border-white/[0.08] flex items-center gap-3">
         <Avatar size={28} seed={displayAddress} />
         <div className="min-w-0 flex-1">
-          <div className={`text-[12px] ${T.mute}`}>{tr('Your address')} · {tr('Network')}: Arc</div>
+          <div className={`text-[12px] ${T.mute}`}>{tr('Your address')} · {tr('Network')}: {ARC.name}</div>
           <div className="font-mono text-[12.5px] break-all">{full || displayAddress}</div>
         </div>
       </div>
       <div className={`mt-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-[12px] ${T.sub} flex gap-2`}>
         <Info size={14} className="text-amber-300 shrink-0 mt-0.5" /> {tr('Only send {asset} on {network} (Chain ID {id}). For other networks, use Bridge.').replace('{asset}', sym).replace('{network}', ARC.name).replace('{id}', String(ARC.chainId))}
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <Button variant="primary" disabled={!full} onClick={() => copyText(full, notify, 'Address copied')}><Copy size={14} /> {tr('Copy address')}</Button>
-        <Button disabled={!full} onClick={() => (navigator.share ? navigator.share({ text: full }).catch(() => {}) : copyText(full, notify, 'Address copied'))}><Share2 size={14} /> {tr('Share')}</Button>
+      <div ref={shareTrigger} className="mt-4 grid grid-cols-2 gap-2">
+        <Button variant="primary" className="min-h-11" disabled={!full} onClick={() => copyText(full, (message, kind) => { if (binding.current === currentBinding) notify(message, kind) }, tr('Address copied'))}><Copy size={14} /> {tr('Copy address')}</Button>
+        <Button className="min-h-11" data-receive-share aria-expanded={shareOpen} aria-controls={shareId} disabled={!full} onClick={() => setShareOpen(true)}><Share2 size={14} /> {tr('Share')}</Button>
+      </div>
+      </>}
       </div>
     </Modal>
   )

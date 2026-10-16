@@ -4,8 +4,9 @@ import { useWallet } from '../lib/store'
 import { LANGS, setLang, useT, type Lang } from '../lib/i18n'
 import { useTheme } from '../lib/theme'
 import { ARC, ensureArcNetwork, getProvider, isAddress, short } from '../lib/wallet'
-import { Avatar, Badge, Button, Card, LiveDot, Modal, PageHeader, Segmented, T, Toggle, inputCls } from '../components/wallet/ui'
+import { Avatar, Badge, Button, Card, LiveDot, PageHeader, Segmented, T, Toggle, inputCls } from '../components/wallet/ui'
 import { ConnectModal, copyText } from '../components/wallet/shared'
+import { FeedbackLink } from '../components/wallet/FeedbackLink'
 
 function Row({ icon: Icon, title, desc, right }: { icon: any; title: string; desc?: React.ReactNode; right: React.ReactNode }) {
   const [t] = useT()
@@ -37,8 +38,6 @@ export default function SettingsPage() {
   const [connectOpen, setConnectOpen] = useState(false)
   const [tr, lang] = useT()
   const [theme, setTheme] = useTheme()
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const [fb, setFb] = useState('')
   const [cName, setCName] = useState('')
   const [cAddr, setCAddr] = useState('')
   const set = (p: Partial<typeof settings>) => setSettings({ ...settings, ...p })
@@ -48,21 +47,11 @@ export default function SettingsPage() {
     if (!p) return notify(tr('No wallet extension found'), 'err')
     try { await ensureArcNetwork(p); notify(tr('Arc Testnet added to your wallet')) } catch (e: any) { notify(e?.message ?? tr('Could not add network'), 'err') }
   }
-  const sendFeedback = () => {
-    const list = JSON.parse(localStorage.getItem('mk.feedback') || '[]')
-    localStorage.setItem('mk.feedback', JSON.stringify([...list, { text: fb.trim(), at: Date.now() }]))
-    setFb(''); setFeedbackOpen(false); notify(tr('Thanks — feedback saved'))
-  }
   const latency = network?.rpcLatencyMs
 
   return (
     <>
       <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
-      <Modal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} title={tr('Send feedback')} width={440}>
-        <textarea value={fb} onChange={(e) => setFb(e.target.value)} rows={4} placeholder={tr('What could Makoto do better?')} className={`${inputCls} h-auto py-3 text-[14px] resize-none`} />
-        <Button variant="primary" className="w-full mt-3" disabled={!fb.trim()} onClick={sendFeedback}>{tr('Send')}</Button>
-      </Modal>
-
       <PageHeader eyebrow="Preferences" title="Settings" desc="Settings are stored on this device only." />
       <div className="max-w-[760px] space-y-7">
         <Section title="Wallet">
@@ -126,7 +115,7 @@ export default function SettingsPage() {
 
         <Section title="About">
           <Row icon={BookOpen} title="Arc documentation" right={<a href="https://docs.arc.network" target="_blank" rel="noreferrer" className={`p-2 rounded-lg ${T.mute} hover:text-white hover:bg-white/10 inline-flex`} aria-label={tr('Open docs')}><ExternalLink size={14} /></a>} />
-          <Row icon={MessageSquare} title="Feedback" desc="Tell us what to improve" right={<Button size="sm" onClick={() => setFeedbackOpen(true)}>{tr('Write')}</Button>} />
+          <Row icon={MessageSquare} title="Feedback" desc="Open the feedback form in a new tab." right={<FeedbackLink className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-[12px] font-semibold transition bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.09]">{tr('Open form')}<ExternalLink size={13} aria-hidden /></FeedbackLink>} />
           <Row icon={Sparkles} title="Insights" desc="Experimental · read-only market and chain data" right={<Button size="sm" onClick={() => go('insights')}>{tr('Open')}</Button>} />
         </Section>
       </div>

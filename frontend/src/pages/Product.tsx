@@ -136,7 +136,8 @@ const TERMS = [
   ['Acceptable use', 'Do not use Makoto for unlawful activity or to interfere with the service or the Arc network.'],
 ]
 const PRIVACY = [
-  ['What we store on your device', 'Settings, language, theme, contacts and feedback are saved in your browser. Task definitions, run results and task notifications are saved by the local backend.'],
+  ['What we store on your device', 'Settings, language, theme and contacts are saved in your browser. Task definitions, run results and task notifications are saved by the local backend.'],
+  ['Feedback', 'Feedback opens Google Forms in a new tab. Previously saved local notes remain on this device.'],
   ['What we never collect', 'Private keys, seed phrases or signatures. Makoto never asks for them.'],
   ['Public blockchain data', 'When you connect or watch an address, Makoto reads public balances and transfers from the Arc explorer and RPC.'],
   ['Waitlist email', 'If you join the waitlist, we store your email and language only to send launch updates. You can ask us to delete it at any time.'],
