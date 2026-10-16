@@ -48,7 +48,10 @@ const walletFixture = `
     h.changeChain = (next) => { h.activeChain = next; setChain(next); };
     const [setters] = useState(() => {
       const upsert = (kind, merge, record) => {
-        h.activityWrites.push({kind, record, checkpoint: localStorage.getItem('mk.strategy.v1:' + (kind === 'swap' ? 'swap' : 'cctp') + ':' + record.account.toLowerCase())});
+        let checkpoint;
+        try { checkpoint = localStorage.getItem('mk.strategy.v1:' + (kind === 'swap' ? 'swap' : 'cctp') + ':' + record.account.toLowerCase()); }
+        catch { checkpoint = 'READ_UNAVAILABLE'; }
+        h.activityWrites.push({kind, record, checkpoint});
         if (h.failActivity) throw new Error('MOCK Activity persistence unavailable');
         const records = Array.isArray(h[kind]) ? h[kind] : [];
         const previous = records.find((r) => r.hash === record.hash);
@@ -229,9 +232,15 @@ const entry = `
   };
   h.release = (name) => { h.holds.delete(name); h.releases[name](); };
   const originalSetItem = Storage.prototype.setItem;
+  const originalGetItem = Storage.prototype.getItem;
+  const originalStorage = localStorage;
+  Storage.prototype.getItem = function(key) {
+    if (this === originalStorage && key.startsWith('mk.strategy.') && h.failStrategyRead) throw new Error('MOCK checkpoint read failure');
+    return originalGetItem.call(this, key);
+  };
   Storage.prototype.setItem = function(key, value) {
-    if (this === localStorage && key.startsWith('mk.strategy.') && h.failStrategySave) throw new Error('MOCK checkpoint storage failure');
-    if (this === localStorage && (key.startsWith('mk.strategy.') || key === 'mk.bridge.records.v1')) h.storageWrites.push({key, value});
+    if (this === originalStorage && key.startsWith('mk.strategy.') && h.failStrategySave) throw new Error('MOCK checkpoint storage failure');
+    if (this === originalStorage && (key.startsWith('mk.strategy.') || key === 'mk.bridge.records.v1')) h.storageWrites.push({key, value});
     return originalSetItem.call(this, key, value);
   };
   const originalError = console.error;
@@ -1637,3 +1646,174 @@ test('MOCKED CCTP lifecycle: Cancel cannot erase a replacement saved transfer fr
     await ui.wait(`document.body.innerText.includes('${otherSourceHash}') && ${enabled(names.check)}`, 'The replacement transfer remains recoverable')
   })
 })
+
+
+for (const kind of ['swap', 'bridge']) for (const step of ['approval', 'action']) {
+  test(`MOCKED security ${kind} ${step}: unreadable checkpoint retains the actual returned hash without permitting writes or duplicate sends`, async () => {
+    await fixture({kind, approval: step === 'approval' ? '1' : '0'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind, 'en', step === 'approval')
+      await ui.evaluate(`${h}.holds.add('Submission')`)
+      await ui.click(step === 'approval' ? approvalLabel(kind) : names.confirm)
+      await ui.wait(`!!${h}.releases.Submission`, 'The user-authorized wallet request must already be pending')
+      const saved = await ui.evaluate(runStorage(kind))
+      const writes = await ui.evaluate(`${h}.storageWrites.filter(w => w.key.startsWith('mk.strategy.')).length`)
+      await ui.evaluate(`${h}.failStrategyRead = true; ${h}.release('Submission')`)
+      const hash = step === 'approval' ? approvalHash : kind === 'swap' ? swapHash : sourceHash
+      await ui.wait(`document.body.innerText.includes('${hash}') && document.body.innerText.includes('Recovery could not be saved')`, 'The actual returned hash must remain visible with a persistence warning')
+      const check = step === 'approval' ? approvalCheck(kind) : kind === 'swap' ? 'Check receipt again' : names.check
+      await ui.wait(enabled(check), 'Only an explicit read-only receipt check may remain available')
+      assert.deepEqual(await ui.evaluate(`${h}.receipts`), [], 'An unverified checkpoint must not permit automatic receipt continuation')
+      assert.equal(await ui.evaluate(`${h}.storageWrites.filter(w => w.key.startsWith('mk.strategy.')).length`), writes, 'A failed checkpoint read must not be treated as permission to write')
+      if (step === 'action') assert.equal(await ui.evaluate(`${h}.${kind}.some(r => r.hash === '${hash}')`), true, 'Activity remains independently available despite checkpoint reads failing')
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      await ui.click(check)
+      assert.deepEqual(await ui.evaluate(`${h}.recoveries`), [], 'Unreadable checkpoint identity blocks even read-only recovery until it can be reconciled')
+      await ui.evaluate(`${h}.failStrategyRead = false; ${h}.recoveryOutcome = 'pending'`)
+      assert.equal(await ui.evaluate(runStorage(kind)), saved, 'The last durable AWAITING_USER checkpoint must remain unchanged')
+      await ui.click(check)
+      await ui.wait(`JSON.parse(${runStorage(kind)}).phase === 'PENDING' && ${enabled(check)}`, 'Recovering reads may reconcile the actual hash only against the same durable revision')
+      assert.equal(await ui.evaluate(`JSON.parse(${runStorage(kind)}).hash`), hash)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [step === 'approval' ? 'approval' : kind])
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) {
+  test(`MOCKED security ${kind}: unreadable checkpoint hash fallback cannot overwrite a newer pending run`, async () => {
+    await fixture({kind}, async (ui) => {
+      const names = await prepareActualReview(ui, kind)
+      await ui.evaluate(`${h}.holds.add('Submission')`); await ui.click(names.confirm)
+      await ui.wait(`!!${h}.releases.Submission`, 'The original request must wait in the wallet')
+      const replacement = await ui.evaluate(`(() => { const saved = JSON.parse(${runStorage(kind)}); saved.phase = 'PENDING'; saved.hash = '${otherSourceHash}'; saved.updatedAt++; const value = JSON.stringify(saved); localStorage.setItem('mk.strategy.v1:${kind === 'swap' ? 'swap' : 'cctp'}:${account}', value); return value; })()`)
+      await ui.evaluate(`${h}.failStrategyRead = true; ${h}.release('Submission')`)
+      const hash = kind === 'swap' ? swapHash : sourceHash
+      await ui.wait(`document.body.innerText.includes('${hash}') && document.body.innerText.includes('Recovery could not be saved')`, 'Only actual original request evidence may be retained in its mounted UI')
+      await ui.evaluate(`${h}.failStrategyRead = false`)
+      const check = kind === 'swap' ? 'Check receipt again' : names.check
+      await ui.click(check)
+      assert.equal(await ui.evaluate(runStorage(kind)), replacement, 'The exact durable checkpoint guard must still reject this stale request')
+      assert.deepEqual(await ui.evaluate(`${h}.recoveries`), [])
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+    })
+  })
+}
+
+for (const kind of ['swap', 'bridge']) for (const lang of ['en', 'vi']) {
+  test(`MOCKED security ${kind} ${lang}: transport UNKNOWN after approval never reuses historical approval hash before or after reload`, async () => {
+    await fixture({kind, lang, approval: '1'}, async (ui) => {
+      const names = await prepareApprovalReview(ui, kind, lang)
+      await ui.click(approvalLabel(kind, lang)); await ui.wait(enabled(names.confirm), 'Approval may only prepare a fresh separately reviewed action')
+      assert.equal(await ui.evaluate(transactionLinks), 0, 'A fresh action review must not display its historical approval as its current hash')
+      await ui.evaluate(`${h}.outcome = 'unknown'`); await ui.click(names.confirm)
+      await ui.wait(`JSON.parse(${runStorage(kind)}).phase === 'UNKNOWN'`, 'A lost action wallet response must remain UNKNOWN')
+      const quoteCount = await ui.evaluate(`${h}.quotes.length`)
+      for (const reload of [false, true]) {
+        if (reload) await reloadFixture(ui)
+        const saved = await ui.evaluate(`JSON.parse(${runStorage(kind)})`)
+        assert.equal(saved.hash, undefined, 'No swap/burn hash was returned')
+        assert.equal(saved.approvalReceipt.hash, approvalHash, 'Confirmed approval remains historical evidence')
+        assert.equal(await ui.evaluate(transactionLinks), 0, 'Approval evidence must not impersonate a current action hash')
+        assert.ok((await ui.evaluate('document.body.innerText')).includes(lang === 'vi'
+          ? 'Ví không trả về mã giao dịch. Hãy kiểm tra lịch sử trong ví hoặc trình khám phá trước khi thử lại. Không gửi lại giao dịch.'
+          : 'The wallet did not return a transaction hash. Check your wallet history or explorer before any new attempt. Do not resubmit.'), 'A no-hash UNKNOWN must direct external reconciliation and prohibit resubmission')
+        assert.equal(await ui.evaluate(exists(kind === 'swap' ? lang === 'vi' ? 'Ki\u1ec3m tra l\u1ea1i bi\u00ean nh\u1eadn' : 'Check receipt again' : names.check)), false, 'No action hash means there is no action receipt to check')
+        assert.equal(await ui.evaluate(exists(names.start)), false)
+        assert.equal(await ui.evaluate(exists(names.confirm)), false)
+        assert.equal(await ui.evaluate(exists(names.done)), false)
+        assert.equal(await ui.evaluate(`${h}.quotes.length`), quoteCount)
+        assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), ['approval', kind])
+        assert.deepEqual(await ui.evaluate(`${h}.receipts`), [approvalHash])
+      }
+    })
+  })
+}
+
+for (const change of ['amount', 'speed']) for (const approval of [false, true]) {
+  test(`MOCKED security CCTP ${change} edit after ${approval ? 'approval' : 'burn'} review: an explicit fresh start safely replaces only an unsubmitted review`, async () => {
+    await fixture({kind: 'bridge', approval: approval ? '1' : '0'}, async (ui) => {
+      const names = labels('bridge')
+      await ui.fill(0, '1'); await ui.click(names.start)
+      const confirm = approval ? approvalLabel('bridge') : names.confirm
+      await ui.wait(enabled(confirm), 'The original unsubmitted review must be prepared')
+      if (change === 'amount') await ui.fill(0, '0.5')
+      else await ui.evaluate(`(() => { const button = [...document.querySelectorAll('button[aria-pressed]')].find(b => b.textContent.trim().startsWith('Standard')); button.click(); })()`)
+      await ui.wait(enabled(names.start), 'Editing inputs must expire the old review')
+      await ui.click(names.start); await ui.wait(enabled(confirm), 'An explicit restart must prepare a new bounded review for the edited inputs')
+      const saved = await ui.evaluate(`JSON.parse(${runStorage('bridge')})`)
+      assert.equal(saved.input.amount, change === 'amount' ? '0.5' : '1')
+      assert.equal(saved.input.transferSpeed, change === 'speed' ? 'SLOW' : 'FAST')
+      assert.equal(saved.hash, undefined)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [], 'Replacing an unsubmitted review never sends automatically')
+    })
+  })
+}
+
+
+for (const kind of ['swap', 'bridge']) {
+  test(`MOCKED security ${kind}: remount with unreadable checkpoint cannot erase pending evidence or prepare another request`, async () => {
+    await fixture({kind, hold: '1'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind)
+      await ui.click(names.confirm)
+      await ui.wait(`!!${h}.releaseReceipt`, 'The original submitted transaction must have a real returned hash and pending receipt')
+      const saved = await ui.evaluate(runStorage(kind))
+      assert.equal(JSON.parse(saved).phase, 'PENDING')
+      const quotes = await ui.evaluate(`${h}.quotes.length`)
+      const writes = await ui.evaluate(`${h}.storageWrites.filter(w => w.key.startsWith('mk.strategy.')).length`)
+      await ui.evaluate(`${h}.failStrategyRead = true; ${h}.remount()`)
+      await ui.wait(exists(names.start), 'The unavailable checkpoint may not be restored as executable authority')
+      await ui.fill(0, '2'); await ui.click(names.start)
+      await ui.wait(`document.body.innerText.includes('strategy state is unavailable')`, 'An explicit action must explain the unavailable checkpoint instead of silently failing')
+      assert.equal(await ui.evaluate(`${h}.storageWrites.filter(w => w.key.startsWith('mk.strategy.')).length`), writes, 'Unknown checkpoint identity cannot authorize replacing the saved pending state')
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), quotes, 'No new review may be prepared while identity is unreadable')
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      await ui.evaluate(`${h}.failStrategyRead = false`)
+      assert.equal(await ui.evaluate(runStorage(kind)), saved, 'Pending checkpoint bytes must survive the entire outage and attempted start')
+      await ui.evaluate(`${h}.remount()`)
+      const check = kind === 'swap' ? 'Check receipt again' : names.check
+      await ui.wait(enabled(check), 'Recovered reads and remount must restore only the original pending receipt check')
+      const hash = kind === 'swap' ? swapHash : sourceHash
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(hash))
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), quotes)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+    })
+  })
+}
+
+
+for (const kind of ['swap', 'bridge']) {
+  test(`MOCKED security ${kind}: blocked localStorage property on remount renders an availability error and preserves pending recovery`, async () => {
+    await fixture({kind, hold: '1'}, async (ui) => {
+      const names = await prepareActualReview(ui, kind)
+      await ui.click(names.confirm)
+      await ui.wait(`!!${h}.releaseReceipt`, 'The submitted hash must already be durable with a pending receipt')
+      const saved = await ui.evaluate(runStorage(kind))
+      const quotes = await ui.evaluate(`${h}.quotes.length`)
+      const errors = await ui.evaluate(`${h}.consoleErrors.length`)
+      await ui.evaluate(`(() => {
+        const storage = localStorage, descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
+        ${h}.rawCheckpoint = () => storage.getItem('mk.strategy.v1:${kind === 'swap' ? 'swap' : 'cctp'}:${account}');
+        ${h}.restoreStorageProperty = () => Object.defineProperty(window, 'localStorage', descriptor);
+        Object.defineProperty(window, 'localStorage', {configurable: true, get() { throw new DOMException('MOCK storage policy denied', 'SecurityError'); }});
+        ${h}.remount();
+      })()`)
+      await ui.wait(`document.body.innerText.includes('strategy state is unavailable')`, 'The actual page and control must render storage availability guidance instead of crashing')
+      assert.equal(await ui.evaluate(`${h}.rawCheckpoint()`), saved)
+      assert.equal(await ui.evaluate(`${h}.consoleErrors.length`), errors, 'Blocked property access may not become an uncaught React exception')
+      await ui.fill(0, '2'); await ui.click(names.start)
+      assert.equal(await ui.evaluate(`${h}.rawCheckpoint()`), saved, 'No unavailable property may authorize discarding the original recovery checkpoint')
+      assert.equal(await ui.evaluate(`${h}.quotes.length`), quotes)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+      await ui.evaluate(`${h}.restoreStorageProperty(); ${h}.remount()`)
+      await ui.wait(enabled(kind === 'swap' ? 'Check receipt again' : names.check), 'Restored storage and remount recover the original pending hash read-only')
+      assert.ok((await ui.evaluate('document.body.innerText')).includes(kind === 'swap' ? swapHash : sourceHash))
+      assert.equal(await ui.evaluate(runStorage(kind)), saved)
+      assert.equal(await ui.evaluate(exists(names.start)), false)
+      assert.equal(await ui.evaluate(exists(names.confirm)), false)
+      assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [kind])
+    })
+  })
+}

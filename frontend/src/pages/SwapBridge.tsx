@@ -14,8 +14,10 @@ import { LiveCctpControl, type LiveQuote } from '../components/LiveCctpControl'
 import { restoreStrategyInput, type StrategyRun } from '../migrated/strategyController'
 
 function savedInput(protocol: StrategyRun['protocol'], mode: string, address: string | undefined, chainId: number | undefined) {
-  if (mode !== 'connected' || !address || typeof localStorage === 'undefined') return undefined
-  return restoreStrategyInput(localStorage, protocol, address, chainId)
+  try {
+    if (mode !== 'connected' || !address || typeof localStorage === 'undefined') return undefined
+    return restoreStrategyInput(localStorage, protocol, address, chainId)
+  } catch { return undefined }
 }
 
 function TokenPill({ sym, onClick }: { sym: string; onClick?: () => void }) {

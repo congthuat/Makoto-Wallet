@@ -1,0 +1,150 @@
+{
+  "head": "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+  "observedAt": "2026-10-16T09:11:24.597Z",
+  "scope": "PUBLIC READ-ONLY; historical repository fixture; not LIVE TESTNET QA",
+  "checks": {
+    "arc-chain": {
+      "status": "OBSERVED",
+      "value": "0x4cef52"
+    },
+    "arc-block": {
+      "status": "OBSERVED",
+      "value": "0x40599f1"
+    },
+    "arc-gas-price": {
+      "status": "OBSERVED",
+      "value": "0x5d21dba00"
+    },
+    "arc-USDC-code": {
+      "status": "OBSERVED",
+      "value": {
+        "address": "0x3600000000000000000000000000000000000000",
+        "codeBytes": 1798
+      }
+    },
+    "arc-EURC-code": {
+      "status": "OBSERVED",
+      "value": {
+        "address": "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+        "codeBytes": 1798
+      }
+    },
+    "arc-swap-router-code": {
+      "status": "OBSERVED",
+      "value": {
+        "address": "0x73742278c31a76dBb0D2587d03ef92E6E2141023",
+        "codeBytes": 9199
+      }
+    },
+    "arc-cctp-bridge-code": {
+      "status": "OBSERVED",
+      "value": {
+        "address": "0xC5567a5E3370d4DBfB0540025078e283e36A363d",
+        "codeBytes": 813
+      }
+    },
+    "base-chain": {
+      "status": "OBSERVED",
+      "value": "0x14a34"
+    },
+    "historical-cctp-reconciliation": {
+      "status": "OBSERVED",
+      "sourceHash": "0x452e3fcc7a2112e4940b19e23e065cf62dadcd20ffb53d620361ab57d605dba4",
+      "expectedDestinationHash": "0x5053ac4396a41769dd18e72f353de75533d458ecab3d5e8f7fd8c1d693e0fbe9",
+      "value": {
+        "hash": "0x452e3fcc7a2112e4940b19e23e065cf62dadcd20ffb53d620361ab57d605dba4",
+        "account": "0x16299b74c616994eaecb9b20e37d369d5d62586b",
+        "target": "0xC5567a5E3370d4DBfB0540025078e283e36A363d",
+        "calldata": "0x513e117500000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000000000d41b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000016299b74c616994eaecb9b20e37d369d5d62586b00000000000000000000000000000000000000000000000000000000000000000000000000000000000000003600000000000000000000000000000000000000000000000000000000000000c5567a5e3370d4dbfb0540025078e283e36a363d000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000000001400000000000000000000000000000000000000000000000000000000000000020636374702d666f72776172640000000000000000000000000000000000000000",
+        "amount": "1",
+        "expectedReceiveUnits": "945701",
+        "destinationDomain": 6,
+        "maxFeeUnits": "54299",
+        "finalityThreshold": "1000",
+        "timestamp": 0,
+        "status": "destination-confirmed",
+        "destinationHash": "0x5053ac4396a41769dd18e72f353de75533d458ecab3d5e8f7fd8c1d693e0fbe9"
+      }
+    }
+  },
+  "calls": [
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_chainId",
+      "params": []
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_blockNumber",
+      "params": []
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_gasPrice",
+      "params": []
+    },
+    {
+      "url": "https://sepolia.base.org",
+      "method": "eth_chainId",
+      "params": []
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_getCode",
+      "params": [
+        "0x3600000000000000000000000000000000000000",
+        "latest"
+      ]
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_getCode",
+      "params": [
+        "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a",
+        "latest"
+      ]
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_getCode",
+      "params": [
+        "0x73742278c31a76dBb0D2587d03ef92E6E2141023",
+        "latest"
+      ]
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_getCode",
+      "params": [
+        "0xC5567a5E3370d4DBfB0540025078e283e36A363d",
+        "latest"
+      ]
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_getTransactionByHash",
+      "params": [
+        "0x452e3fcc7a2112e4940b19e23e065cf62dadcd20ffb53d620361ab57d605dba4"
+      ]
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_chainId",
+      "params": []
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_getTransactionReceipt",
+      "params": [
+        "0x452e3fcc7a2112e4940b19e23e065cf62dadcd20ffb53d620361ab57d605dba4"
+      ]
+    },
+    {
+      "url": "https://rpc.testnet.arc.network",
+      "method": "eth_getTransactionByHash",
+      "params": [
+        "0x452e3fcc7a2112e4940b19e23e065cf62dadcd20ffb53d620361ab57d605dba4"
+      ]
+    }
+  ]
+}

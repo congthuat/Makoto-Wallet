@@ -60,6 +60,11 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
   const requireCurrent = (op: Operation) => { if (!isCurrent(op)) throw new Error('Stale CCTP operation') }
   const begin = (reviewInput = false): Operation | undefined => {
     if (!mounted.current || operation.current) return undefined
+    // undefined means the checkpoint could not be read; null is a verified
+    // absence. Never replace an unreadable, possibly submitted request.
+    if (checkpoint.current === undefined || savedCheckpoint(normalizedAccount) === undefined) {
+      setError('Saved CCTP strategy state is unavailable.'); return undefined
+    }
     const op: Operation = { generation: generation.current, account: normalizedAccount, chainId: walletChainId, input: reviewInput ? input : undefined, run: run.current, saved: checkpoint.current }
     operation.current = op
     if (!isCurrent(op)) { operation.current = undefined; return undefined }
@@ -96,7 +101,22 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
   // The wallet may return after an account/chain change or unmount. Retain its
   // actual outcome under the untouched original checkpoint, without stale UI writes.
   const rememberWalletOutcome = (event: StrategyEvent, op: Operation) => {
-    if (!op.run || savedCheckpoint(op.account) !== op.saved) return
+    if (!op.run) return
+    const saved = savedCheckpoint(op.account)
+    if (saved !== op.saved) {
+      // A failed read is not evidence of a newer checkpoint. Retain only the
+      // returned hash in this request's mounted context; never write through an
+      // unverified checkpoint or continue receipt work until reads recover.
+      if (saved === undefined && typeof op.saved === 'string' && event.type === 'hash'
+        && sameLifecycle(op) && operation.current === op && run.current === op.run) {
+        const result = transitionStrategy(op.run, event)
+        if (result.accepted) {
+          run.current = result.state; op.run = result.state
+          setHash(event.hash as Hex); setStage('source-unknown'); setCheckpointUnavailable(true)
+        }
+      }
+      return
+    }
     const result = transitionStrategy(op.run, event)
     if (!result.accepted) return
     if (isCurrent(op)) {
@@ -127,11 +147,13 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     generation.current += 1
     operation.current = undefined
     autoApprovalContinuation.current = ''
-    const restored = typeof localStorage === 'undefined' ? undefined : restoreStrategyRun(localStorage, 'cctp', normalizedAccount)
+    let restored: StrategyRun | undefined
+    try { restored = typeof localStorage === 'undefined' ? undefined : restoreStrategyRun(localStorage, 'cctp', normalizedAccount) }
+    catch { /* A blocked localStorage property must not crash receipt recovery UI. */ }
     run.current = restored
     checkpoint.current = savedCheckpoint(normalizedAccount)
-    setBusy(false); setError(''); setActivityUnavailable(false); setCheckpointUnavailable(false); setQuote(undefined); setPrepared(undefined); setReview(undefined); setReviewedInput('')
-    setHash((restored?.hash ?? restored?.approvalReceipt?.hash) as Hex | undefined)
+    setBusy(false); setError(checkpoint.current === undefined ? 'Saved CCTP strategy state is unavailable.' : ''); setActivityUnavailable(false); setCheckpointUnavailable(false); setQuote(undefined); setPrepared(undefined); setReview(undefined); setReviewedInput('')
+    setHash(restored?.hash as Hex | undefined)
     const previousActivity = activityRecords.current.find((record) => typeof record?.hash === 'string' && typeof record.account === 'string' && record.hash.toLowerCase() === restored?.hash?.toLowerCase() && record.account.toLowerCase() === normalizedAccount)
     setDestinationHash(typeof previousActivity?.destinationHash === 'string' && isHash(previousActivity.destinationHash) ? previousActivity.destinationHash : ''); setStage('idle')
     if (restored?.phase === 'COMPLETED') setStage('destination-confirmed')
@@ -217,6 +239,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     advance({ type: 'review', step, account, chainId: ARC.chainId, input: { kind: 'cctp', amount, transferSpeed }, expiresAt: Math.min(action.expiresAt, q.expiresAt), quoteFresh: true, policyPassed: true, simulationPassed: true, now }, op)
     setPrepared(action)
     setReview(createReview(action, q, decision, now))
+    if (step === 'cctp-burn') setHash(undefined)
     setStage(step === 'approval' ? 'review-approval' : 'review-burn')
     setReviewedInput(captureInput())
   }
@@ -231,7 +254,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     const op = begin(true)
     if (!op) return
     try {
-      if (!phase || ['FAILED', 'USER_REJECTED', 'COMPLETED', 'EXPIRED', 'BLOCKED'].includes(phase)) rememberRun(newReviewRun(), op)
+      if (!phase || ['IDLE', 'REVIEW_APPROVAL', 'REVIEW_ACTION', 'FAILED', 'USER_REJECTED', 'COMPLETED', 'EXPIRED', 'BLOCKED'].includes(phase)) rememberRun(newReviewRun(), op)
       const p = getProvider()
       if (!p) throw new Error('Wallet provider unavailable.')
       await walletContext(p)
@@ -266,10 +289,11 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
   }
 
   useEffect(() => {
-    if (stage !== 'approval-confirmed' || busy || !amount || !hash || walletChainId !== ARC.chainId) return
-    const restoredApproval = run.current?.phase === 'EXPIRED' && run.current.approvalReceipt?.hash.toLowerCase() === hash.toLowerCase()
-    if (!restoredApproval && (run.current?.step !== 'approval' || !['REVALIDATING', 'REQUOTING'].includes(run.current.phase) || run.current.hash?.toLowerCase() !== hash.toLowerCase())) return
-    const key = `${hash.toLowerCase()}:${normalizedAccount}:${walletChainId}:${amount}:${transferSpeed}`
+    if (stage !== 'approval-confirmed' || busy || !amount || walletChainId !== ARC.chainId) return
+    const approvalHash = run.current?.phase === 'EXPIRED' ? run.current.approvalReceipt?.hash
+      : run.current?.step === 'approval' && ['REVALIDATING', 'REQUOTING'].includes(run.current.phase) ? run.current.hash : undefined
+    if (!approvalHash) return
+    const key = `${approvalHash.toLowerCase()}:${normalizedAccount}:${walletChainId}:${amount}:${transferSpeed}`
     if (autoApprovalContinuation.current === key) return
     autoApprovalContinuation.current = key
     // Receipt-confirmed approval only authorizes fresh reads and a new burn review.
@@ -385,6 +409,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
       if (validation.status !== 'OK') throw new Error(validation.reason ?? 'Reviewed CCTP request changed.')
       setStage('source-pending')
       advance({ type: 'wallet-request', binding: bindingFor(freshAction, freshQuote, wasApproval), now: Date.now() }, op)
+      setHash(undefined)
       // After the user's click, receipt tracking belongs to this run, not the editable amount.
       op.input = undefined
       let submitted: Hex
@@ -518,7 +543,9 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     {stage === 'approval-confirmed' && <p>{say('USDC approval confirmed. Preparing a fresh Circle quote and burn review; the burn still needs your separate wallet confirmation.', 'Đã xác nhận cấp quyền USDC. Đang chuẩn bị báo giá Circle mới và bước xem lại lệnh đốt; bạn vẫn cần xác nhận lệnh đốt riêng trong ví.')}</p>}
     {stage === 'review-burn' && <p>{say('Review the Circle CCTP source burn. Destination completes only after Base receipt and USDC transfer evidence.', 'Xem lại lệnh đốt CCTP của Circle. Chỉ hoàn tất khi có biên nhận Base và bằng chứng chuyển USDC.')}</p>}
     {stage === 'source-pending' && <p>{say('Awaiting Arc receipt. Do not submit this transfer again.', 'Đang chờ biên nhận Arc. Không gửi lại giao dịch này.')}</p>}
-    {stage === 'source-unknown' && <p>{say('Source status is unknown. Check the saved hash before retrying.', 'Chưa rõ trạng thái nguồn. Kiểm tra mã giao dịch đã lưu trước khi thử lại.')}</p>}
+    {stage === 'source-unknown' && <p>{hash
+      ? say('Source status is unknown. Check the saved hash before retrying.', 'Chưa rõ trạng thái nguồn. Kiểm tra mã giao dịch đã lưu trước khi thử lại.')
+      : say('The wallet did not return a transaction hash. Check your wallet history or explorer before any new attempt. Do not resubmit.', 'Ví không trả về mã giao dịch. Hãy kiểm tra lịch sử trong ví hoặc trình khám phá trước khi thử lại. Không gửi lại giao dịch.')}</p>}
     {stage === 'source-confirmed' && <p>{say('Arc source confirmed. Circle attestation and Base destination are still pending.', 'Nguồn Arc đã xác nhận. Chứng thực Circle và đích Base vẫn đang chờ.')}</p>}
     {stage === 'attestation-pending' && <p>{say('Circle attestation is pending.', 'Chứng thực Circle đang chờ.')}</p>}
     {stage === 'attestation-available' && <p>{say('Circle attestation is available. Waiting for its forwarded transaction.', 'Đã có chứng thực Circle. Đang chờ giao dịch chuyển tiếp.')}</p>}

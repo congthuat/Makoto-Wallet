@@ -55,6 +55,11 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
   const requireCurrent = (op: Operation) => { if (!isCurrent(op)) throw new Error('Swap details changed. Review again.') }
   const begin = (reviewInput: boolean): Operation | undefined => {
     if (!mounted.current || operation.current) return undefined
+    // undefined means the checkpoint could not be read; null is a verified
+    // absence. Never replace an unreadable, possibly submitted request.
+    if (checkpoint.current === undefined || savedCheckpoint(normalizedAccount) === undefined) {
+      setError('Saved swap strategy state is unavailable.'); return undefined
+    }
     const op: Operation = { generation: generation.current, account: normalizedAccount, chainId: walletChainId, input: reviewInput ? input : undefined, run: run.current, saved: checkpoint.current }
     operation.current = op
     if (!isCurrent(op)) { operation.current = undefined; return undefined }
@@ -84,7 +89,22 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
   // A wallet can return after account/input changes. Keep its real outcome under
   // the original account, without replacing a newer checkpoint or updating stale UI.
   const rememberWalletOutcome = (event: StrategyEvent, op: Operation) => {
-    if (!op.run || savedCheckpoint(op.account) !== op.saved) return
+    if (!op.run) return
+    const saved = savedCheckpoint(op.account)
+    if (saved !== op.saved) {
+      // A failed read is not evidence of a newer checkpoint. Retain only the
+      // returned hash in this request's mounted context; never write through an
+      // unverified checkpoint or continue receipt work until reads recover.
+      if (saved === undefined && typeof op.saved === 'string' && event.type === 'hash'
+        && sameLifecycle(op) && operation.current === op && run.current === op.run) {
+        const next = transitionStrategy(op.run, event)
+        if (next.accepted) {
+          run.current = next.state; op.run = next.state
+          setHash(event.hash as Hex); setStage('unknown'); setCheckpointUnavailable(true)
+        }
+      }
+      return
+    }
     const next = transitionStrategy(op.run, event)
     if (!next.accepted) return
     if (isCurrent(op)) {
@@ -105,11 +125,13 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
   }
   useLayoutEffect(() => {
     mounted.current = true; generation.current += 1; operation.current = undefined
-    const restored = typeof localStorage === 'undefined' ? undefined : restoreStrategyRun(localStorage, 'swap', normalizedAccount)
+    let restored: StrategyRun | undefined
+    try { restored = typeof localStorage === 'undefined' ? undefined : restoreStrategyRun(localStorage, 'swap', normalizedAccount) }
+    catch { /* A blocked localStorage property must not crash receipt recovery UI. */ }
     run.current = restored; checkpoint.current = savedCheckpoint(normalizedAccount)
     needsResume.current = restored?.phase === 'REVALIDATING' || restored?.phase === 'EXPIRED' && !!restored.approvalReceipt
-    setBusy(false); setError(''); setActivityUnavailable(false); setCheckpointUnavailable(false); setQuote(undefined); setPrepared(undefined); setReview(undefined); setReviewedInput('')
-    setHash((restored?.hash ?? restored?.approvalReceipt?.hash) as Hex | undefined)
+    setBusy(false); setError(checkpoint.current === undefined ? 'Saved swap strategy state is unavailable.' : ''); setActivityUnavailable(false); setCheckpointUnavailable(false); setQuote(undefined); setPrepared(undefined); setReview(undefined); setReviewedInput('')
+    setHash(restored?.hash as Hex | undefined)
     setStage(restored?.phase === 'COMPLETED' ? 'confirmed' : needsResume.current ? 'approval-confirmed' : restored?.phase === 'FAILED' ? 'failed' : restored?.phase === 'USER_REJECTED' ? 'rejected' : restored && ['RECOVERING', 'PENDING', 'UNKNOWN'].includes(restored.phase) ? restored.phase === 'PENDING' ? 'pending' : 'unknown' : 'idle')
     return () => { mounted.current = false; generation.current += 1; operation.current = undefined }
   }, [normalizedAccount, walletChainId])
@@ -181,7 +203,7 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
     if (policy.mustStop) throw new Error(policy.findings.map((finding) => finding.code).join(', '))
     await walletContext(p); requireCurrent(op)
     advance({ type: 'review', step: 'swap', account, chainId: ARC.chainId, input: { kind: 'swap', amount, from, to, slip }, expiresAt: Math.min(action.expiresAt, fresh.expiresAt), quoteFresh: true, policyPassed: true, simulationPassed: simulation === 'passed', now: Date.now() }, op)
-    setPrepared(action); setReview(createReview(action, fresh, policy)); setStage('review-swap')
+    setHash(undefined); setPrepared(action); setReview(createReview(action, fresh, policy)); setStage('review-swap')
   }
 
   async function start() {
@@ -235,6 +257,7 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
       await walletContext(p); requireCurrent(op)
       if (Date.now() > prepared.expiresAt || Date.now() > quote.expiresAt) throw new Error('Quote expired. Review again.')
       advance({ type: 'wallet-request', binding: { from: prepared.account, to: prepared.request.to, data: prepared.request.data, symbol: from as 'USDC' | 'EURC', amount, ...(approving ? { spender: XYLO_ROUTER, requiredUnits: quote.quote.amountIn.toString() } : { outputSymbol: to as 'USDC' | 'EURC', minimumOutputUnits: quote.minimumReceive.toString() }) }, now: Date.now() }, op)
+      setHash(undefined)
       // Once the wallet request begins, input edits cannot erase its receipt
       // evidence. They still prevent preparing a dependent review for old inputs.
       op.input = undefined
@@ -279,7 +302,7 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
       await walletContext(p); requireCurrent(op)
       const recovered = await recoverStrategyRun(p, op.run); requireCurrent(op)
       rememberRun(recovered, op)
-      setHash((recovered.hash ?? recovered.approvalReceipt?.hash) as Hex | undefined)
+      setHash(recovered.hash as Hex | undefined)
       setStage(recovered.phase === 'COMPLETED' ? 'confirmed' : recovered.phase === 'REVALIDATING' ? 'approval-confirmed' : recovered.phase === 'FAILED' ? 'failed' : recovered.phase === 'PENDING' ? 'pending' : 'unknown')
       const binding = recovered.binding
       if (recovered.step === 'swap' && recovered.hash && binding?.symbol && binding.outputSymbol && binding.minimumOutputUnits) recordActivity({ hash: recovered.hash, account: recovered.account, target: binding.to, calldata: binding.data, fromSymbol: binding.symbol, toSymbol: binding.outputSymbol, amount: binding.amount ?? '0', minimumOutputUnits: binding.minimumOutputUnits, timestamp: recovered.updatedAt, status: recovered.phase === 'COMPLETED' ? 'completed' : recovered.phase === 'FAILED' ? 'failed' : recovered.phase === 'PENDING' ? 'pending' : 'unknown' }, op)
@@ -332,7 +355,9 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
     {stage === 'confirmed' && <p>{say('Swap confirmed with matching output transfer evidence.', 'Giao dịch hoán đổi đã xác nhận với bằng chứng chuyển token nhận phù hợp.')}</p>}
     {stage === 'failed' && <p>{say('Transaction failed on Arc.', 'Giao dịch thất bại trên Arc.')}</p>}
     {stage === 'rejected' && <p>{say('Wallet request rejected for this step. No transaction was submitted; any earlier confirmed approval is retained.', 'Yêu cầu ví ở bước này đã bị từ chối, chưa gửi giao dịch. Bằng chứng phê duyệt đã xác nhận trước đó vẫn được giữ lại.')}</p>}
-    {stage === 'unknown' && <p>{say('Final status unknown. Check the hash before any new attempt.', 'Chưa rõ trạng thái cuối. Kiểm tra mã giao dịch trước khi thử lại.')}</p>}
+    {stage === 'unknown' && <p>{hash
+      ? say('Final status unknown. Check the hash before any new attempt.', 'Chưa rõ trạng thái cuối. Kiểm tra mã giao dịch trước khi thử lại.')
+      : say('The wallet did not return a transaction hash. Check your wallet history or explorer before any new attempt. Do not resubmit.', 'Ví không trả về mã giao dịch. Hãy kiểm tra lịch sử trong ví hoặc trình khám phá trước khi thử lại. Không gửi lại giao dịch.')}</p>}
     {hash && <a href={explorerTx(hash)} target="_blank" rel="noreferrer" className="text-neon-300 break-all">{hash}</a>}
     {error && <p className="text-rose-300 break-words">{vi && tr(error) === error ? tr(errorFallback) : tr(error)}</p>}
     {activityUnavailable && <p className="text-rose-300 break-words">{say('Activity could not be updated. The transaction hash remains on this page for status checks.', 'Chưa thể cập nhật Hoạt động. Mã giao dịch vẫn còn trên trang này để kiểm tra trạng thái.')}</p>}
