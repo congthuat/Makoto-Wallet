@@ -1,0 +1,319 @@
+{
+    "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+    "branch":  "fix/swap-bridge-approval-continuation-2026-10-15",
+    "uncommittedCodeDiffSha256":  "d266b2701c05f6bf82bee910ef0ebeaf9ea29057c24704bfe1745ccdb3372df2",
+    "allCodeFilesSha256":  "90174eb578c2112912a491efba5794c772dd2e8211088107df8a430daeee6fc9",
+    "trackedCodeFiles":  228,
+    "unchangedCodeDuringRun":  true,
+    "commandCount":  15,
+    "nonzeroExitCommands":  0,
+    "tests":  {
+                  "fail":  0,
+                  "pass":  633,
+                  "cancelled":  0,
+                  "skipped":  0,
+                  "todo":  0
+              },
+    "runtimeExceptions":  0,
+    "consoleErrors":  0,
+    "consoleWarnings":  2,
+    "warningMessages":  [
+                            "Module \"buffer\" has been externalized for browser compatibility. Cannot access \"buffer.Buffer\" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details."
+                        ],
+    "browserLogEntries":  2,
+    "browserLogUrls":  [
+                           "http://127.0.0.1:57153/favicon.ico",
+                           "http://127.0.0.1:57524/favicon.ico"
+                       ],
+    "nonFaviconNetworkErrors":  0,
+    "lintWarningDiffCount":  0,
+    "results":  [
+                    {
+                        "command":  "npm run test:migration --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:03.7145790+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:07.9846450+00:00",
+                        "durationSeconds":  4.235,
+                        "exitCode":  0,
+                        "log":  "test-migration.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+                                            "duration_ms":  "3472.6307",
+                                            "pass":  "110",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "110",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run test:brain --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:08.0536467+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:09.0845436+00:00",
+                        "durationSeconds":  1.028,
+                        "exitCode":  0,
+                        "log":  "test-brain.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+                                            "duration_ms":  "278.3901",
+                                            "pass":  "21",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "21",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run test:agent --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:09.0895707+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:11.9962070+00:00",
+                        "durationSeconds":  2.902,
+                        "exitCode":  0,
+                        "log":  "test-agent.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+                                            "duration_ms":  "2142.5176",
+                                            "pass":  "32",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "32",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run test:tasks --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:11.9992092+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:13.5972390+00:00",
+                        "durationSeconds":  1.596,
+                        "exitCode":  0,
+                        "log":  "test-tasks.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+                                            "duration_ms":  "848.898",
+                                            "pass":  "22",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "22",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run test:portfolio --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:13.6002344+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:15.4689400+00:00",
+                        "durationSeconds":  1.865,
+                        "exitCode":  0,
+                        "log":  "test-portfolio.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+                                            "duration_ms":  "1156.265",
+                                            "pass":  "18",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "18",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run test:ux --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:15.4719410+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:18.5213583+00:00",
+                        "durationSeconds":  3.043,
+                        "exitCode":  0,
+                        "log":  "test-ux.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+                                            "duration_ms":  "2286.7985",
+                                            "pass":  "59",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "59",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run test:ui --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:18.5243593+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:23.5084150+00:00",
+                        "durationSeconds":  4.98,
+                        "exitCode":  0,
+                        "log":  "test-ui.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+                                            "duration_ms":  "4250.157",
+                                            "pass":  "39",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "39",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run test:polish --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:23.5114148+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:31.5336833+00:00",
+                        "durationSeconds":  8.017,
+                        "exitCode":  0,
+                        "log":  "test-polish.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+                                            "duration_ms":  "7268.872",
+                                            "pass":  "58",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "58",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run test:completion --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:03.7236354+00:00",
+                        "finishedUtc":  "2026-10-16T09:23:17.2931911+00:00",
+                        "durationSeconds":  73.5,
+                        "exitCode":  0,
+                        "log":  "test-completion.log",
+                        "browserObserver":  true,
+                        "testSummary":  {
+                                            "duration_ms":  "72728.0195",
+                                            "pass":  "143",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "143",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run test:send --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:23:17.3591506+00:00",
+                        "finishedUtc":  "2026-10-16T09:23:40.1830245+00:00",
+                        "durationSeconds":  22.81,
+                        "exitCode":  0,
+                        "log":  "test-send.log",
+                        "browserObserver":  true,
+                        "testSummary":  {
+                                            "duration_ms":  "22105.5209",
+                                            "pass":  "31",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "31",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    },
+                    {
+                        "command":  "npm run type-check --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:03.7155793+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:13.2247506+00:00",
+                        "durationSeconds":  9.478,
+                        "exitCode":  0,
+                        "log":  "type-check.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+
+                                        }
+                    },
+                    {
+                        "command":  "npm run lint --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:13.2947498+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:20.4479816+00:00",
+                        "durationSeconds":  7.148,
+                        "exitCode":  0,
+                        "log":  "lint.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+
+                                        }
+                    },
+                    {
+                        "command":  "npm run build --prefix frontend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:20.4519838+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:34.6345386+00:00",
+                        "durationSeconds":  14.176,
+                        "exitCode":  0,
+                        "log":  "build.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+
+                                        }
+                    },
+                    {
+                        "command":  "git diff --check",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:34.6375366+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:34.7475420+00:00",
+                        "durationSeconds":  0.106,
+                        "exitCode":  0,
+                        "log":  "diff-check.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+
+                                        }
+                    },
+                    {
+                        "command":  "npm test --prefix backend",
+                        "cwd":  "C:\\Users\\Admin\\Downloads\\Makotowallet.xyz\\makoto-wallet",
+                        "head":  "adb05b9aeaffbbbb2edf94a90efe487b38bd2ddc",
+                        "startedUtc":  "2026-10-16T09:22:03.7145790+00:00",
+                        "finishedUtc":  "2026-10-16T09:22:10.7264463+00:00",
+                        "durationSeconds":  6.97,
+                        "exitCode":  0,
+                        "log":  "backend-test.log",
+                        "browserObserver":  false,
+                        "testSummary":  {
+                                            "duration_ms":  "6187.3212",
+                                            "pass":  "100",
+                                            "cancelled":  "0",
+                                            "skipped":  "0",
+                                            "tests":  "100",
+                                            "fail":  "0",
+                                            "todo":  "0",
+                                            "suites":  "0"
+                                        }
+                    }
+                ]
+}

@@ -6,11 +6,11 @@ import { decodeFunctionData, encodeFunctionData, encodeFunctionResult, erc20Abi,
 import { TOKENS } from '../../lib/wallet.ts'
 import type { SendProvider } from '../../lib/sendExecution.ts'
 import { CCTP_FORWARDING_HOOK_DATA, CCTP_KIT_BRIDGE_TESTNET, CCTP_MESSAGE_TRANSMITTER_V2, CCTP_TOKEN_MESSENGER_V2 } from '../../migrated/cctp.ts'
-import type { BridgeToolQuote, PreparedToolAction } from '../../migrated/toolLayer.ts'
+import type { BridgeToolQuote, PreparedGasEstimate, PreparedToolAction } from '../../migrated/toolLayer.ts'
 import { prepareCctpApproval, prepareCctpBurn, quoteBridge } from '../../migrated/toolLayer.ts'
 import { requestReviewedCctpAction } from '../../migrated/protocolExecution.ts'
 import { SendSubmissionGuard } from '../../lib/sendExecution.ts'
-import { CIRCLE_CUSTOM_BURN_WITH_HOOK_ABI, cctpGasEstimateChanged, executePreparedCctpCall, getOfficialCctpQuote, getOfficialCctpStatus, prepareExactCctpApproval, prepareOfficialCctpBurn, sameCctpActionMaterial, simulatePreparedCctpCall } from './cctpAdapter.ts'
+import { CIRCLE_CUSTOM_BURN_WITH_HOOK_ABI, cctpGasCeilingExceeded, cctpGasEstimateChanged, executePreparedCctpCall, getOfficialCctpQuote, getOfficialCctpStatus, prepareExactCctpApproval, prepareOfficialCctpBurn, sameCctpActionMaterial, simulatePreparedCctpCall } from './cctpAdapter.ts'
 
 const account = '0x1111111111111111111111111111111111111111' as Address
 const txHash = `0x${'a'.repeat(64)}` as Hex
@@ -194,6 +194,39 @@ test('fresh Circle preparations require structural material identity and ignore 
     ]
     for (const altered of changed) assert.equal(sameCctpActionMaterial(first, altered), false)
   })
+})
+
+test('CCTP gas review permits a fresh estimate at or below the reviewed total cost ceiling', () => {
+  const reviewed: PreparedGasEstimate = { gasLimit: 100_000n, unitPrice: 10n, maximumFee: 1_000_000n }
+  const acceptable: PreparedGasEstimate[] = [
+    reviewed,
+    { gasLimit: 90_000n, unitPrice: 10n, maximumFee: 900_000n },
+    { gasLimit: 100_000n, unitPrice: 9n, maximumFee: 900_000n },
+    { gasLimit: 200_000n, unitPrice: 5n, maximumFee: 1_000_000n },
+    { gasLimit: 50_000n, unitPrice: 20n, maximumFee: 1_000_000n },
+  ]
+  for (const fresh of acceptable) assert.equal(cctpGasCeilingExceeded(reviewed, fresh), false)
+  assert.equal(cctpGasCeilingExceeded(reviewed, { gasLimit: 100_001n, unitPrice: 10n, maximumFee: 1_000_010n }), true)
+  assert.equal(cctpGasCeilingExceeded(reviewed, { gasLimit: 100_000n, unitPrice: 11n, maximumFee: 1_100_000n }), true)
+})
+
+test('CCTP gas review fails closed for absent, nonpositive, or inconsistent estimates', () => {
+  const valid: PreparedGasEstimate = { gasLimit: 100_000n, unitPrice: 10n, maximumFee: 1_000_000n }
+  const invalid: (PreparedGasEstimate | undefined)[] = [
+    undefined,
+    { ...valid, gasLimit: 0n },
+    { ...valid, gasLimit: -1n },
+    { ...valid, unitPrice: 0n },
+    { ...valid, unitPrice: -1n },
+    { ...valid, maximumFee: 0n },
+    { ...valid, maximumFee: -1n },
+    { ...valid, maximumFee: valid.maximumFee - 1n },
+    { ...valid, maximumFee: valid.maximumFee + 1n },
+  ]
+  for (const estimate of invalid) {
+    assert.equal(cctpGasCeilingExceeded(valid, estimate), true)
+    assert.equal(cctpGasCeilingExceeded(estimate, valid), true)
+  }
 })
 
 test('CCTP simulation failure blocks before any wallet request', async () => {

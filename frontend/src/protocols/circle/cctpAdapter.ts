@@ -462,3 +462,11 @@ export function sameCctpActionMaterial(a: PreparedToolAction, b: PreparedToolAct
 export function cctpGasEstimateChanged(a: PreparedGasEstimate | undefined, b: PreparedGasEstimate | undefined): boolean {
   return !a || !b || a.gasLimit !== b.gasLimit || a.unitPrice !== b.unitPrice || a.maximumFee !== b.maximumFee
 }
+
+/** The displayed maximum is a total cost ceiling, not an exact gas estimate. */
+export function cctpGasCeilingExceeded(reviewed: PreparedGasEstimate | undefined, fresh: PreparedGasEstimate | undefined): boolean {
+  const valid = (gas: PreparedGasEstimate | undefined): gas is PreparedGasEstimate => !!gas &&
+    typeof gas.gasLimit === 'bigint' && typeof gas.unitPrice === 'bigint' && typeof gas.maximumFee === 'bigint' &&
+    gas.gasLimit > 0n && gas.unitPrice > 0n && gas.maximumFee === gas.gasLimit * gas.unitPrice
+  return !valid(reviewed) || !valid(fresh) || fresh.maximumFee > reviewed.maximumFee
+}

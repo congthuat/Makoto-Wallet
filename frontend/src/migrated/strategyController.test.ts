@@ -1,12 +1,53 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createStrategyRun, recoverStrategyRun, restoreStrategyRun, saveStrategyRun, transitionStrategy } from './strategyController.ts'
+import { createStrategyRun, recoverStrategyRun, restoreStrategyInput, restoreStrategyRun, saveStrategyRun, transitionStrategy, type StrategyInput } from './strategyController.ts'
 
 const account = '0x1111111111111111111111111111111111111111'
 const target = '0x2222222222222222222222222222222222222222'
 const hash = `0x${'a'.repeat(64)}`
 const review = (step: 'approval' | 'swap' | 'cctp-burn', now: number) => ({ type: 'review' as const, step, account, chainId: 5042002, expiresAt: now + 60_000, quoteFresh: true, policyPassed: true, simulationPassed: true, now })
 const binding = { from: account, to: target, data: '0x1234', symbol: 'USDC' as const, spender: target, requiredUnits: '1000000' }
+
+for (const input of [
+  { kind: 'swap', amount: '2.345678', from: 'EURC', to: 'USDC', slip: '1%' },
+  { kind: 'cctp', amount: '2.345678', transferSpeed: 'SLOW' },
+] as const) test(`${input.kind} form values are scoped to account, chain and protocol without restoring review authority`, () => {
+  const values = new Map<string, string>()
+  const storage = { setItem: (key: string, value: string) => { values.set(key, value) }, getItem: (key: string) => values.get(key) ?? null }
+  const result = transitionStrategy(createStrategyRun(input.kind, account, 1), { ...review('approval', 2), input })
+  assert.equal(result.accepted, true)
+  if (!result.accepted) return
+  saveStrategyRun(storage, result.state)
+  assert.deepEqual(restoreStrategyInput(storage, input.kind, account.toUpperCase().replace('0X', '0x'), 5042002), input)
+  assert.equal(restoreStrategyInput(storage, input.kind, target, 5042002), undefined)
+  assert.equal(restoreStrategyInput(storage, input.kind, account, 84532), undefined)
+  assert.equal(restoreStrategyInput(storage, input.kind, account, undefined), undefined)
+  assert.equal(restoreStrategyInput(storage, input.kind === 'swap' ? 'cctp' : 'swap', account, 5042002), undefined)
+  const restored = restoreStrategyRun(storage, input.kind, account, 3)!
+  assert.equal(restored.phase, 'EXPIRED')
+  assert.equal(transitionStrategy(restored, { type: 'wallet-request', binding, now: 4 }).accepted, false)
+  saveStrategyRun(storage, createStrategyRun(input.kind, account, 5))
+  assert.equal(restoreStrategyInput(storage, input.kind, account, 5042002), undefined)
+})
+
+test('malformed optional form values cannot erase a submitted hash or grant execution authority', () => {
+  const values = new Map<string, string>()
+  const storage = { setItem: (key: string, value: string) => { values.set(key, value) }, getItem: (key: string) => values.get(key) ?? null }
+  const initial = { ...createStrategyRun('swap', account, 1), phase: 'SUBMITTED' as const, step: 'swap' as const, hash, binding }
+  const valid = { kind: 'swap', amount: '2', from: 'USDC', to: 'EURC', slip: '0.5%' }
+  for (const input of [null, [], { ...valid, amount: '-2' }, { ...valid, amount: '0' }, { ...valid, amount: '1.0000001' }, { ...valid, amount: '9'.repeat(81) }, { ...valid, from: 'cirBTC' }, { ...valid, to: 'USDC' }, { ...valid, slip: '100%' }, { kind: 'cctp', amount: '2', transferSpeed: 'FAST' }]) {
+    saveStrategyRun(storage, { ...initial, input: input as unknown as StrategyInput })
+    const restored = restoreStrategyRun(storage, 'swap', account, 2)!
+    assert.equal(restored.hash, hash)
+    assert.equal(restored.phase, 'RECOVERING')
+    assert.equal(restored.input, undefined)
+    assert.equal(transitionStrategy(restored, { type: 'wallet-request', binding, now: 3 }).accepted, false)
+    assert.equal(transitionStrategy(createStrategyRun('swap', account, 1), { ...review('approval', 2), input: input as unknown as StrategyInput }).accepted, false)
+  }
+  // Existing checkpoints without form data retain their original recovery behavior.
+  saveStrategyRun(storage, initial)
+  assert.equal(restoreStrategyRun(storage, 'swap', account, 2)?.hash, hash)
+})
 
 test('strategy controller gates approval, receipt, allowance reread and fresh action review', () => {
   const initial = createStrategyRun('swap', account, 1)
@@ -61,6 +102,41 @@ test('reload restores only receipt recovery, never wallet or review authority', 
   const provider = { request: async ({ method }: { method: string }) => method === 'eth_accounts' ? [account] : method === 'eth_chainId' ? '0x4cef52' : method === 'eth_getTransactionReceipt' ? null : undefined }
   assert.equal((await recoverStrategyRun(provider, restored, 11)).phase, 'PENDING')
   assert.equal(restoreStrategyRun(storage, 'swap', target, 10), undefined)
+})
+
+for (const protocol of ['swap', 'cctp'] as const) test(`${protocol} retains confirmed approval evidence through action review, rejection and reload`, () => {
+  const values = new Map<string, string>()
+  const storage = { setItem: (key: string, value: string) => { values.set(key, value) }, getItem: (key: string) => values.get(key) ?? null }
+  let run = createStrategyRun(protocol, account, 1)
+  const apply = (event: Parameters<typeof transitionStrategy>[1]) => {
+    const result = transitionStrategy(run, event)
+    assert.equal(result.accepted, true)
+    if (result.accepted) run = result.state
+  }
+  apply(review('approval', 2))
+  apply({ type: 'wallet-request', binding, now: 3 })
+  apply({ type: 'hash', hash, now: 4 })
+  apply({ type: 'confirmed', now: 5 })
+  assert.deepEqual(run.approvalReceipt, { hash, binding })
+  saveStrategyRun(storage, run)
+  const restored = restoreStrategyRun(storage, protocol, account, 6)!
+  assert.equal(restored.phase, 'REVALIDATING')
+  assert.equal(transitionStrategy(restored, review(protocol === 'swap' ? 'swap' : 'cctp-burn', 7)).accepted, false)
+  // Old checkpoints without the new optional evidence are upgraded by the verified allowance gate.
+  run = { ...restored, approvalReceipt: undefined }
+  apply({ type: 'allowance-reread', sufficient: true, account, chainId: 5042002, now: 7 })
+  apply(review(protocol === 'swap' ? 'swap' : 'cctp-burn', 8))
+  assert.equal(run.hash, undefined, 'The next action has no submitted hash')
+  assert.deepEqual(run.approvalReceipt, { hash, binding })
+  apply({ type: 'wallet-request', binding: { from: account, to: target, data: '0x5678' }, now: 9 })
+  apply({ type: 'user-rejected', now: 10 })
+  saveStrategyRun(storage, run)
+  const rejected = restoreStrategyRun(storage, protocol, account, 11)!
+  assert.equal(rejected.phase, 'USER_REJECTED')
+  assert.deepEqual(rejected.approvalReceipt, { hash, binding })
+  assert.equal(transitionStrategy(rejected, { type: 'wallet-request', binding, now: 12 }).accepted, false)
+  saveStrategyRun(storage, { ...run, approvalReceipt: { hash: 'invalid', binding } })
+  assert.equal(restoreStrategyRun(storage, protocol, account, 12), undefined)
 })
 
 test('CCTP reload checkpoints restore approvals, source receipts, attestation pending, and destination pending without review authority', () => {

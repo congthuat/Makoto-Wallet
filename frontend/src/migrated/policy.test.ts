@@ -42,12 +42,21 @@ test('policy blocks wrong chain, changed account, insufficient allowance and sim
   assert.equal(run({ now: now + 46_000 }).mustStop, true)
 })
 
-test('review locks request and rejects stale or worse quote', () => {
+test('review locks request and requires review for every material swap quote change', () => {
   const base = { action, quote, account, chainId: ARC.chainId, simulation: 'passed' as const, now, balance: quote.balance, allowance: quote.allowance }
   const review = createReview(action, quote, evaluateToolPolicy(base), now)
   assert.equal(revalidateReview(review, { ...base, now: now + 1 }).status, 'OK')
   assert.equal(revalidateReview(review, { ...base, action: { ...action, request: { ...action.request, data: '0x9999' } }, now: now + 1 }).status, 'STALE')
   assert.equal(revalidateReview(review, { ...base, quote: { ...quote, quote: { ...quote.quote, amountOut: 960_000n } }, now: now + 1 }).status, 'STALE')
+  for (const changedQuote of [
+    { ...quote, quote: { ...quote.quote, amountOut: 990_000n } }, // Still above the old minimum.
+    { ...quote, quote: { ...quote.quote, amountOut: 1_010_000n } },
+    { ...quote, quote: { ...quote.quote, amountIn: 999_999n } },
+    { ...quote, quote: { ...quote.quote, fromAssetId: 'eurc' as const } },
+    { ...quote, quote: { ...quote.quote, toAssetId: 'usdc' as const } },
+    { ...quote, minimumReceive: 969_000n },
+    { ...quote, slippage: 0.01 as const },
+  ]) assert.equal(revalidateReview(review, { ...base, quote: changedQuote, now: now + 1 }).status, 'STALE')
   assert.equal(revalidateReview(review, { ...base, now: now + 46_000 }).status, 'STALE')
 })
 

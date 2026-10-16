@@ -7,6 +7,23 @@ import { getOfficialCctpStatus, hasOfficialCctpMessageEvent, type CctpAdapterDep
 export type SwapRecord = Readonly<{ hash: string; account: string; target: string; calldata: string; fromSymbol: 'USDC' | 'EURC'; toSymbol: 'USDC' | 'EURC'; amount: string; minimumOutputUnits: string; timestamp: number; status: 'pending' | 'unknown' | 'completed' | 'failed' }>
 export type BridgeRecord = Readonly<{ hash: string; account: string; target: string; calldata: string; amount: string; expectedReceiveUnits: string; destinationDomain?: number; maxFeeUnits?: string; finalityThreshold?: string; timestamp: number; status: 'source-pending' | 'source-unknown' | 'source-confirmed' | 'attesting' | 'destination-pending' | 'destination-confirmed' | 'forwarding-failed' | 'destination-failed' | 'failed'; destinationHash?: string }>
 
+/** Done may discard a checkpoint only after its completed Activity is durable.
+ * This reads the existing projection; it does not establish transaction success. */
+export function hasSavedProtocolCompletion(storage: Pick<Storage, 'getItem'>, protocol: 'swap' | 'cctp', account: string, hash: string): boolean {
+  if (!isHash(hash)) return false
+  try {
+    const records: unknown = JSON.parse(storage.getItem(protocol === 'swap' ? 'mk.swap.records.v1' : 'mk.bridge.records.v1') ?? 'null')
+    return Array.isArray(records) && records.some((value: unknown) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+      const record = value as Record<string, unknown>
+      return typeof record.account === 'string' && record.account.toLowerCase() === account.toLowerCase()
+        && typeof record.hash === 'string' && record.hash.toLowerCase() === hash.toLowerCase()
+        && (protocol === 'swap' ? record.status === 'completed'
+          : record.status === 'destination-confirmed' && typeof record.destinationHash === 'string' && isHash(record.destinationHash))
+    })
+  } catch { return false }
+}
+
 export function mergeBridgeRecord(old: BridgeRecord | undefined, next: BridgeRecord): BridgeRecord {
   if (old?.status === 'destination-confirmed' || old?.status === 'destination-failed' || old?.status === 'forwarding-failed' || old?.status === 'failed') return old
   if (old?.status === 'source-unknown' && next.status === 'source-pending') return old

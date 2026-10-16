@@ -4,7 +4,7 @@ import { CCTPV2BridgingProvider } from '@circle-fin/provider-cctp-v2'
 import { encodeAbiParameters, encodeEventTopics, pad, type Address } from 'viem'
 import { TOKENS } from './wallet.ts'
 import { CCTP_KIT_BRIDGE_TESTNET } from '../migrated/cctp.ts'
-import { checkBridgeRecord, checkSwapRecord, mergeBridgeRecord, type BridgeRecord, type SwapRecord } from './protocolActivity.ts'
+import { checkBridgeRecord, checkSwapRecord, hasSavedProtocolCompletion, mergeBridgeRecord, type BridgeRecord, type SwapRecord } from './protocolActivity.ts'
 import { CCTP_MESSAGE_SENT_ABI } from '../protocols/circle/cctpAdapter.ts'
 
 const hash = `0x${'a'.repeat(64)}`
@@ -20,6 +20,28 @@ const provider = (receipt: unknown, transaction: unknown = { hash, from: account
 const success = { transactionHash: hash, blockHash: hash, blockNumber: '0x1', status: '0x1' }
 const messageLog = { address: (source.cctp!.contracts.v2!.type === 'split' ? source.cctp!.contracts.v2!.messageTransmitter : ''), topics: encodeEventTopics({ abi: CCTP_MESSAGE_SENT_ABI, eventName: 'MessageSent' }), data: encodeAbiParameters([{ type: 'bytes' }], ['0x01']) }
 const sourceSuccess = { ...success, logs: [messageLog] }
+
+test('checkpoint cleanup requires durable completed Activity for the same account, hash and protocol', () => {
+  const values = new Map<string, string>()
+  const storage = { getItem: (key: string) => values.get(key) ?? null }
+  const completedSwap = { ...base, status: 'completed' }
+  const completedBridge = { ...base, status: 'destination-confirmed', destinationHash: hash }
+  assert.equal(hasSavedProtocolCompletion(storage, 'swap', account, hash), false)
+  values.set('mk.swap.records.v1', JSON.stringify([completedSwap]))
+  assert.equal(hasSavedProtocolCompletion(storage, 'swap', account, hash), true)
+  assert.equal(hasSavedProtocolCompletion(storage, 'swap', target, hash), false)
+  assert.equal(hasSavedProtocolCompletion(storage, 'swap', account, `0x${'b'.repeat(64)}`), false)
+  assert.equal(hasSavedProtocolCompletion(storage, 'cctp', account, hash), false)
+  values.set('mk.bridge.records.v1', JSON.stringify([completedBridge]))
+  assert.equal(hasSavedProtocolCompletion(storage, 'cctp', account, hash), true)
+  for (const invalid of [null, {}, 'broken-json', [null], [{ ...completedBridge, status: 'destination-pending' }], [{ ...completedBridge, destinationHash: 'invalid' }], [{ ...completedBridge, destinationHash: undefined }]]) {
+    values.set('mk.bridge.records.v1', typeof invalid === 'string' ? invalid : JSON.stringify(invalid))
+    assert.equal(hasSavedProtocolCompletion(storage, 'cctp', account, hash), false)
+  }
+  values.set('mk.swap.records.v1', JSON.stringify([{ ...completedSwap, status: 'pending' }]))
+  assert.equal(hasSavedProtocolCompletion(storage, 'swap', account, hash), false)
+  assert.equal(hasSavedProtocolCompletion({ getItem: () => { throw new Error('unavailable') } }, 'swap', account, hash), false)
+})
 
 function cctp(state: 'pending' | 'forwarding-pending' | 'forwarding-failed' | 'forwarded') {
   const circle = new CCTPV2BridgingProvider()
