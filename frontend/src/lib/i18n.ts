@@ -89,6 +89,11 @@ const DICT: Record<string, [string, string, string, string]> = {
   'Est. network fee': ['Phí mạng ước tính', '预估网络费', '推定ネットワーク手数料', '예상 네트워크 수수료'],
   Online: ['Trực tuyến', '在线', 'オンライン', '온라인'],
   Unavailable: ['Không khả dụng', '不可用', '利用不可', '사용 불가'],
+  Stale: ['Dữ liệu cũ', '数据过期', 'データが古い', '데이터 오래됨'],
+  Retry: ['Thử lại', '重试', '再試行', '재시도'],
+  'Connecting to Arc…': ['Đang kết nối Arc…', '正在连接 Arc…', 'Arc に接続中…', 'Arc 연결 중…'],
+  'Arc unreachable': ['Arc không thể kết nối', 'Arc 无法访问', 'Arc に接続できません', 'Arc 연결 불가'],
+  'Arc data is stale — last seen': ['Dữ liệu Arc cũ — cập nhật lần cuối', 'Arc 数据已过期 — 上次更新', 'Arc データ古い — 最終更新', 'Arc 데이터 오래됨 — 마지막 업데이트'],
   'Arc network': ['Mạng Arc', 'Arc 网络', 'Arc ネットワーク', 'Arc 네트워크'],
   'Gas is paid in USDC': ['Phí gas trả bằng USDC', 'Gas 以 USDC 支付', 'ガス代は USDC で支払い', '가스비는 USDC로 지불'],
   // Page headers

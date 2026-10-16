@@ -1,7 +1,9 @@
 const { dataApi } = require('@surf-ai/sdk/server')
 const { CHAIN_ID, TOKENS, TaskError, formatUnits } = require('./taskDefinitions')
 
-const RPC = 'https://rpc.testnet.arc.network'
+// Official Arc Testnet public RPC — verified 2026-10-16. rpc.testnet.arc.network is NXDOMAIN.
+// arc-studio-allow-onchain-literal
+const RPC = 'https://rpc.testnet.arc.io'
 const EXPLORER = 'https://explorer.testnet.arc.io/api/v2'
 const readOnlyMethods = new Set(['eth_chainId', 'eth_getCode', 'eth_call'])
 

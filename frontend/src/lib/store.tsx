@@ -179,10 +179,17 @@ function useWalletState() {
     queryKey: ['arc-network'],
     queryFn: async () => {
       const r = await fetch(api('arc/network'))
-      if (!r.ok) throw new Error('network')
-      return r.json()
+      const j = await r.json()
+      if (!r.ok) throw new Error(j?.errorKind ?? 'network')
+      return j
     },
+    // Retry once after 2 s before declaring error — avoids false "Arc unreachable" on a
+    // single transient failure while preventing the skeleton from spinning forever.
+    retry: 1,
+    retryDelay: 2000,
     refetchInterval: 12_000,
+    // Keep stale data visible while re-fetching instead of blanking the UI.
+    staleTime: 30_000,
   })
   const feed = useQuery<Feed>({
     queryKey: ['arc-feed'],
@@ -412,6 +419,18 @@ function useWalletState() {
     receiveOpen, setReceiveOpen, txDetail, setTxDetail, sendDraft, setSendDraft, swapDraft, setSwapDraft, agentSeed, setAgentSeed, agentSeedMode, setAgentSeedMode, lockPreview, setLockPreview,
     sendRecords, upsertSend, swapRecords, upsertSwap, bridgeRecords, upsertBridge,
     prices: prices.data, network: network.data, networkError: network.isError,
+    // networkStatus: 'loading' only on the very first fetch (no prior data);
+    // 'online' when a successful response is available (even if re-fetching in background);
+    // 'stale' when a prior response exists but the latest fetch has failed;
+    // 'unavailable' when all retries failed and there is no prior data at all.
+    // This prevents an infinite skeleton and lets the UI show Retry when needed.
+    networkStatus: (
+      network.isSuccess ? 'online' :
+      network.isError && network.dataUpdatedAt > 0 ? 'stale' :
+      network.isError ? 'unavailable' :
+      'loading'
+    ) as 'loading' | 'online' | 'stale' | 'unavailable',
+    retryNetwork: () => network.refetch(),
     walletError, balanceError,
     holdings, activity, total, pricesReady, loading, portfolioScope,
     portfolioDayPoints: portfolioHistoryAccess ? historyPoints(portfolioHistoryQuery.data, portfolioScope) : [],

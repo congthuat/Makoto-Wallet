@@ -171,7 +171,7 @@ export function Allocation() {
 }
 
 export function NetworkCard() {
-  const { network, networkError } = useWallet()
+  const { network, networkError, networkStatus, retryNetwork } = useWallet()
   const [tr] = useT()
   const stats = [
     { icon: Boxes, k: 'Latest block', v: network ? `#${network.blockNumber.toLocaleString()}` : null },
@@ -179,17 +179,39 @@ export function NetworkCard() {
     { icon: Zap, k: 'Gas price', v: network ? `${network.gasPriceGwei.toFixed(1)} gwei` : null },
     { icon: ActivityIcon, k: 'Network response time', v: network ? `${network.rpcLatencyMs} ms` : null },
   ]
+  // Never show skeleton forever — after retries are exhausted show dashes and a Retry button.
+  const isLoading = networkStatus === 'loading'
+  const isUnavailable = networkStatus === 'unavailable'
+  const isStale = networkStatus === 'stale'
   return (
     <Card className="mk-in">
-      <CardHeader title="Arc network" sub="Gas is paid in USDC" right={networkError ? <Badge tone="err">{tr('Unavailable')}</Badge> : <Badge tone="live">{tr('Online')}</Badge>} />
+      <CardHeader
+        title="Arc network"
+        sub="Gas is paid in USDC"
+        right={
+          isUnavailable || isStale
+            ? <Badge tone="err">{tr('Unavailable')}</Badge>
+            : isLoading
+              ? <Badge>{tr('Connecting to Arc…')}</Badge>
+              : <Badge tone="live">{tr('Online')}</Badge>
+        }
+      />
       <div className="grid grid-cols-2 gap-2 px-5 pb-5">
         {stats.map(({ icon: Icon, k, v }) => (
           <div key={k} className="rounded-xl bg-white/[0.03] border border-white/[0.05] p-3">
             <div className={`flex items-center gap-1.5 text-[11px] ${T.mute}`}><Icon size={12} /> {tr(k)}</div>
-            <div className="mt-1 text-[13px] font-semibold font-num">{v ?? (networkError ? '—' : <Skeleton className="w-20 h-4" />)}</div>
+            <div className="mt-1 text-[13px] font-semibold font-num">
+              {v ?? (isLoading ? <Skeleton className="w-20 h-4" /> : '—')}
+            </div>
           </div>
         ))}
       </div>
+      {(isUnavailable || isStale) && (
+        <div className="px-5 pb-4 flex items-center gap-2 text-[12px]">
+          <span className={T.mute}>{networkError ? tr('Arc unreachable') : tr('Arc data is stale — last seen')}</span>
+          <button onClick={() => retryNetwork()} className="text-neon-400 hover:text-neon-300 underline underline-offset-2 shrink-0">{tr('Retry')}</button>
+        </div>
+      )}
     </Card>
   )
 }

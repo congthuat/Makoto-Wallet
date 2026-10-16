@@ -2,7 +2,11 @@
 const { Router } = require('express')
 const router = Router()
 
-const RPC = 'https://rpc.testnet.arc.network'
+// Official Arc Testnet public RPC — verified 2026-10-16: DNS resolves, HTTPS ok,
+// eth_chainId = 0x4cef52 (5042002), eth_blockNumber and eth_gasPrice respond correctly.
+// rpc.testnet.arc.network returned NXDOMAIN as of 2026-10-16 and MUST NOT be used.
+// arc-studio-allow-onchain-literal
+const RPC = 'https://rpc.testnet.arc.io'
 const EXPLORER_API = 'https://explorer.testnet.arc.io/api/v2'
 
 // Verified Circle assets on Arc Testnet (anything else is treated as unverified / possible spam)
@@ -14,16 +18,69 @@ const VERIFIED = {
 
 const isAddr = (a) => typeof a === 'string' && /^0x[0-9a-fA-F]{40}$/.test(a)
 
-async function rpc(method, params = []) {
-  const r = await fetch(RPC, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-    signal: AbortSignal.timeout(8000),
-  })
-  const j = await r.json()
-  if (j.error) throw new Error(j.error.message)
+// ---------------------------------------------------------------------------
+// RPC error classification — distinguishes DNS/network failure, HTTP error,
+// JSON-RPC error and timeout so the route can log and respond precisely.
+// ---------------------------------------------------------------------------
+const RpcErrorKind = /** @type {const} */ ({
+  DNS_OR_NETWORK: 'DNS_OR_NETWORK',
+  HTTP_ERROR: 'HTTP_ERROR',
+  JSONRPC_ERROR: 'JSONRPC_ERROR',
+  TIMEOUT: 'TIMEOUT',
+})
+
+class RpcError extends Error {
+  constructor(kind, message, detail) {
+    super(message)
+    this.name = 'RpcError'
+    this.kind = kind
+    this.detail = detail ?? null
+  }
+}
+
+// Single RPC call with explicit error classification — no internal retry.
+async function rpcOnce(method, params = [], timeoutMs = 8000) {
+  let response
+  try {
+    response = await fetch(RPC, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+  } catch (e) {
+    if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+      throw new RpcError(RpcErrorKind.TIMEOUT, `RPC timeout after ${timeoutMs}ms`, method)
+    }
+    throw new RpcError(RpcErrorKind.DNS_OR_NETWORK, `RPC network/DNS error: ${e?.message ?? 'unknown'}`, method)
+  }
+  if (!response.ok) {
+    throw new RpcError(RpcErrorKind.HTTP_ERROR, `RPC HTTP ${response.status}`, method)
+  }
+  let j
+  try {
+    j = await response.json()
+  } catch (e) {
+    throw new RpcError(RpcErrorKind.HTTP_ERROR, `RPC response not JSON: ${e?.message}`, method)
+  }
+  if (j?.error) {
+    throw new RpcError(RpcErrorKind.JSONRPC_ERROR, j.error.message ?? 'JSON-RPC error', method)
+  }
   return j.result
+}
+
+// One retry with 400ms backoff — only for transient DNS/network or timeout failures.
+// JSON-RPC errors and HTTP errors are deterministic; retrying them is wrong.
+async function rpc(method, params = []) {
+  try {
+    return await rpcOnce(method, params)
+  } catch (e) {
+    if (e instanceof RpcError && (e.kind === RpcErrorKind.DNS_OR_NETWORK || e.kind === RpcErrorKind.TIMEOUT)) {
+      await new Promise((resolve) => setTimeout(resolve, 400))
+      return rpcOnce(method, params)
+    }
+    throw e
+  }
 }
 
 async function explorer(path) {
@@ -44,6 +101,12 @@ function units(value, decimals) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// GET /api/arc/network — Arc chain pulse (block number, gas price, latency)
+// Returns { chainId, blockNumber, gasPriceGwei, transferFeeUsdc,
+//           tokenTransferFeeUsdc, rpcLatencyMs, updatedAt }
+// On failure: { error, errorKind } with HTTP 502.
+// ---------------------------------------------------------------------------
 router.get('/network', async (_req, res) => {
   try {
     const t0 = Date.now()
@@ -63,8 +126,9 @@ router.get('/network', async (_req, res) => {
       updatedAt: Date.now(),
     })
   } catch (e) {
-    console.error('arc/network', e?.message)
-    res.status(502).json({ error: 'Arc RPC unavailable' })
+    const kind = e instanceof RpcError ? e.kind : 'UNKNOWN'
+    console.error('arc/network fetch failed', kind, e?.message)
+    res.status(502).json({ error: 'Arc RPC unavailable', errorKind: kind })
   }
 })
 
@@ -261,3 +325,6 @@ router.get('/stats', async (_req, res) => {
 
 module.exports = router
 module.exports.readWallet = readWallet
+// Export for tests
+module.exports.RpcError = RpcError
+module.exports.RpcErrorKind = RpcErrorKind
