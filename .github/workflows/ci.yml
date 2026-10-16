@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [makoto-wallet]
   workflow_dispatch:
+    inputs:
+      sqlite_diagnostics:
+        description: Run the isolated legacy SQLite locking negative control
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -103,3 +108,20 @@ jobs:
 
       - name: Backend tests
         run: npm test --prefix backend
+
+      - name: Repeat auth restart and concurrency regressions (20 runs)
+        run: npm run test:auth:repeat --prefix backend
+
+      - name: Repeat full backend suite (2 additional runs)
+        run: |
+          for attempt in 1 2; do
+            npm test --prefix backend
+          done
+
+      # Diagnostic-only legacy library, never loaded by the application. All
+      # probe databases and this installation live in disposable temp paths.
+      - name: Diagnose legacy SQLite locking
+        if: github.event_name == 'workflow_dispatch' && inputs.sqlite_diagnostics
+        run: |
+          npm install --prefix "$RUNNER_TEMP/makoto-legacy-sqlite" --no-save --package-lock=false sqlite3@5.1.7
+          SQLITE3_MODULE="$RUNNER_TEMP/makoto-legacy-sqlite/node_modules/sqlite3" node backend/scripts/sqlite-locking-probe.cjs

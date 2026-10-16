@@ -4,7 +4,7 @@ const os = require('node:os')
 const path = require('node:path')
 const { DatabaseSync } = require('node:sqlite')
 const session = require('express-session')
-const SQLiteStore = require('connect-sqlite3')(session)
+const { SQLiteSessionStore } = require('./sqliteSessionStore')
 const { rateLimit } = require('express-rate-limit')
 const { getAddress } = require('ethers')
 const { SiweMessage } = require('siwe')
@@ -20,6 +20,15 @@ class AuthError extends Error {
     this.code = code
     this.status = status
   }
+}
+
+function sendAuthUnavailable(req, res, error) {
+  console.error('task auth:', error?.code || error?.name || 'unknown error')
+  // Do not let express-session retry saving a partially authenticated session
+  // while sending the failure response (or issue its cookie).
+  req.session = null
+  if (res.headersSent) return res.destroy()
+  return res.status(503).json({ code: 'TASK_AUTH_UNAVAILABLE', error: 'Wallet authentication unavailable' })
 }
 
 function publicOriginOf(value) {
@@ -79,11 +88,16 @@ function createTaskAuth(options = {}) {
   }
   const sessionSecret = options.sessionSecret || process.env.TASK_SESSION_SECRET || (process.env.NODE_ENV === 'production' ? null : crypto.randomBytes(32).toString('hex'))
   if (!sessionSecret || Buffer.byteLength(sessionSecret) < 32) throw new Error('TASK_SESSION_SECRET must contain at least 32 bytes')
+  const sessionTtlMs = options.sessionTtlMs || SESSION_TTL_MS
+  if (!Number.isSafeInteger(sessionTtlMs) || sessionTtlMs < 1) throw new Error('Session TTL must be a positive integer')
   const dbPath = path.resolve(options.dbPath || process.env.TASK_AUTH_DB_PATH || path.join(__dirname, '..', 'data', 'task-auth.sqlite'))
   fs.mkdirSync(path.dirname(dbPath), { recursive: true })
   const db = new DatabaseSync(dbPath)
-  db.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;')
-  db.exec(`
+  let sessionStore
+  try {
+    db.exec('PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL;')
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (sid PRIMARY KEY, expired, sess);
     CREATE TABLE IF NOT EXISTS auth_challenges (
       nonce TEXT PRIMARY KEY,
       message TEXT NOT NULL,
@@ -102,16 +116,16 @@ function createTaskAuth(options = {}) {
       reset_at INTEGER NOT NULL,
       PRIMARY KEY (bucket, rate_key)
     );
-  `)
-
-  const sessionStore = new SQLiteStore({ db: path.basename(dbPath), dir: path.dirname(dbPath), concurrentDb: true })
-  sessionStore.db.configure('busyTimeout', 5000)
-  const ready = new Promise((resolve) => sessionStore.client.once('connect', resolve))
+    `)
+    sessionStore = new SQLiteSessionStore(db)
+  } catch (error) {
+    db.close()
+    throw error
+  }
+  const ready = Promise.resolve()
   const cookieName = publicOrigin.startsWith('https:') ? '__Host-mk.task.sid' : 'mk.task.sid'
-  const sessionTtlMs = options.sessionTtlMs || SESSION_TTL_MS
-  if (!Number.isSafeInteger(sessionTtlMs) || sessionTtlMs < 1) throw new Error('Session TTL must be a positive integer')
   const cookieOptions = { path: '/', httpOnly: true, secure: publicOrigin.startsWith('https:'), sameSite: 'strict', maxAge: sessionTtlMs }
-  const taskSession = session({
+  const sessionMiddleware = session({
     name: cookieName,
     secret: sessionSecret,
     store: sessionStore,
@@ -119,6 +133,10 @@ function createTaskAuth(options = {}) {
     saveUninitialized: false,
     rolling: false,
     cookie: cookieOptions,
+  })
+  const taskSession = (req, res, next) => sessionMiddleware(req, res, (error) => {
+    if (error) return sendAuthUnavailable(req, res, error)
+    next()
   })
   const now = options.now || Date.now
 
@@ -138,15 +156,21 @@ function createTaskAuth(options = {}) {
     next()
   }
 
-  const makeLimit = (bucket, windowMs, limit) => rateLimit({
-    windowMs,
-    limit,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    passOnStoreError: false,
-    store: new SQLiteRateStore(db, bucket),
-    message: { code: 'TASK_RATE_LIMITED', error: 'Please retry later' },
-  })
+  const makeLimit = (bucket, windowMs, limit) => {
+    const middleware = rateLimit({
+      windowMs,
+      limit,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      passOnStoreError: false,
+      store: new SQLiteRateStore(db, bucket),
+      message: { code: 'TASK_RATE_LIMITED', error: 'Please retry later' },
+    })
+    return (req, res, next) => middleware(req, res, (error) => {
+      if (error) return sendAuthUnavailable(req, res, error)
+      next()
+    })
+  }
   const nonceRateLimit = makeLimit('nonce', 15 * 60 * 1000, 20)
   const verifyRateLimit = makeLimit('verify', 15 * 60 * 1000, 20)
   const taskMutationRateLimit = makeLimit('task_mutation', 15 * 60 * 1000, 120)
@@ -204,9 +228,12 @@ function createTaskAuth(options = {}) {
     return consumed.address
   }
 
+  let closed = false
   async function close() {
-    await new Promise((resolve, reject) => sessionStore.db.close((error) => error ? reject(error) : resolve()))
+    if (closed) return
+    sessionStore.close()
     db.close()
+    closed = true
   }
 
   return {
@@ -247,6 +274,7 @@ function getTaskAuth() { return singleton }
 module.exports = {
   ARC_CHAIN_ID,
   AuthError,
+  sendAuthUnavailable,
   createTaskAuth,
   getTaskAuth,
   taskSession: singleton.taskSession,

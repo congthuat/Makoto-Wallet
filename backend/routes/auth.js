@@ -1,5 +1,5 @@
 const { Router } = require('express')
-const { ARC_CHAIN_ID, AuthError, getTaskAuth } = require('../lib/taskAuth')
+const { ARC_CHAIN_ID, AuthError, getTaskAuth, sendAuthUnavailable } = require('../lib/taskAuth')
 
 function saveSession(req) {
   return new Promise((resolve, reject) => req.session.save((error) => error ? reject(error) : resolve()))
@@ -13,10 +13,9 @@ function destroySession(req) {
   return new Promise((resolve, reject) => req.session.destroy((error) => error ? reject(error) : resolve()))
 }
 
-function sendError(res, error) {
+function sendError(req, res, error) {
   if (error instanceof AuthError) return res.status(error.status).json({ code: error.code, error: 'Wallet verification failed' })
-  console.error('task auth:', error?.code || error?.name || 'unknown error')
-  return res.status(500).json({ code: 'TASK_AUTH_UNAVAILABLE', error: 'Wallet authentication unavailable' })
+  return sendAuthUnavailable(req, res, error)
 }
 
 function sessionShape(req) {
@@ -39,7 +38,7 @@ function createAuthRouter(auth = getTaskAuth()) {
       req.session.challengeNonce = nonce
       await saveSession(req)
       res.json({ message })
-    } catch (error) { sendError(res, error) }
+    } catch (error) { sendError(req, res, error) }
   })
 
   router.post('/verify', auth.mutationOrigin, auth.verifyRateLimit, async (req, res) => {
@@ -50,7 +49,7 @@ function createAuthRouter(auth = getTaskAuth()) {
       req.session.chainId = ARC_CHAIN_ID
       await saveSession(req)
       res.json(sessionShape(req))
-    } catch (error) { sendError(res, error) }
+    } catch (error) { sendError(req, res, error) }
   })
 
   router.post('/logout', auth.mutationOrigin, async (req, res) => {
@@ -58,7 +57,7 @@ function createAuthRouter(auth = getTaskAuth()) {
       await destroySession(req)
       res.clearCookie(auth.cookieName, { path: '/', secure: auth.cookieOptions.secure, sameSite: auth.cookieOptions.sameSite, httpOnly: true })
       res.json({ authenticated: false, address: null })
-    } catch (error) { sendError(res, error) }
+    } catch (error) { sendError(req, res, error) }
   })
 
   return router
