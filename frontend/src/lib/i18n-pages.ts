@@ -1,5 +1,11 @@
 /** Translations for product pages (About, Legal, Changelog, Status, Command palette, Share). English → [vi, zh, ja, ko]. */
 export const PAGES_I18N: Record<string, [string, string, string, string]> = {
+  // Feedback uses the original external form; local notes are preserved.
+  'Open feedback form (opens in a new tab)': ['Mở biểu mẫu góp ý (trong thẻ mới)', '打开反馈表单（在新标签页中打开）', 'フィードバックフォームを開く（新しいタブ）', '피드백 양식 열기(새 탭)'],
+  'Open the feedback form in a new tab.': ['Mở biểu mẫu góp ý trong thẻ mới.', '在新标签页中打开反馈表单。', 'フィードバックフォームを新しいタブで開きます。', '피드백 양식을 새 탭에서 엽니다.'],
+  'Open form': ['Mở biểu mẫu', '打开表单', 'フォームを開く', '양식 열기'],
+  'Settings, language, theme and contacts are saved in your browser. Task definitions, run results and task notifications are saved by the local backend.': ['Cài đặt, ngôn ngữ, giao diện và danh bạ được lưu trong trình duyệt. Định nghĩa tác vụ, kết quả chạy và thông báo tác vụ được lưu ở backend cục bộ.', '设置、语言、主题和联系人保存在浏览器中。任务定义、运行结果和任务通知由本地后端保存。', '設定・言語・テーマ・連絡先はブラウザに保存されます。タスク定義・実行結果・タスク通知はローカルバックエンドに保存されます。', '설정, 언어, 테마, 연락처는 브라우저에 저장됩니다. 작업 정의, 실행 결과, 작업 알림은 로컬 백엔드에 저장됩니다.'],
+  'Feedback opens Google Forms in a new tab. Previously saved local notes remain on this device.': ['Mục Góp ý mở Google Forms trong thẻ mới. Ghi chú đã lưu trước đây vẫn ở trên thiết bị này.', '反馈会在新标签页中打开 Google Forms。以前保存的本地备注仍保留在此设备上。', 'フィードバックは Google Forms を新しいタブで開きます。以前保存したローカルメモはこの端末に残ります。', '피드백은 Google Forms를 새 탭에서 엽니다. 이전에 저장한 로컬 메모는 이 기기에 남습니다.'],
   // Analytics: labels describe only the observed Arc data shown by the page.
   'Explore Arc onchain data and network activity.': ['Phân tích dữ liệu onchain của Arc và hoạt động mạng.', '探索 Arc 链上数据和网络活动。', 'Arcのオンチェーンデータとネットワーク活動を確認。', 'Arc 온체인 데이터와 네트워크 활동을 살펴보세요.'],
   'View more': ['Xem thêm', '查看更多', 'もっと見る', '더 보기'],

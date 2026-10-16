@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import {
   Wallet, History, Sparkles, ArrowLeftRight, Rainbow, Settings, HelpCircle, MessageSquareText,
-  Search, Copy, ListChecks, PieChart, Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Menu, X, Bell, Check, Home, LogOut, Droplets, Globe, ChevronDown, Sun, Moon, EyeOff as EyeOffIcon, Info, Command, AlertTriangle, Plus, Coins,
+  Search, Copy, ListChecks, PieChart, Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Menu, X, Bell, Check, Home, LogOut, Droplets, Globe, ChevronDown, Sun, Moon, EyeOff as EyeOffIcon, Info, Command, AlertTriangle, Plus, Coins, ExternalLink,
 } from 'lucide-react'
 import { WalletProvider, useWallet, type Page } from './lib/store'
 import { useT, LANGS, setLang } from './lib/i18n'
@@ -10,8 +10,9 @@ import { taskItemsForAccount } from './lib/tasks'
 import { useTheme } from './lib/theme'
 import { ARC, ago, fmtAmt, isAddress, short } from './lib/wallet'
 import { useDismissibleOverlay } from './lib/useDismissibleOverlay'
-import { Avatar, Badge, Button, LiveDot, Logo, LogoLockup, Modal, Skeleton, T } from './components/wallet/ui'
+import { Avatar, Badge, Button, LiveDot, Logo, LogoLockup, Skeleton, T } from './components/wallet/ui'
 import { ConnectModal, ReceiveModal, TxDetailModal, copyText } from './components/wallet/shared'
+import { FeedbackLink } from './components/wallet/FeedbackLink'
 import HomePage from './pages/Home'
 import { COMMUNITY } from './lib/community'
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -53,25 +54,7 @@ const NAV: { group: string; items: { id: SidebarDestination; icon: any; label: s
   ] },
 ]
 
-function FeedbackModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { notify } = useWallet()
-  const [tr] = useT()
-  const [v, setV] = useState('')
-  const save = () => {
-    const list = JSON.parse(localStorage.getItem('mk.feedback') ?? '[]')
-    localStorage.setItem('mk.feedback', JSON.stringify([{ at: Date.now(), text: v.trim() }, ...list].slice(0, 20)))
-    setV(''); onClose(); notify('Thanks — feedback saved on this device')
-  }
-  return (
-    <Modal open={open} onClose={onClose} title={tr('Feedback')}>
-      <p className={`text-[13px] ${T.sub}`}>{tr("What's working, what isn't? Notes are kept on this device for the team review.")}</p>
-      <textarea value={v} onChange={(e) => setV(e.target.value)} rows={5} placeholder={tr('Tell us what you think…')} className="mt-3 w-full p-3 rounded-xl bg-black/30 border border-white/[0.08] text-[14px] resize-none" />
-      <Button variant="primary" className="mt-3 w-full" disabled={!v.trim()} onClick={save}>{tr('Save feedback')}</Button>
-    </Modal>
-  )
-}
-
-function Sidebar({ onNavigate, onFeedback }: { onNavigate?: () => void; onFeedback: () => void }) {
+function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { page, go, network, networkError, tasks, mode, address, receiveOpen, setReceiveOpen } = useWallet()
   const running = taskItemsForAccount(tasks, mode, address).filter((task) => task.status === 'ACTIVE').length
   const [tr] = useT()
@@ -105,7 +88,7 @@ function Sidebar({ onNavigate, onFeedback }: { onNavigate?: () => void; onFeedba
           <span className="truncate">{networkError ? tr('Arc unreachable') : network ? `${ARC.name} · #${network.blockNumber.toLocaleString()}` : tr('Connecting to Arc…')}</span>
         </div>
         <nav className="space-y-0.5 border-t border-white/[0.05] pt-2">
-          <button onClick={() => { onFeedback(); onNavigate?.() }} className={cls(false)}><MessageSquareText size={17} className="opacity-70" /> {tr('Feedback')}</button>
+          <FeedbackLink onClick={onNavigate} className={cls(false)}><MessageSquareText size={17} className="opacity-70" aria-hidden /> {tr('Feedback')}<ExternalLink size={13} className="ml-auto opacity-50" aria-hidden /></FeedbackLink>
           <Item id="settings" icon={Settings} label="Settings" />
           <button onClick={() => { go('about'); onNavigate?.() }} className={cls(false)}><HelpCircle size={17} className="opacity-70" /> {tr('Help & FAQ')}</button>
         </nav>
@@ -375,7 +358,6 @@ function Shell() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const [connectOpen, setConnectOpen] = useState(false)
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const openConnect = useCallback(() => setConnectOpen(true), [])
   useEffect(() => { setMenuOpen(false) }, [w.page])
   useEffect(() => {
@@ -417,12 +399,12 @@ function Shell() {
       <button className="mk-skip" onClick={() => document.getElementById('mk-main')?.focus()}>{tr('Skip to content')}</button>
       {w.lockPreview && <LockScreen onClose={() => w.setLockPreview(false)} />}
 
-      <aside className="hidden lg:block w-[232px] shrink-0 border-r border-white/[0.05] bg-[#131317] sticky top-0 h-screen"><Sidebar onFeedback={() => setFeedbackOpen(true)} /></aside>
+      <aside className="hidden lg:block w-[232px] shrink-0 border-r border-white/[0.05] bg-[#131317] sticky top-0 h-screen"><Sidebar /></aside>
       {menuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div id="mk-mobile-sidebar" className="w-[260px] bg-[#131317] border-r border-white/[0.06] mk-in relative">
             <button onClick={() => setMenuOpen(false)} className="absolute right-3 top-5 p-2 rounded-lg hover:bg-white/10 z-10" aria-label={tr('Close menu')}><X size={18} /></button>
-            <Sidebar onNavigate={() => setMenuOpen(false)} onFeedback={() => setFeedbackOpen(true)} />
+            <Sidebar onNavigate={() => setMenuOpen(false)} />
           </div>
           <button className="flex-1 bg-black/60" onClick={() => setMenuOpen(false)} aria-label={tr('Close menu')} />
         </div>
@@ -461,7 +443,6 @@ function Shell() {
       <MobileTabBar />
       <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
       <CommandPalette onConnect={openConnect} />
-      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <ReceiveModal />
       <TxDetailModal />
 

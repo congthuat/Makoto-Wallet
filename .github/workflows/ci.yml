@@ -75,6 +75,9 @@ jobs:
       - name: Polish tests
         run: npm run test:polish --prefix frontend
 
+      - name: Feedback and Receive share regressions
+        run: npm run test:sharing --prefix frontend
+
       - name: TypeScript check
         run: npm run type-check --prefix frontend
 
