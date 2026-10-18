@@ -6,8 +6,16 @@
  * - prepareSend re-reads live chain state immediately before the wallet request.
  * - assertFreshSend verifies the review has not changed or expired (60-second window).
  * - SendSubmissionGuard prevents a double-click from opening a second wallet request.
- * - The transaction hash is persisted to Activity BEFORE receipt polling begins.
+ * - A pending-intent checkpoint is written to sessionStorage BEFORE the wallet request.
+ *   If writing fails the wallet request is aborted — we never sign without an audit trail.
+ * - The checkpoint is cleared only on USER_REJECTED (definitive non-broadcast), confirmed,
+ *   or failed receipt. On UNKNOWN (with or without hash) the checkpoint stays so a
+ *   remounted card blocks a second request until the user explicitly resolves it.
+ * - The transaction hash (when obtained) is persisted to Activity BEFORE receipt polling.
  * - Pending/unknown never trigger an automatic re-submit.
+ * - Account/chain changes only invalidate a pre-request review (preparing/review).
+ *   Once a wallet request is in-flight (requesting/submitted/pending/unknown) the
+ *   card preserves hash and recovery state; it never silently resets to preparing.
  * - Demo/watch mode is blocked at the top level before mounting.
  * - eth_chainId and eth_accounts are checked directly from the injected wallet; stale
  *   backend network data is never used as authorisation for signing.
@@ -33,6 +41,43 @@ export type AgentSendParams = {
 }
 
 type Stage = 'preparing' | 'review' | 'requesting' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'rejected' | 'unknown'
+
+/** Stages in which a wallet request has been initiated or is in-flight.
+ *  Account/chain changes must NOT reset these stages — the checkpoint and
+ *  any obtained hash must be preserved for recovery. */
+const IN_FLIGHT_STAGES: Stage[] = ['requesting', 'submitted', 'pending', 'unknown']
+/** All stages that must not allow a new wallet request (includes terminal states). */
+const BLOCKED_STAGES: Stage[] = ['confirmed', 'failed', 'rejected', 'unknown', 'submitted', 'pending', 'requesting']
+
+const INTENT_KEY = 'mk.send.intent.v1'
+type IntentCheckpoint = {
+  account: string; chainId: number; recipient: string; symbol: string; amount: string; savedAt: number
+}
+
+function readIntent(storage: Storage | null): IntentCheckpoint | null {
+  try {
+    if (!storage) return null
+    const raw = storage.getItem(INTENT_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as IntentCheckpoint
+  } catch { return null }
+}
+function writeIntent(storage: Storage | null, cp: IntentCheckpoint): void {
+  if (!storage) throw new Error('sessionStorage unavailable — cannot checkpoint intent')
+  try { storage.setItem(INTENT_KEY, JSON.stringify(cp)) }
+  catch { throw new Error('sessionStorage write failed — cannot checkpoint intent') }
+}
+function clearIntent(storage: Storage | null): void {
+  try { storage?.removeItem(INTENT_KEY) } catch { /* best-effort */ }
+}
+function intentMatches(cp: IntentCheckpoint | null, p: { account: string; chainId: number; recipient: string; symbol: string; amount: string }): boolean {
+  if (!cp) return false
+  return cp.account.toLowerCase() === p.account.toLowerCase()
+    && cp.chainId === p.chainId
+    && cp.recipient.toLowerCase() === p.recipient.toLowerCase()
+    && cp.symbol === p.symbol
+    && cp.amount === p.amount
+}
 
 const VI: Record<string, string> = {
   'Preparing live review…': 'Đang chuẩn bị xem lại…',
@@ -73,8 +118,11 @@ function sv(en: string, lang: string): string {
 export function AgentSendCard({ params, onDone, onCancel }: {
   params: AgentSendParams
   /** Called when the user explicitly clicks Done.
-   *  Passes the terminal outcome so the caller can distinguish success from failure/rejection/unknown.
-   *  'unknown': wallet call threw without a hash (no broadcast evidence) — caller must NOT assume success. */
+   *  'confirmed'  → transaction proven on-chain; caller may show success.
+   *  'failed'     → transaction on-chain but reverted.
+   *  'rejected'   → user cancelled in wallet; nothing was broadcast.
+   *  'unknown'    → wallet call errored without a hash, OR hash obtained but receipt
+   *                 inconclusive. Caller must NOT assume success or failure. */
   onDone: (outcome: 'confirmed' | 'failed' | 'rejected' | 'unknown') => void
   onCancel: () => void
 }) {
@@ -83,7 +131,6 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   const s = useCallback((v: string) => sv(v, lang), [lang])
 
   // stageRef MUST be declared before setStage so the closure captures a live ref, never undefined.
-  // Keep a ref so the catch/finally in confirmSend reads the live stage, not a stale closure.
   const stageRef = useRef<Stage>('preparing')
   const [stage, setStageRaw] = useState<Stage>('preparing')
   const setStage = (s: Stage) => { stageRef.current = s; setStageRaw(s) }
@@ -96,21 +143,30 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   const guard = useRef(new SendSubmissionGuard())
   const reviewGen = useRef(0)
   const mounted = useRef(true)
-  // Track account+chain used when review was prepared — any change invalidates it
+  // Track account+chain used when review was prepared — any change invalidates pre-request review.
   const reviewedAccount = useRef('')
   const reviewedChain = useRef<number | undefined>(undefined)
-  // Increments whenever account/chain changes mid-review; forces prepare effect to re-run
+  // Increments when account/chain changes during review (not during in-flight stages).
   const [prepareKey, setPrepareKey] = useState(0)
+
+  // sessionStorage reference — null when unavailable (SSR / private browsing / quota).
+  const storage = useRef<Storage | null>(null)
+  useEffect(() => {
+    try { storage.current = typeof sessionStorage !== 'undefined' ? sessionStorage : null }
+    catch { storage.current = null }
+  }, [])
 
   const { symbol, amount, recipient, account } = params
   const meta = TOKENS.find((t) => t.sym === symbol)
   const holding = holdings.find((h) => h.verified && h.symbol === symbol)
 
-  // Invalidate review when account/chain changes after prepare.
-  // Also bump prepareKey so the prepare effect re-runs with the new wallet state —
-  // this prevents the card from staying stuck at 'preparing' indefinitely.
+  // Invalidate pre-request review on account/chain change.
+  // CRITICAL: in-flight stages (requesting/submitted/pending/unknown) must NOT be reset —
+  // they hold the hash and recovery state. Only 'preparing' and 'review' are safe to reset.
   useEffect(() => {
     if (!prepared) return
+    // Do not invalidate while a wallet request is in-flight or has reached an uncertain state.
+    if (IN_FLIGHT_STAGES.includes(stageRef.current)) return
     const accountChanged = walletChainId !== reviewedChain.current ||
       address.toLowerCase() !== reviewedAccount.current.toLowerCase()
     if (accountChanged) {
@@ -127,9 +183,8 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   }, [])
 
   // Auto-prepare on mount and when inputs or wallet context change.
-  // prepareKey increments when account/chain changes mid-review (set by the invalidation
-  // effect above) so the prepare effect re-runs with the new wallet state instead of
-  // staying stuck at 'preparing' indefinitely.
+  // prepareKey increments when account/chain changes during pre-request stages so the
+  // effect re-runs with the new wallet state instead of staying stuck at 'preparing'.
   useEffect(() => {
     if (mode !== 'connected') return
     if (!isAddress(recipient) || !amount || !symbol) return
@@ -158,12 +213,20 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   }, [account, symbol, amount, recipient, mode, prepareKey])
 
   const confirmSend = async () => {
-    // Only allow a wallet request from 'review' (prepared data is ready, user is actively reviewing).
-    // 'preparing' is also not blocked here because !prepared below handles it.
-    // Explicitly block every non-idle stage so StrictMode double-invocation, rapid re-renders,
-    // or any future code path cannot open a second wallet request.
-    if (['confirmed', 'failed', 'rejected', 'unknown', 'submitted', 'pending', 'requesting'].includes(stageRef.current)) return
+    if (BLOCKED_STAGES.includes(stageRef.current)) return
     if (!prepared || busy) return
+
+    // Check for an unresolved intent checkpoint from a previous attempt (same intent, same wallet).
+    // This blocks a second wallet request when the previous attempt reached UNKNOWN state and
+    // the card was unmounted/cleared before the user resolved it.
+    const existingIntent = readIntent(storage.current)
+    if (intentMatches(existingIntent, { account, chainId: ARC.chainId, recipient, symbol, amount })) {
+      setError(lang === 'vi'
+        ? 'Giao dịch trước đó chưa rõ kết quả. Kiểm tra Activity trước khi thử lại.'
+        : 'A previous attempt for this transfer is unresolved. Check Activity before retrying.')
+      return
+    }
+
     try {
       await guard.current.run(async () => {
         const p = getProvider()
@@ -171,11 +234,21 @@ export function AgentSendCard({ params, onDone, onCancel }: {
         setBusy(true)
         setError('')
         try {
-          // Revalidate immediately before wallet request — live chain state
+          // Revalidate immediately before wallet request — live chain state.
           const fresh = await prepareSend(p, { account, recipient, symbol, amount })
           assertFreshSend(prepared, fresh)
           if (fresh.account.toLowerCase() !== account.toLowerCase()) throw new Error('Connected account changed')
           if (fresh.chainId !== ARC.chainId) throw new Error('Wrong network: Arc Testnet is required')
+
+          // Write intent checkpoint BEFORE opening the wallet. If this fails, abort.
+          // The checkpoint lets us detect an unresolved previous attempt on remount.
+          const checkpoint: IntentCheckpoint = {
+            account: fresh.account, chainId: fresh.chainId,
+            recipient: fresh.recipient, symbol, amount,
+            savedAt: Date.now(),
+          }
+          writeIntent(storage.current, checkpoint)
+
           setSendStatus('REQUESTING_WALLET')
           setStage('requesting')
           let txHash: string
@@ -183,15 +256,21 @@ export function AgentSendCard({ params, onDone, onCancel }: {
             txHash = await requestSend(p, prepared)
           } catch (e) {
             if (isWalletRejection(e)) {
+              // Definitive non-broadcast: safe to clear the checkpoint.
+              clearIntent(storage.current)
               setSendStatus('USER_REJECTED')
               setStage('rejected')
               return
             }
+            // Wallet errored without returning a hash (timeout, popup closed, etc.).
+            // Leave the checkpoint in place — we cannot prove the tx was NOT broadcast.
             setSendStatus('UNKNOWN')
             setStage('unknown')
             throw e
           }
-          // Persist hash BEFORE polling — never lose a submitted transaction
+
+          // Hash obtained — persist to Activity BEFORE polling.
+          // Checkpoint remains until receipt is finalized.
           setHash(txHash)
           setSendStatus('SUBMITTED')
           setStage('submitted')
@@ -201,10 +280,16 @@ export function AgentSendCard({ params, onDone, onCancel }: {
             timestamp: Date.now(), status: 'pending' as const,
           }
           upsertSend(record)
+
           const outcome = await pollSendReceipt(p, txHash, prepared, () => {
             if (mounted.current) setSendStatus('PENDING')
           })
           if (!mounted.current) return
+
+          // Finalize — clear checkpoint only on definitive outcomes.
+          if (outcome === 'confirmed' || outcome === 'failed') clearIntent(storage.current)
+          // 'unknown' receipt: leave checkpoint so a future remount detects the ambiguity.
+
           const finalStatus = outcome === 'confirmed' ? 'CONFIRMED' : outcome === 'failed' ? 'FAILED' : 'UNKNOWN'
           setSendStatus(finalStatus)
           setStage(outcome === 'confirmed' ? 'confirmed' : outcome === 'failed' ? 'failed' : 'unknown')
@@ -213,8 +298,15 @@ export function AgentSendCard({ params, onDone, onCancel }: {
         } catch (e) {
           if (!mounted.current) return
           setError(s(e instanceof Error ? e.message : 'Wallet request failed'))
-          // Use stageRef (not the closed-over 'stage') to read the live current stage
-          if (stageRef.current === 'requesting') setStage('review')
+          // Use stageRef (not the closed-over 'stage') to read the live current stage.
+          // Only reset to review if we errored before broadcast (still in 'requesting').
+          if (stageRef.current === 'requesting') {
+            // We errored before the wallet call — checkpoint was written but wallet never saw the tx.
+            // Clear the checkpoint (nothing was broadcast from 'requesting' pre-wallet-call errors).
+            clearIntent(storage.current)
+            setStage('review')
+          }
+          // 'unknown' stage errors: checkpoint stays — we cannot prove non-broadcast.
         } finally {
           if (mounted.current) setBusy(false)
         }
@@ -230,6 +322,7 @@ export function AgentSendCard({ params, onDone, onCancel }: {
     try {
       const result = await pollSendReceipt(p, hash, prepared, () => setSendStatus('PENDING'))
       if (!mounted.current) return
+      if (result === 'confirmed' || result === 'failed') clearIntent(storage.current)
       const finalStatus = result === 'confirmed' ? 'CONFIRMED' : result === 'failed' ? 'FAILED' : 'UNKNOWN'
       setSendStatus(finalStatus)
       setStage(result === 'confirmed' ? 'confirmed' : result === 'failed' ? 'failed' : 'unknown')
@@ -295,8 +388,8 @@ export function AgentSendCard({ params, onDone, onCancel }: {
               </Button>
             )}
             {stage === 'unknown' && !hash && (
-              /* No hash: wallet call errored before broadcast — safe to dismiss.
-                 The user should check Activity; we must NOT auto-retry. */
+              /* No hash: wallet call errored before broadcast — we cannot prove a tx was sent.
+                 Direct user to Activity. Do NOT offer an automatic retry. */
               <p className="text-[11.5px] text-amber-200/70 text-center">
                 {lang === 'vi'
                   ? 'Không có hash giao dịch. Kiểm tra Activity trước khi thử lại.'
