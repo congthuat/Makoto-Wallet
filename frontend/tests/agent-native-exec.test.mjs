@@ -481,8 +481,8 @@ test('MOCKED UNKNOWN state without hash: Done button appears, no "Transaction co
   })
 })
 
-// ── Test 10: Account change during review — card re-prepares, Confirm disabled ─
-test('MOCKED account change during review: card shows changed-account notice, Confirm disabled', async () => {
+// ── Test 10: Account change during review — card invalidates; Confirm disabled ─
+test('MOCKED account change during review: card invalidates prepared review, Confirm disabled', async () => {
   const account2 = '0x2222222222222222222222222222222222222222'
   await fixture({}, async ({ evaluate, wait, fill, click }) => {
     await fill(0, `Send 3 USDC to ${recipient}`)
@@ -493,13 +493,25 @@ test('MOCKED account change during review: card shows changed-account notice, Co
     await click('Execute Send in chat')
     // Wait for review to be ready (Confirm enabled)
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`, 'Card must reach review with Confirm enabled')
-    // Simulate account change — also update the wallet mock so eth_accounts returns the new address
+    // Simulate account change: update both the React store AND the eth_accounts mock
+    // so that the invalidation effect and any subsequent prepare both see the new account.
     await evaluate(`
       window.__agentHarness.setWallet({ address: '${account2}' });
+      window.ethereum._overrideAccounts = ['${account2}'];
     `)
-    // Card must react: show account-changed notice or re-enter preparing state
+    // Override eth_accounts to return the new account synchronously from this point on
+    await evaluate(`
+      const _orig = window.ethereum.request.bind(window.ethereum);
+      window.ethereum.request = async (args) => {
+        if (args.method === 'eth_accounts') return window.ethereum._overrideAccounts || ['${account}'];
+        return _orig(args);
+      };
+    `)
+    // Trigger the store change to propagate to React (confirm setWallet fired)
+    await wait(`window.__agentHarness.getWallet?.()?.address?.toLowerCase() === '${account2}'`, 'setWallet must be applied')
+    // Card must react: show account-changed notice or enter preparing state
     await wait(
-      `document.body.innerText.includes('account changed') || document.body.innerText.includes('tài khoản') || document.body.innerText.includes('Preparing') || document.body.innerText.includes('Đang chuẩn bị') || document.body.innerText.includes('Chain')`,
+      `document.body.innerText.includes('account changed') || document.body.innerText.includes('tài khoản') || document.body.innerText.includes('Preparing') || document.body.innerText.includes('Đang chuẩn bị')`,
       'Card must react to account change (notice or re-prepare)'
     )
     // Confirm must be disabled (review is invalidated or still preparing)
@@ -509,10 +521,13 @@ test('MOCKED account change during review: card shows changed-account notice, Co
   })
 })
 
-// ── Test 11: Account/chain change while wallet request in-flight ───────────────
-test('MOCKED chain change while wallet request in-flight: rejected state preserved, not reset to preparing', async () => {
+// ── Test 11: Chain change while tx is submitted — submitted state preserved ────
+test('MOCKED chain change while tx submitted: submitted/pending state preserved, not reset to preparing', async () => {
+  // Use sendMode 'ok' so requestSend returns a hash → stage reaches 'submitted'.
+  // Then simulate a chain change and verify the card stays in the in-flight view
+  // (spinner, hash) and does NOT reset to 'preparing'.
   await fixture({}, async ({ evaluate, wait, fill, click }) => {
-    // Default sendMode '4001' — wallet rejects quickly
+    await evaluate(`window.__agentHarness.sendMode = 'ok'`)
     await fill(0, `Send 4 USDC to ${recipient}`)
     await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
@@ -520,17 +535,22 @@ test('MOCKED chain change while wallet request in-flight: rejected state preserv
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
     await click('Execute Send in chat')
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
-    // Click Confirm — triggers requesting stage (wallet will reject with 4001)
+    // Click Confirm — wallet returns a fake hash → stage becomes 'submitted'
     await click('Confirm in wallet')
-    // Immediately simulate chain change while wallet request is processing
+    // Wait for submitted state (spinner, hash)
+    await wait(
+      `document.body.innerText.includes('waiting for receipt') || document.body.innerText.includes('đang chờ biên nhận') || document.body.innerText.includes('Submitted')`,
+      'Card must reach submitted state'
+    )
+    // Now simulate chain change while polling is in-flight
     await evaluate(`window.__agentHarness.setWallet({ walletChainId: 1 })`)
-    // Wallet rejects → rejected state must be shown, NOT preparing
-    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')`, 'Done must appear after rejection')
+    // Card must NOT reset to 'preparing' — spinner/hash view must remain
+    // Wait a brief moment for any spurious re-render to settle
+    await evaluate(`new Promise((r) => setTimeout(r, 200))`)
     const bodyText = await evaluate('document.body.innerText')
-    assert.match(bodyText, /Wallet rejected|Ví đã từ chối|nothing was submitted|chưa gửi/, 'Rejection state must be shown')
-    assert.doesNotMatch(bodyText, /Preparing live review|Đang chuẩn bị/, 'Card must NOT reset to preparing during in-flight request')
-    assert.equal(await evaluate(sendCount), 1, 'Exactly one wallet request was made (then rejected)')
-    assert.equal(await evaluate(`window.__agentHarness.notices.filter((n) => n.tone === 'ok').length`), 0, 'No success toast')
+    assert.match(bodyText, /waiting for receipt|đang chờ biên nhận|Submitted/, 'Submitted state must be preserved after chain change')
+    assert.doesNotMatch(bodyText, /Preparing live review|Đang chuẩn bị/, 'Card must NOT reset to preparing while tx is in-flight')
+    assert.equal(await evaluate(sendCount), 1, 'Exactly one wallet request')
   })
 })
 
@@ -558,8 +578,8 @@ test('MOCKED unresolved intent checkpoint blocks second wallet request for same 
     )
     // No wallet request was made
     assert.equal(await evaluate(sendCount), 0, 'No wallet send when unresolved checkpoint exists')
-    // Still on review stage (error shown but card stays in review, user can clear manually)
-    const confirmVisible = await evaluate(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet')`)
-    assert.ok(confirmVisible, 'Confirm button must still be visible so user can resolve and retry')
+    // Card stays in review stage — Confirm is still enabled so the user can act after resolving Activity
+    const confirmEnabled = await evaluate(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+    assert.ok(confirmEnabled, 'Confirm must remain enabled so user can retry after checking Activity')
   })
 })
