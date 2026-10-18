@@ -544,12 +544,14 @@ export default function AgentPage() {
                   const p = f.params
                   const dismissExec = () => patch(m.id, (x) => ({ ...x, execCard: undefined }))
                   /** onDone(outcome) — called by the execution card when the user clicks Done/Hoàn tất.
-                   *  'confirmed' → success toast; 'failed' / 'rejected' → neutral close, no "complete" toast.
-                   *  'completed' (Swap/Bridge) → success toast.  */
-                  const doneExec = (outcome: 'confirmed' | 'failed' | 'rejected' | 'completed') => {
-                    patch(m.id, (x) => ({ ...x, execCard: undefined, handedOff: outcome === 'confirmed' || outcome === 'completed' }))
-                    if (outcome === 'confirmed' || outcome === 'completed') w.notify(tr('Transaction complete'), 'ok')
-                    // failed / rejected: card closes silently — the card already showed the error
+                   *  'confirmed' / 'completed' → success toast + mark handed-off.
+                   *  'failed' / 'rejected' / 'unknown' → card closes silently — the card already showed the error.
+                   *  'unknown' must NEVER fire a success toast; the user must check Activity for evidence. */
+                  const doneExec = (outcome: 'confirmed' | 'failed' | 'rejected' | 'unknown' | 'completed') => {
+                    const succeeded = outcome === 'confirmed' || outcome === 'completed'
+                    patch(m.id, (x) => ({ ...x, execCard: undefined, handedOff: succeeded }))
+                    if (succeeded) w.notify(tr('Transaction complete'), 'ok')
+                    // failed / rejected / unknown: card closes silently — the card already showed the error
                   }
                   if (f.intent === 'send') {
                     return (

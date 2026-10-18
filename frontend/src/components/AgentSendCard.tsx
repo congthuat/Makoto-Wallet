@@ -73,8 +73,9 @@ function sv(en: string, lang: string): string {
 export function AgentSendCard({ params, onDone, onCancel }: {
   params: AgentSendParams
   /** Called when the user explicitly clicks Done.
-   *  Passes the terminal outcome so the caller can distinguish success from failure/rejection. */
-  onDone: (outcome: 'confirmed' | 'failed' | 'rejected') => void
+   *  Passes the terminal outcome so the caller can distinguish success from failure/rejection/unknown.
+   *  'unknown': wallet call threw without a hash (no broadcast evidence) — caller must NOT assume success. */
+  onDone: (outcome: 'confirmed' | 'failed' | 'rejected' | 'unknown') => void
   onCancel: () => void
 }) {
   const { mode, address, walletChainId, upsertSend, refetchWallet, holdings } = useWallet()
@@ -98,12 +99,16 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   // Track account+chain used when review was prepared — any change invalidates it
   const reviewedAccount = useRef('')
   const reviewedChain = useRef<number | undefined>(undefined)
+  // Increments whenever account/chain changes mid-review; forces prepare effect to re-run
+  const [prepareKey, setPrepareKey] = useState(0)
 
   const { symbol, amount, recipient, account } = params
   const meta = TOKENS.find((t) => t.sym === symbol)
   const holding = holdings.find((h) => h.verified && h.symbol === symbol)
 
-  // Invalidate review when account/chain changes after prepare
+  // Invalidate review when account/chain changes after prepare.
+  // Also bump prepareKey so the prepare effect re-runs with the new wallet state —
+  // this prevents the card from staying stuck at 'preparing' indefinitely.
   useEffect(() => {
     if (!prepared) return
     const accountChanged = walletChainId !== reviewedChain.current ||
@@ -112,6 +117,7 @@ export function AgentSendCard({ params, onDone, onCancel }: {
       setPrepared(null)
       setStage('preparing')
       setError(s(walletChainId !== reviewedChain.current ? 'Chain changed — review again' : 'Wallet account changed — review again'))
+      setPrepareKey((k) => k + 1)
     }
   }, [address, walletChainId, prepared, s])
 
@@ -120,7 +126,10 @@ export function AgentSendCard({ params, onDone, onCancel }: {
     return () => { mounted.current = false }
   }, [])
 
-  // Auto-prepare on mount and when inputs change
+  // Auto-prepare on mount and when inputs or wallet context change.
+  // prepareKey increments when account/chain changes mid-review (set by the invalidation
+  // effect above) so the prepare effect re-runs with the new wallet state instead of
+  // staying stuck at 'preparing' indefinitely.
   useEffect(() => {
     if (mode !== 'connected') return
     if (!isAddress(recipient) || !amount || !symbol) return
@@ -143,10 +152,10 @@ export function AgentSendCard({ params, onDone, onCancel }: {
       setError(s(e instanceof Error ? e.message : 'Review unavailable'))
       setStage('review')
     })
-  // Only re-prepare when the source params change; ignore wallet state changes
-  // (those are handled by the invalidation effect above).
+  // prepareKey is intentionally included: it increments on account/chain change so the
+  // effect re-runs and the card never stays stuck at 'preparing' after a wallet switch.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, symbol, amount, recipient, mode])
+  }, [account, symbol, amount, recipient, mode, prepareKey])
 
   const confirmSend = async () => {
     // Only allow a wallet request from 'review' (prepared data is ready, user is actively reviewing).
@@ -279,14 +288,28 @@ export function AgentSendCard({ params, onDone, onCancel }: {
           )}
           {error && <p className="text-rose-300 break-words text-[12px]">{error}</p>}
           <div className="flex gap-2 justify-center flex-wrap pt-1">
-            {(stage === 'unknown') && hash && (
+            {stage === 'unknown' && hash && (
               <Button size="sm" disabled={busy} onClick={checkAgain}>
                 {busy ? <Loader2 size={13} className="animate-spin" /> : null}
                 {s('Check again')}
               </Button>
             )}
-            {(stage === 'confirmed' || stage === 'failed' || stage === 'rejected') && (
-              <Button size="sm" variant={stage === 'confirmed' ? 'primary' : 'secondary'} onClick={() => onDone(stage)}>{s('Done')}</Button>
+            {stage === 'unknown' && !hash && (
+              /* No hash: wallet call errored before broadcast — safe to dismiss.
+                 The user should check Activity; we must NOT auto-retry. */
+              <p className="text-[11.5px] text-amber-200/70 text-center">
+                {lang === 'vi'
+                  ? 'Không có hash giao dịch. Kiểm tra Activity trước khi thử lại.'
+                  : 'No transaction hash. Check Activity before retrying.'}
+              </p>
+            )}
+            {(stage === 'confirmed' || stage === 'failed' || stage === 'rejected' || stage === 'unknown') && (
+              <Button size="sm" variant={stage === 'confirmed' ? 'primary' : 'secondary'} onClick={() => {
+                if (stage === 'confirmed') onDone('confirmed')
+                else if (stage === 'failed') onDone('failed')
+                else if (stage === 'rejected') onDone('rejected')
+                else onDone('unknown')
+              }}>{s('Done')}</Button>
             )}
           </div>
         </div>

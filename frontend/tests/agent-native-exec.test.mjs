@@ -331,3 +331,140 @@ test('MOCKED no automatic wallet request on AgentSendCard mount — user must cl
     assert.deepEqual(writeMethods, [], `No signing calls before user confirmation. Got: ${JSON.stringify(writeMethods)}`)
   })
 })
+
+// ── Test 7: AgentSwapCard renders in chat, no page navigation, no auto-signing ─
+test('MOCKED clicking "Execute Swap in chat" mounts AgentSwapCard inside Agent chat (no page navigation, no auto-signing)', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, 'Swap 10 USDC to EURC')
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`, 'Agent must produce parameter review card for Swap')
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Swap in chat')`, 'Execute Swap button must appear after parameter confirmation')
+    // Verify page is still agent before executing
+    assert.equal(await evaluate(`window.__agentHarness.getWallet?.()?.page`), 'agent', 'Must be on agent page before Execute')
+    // Click Execute Swap in chat
+    await click('Execute Swap in chat')
+    // AgentSwapCard header must be visible — in chat, not a separate page
+    await wait(
+      `document.body.innerText.includes('SWAP IN CHAT') || document.body.innerText.includes('HOÁN ĐỔI TRONG CHAT') || document.body.innerText.includes('USDC') && document.querySelector('[aria-live]')`,
+      'AgentSwapCard must render in chat'
+    )
+    // Must NOT have navigated away
+    assert.equal(await evaluate(`window.__agentHarness.getWallet?.()?.page`), 'agent', 'Must stay on agent page after Execute Swap')
+    // No signing must have happened automatically
+    const writeMethods = (await evaluate(`window.__agentHarness.calls.map((c) => c.method)`))
+      .filter((m) => ['eth_sendTransaction', 'eth_sign', 'personal_sign', 'eth_signTypedData_v4'].includes(m))
+    assert.deepEqual(writeMethods, [], 'No signing calls on AgentSwapCard mount')
+    assert.equal(await evaluate(sendCount), 0)
+    // Safety footer must be present (confirms the "separate confirmations" note is visible)
+    const bodyText = await evaluate('document.body.innerText')
+    assert.ok(
+      bodyText.includes('separate') || bodyText.includes('riêng') || bodyText.includes('approval') || bodyText.includes('phê duyệt'),
+      'Safety note about separate confirmations must be visible in AgentSwapCard'
+    )
+  })
+})
+
+// ── Test 8: AgentBridgeCard renders in chat — no page nav, no auto-signing,
+//    source-confirmed state is not the same as completed ────────────────────────
+test('MOCKED clicking "Execute Bridge in chat" mounts AgentBridgeCard inside Agent chat (no auto-signing, source confirmed ≠ completed)', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, 'Bridge 5 USDC to Base Sepolia')
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`, 'Agent must produce parameter review card for Bridge')
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Bridge in chat')`, 'Execute Bridge button must appear after parameter confirmation')
+    assert.equal(await evaluate(`window.__agentHarness.getWallet?.()?.page`), 'agent', 'Must be on agent page before Execute')
+    // Click Execute Bridge in chat
+    await click('Execute Bridge in chat')
+    // AgentBridgeCard header must be visible — in chat
+    await wait(
+      `document.body.innerText.includes('BRIDGE IN CHAT') || document.body.innerText.includes('CHUYỂN CHUỖI TRONG CHAT') || document.querySelector('[aria-live]')`,
+      'AgentBridgeCard must render in chat'
+    )
+    // Must NOT have navigated away
+    assert.equal(await evaluate(`window.__agentHarness.getWallet?.()?.page`), 'agent', 'Must stay on agent page after Execute Bridge')
+    // No signing must have happened automatically
+    const writeMethods = (await evaluate(`window.__agentHarness.calls.map((c) => c.method)`))
+      .filter((m) => ['eth_sendTransaction', 'eth_sign', 'personal_sign', 'eth_signTypedData_v4'].includes(m))
+    assert.deepEqual(writeMethods, [], 'No signing calls on AgentBridgeCard mount')
+    assert.equal(await evaluate(sendCount), 0)
+    // Safety footer: "Approval and burn are separate" must be visible
+    const bodyText = await evaluate('document.body.innerText')
+    assert.ok(
+      bodyText.includes('separate') || bodyText.includes('riêng') || bodyText.includes('burn') || bodyText.includes('đốt'),
+      'Safety note about separate approval/burn must be visible in AgentBridgeCard'
+    )
+    // "Completed" label must NOT be showing (source not yet confirmed — control is loading quote)
+    assert.doesNotMatch(bodyText, /Bridge complete|Hoàn tất cầu nối|Destination confirmed|Xác nhận đích/, 'Must NOT show completed before destination evidence')
+  })
+})
+
+// ── Test 9: UNKNOWN state with no hash shows Done button and no success toast ──
+test('MOCKED UNKNOWN state without hash: Done button appears, no "Transaction complete" toast', async () => {
+  // This test uses a wallet mock that throws a non-rejection error (no code 4001)
+  // so requestSend goes to UNKNOWN stage with no txHash.
+  await fixture({ walletOverride: 'throwNoHash' }, async ({ evaluate, wait, fill, click }) => {
+    // Inject wallet that throws a generic error (no code 4001, no hash)
+    await evaluate(`
+      window.ethereum.request = async ({method, params = []}) => {
+        window.__agentHarness.calls.push({method, params});
+        if (method === 'eth_accounts') return [window.__agentHarness.getWallet?.()?.address || '${account}'];
+        if (method === 'eth_chainId') return '0x' + (5042002).toString(16);
+        if (method === 'eth_getCode') {
+          const TOKEN_ADDRS = new Set(['0x3600000000000000000000000000000000000000','0x89b50855aa3be2f677cd6303cec089b5f319d72a','0xf0c4a4ce82a5746abaad9425360ab04fbba432bf']);
+          return TOKEN_ADDRS.has((params[0] || '').toLowerCase()) ? '0x6000' : '0x';
+        }
+        if (method === 'eth_call') {
+          const to = (params[0]?.to || '').toLowerCase();
+          const data = params[0]?.data || '';
+          const DEC = {'0x3600000000000000000000000000000000000000':6,'0x89b50855aa3be2f677cd6303cec089b5f319d72a':6,'0xf0c4a4ce82a5746abaad9425360ab04fbba432bf':8};
+          const SYM = {'0x3600000000000000000000000000000000000000':'USDC','0x89b50855aa3be2f677cd6303cec089b5f319d72a':'EURC','0xf0c4a4ce82a5746abaad9425360ab04fbba432bf':'cirBTC'};
+          if (data === '0x313ce567') return '0x' + ((DEC[to] ?? 6)).toString(16).padStart(64, '0');
+          if (data === '0x95d89b41') {
+            const s = SYM[to] ?? 'USDC';
+            const hex = [...s].map((c) => c.charCodeAt(0).toString(16).padStart(2,'0')).join('').padEnd(64,'0');
+            return '0x0000000000000000000000000000000000000000000000000000000000000020' + s.length.toString(16).padStart(64,'0') + hex;
+          }
+          if (data.startsWith('0x70a08231')) return '0x' + (50_000_000n).toString(16).padStart(64,'0');
+          return '0x' + '0'.repeat(64);
+        }
+        if (method === 'eth_getBalance') return '0x' + (100n * 10n**18n).toString(16);
+        if (method === 'eth_estimateGas') return '0x186a0';
+        if (method === 'eth_gasPrice') return '0x4a817c800';
+        // Throw a generic (non-4001) error — this triggers UNKNOWN stage, no txHash
+        if (method === 'eth_sendTransaction') throw new Error('MOCK network error, no hash');
+        if (method === 'wallet_switchEthereumChain') return null;
+        return null;
+      };
+    `)
+    await fill(0, `Send 5 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+    await click('Confirm in wallet')
+    // Should reach UNKNOWN state (non-4001 error, no hash)
+    await wait(
+      `document.body.innerText.includes('unknown') || document.body.innerText.includes('Final status') || document.body.innerText.includes('Chưa rõ') || ([...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done'))`,
+      'UNKNOWN state or Done button must appear after non-rejection error'
+    )
+    // Done button MUST appear even on UNKNOWN (card must not be stuck forever)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')`, 'Done button must appear on UNKNOWN state')
+    // No success toast
+    const successToasts = await evaluate(`window.__agentHarness.notices.filter((n) => n.tone === 'ok').length`)
+    assert.equal(successToasts, 0, 'UNKNOWN must not fire success toast')
+    // No "Transfer confirmed" label
+    const bodyText = await evaluate('document.body.innerText')
+    assert.doesNotMatch(bodyText, /Transfer confirmed|Giao dịch đã xác nhận/, 'Must NOT show confirmed on UNKNOWN')
+    // "Check again" must NOT appear (no hash — cannot poll)
+    assert.doesNotMatch(bodyText, /^Check again$|^Kiểm tra lại$/, 'Check again must not appear without a hash')
+    // Click Done — card closes silently
+    await click('Done')
+    await wait(`![...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')`, 'Card must close after Done')
+    const finalSuccessToasts = await evaluate(`window.__agentHarness.notices.filter((n) => n.tone === 'ok').length`)
+    assert.equal(finalSuccessToasts, 0, 'UNKNOWN Done must not produce success toast')
+  })
+})
