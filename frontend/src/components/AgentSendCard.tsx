@@ -146,7 +146,7 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   // Track account+chain used when review was prepared — any change invalidates pre-request review.
   const reviewedAccount = useRef('')
   const reviewedChain = useRef<number | undefined>(undefined)
-  // Increments when account/chain changes during review (not during in-flight stages).
+  // Increments when account/chain changes during pre-request stages.
   const [prepareKey, setPrepareKey] = useState(0)
 
   // sessionStorage reference — null when unavailable (SSR / private browsing / quota).
@@ -160,9 +160,12 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   const meta = TOKENS.find((t) => t.sym === symbol)
   const holding = holdings.find((h) => h.verified && h.symbol === symbol)
 
-  // Invalidate pre-request review on account/chain change.
+  // Invalidate pre-request review when account/chain changes after a successful prepare.
   // CRITICAL: in-flight stages (requesting/submitted/pending/unknown) must NOT be reset —
-  // they hold the hash and recovery state. Only 'preparing' and 'review' are safe to reset.
+  // they hold the hash and recovery state. Only pre-request stages are safe to invalidate.
+  // Note: when prepare failed (prepared === null), walletChainId is already in the prepare
+  // effect's deps, so a chain change back to Arc Testnet automatically triggers a re-prepare
+  // without needing this invalidation effect.
   useEffect(() => {
     if (!prepared) return
     // Do not invalidate while a wallet request is in-flight or has reached an uncertain state.
@@ -185,9 +188,16 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   // Auto-prepare on mount and when inputs or wallet context change.
   // prepareKey increments when account/chain changes during pre-request stages so the
   // effect re-runs with the new wallet state instead of staying stuck at 'preparing'.
+  // walletChainId is included so a chain change (including returning to Arc Testnet after
+  // an error) automatically triggers a fresh prepare even when prepared === null.
   useEffect(() => {
     if (mode !== 'connected') return
     if (!isAddress(recipient) || !amount || !symbol) return
+    // Do not reset to preparing while a wallet request is in-flight, or after terminal states.
+    // walletChainId is in deps to auto-retry after chain changes, but we must not disturb
+    // in-flight or terminal stages when walletChainId changes.
+    if (IN_FLIGHT_STAGES.includes(stageRef.current)) return
+    if (['confirmed', 'failed', 'rejected'].includes(stageRef.current)) return
     const gen = ++reviewGen.current
     setStage('preparing')
     setPrepared(null)
@@ -207,10 +217,10 @@ export function AgentSendCard({ params, onDone, onCancel }: {
       setError(s(e instanceof Error ? e.message : 'Review unavailable'))
       setStage('review')
     })
-  // prepareKey is intentionally included: it increments on account/chain change so the
-  // effect re-runs and the card never stays stuck at 'preparing' after a wallet switch.
+  // prepareKey increments on account/chain change so the effect re-runs after a wallet switch.
+  // walletChainId is included so a return to Arc Testnet auto-retries after a wrong-chain error.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, symbol, amount, recipient, mode, prepareKey])
+  }, [account, symbol, amount, recipient, mode, prepareKey, walletChainId])
 
   const confirmSend = async () => {
     if (BLOCKED_STAGES.includes(stageRef.current)) return
