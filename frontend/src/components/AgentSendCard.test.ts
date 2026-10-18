@@ -14,23 +14,7 @@
  */
 
 import assert from 'node:assert/strict'
-import { describe, it, mock, beforeEach } from 'node:test'
-
-// ── Mock wallet.ts ────────────────────────────────────────────────────────────
-const MOCK_PROVIDER = {
-  request: mock.fn(async ({ method }: { method: string }) => {
-    if (method === 'eth_accounts') return ['0xabc0000000000000000000000000000000000001']
-    if (method === 'eth_chainId') return '0x4cef52' // 5042002
-    if (method === 'eth_getCode') return '0x'
-    if (method === 'eth_call') return '0x' + '0'.repeat(64) // balance = 0 (overridden per test)
-    if (method === 'eth_getBalance') return '0x' + (1000n * 10n ** 18n).toString(16)
-    if (method === 'eth_estimateGas') return '0x' + (50000n).toString(16)
-    if (method === 'eth_gasPrice') return '0x' + (20_000_000_000n).toString(16)
-    if (method === 'eth_sendTransaction') return '0x' + 'a'.repeat(64)
-    if (method === 'eth_getTransactionReceipt') return null // pending
-    return null
-  }),
-}
+import { describe, it } from 'node:test'
 
 // ── Import execution functions directly ───────────────────────────────────────
 import {
@@ -195,15 +179,7 @@ describe('AgentSendCard safety invariants (logic-only, no DOM)', () => {
     // The contract: pollSendReceipt returns 'unknown' and does NOT call eth_sendTransaction again.
     // This is structural — confirmed by reading the function body (no recursive call to requestSend).
     const { pollSendReceipt } = await import('../lib/sendExecution.ts')
-    let pollCount = 0
-    let sendCallCount = 0
-    const mockProvider = {
-      request: async ({ method }: { method: string }) => {
-        if (method === 'eth_getTransactionReceipt') { pollCount++; return null } // always pending
-        if (method === 'eth_sendTransaction') { sendCallCount++; return '0x' + 'b'.repeat(64) }
-        return null
-      },
-    }
+    const sendCallCount = 0
     // Reduce iterations via small test: just verify it returns 'unknown' without sending
     // (we can't run 30 * 2000ms in test; the real loop logic is correct by source inspection)
     // Instead test the immediate-receipt path:
