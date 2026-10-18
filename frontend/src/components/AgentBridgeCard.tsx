@@ -26,7 +26,8 @@ export type AgentBridgeParams = {
 
 export function AgentBridgeCard({ params, onDone, onCancel }: {
   params: AgentBridgeParams
-  onDone: () => void
+  /** Called when LiveCctpControl fires onComplete (user pressed Done after destination confirmed). */
+  onDone: (outcome: 'completed') => void
   onCancel: () => void
 }) {
   const { refetchWallet } = useWallet()
@@ -82,7 +83,7 @@ export function AgentBridgeCard({ params, onDone, onCancel }: {
           amount={params.amount}
           transferSpeed={params.transferSpeed}
           onSourceConfirmed={onSourceConfirmed}
-          onComplete={onDone}
+          onComplete={() => onDone('completed')}
           onQuoteChange={setLiveQuote}
         />
       </div>

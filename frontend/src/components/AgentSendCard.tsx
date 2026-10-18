@@ -72,14 +72,20 @@ function sv(en: string, lang: string): string {
 
 export function AgentSendCard({ params, onDone, onCancel }: {
   params: AgentSendParams
-  onDone: () => void
+  /** Called when the user explicitly clicks Done.
+   *  Passes the terminal outcome so the caller can distinguish success from failure/rejection. */
+  onDone: (outcome: 'confirmed' | 'failed' | 'rejected') => void
   onCancel: () => void
 }) {
   const { mode, address, walletChainId, upsertSend, refetchWallet, holdings } = useWallet()
   const [, lang] = useT()
   const s = useCallback((v: string) => sv(v, lang), [lang])
 
-  const [stage, setStage] = useState<Stage>('preparing')
+  // stageRef MUST be declared before setStage so the closure captures a live ref, never undefined.
+  // Keep a ref so the catch/finally in confirmSend reads the live stage, not a stale closure.
+  const stageRef = useRef<Stage>('preparing')
+  const [stage, setStageRaw] = useState<Stage>('preparing')
+  const setStage = (s: Stage) => { stageRef.current = s; setStageRaw(s) }
   const [prepared, setPrepared] = useState<PreparedSend | null>(null)
   const [error, setError] = useState('')
   const [hash, setHash] = useState<string | null>(null)
@@ -143,6 +149,11 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   }, [account, symbol, amount, recipient, mode])
 
   const confirmSend = async () => {
+    // Only allow a wallet request from 'review' (prepared data is ready, user is actively reviewing).
+    // 'preparing' is also not blocked here because !prepared below handles it.
+    // Explicitly block every non-idle stage so StrictMode double-invocation, rapid re-renders,
+    // or any future code path cannot open a second wallet request.
+    if (['confirmed', 'failed', 'rejected', 'unknown', 'submitted', 'pending', 'requesting'].includes(stageRef.current)) return
     if (!prepared || busy) return
     try {
       await guard.current.run(async () => {
@@ -193,7 +204,8 @@ export function AgentSendCard({ params, onDone, onCancel }: {
         } catch (e) {
           if (!mounted.current) return
           setError(s(e instanceof Error ? e.message : 'Wallet request failed'))
-          if (stage === 'requesting') setStage('review')
+          // Use stageRef (not the closed-over 'stage') to read the live current stage
+          if (stageRef.current === 'requesting') setStage('review')
         } finally {
           if (mounted.current) setBusy(false)
         }
@@ -274,7 +286,7 @@ export function AgentSendCard({ params, onDone, onCancel }: {
               </Button>
             )}
             {(stage === 'confirmed' || stage === 'failed' || stage === 'rejected') && (
-              <Button size="sm" variant="primary" onClick={onDone}>{s('Done')}</Button>
+              <Button size="sm" variant={stage === 'confirmed' ? 'primary' : 'secondary'} onClick={() => onDone(stage)}>{s('Done')}</Button>
             )}
           </div>
         </div>

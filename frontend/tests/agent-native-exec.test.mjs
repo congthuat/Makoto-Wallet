@@ -1,0 +1,269 @@
+/**
+ * Agent native execution browser tests.
+ *
+ * Verifies that clicking "Execute Send/Swap/Bridge in chat":
+ * - Renders the execution card inside the chat (not a page navigation).
+ * - Never auto-signs or auto-submits.
+ * - Each step requires an explicit user confirmation.
+ * - FAILED and USER_REJECTED outcomes do NOT produce a "Transaction complete" toast.
+ * - Slippage buttons change the displayed slip value without mounting a new card.
+ * - Speed buttons change the displayed speed value without mounting a new card.
+ * - Closing (Cancel) dismisses the card without navigation.
+ *
+ * All wallet requests are MOCKED. The mock rejects eth_sendTransaction with code 4001
+ * (user rejected) — no real broadcast ever happens.
+ * Run: node --test tests/agent-native-exec.test.mjs
+ * MAKOTO_CHROME_PATH selects the Chrome/Chromium executable.
+ */
+
+import assert from 'node:assert/strict'
+import { after, before, test } from 'node:test'
+import tailwindcss from '@tailwindcss/vite'
+import { createBrowserHarness, delay } from './browser-harness.mjs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const account = '0x1111111111111111111111111111111111111111'
+const recipient = '0x1951f95962442b6b6be2671e4d39bc88ff6cbe71'
+
+/** Wallet fixture — identical shape to send-handoff.test.mjs but simpler, agent-only. */
+const walletFixture = `
+  import { createContext, useContext, useState } from 'react';
+  import { TOKENS, ARC } from '/src/lib/wallet.ts';
+  const Context = createContext(null);
+  export const useWallet = () => useContext(Context);
+  export function WalletFixture({ children }) {
+    const [state, setState] = useState({
+      page: 'agent', mode: 'connected', address: '${account}', walletChainId: ARC.chainId,
+      displayAddress: '${account}', total: 100, pricesReady: true, tasks: [], taskAuthenticated: false,
+      agentSeed: null, agentSeedMode: null, mask: (v) => v,
+      holdings: TOKENS.map((t) => ({...t, symbol: t.sym, verified: true, balance: 50, price: 1, value: 50})),
+      prices: {USDC: {price: 1}, EURC: {price: 1}},
+      network: {tokenTransferFeeUsdc: 0.002, blockNumber: 100, rpcLatencyMs: 30}, contacts: [],
+      activity: [], settings: {confirmLarge: false}, sendDraft: null, swapDraft: null,
+    });
+    const [setters] = useState(() => ({
+      setSendDraft: (v) => setState((s) => ({...s, sendDraft: v})),
+      setSwapDraft: (v) => setState((s) => ({...s, swapDraft: v})),
+      go: (page) => setState((s) => ({...s, page})),
+      setAgentSeed: () => {}, setAgentSeedMode: () => {},
+      notify: (msg, tone) => window.__agentHarness.notices.push({msg, tone}),
+      upsertSend: (r) => window.__agentHarness.records.push(r),
+      upsertSwap: () => {}, upsertBridge: () => {},
+      refetchWallet: async () => {},
+      createTask: async () => {}, updateTask: async () => {}, deleteTask: async () => {}, runTask: async () => ({}),
+      refreshTasks: async () => {},
+    }));
+    window.__agentHarness.setWallet = (change) => setState((s) => ({...s, ...change}));
+    window.__agentHarness.getWallet = () => state;
+    return <Context.Provider value={{...state, ...setters}}>{children}</Context.Provider>;
+  }
+`
+
+const entry = `
+  import '/src/index.css';
+  import { createElement, StrictMode } from 'react';
+  import { createRoot } from 'react-dom/client';
+  import { WalletFixture } from '/__agent_test__/wallet.jsx';
+  import AgentPage from '/src/pages/Agent.tsx';
+  const h = window.__agentHarness = { calls: [], notices: [], records: [], ready: false };
+  localStorage.setItem('mk.lang', new URLSearchParams(location.search).get('lang') || 'en');
+  document.documentElement.dataset.theme = 'dark';
+  document.documentElement.className = 'dark';
+  window.ethereum = { isMetaMask: true, request: async ({method, params = []}) => {
+    h.calls.push({method, params});
+    if (method === 'eth_accounts') return [h.getWallet?.()?.address || '${account}'];
+    if (method === 'eth_chainId') return '0x' + (h.getWallet?.()?.walletChainId || 5042002).toString(16);
+    if (method === 'eth_getCode') return '0x';
+    if (method === 'eth_call') {
+      const data = params[0]?.data;
+      if (data === '0x313ce567') return '0x6';
+      if (data?.startsWith('0x70a08231')) return '0x' + (50_000_000n).toString(16).padStart(64, '0');
+      return '0x' + '0'.repeat(64);
+    }
+    if (method === 'eth_getBalance') return '0x' + (100n * 10n**18n).toString(16);
+    if (method === 'eth_estimateGas') return '0xea60';
+    if (method === 'eth_gasPrice') return '0x4a817c800';
+    // Always reject send/sign — no broadcast
+    if (method === 'eth_sendTransaction') throw Object.assign(new Error('MOCK rejection; no broadcast'), {code: 4001});
+    if (method === 'wallet_switchEthereumChain') return null;
+    return null;
+  }};
+  createRoot(document.getElementById('app')).render(
+    createElement(StrictMode, null, createElement(WalletFixture, null, createElement(AgentPage)))
+  );
+  h.ready = true;
+`
+
+let browser
+
+before(async () => {
+  browser = createBrowserHarness({
+    frontendRoot, name: 'agent-native',
+    ready: 'window.__agentHarness?.ready',
+    plugins: [tailwindcss(), {
+      name: 'agent-native-exec-fixture', enforce: 'pre',
+      resolveId(source) {
+        if (/\/lib\/store(?:\.tsx)?$/.test(source)) return '/__agent_test__/wallet.jsx'
+        if (source.startsWith('/__agent_test__/')) return source
+      },
+      load(id) {
+        if (id === '/__agent_test__/wallet.jsx') return walletFixture
+        if (id === '/__agent_test__/entry.js') return entry
+      },
+      configureServer(vite) {
+        vite.middlewares.use(async (req, res, next) => {
+          if (!req.url?.startsWith('/__agent_test__?')) return next()
+          const html = await vite.transformIndexHtml(req.url,
+            '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main id="app" class="mk-app p-4"></main><script type="module" src="/__agent_test__/entry.js"></script></body></html>')
+          res.setHeader('Content-Type', 'text/html'); res.end(html)
+        })
+      },
+    }],
+  })
+  await browser.start()
+})
+
+after(async () => { await browser?.close() })
+
+const fixture = (params, run) => browser.fixture('__agent_test__', params, run)
+
+const sendCount = `window.__agentHarness.calls.filter((c) => c.method === 'eth_sendTransaction').length`
+const estimateCount = `window.__agentHarness.calls.filter((c) => c.method === 'eth_estimateGas').length`
+
+// ── Test 1: "Execute Send in chat" renders card in chat, no page navigation ───
+test('MOCKED clicking "Execute Send in chat" mounts AgentSendCard inside Agent chat (no page navigation)', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    // Type a send request and submit
+    await fill(0, `Send 5 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    // Wait for review card
+    await wait(`!!document.querySelector('[class*="REVIEW PARAMETERS"]') || document.body.innerText.includes('REVIEW PARAMETERS')`, 'Agent must produce parameter review card')
+    // Confirm parameters
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`, 'Execute Send button must appear after parameter confirmation')
+    // Click Execute Send in chat
+    await click('Execute Send in chat')
+    // AgentSendCard header must be visible — in chat, not a separate page
+    await wait(`document.body.innerText.includes('REVIEW TRANSFER') || document.body.innerText.includes('Preparing live review')`, 'AgentSendCard must render in chat')
+    // Page must NOT have changed to 'send'
+    assert.equal(await evaluate(`window.__agentHarness.getWallet?.()?.page`), 'agent', 'Must stay on agent page')
+    assert.equal(await evaluate(sendCount), 0, 'No wallet send before explicit confirmation')
+    assert.equal(await evaluate(estimateCount), 0, 'Gas estimate only runs during card preparation, not here')
+  })
+})
+
+// ── Test 2: AgentSendCard USER_REJECTED does NOT produce "Transaction complete" ─
+test('MOCKED AgentSendCard USER_REJECTED (wallet mock always rejects): Done closes card without "Transaction complete" toast', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, `Send 5 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`, 'Agent parameter review must appear')
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    // Wait for review to be ready (Confirm in wallet button enabled)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`, 'Confirm in wallet must be enabled once prepared')
+    assert.equal(await evaluate(sendCount), 0, 'No send before user clicks Confirm')
+    // Click Confirm — mock always rejects with 4001
+    await click('Confirm in wallet')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')`, 'Done button must appear after rejection')
+    const bodyText = await evaluate('document.body.innerText')
+    // Must show rejection state, never "confirmed"
+    assert.match(bodyText, /Wallet rejected|Ví đã từ chối|nothing was submitted|chưa gửi/, 'Rejection label must be visible')
+    assert.doesNotMatch(bodyText, /Transfer confirmed|Giao dịch đã xác nhận/, 'Must NOT show confirmed on rejection')
+    assert.equal(await evaluate(sendCount), 1, 'Exactly one send attempt (rejected)')
+    // Check that no success toast was fired
+    const successToasts = await evaluate(`window.__agentHarness.notices.filter((n) => n.tone === 'ok').length`)
+    assert.equal(successToasts, 0, 'REJECTED must not fire success toast')
+    // Click Done — card should close
+    await click('Done')
+    await wait(`![...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')`, 'Card must close after Done')
+    assert.equal(await evaluate(`window.__agentHarness.getWallet?.()?.page`), 'agent', 'Must remain on agent page after close')
+  })
+})
+
+// ── Test 3: Cancel dismisses the card without navigation or submission ─────────
+test('MOCKED Cancel on AgentSendCard dismisses card, no navigation, no send', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, `Send 2 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    await wait(`[...document.querySelectorAll('button')].some((b) => /Cancel|Hủy/.test(b.textContent.trim()))`, 'Cancel button must appear on AgentSendCard')
+    // Click Cancel
+    await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((b) => /^Cancel$|^Hủy$/.test(b.textContent.trim())); if (!b) throw new Error('Cancel missing'); b.click(); })()`)
+    await wait(`![...document.querySelectorAll('button')].some((b) => /^Cancel$|^Hủy$/.test(b.textContent.trim()) && b.closest('[aria-live]'))`, 'Card must close after Cancel')
+    assert.equal(await evaluate(sendCount), 0, 'Cancel must never send')
+    assert.equal(await evaluate(`window.__agentHarness.getWallet?.()?.page`), 'agent')
+    assert.equal(await evaluate(`window.__agentHarness.notices.filter((n) => n.tone === 'ok').length`), 0, 'Cancel must not fire success toast')
+  })
+})
+
+// ── Test 4: Slippage buttons change displayed value, card not yet mounted ──────
+test('MOCKED Swap slippage buttons update displayed value without mounting execution card', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, 'Swap 10 USDC to EURC')
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Swap in chat')`, 'Execute Swap button must appear')
+    // Slippage selector must be visible before Execute is clicked
+    await wait(`document.body.innerText.includes('Slippage') || document.body.innerText.includes('Trượt giá')`, 'Slippage selector must be visible')
+    // Default is 0.5%
+    const defaultPressed = await evaluate(`document.querySelector('button[aria-pressed="true"]')?.textContent.trim()`)
+    assert.equal(defaultPressed, '0.5%', 'Default slippage must be 0.5%')
+    // Click 1%
+    await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '1%'); if (!b) throw new Error('1% button missing'); b.click(); })()`)
+    await delay(100)
+    const newPressed = await evaluate(`document.querySelector('button[aria-pressed="true"]')?.textContent.trim()`)
+    assert.equal(newPressed, '1%', 'After clicking 1%, aria-pressed must update')
+    // Execution card must NOT be mounted yet
+    assert.equal(await evaluate(`document.querySelectorAll('[aria-live]').length`), 0, 'No execution card must be mounted from slip change alone')
+    assert.equal(await evaluate(sendCount), 0)
+  })
+})
+
+// ── Test 5: Bridge speed buttons change displayed value ────────────────────────
+test('MOCKED Bridge speed buttons update displayed value without mounting execution card', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, 'Bridge 5 USDC to Base Sepolia')
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Bridge in chat')`, 'Execute Bridge button must appear')
+    // Speed selector must be visible
+    await wait(`document.body.innerText.includes('Speed') || document.body.innerText.includes('Tốc độ')`, 'Speed selector must be visible')
+    // Default is Fast
+    const defaultPressed = await evaluate(`[...document.querySelectorAll('button[aria-pressed]')].find((b) => b.getAttribute('aria-pressed') === 'true')?.textContent.trim()`)
+    assert.ok(defaultPressed === 'Fast' || defaultPressed === 'Nhanh', `Default speed must be Fast/Nhanh, got: ${defaultPressed}`)
+    // Click Standard
+    await evaluate(`(() => { const b = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Standard' || b.textContent.trim() === 'Tiêu chuẩn'); if (!b) throw new Error('Standard button missing'); b.click(); })()`)
+    await delay(100)
+    const newPressed = await evaluate(`[...document.querySelectorAll('button[aria-pressed]')].find((b) => b.getAttribute('aria-pressed') === 'true')?.textContent.trim()`)
+    assert.ok(newPressed === 'Standard' || newPressed === 'Tiêu chuẩn', `After clicking Standard, aria-pressed must update. Got: ${newPressed}`)
+    assert.equal(await evaluate(sendCount), 0)
+  })
+})
+
+// ── Test 6: No automatic signing — each step requires explicit click ──────────
+test('MOCKED no automatic wallet request on AgentSendCard mount — user must click Confirm in wallet', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, `Send 3 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    // Card mounts — let preparation run
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`, 'Card must prepare without auto-sending')
+    assert.equal(await evaluate(sendCount), 0, 'No send before explicit user click on Confirm in wallet')
+    // Wallet calls must only include read-only methods at this point
+    const walletMethods = await evaluate(`window.__agentHarness.calls.map((c) => c.method)`)
+    const writeMethods = walletMethods.filter((m) => ['eth_sendTransaction', 'eth_sign', 'personal_sign', 'eth_signTypedData_v4'].includes(m))
+    assert.deepEqual(writeMethods, [], `No signing calls before user confirmation. Got: ${JSON.stringify(writeMethods)}`)
+  })
+})

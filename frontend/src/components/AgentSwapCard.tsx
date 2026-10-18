@@ -23,7 +23,8 @@ export type AgentSwapParams = {
 
 export function AgentSwapCard({ params, onDone, onCancel }: {
   params: AgentSwapParams
-  onDone: () => void
+  /** Called when LiveSwapControl fires onComplete (user pressed Done after confirmed swap). */
+  onDone: (outcome: 'completed') => void
   onCancel: () => void
 }) {
   const { refetchWallet } = useWallet()
@@ -65,7 +66,7 @@ export function AgentSwapCard({ params, onDone, onCancel }: {
           amount={params.amount}
           slip={params.slip}
           onConfirmed={onConfirmed}
-          onComplete={onDone}
+          onComplete={() => onDone('completed')}
         />
       </div>
 

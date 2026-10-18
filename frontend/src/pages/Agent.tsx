@@ -38,7 +38,15 @@ type Params = { asset: string; amount: string; recipient: string; toAsset: strin
  *            'active'  = execution component is mounted and running
  *            undefined = not in native execution mode (handoff path)   */
 type ExecCardState = 'pending' | 'active'
-type Flow = { intent: Intent; params: Params; stage: number; handedOff?: boolean; brainReview?: BrainReviewSnapshot; session: AgentSession; execCard?: ExecCardState } // stage = index of the CURRENT (not yet done) step
+type SlipOption = '0.5%' | '1%' | '3%'
+type Flow = {
+  intent: Intent; params: Params; stage: number; handedOff?: boolean
+  brainReview?: BrainReviewSnapshot; session: AgentSession; execCard?: ExecCardState
+  /** Slippage chosen by user before Swap card mounts. Defaults to '0.5%'. */
+  execSlip?: SlipOption
+  /** Transfer speed chosen by user before Bridge card mounts. Defaults to 'FAST'. */
+  execSpeed?: CctpTransferSpeed
+} // stage = index of the CURRENT (not yet done) step
 type TaskReply = { kind: 'COPY'; key: TaskTextKey } | { kind: 'ERROR'; code: string } | { kind: 'REVIEW' }
 type Msg = { id: string; role: 'user' | 'agent'; text: string; rows?: [string, string][]; quick?: QuickAnswer; taskReply?: TaskReply; taskMissingFields?: readonly string[]; liveEvidence?: Pick<AgentEvidence, 'status' | 'reason' | 'quoteExpiresAt'>; strategyKinds?: readonly string[]; datetime?: CurrentDateTime; localChatTopic?: ChatTopic; flow?: Flow; task?: TaskCandidate; taskAdded?: boolean; link?: { label: string; page: any; taskTextKey?: TaskTextKey }; sample?: boolean; conversation?: boolean; source?: ChatSource }
 
@@ -80,8 +88,10 @@ function Stepper({ stage, compact = false }: { stage: number; compact?: boolean 
   )
 }
 
-function ReviewCard({ msg, onChange, onConfirm, onContinue, onHandoff, onEdit }: {
-  msg: Msg; onChange: (p: Partial<Params>) => void; onConfirm: () => void; onContinue: () => void; onHandoff: () => void; onEdit: () => void
+function ReviewCard({ msg, onChange, onSlipChange, onSpeedChange, onConfirm, onContinue, onHandoff, onEdit }: {
+  msg: Msg; onChange: (p: Partial<Params>) => void
+  onSlipChange: (s: SlipOption) => void; onSpeedChange: (s: CctpTransferSpeed) => void
+  onConfirm: () => void; onContinue: () => void; onHandoff: () => void; onEdit: () => void
 }) {
   const { holdings } = useWallet()
   const [tr] = useT()
@@ -159,6 +169,34 @@ function ReviewCard({ msg, onChange, onConfirm, onContinue, onHandoff, onEdit }:
                     ? 'Live quote from XyloNet, review, then confirm each step in your wallet — right here.'
                     : 'Live Circle quote, separate approval and burn confirmations — right here.')}
               </p>
+              {/* Slippage selector (Swap only) — changing invalidates any mounted quote */}
+              {f.intent === 'swap' && (
+                <div className="flex items-center gap-2 text-[12px]">
+                  <span className={T.mute}>{tr('Slippage')}:</span>
+                  {(['0.5%', '1%', '3%'] as SlipOption[]).map((opt) => (
+                    <button
+                      key={opt}
+                      aria-pressed={f.execSlip === opt || (!f.execSlip && opt === '0.5%')}
+                      onClick={() => onSlipChange(opt)}
+                      className={`px-2.5 py-1 rounded-lg border text-[11.5px] font-semibold transition ${(f.execSlip ?? '0.5%') === opt ? 'border-neon-400 bg-neon-500/10 text-neon-300' : `border-white/[0.08] ${T.mute} hover:text-white`}`}
+                    >{opt}</button>
+                  ))}
+                </div>
+              )}
+              {/* Speed selector (Bridge only) — changing invalidates any mounted quote */}
+              {f.intent === 'bridge' && (
+                <div className="flex items-center gap-2 text-[12px]">
+                  <span className={T.mute}>{tr('Speed')}:</span>
+                  {(['FAST', 'SLOW'] as CctpTransferSpeed[]).map((opt) => (
+                    <button
+                      key={opt}
+                      aria-pressed={f.execSpeed === opt || (!f.execSpeed && opt === 'FAST')}
+                      onClick={() => onSpeedChange(opt)}
+                      className={`px-2.5 py-1 rounded-lg border text-[11.5px] font-semibold transition ${(f.execSpeed ?? 'FAST') === opt ? 'border-neon-400 bg-neon-500/10 text-neon-300' : `border-white/[0.08] ${T.mute} hover:text-white`}`}
+                    >{opt === 'FAST' ? tr('Fast') : tr('Standard')}</button>
+                  ))}
+                </div>
+              )}
               <Button size="sm" variant="primary" className="w-full" onClick={onContinue}>
                 <Zap size={13} />
                 {tr(f.intent === 'send' ? 'Execute Send in chat' : f.intent === 'swap' ? 'Execute Swap in chat' : 'Execute Bridge in chat')}
@@ -493,6 +531,8 @@ export default function AgentPage() {
                   <ReviewCard
                     msg={m}
                     onChange={(p) => patch(m.id, (f) => ({ ...f, params: { ...f.params, ...p } }))}
+                    onSlipChange={(s) => patch(m.id, (f) => ({ ...f, execSlip: s }))}
+                    onSpeedChange={(s) => patch(m.id, (f) => ({ ...f, execSpeed: s }))}
                     onConfirm={() => confirm(m.id)}
                     onEdit={() => patch(m.id, (f) => { const requested = createAgentSession(nid()); const planned = transitionAgentSession(requested, { type: 'plan-ready', planId: nid(), now: Date.now() }); return { ...f, stage: 2, handedOff: false, brainReview: undefined, execCard: undefined, session: planned.accepted ? planned.state : requested } })}
                     onContinue={() => cont(m)}
@@ -503,9 +543,13 @@ export default function AgentPage() {
                   const f = m.flow!
                   const p = f.params
                   const dismissExec = () => patch(m.id, (x) => ({ ...x, execCard: undefined }))
-                  const doneExec = () => {
-                    patch(m.id, (x) => ({ ...x, execCard: undefined, handedOff: true }))
-                    w.notify(tr('Transaction complete'), 'ok')
+                  /** onDone(outcome) — called by the execution card when the user clicks Done/Hoàn tất.
+                   *  'confirmed' → success toast; 'failed' / 'rejected' → neutral close, no "complete" toast.
+                   *  'completed' (Swap/Bridge) → success toast.  */
+                  const doneExec = (outcome: 'confirmed' | 'failed' | 'rejected' | 'completed') => {
+                    patch(m.id, (x) => ({ ...x, execCard: undefined, handedOff: outcome === 'confirmed' || outcome === 'completed' }))
+                    if (outcome === 'confirmed' || outcome === 'completed') w.notify(tr('Transaction complete'), 'ok')
+                    // failed / rejected: card closes silently — the card already showed the error
                   }
                   if (f.intent === 'send') {
                     return (
@@ -519,7 +563,7 @@ export default function AgentPage() {
                   if (f.intent === 'swap') {
                     return (
                       <AgentSwapCard
-                        params={{ account: w.address, from: p.asset, to: p.toAsset, amount: p.amount, slip: '0.5%' }}
+                        params={{ account: w.address, from: p.asset, to: p.toAsset, amount: p.amount, slip: f.execSlip ?? '0.5%' }}
                         onDone={doneExec}
                         onCancel={dismissExec}
                       />
@@ -528,7 +572,7 @@ export default function AgentPage() {
                   // bridge
                   return (
                     <AgentBridgeCard
-                      params={{ account: w.address, amount: p.amount, transferSpeed: 'FAST' as CctpTransferSpeed }}
+                      params={{ account: w.address, amount: p.amount, transferSpeed: f.execSpeed ?? 'FAST' as CctpTransferSpeed }}
                       onDone={doneExec}
                       onCancel={dismissExec}
                     />
