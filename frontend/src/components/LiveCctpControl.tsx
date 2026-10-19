@@ -9,6 +9,7 @@ import { createReview, evaluateToolPolicy, revalidateReview, type ReviewSnapshot
 import { isWalletRejection, pollProtocolReceipt, requestReviewedCctpAction } from '../migrated/protocolExecution.ts'
 import { prepareCctpApproval, prepareCctpBurn, quoteBridge, readAllowance, readBalance, readGasBalance, readWallet, type BridgeToolQuote, type CctpTransferSpeed, type PreparedToolAction } from '../migrated/toolLayer.ts'
 import { cctpGasCeilingExceeded, getOfficialCctpStatus, sameCctpActionMaterial, sameCctpQuoteMaterial, simulatePreparedCctpCall } from '../protocols/circle/cctpAdapter.ts'
+import { withRpcTimeout, CCTP_STATUS_TIMEOUT_MS } from '../lib/rpcTimeout.ts'
 import { Button, T } from './wallet/ui.tsx'
 import type { BridgeRecord } from '../lib/protocolActivity.ts'
 import { hasSavedProtocolCompletion } from '../lib/protocolActivity.ts'
@@ -309,11 +310,15 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
       setStage('status-unavailable'); setError('Saved CCTP verification details are incomplete; source remains confirmed.')
       return
     }
-    const status = await getOfficialCctpStatus(p, {
-      account: binding.from as `0x${string}`, burnHash,
-      destinationDomain: binding.destinationDomain, recipient: binding.recipient as `0x${string}`,
-      expectedReceive: BigInt(binding.expectedReceiveUnits), maxFee: BigInt(binding.maxFeeUnits), finalityThreshold: BigInt(binding.finalityThreshold),
-    })
+    const status = await withRpcTimeout(
+      getOfficialCctpStatus(p, {
+        account: binding.from as `0x${string}`, burnHash,
+        destinationDomain: binding.destinationDomain, recipient: binding.recipient as `0x${string}`,
+        expectedReceive: BigInt(binding.expectedReceiveUnits), maxFee: BigInt(binding.maxFeeUnits), finalityThreshold: BigInt(binding.finalityThreshold),
+      }),
+      CCTP_STATUS_TIMEOUT_MS,
+      'Circle CCTP status',
+    ).catch((e: unknown) => ({ state: 'unavailable' as const, reason: e instanceof Error ? e.message : 'Circle CCTP status timed out' }))
     if (!isCurrent(op)) return
     const completedRecovery = op.run?.phase === 'COMPLETED'
     if (status.state === 'unavailable') { if (!completedRecovery) setStage('status-unavailable'); setError(status.reason ?? 'Circle status unavailable. Check again later.'); return }
@@ -327,9 +332,13 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
       setStage(pendingStage); recordActivity({ ...baseRecord, status: 'attesting' }, op); return
     }
     setDestinationHash(status.forwardTxHash)
-    const response = await fetch(api(`cctp/destination?txHash=${status.forwardTxHash}&recipient=${binding.recipient}&minimumUnits=${binding.expectedReceiveUnits}`), { cache: 'no-store' })
+    const response = await withRpcTimeout(
+      fetch(api(`cctp/destination?txHash=${status.forwardTxHash}&recipient=${binding.recipient}&minimumUnits=${binding.expectedReceiveUnits}`), { cache: 'no-store' }),
+      CCTP_STATUS_TIMEOUT_MS,
+      'Base destination fetch',
+    ).catch(() => null)
     if (!isCurrent(op)) return
-    const data = response.ok ? await response.json() as { status?: string } : undefined
+    const data = response?.ok ? await response.json() as { status?: string } : undefined
     if (!isCurrent(op)) return
     if (!data || !['confirmed', 'failed', 'pending'].includes(data.status ?? '')) {
       if (!completedRecovery) setStage('status-unavailable')
@@ -562,7 +571,18 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     {error && <p className="text-rose-300 break-words">{errorText}</p>}
     {activityUnavailable && <p className="text-rose-300 break-words">{say('Activity could not be updated. The transaction hash remains on this page for status checks.', 'Chưa thể cập nhật Hoạt động. Mã giao dịch vẫn còn trên trang này để kiểm tra trạng thái.')}</p>}
     {checkpointUnavailable && <p className="text-rose-300 break-words">{say('Recovery could not be saved. Keep this transaction hash and check its status before leaving this page. Do not resubmit.', 'Chưa thể lưu trạng thái khôi phục. Hãy giữ mã giao dịch và kiểm tra trạng thái trước khi rời trang. Không gửi lại.')}</p>}
-    {['idle', 'approval-confirmed', 'failed', 'rejected'].includes(stage) && <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Checking…', 'Đang kiểm tra…') : say('Get live Circle quote and review', 'Lấy báo giá Circle và xem lại')}</Button>}
+    {['idle', 'approval-confirmed', 'failed', 'rejected'].includes(stage) && (
+      <>
+        <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Checking…', 'Đang kiểm tra…') : say('Get live Circle quote and review', 'Lấy báo giá Circle và xem lại')}</Button>
+        {busy && (
+          <button
+            type="button"
+            onClick={() => { generation.current += 1; operation.current = undefined; setBusy(false); setError(say('Cancelled. Try again when the network is available.', 'Đã hủy. Thử lại khi mạng khả dụng.')); }}
+            className={`text-[12px] ${T.sub} hover:text-white underline`}
+          >{say('Cancel', 'Hủy')}</button>
+        )}
+      </>
+    )}
     {stage === 'destination-confirmed' && <Button variant="primary" disabled={busy} onClick={complete}>{say('Done', 'Hoàn tất')}</Button>}
     {(stage === 'review-approval' || stage === 'review-burn') && <div className="flex gap-2 flex-wrap"><Button variant="primary" disabled={busy} onClick={confirm}>{busy ? say('Checking…', 'Đang kiểm tra…') : stage === 'review-approval' ? say('Review exact approval', 'Xem phê duyệt chính xác') : say('Review CCTP burn', 'Xem lệnh đốt CCTP')}</Button><Button disabled={busy} onClick={cancelReview}>{say('Cancel', 'Hủy')}</Button></div>}
     {hash && (['source-pending', 'source-unknown', 'source-confirmed', 'attestation-pending', 'attestation-available', 'forwarding-pending', 'forwarding-failed', 'destination-pending', 'destination-failed', 'status-unavailable'].includes(stage) || stage === 'destination-confirmed' && !completedActivity) && <Button disabled={busy} onClick={checkAgain}>{run.current?.step === 'approval' ? say('Check approval receipt', 'Kiểm tra biên nhận cấp quyền') : say('Check Arc receipt, Circle status and Base destination', 'Kiểm tra biên nhận Arc, trạng thái Circle và đích Base')}</Button>}

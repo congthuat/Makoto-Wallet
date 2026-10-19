@@ -1,5 +1,6 @@
 import { ARC, TOKENS, getProvider, isAddress } from './wallet.ts'
 import type { TokenMeta } from './wallet.ts'
+import { withRpcTimeout, RPC_TIMEOUT_MS } from './rpcTimeout.ts'
 
 export type SendProvider = NonNullable<ReturnType<typeof getProvider>>
 export type SendRequest = Readonly<{ from: string; to: string; data: string; value: '0x0'; gas: string; gasPrice: string }>
@@ -34,7 +35,10 @@ export function safeMax(balance: bigint, usdcBalance: bigint, fee18: bigint, sym
   return result > 0n ? result : undefined
 }
 export function encodeTransfer(recipient: string, units: bigint) { return `0xa9059cbb${addressWord(safeAddress(recipient))}${word(units)}` }
-async function req(p: SendProvider, method: string, params: unknown[] = []) { return p.request({ method, params }) }
+/** Read-only RPC call with a hard 15s timeout. Never use for eth_sendTransaction. */
+async function req(p: SendProvider, method: string, params: unknown[] = []) {
+  return withRpcTimeout(p.request({ method, params }), RPC_TIMEOUT_MS, method)
+}
 async function chainAndAccount(p: SendProvider) {
   const [accounts, chain] = await Promise.all([req(p, 'eth_accounts'), req(p, 'eth_chainId')])
   const account = Array.isArray(accounts) ? accounts[0] : undefined
