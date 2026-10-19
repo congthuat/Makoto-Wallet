@@ -29,6 +29,10 @@ import {
   isWalletRejection, pollSendReceipt, prepareSend, requestSend,
   type PreparedSend, type SendStatus,
 } from '../lib/sendExecution'
+import {
+  readIntent, writeIntent, clearIntent, intentMatches,
+  type IntentCheckpoint,
+} from '../lib/sendIntentCheckpoint'
 import { Button, T } from './wallet/ui'
 import { useT } from '../lib/i18n'
 import { translate } from '../lib/i18n'
@@ -48,36 +52,6 @@ type Stage = 'preparing' | 'review' | 'requesting' | 'submitted' | 'pending' | '
 const IN_FLIGHT_STAGES: Stage[] = ['requesting', 'submitted', 'pending', 'unknown']
 /** All stages that must not allow a new wallet request (includes terminal states). */
 const BLOCKED_STAGES: Stage[] = ['confirmed', 'failed', 'rejected', 'unknown', 'submitted', 'pending', 'requesting']
-
-const INTENT_KEY = 'mk.send.intent.v1'
-type IntentCheckpoint = {
-  account: string; chainId: number; recipient: string; symbol: string; amount: string; savedAt: number
-}
-
-function readIntent(storage: Storage | null): IntentCheckpoint | null {
-  try {
-    if (!storage) return null
-    const raw = storage.getItem(INTENT_KEY)
-    if (!raw) return null
-    return JSON.parse(raw) as IntentCheckpoint
-  } catch { return null }
-}
-function writeIntent(storage: Storage | null, cp: IntentCheckpoint): void {
-  if (!storage) throw new Error('sessionStorage unavailable — cannot checkpoint intent')
-  try { storage.setItem(INTENT_KEY, JSON.stringify(cp)) }
-  catch { throw new Error('sessionStorage write failed — cannot checkpoint intent') }
-}
-function clearIntent(storage: Storage | null): void {
-  try { storage?.removeItem(INTENT_KEY) } catch { /* best-effort */ }
-}
-function intentMatches(cp: IntentCheckpoint | null, p: { account: string; chainId: number; recipient: string; symbol: string; amount: string }): boolean {
-  if (!cp) return false
-  return cp.account.toLowerCase() === p.account.toLowerCase()
-    && cp.chainId === p.chainId
-    && cp.recipient.toLowerCase() === p.recipient.toLowerCase()
-    && cp.symbol === p.symbol
-    && cp.amount === p.amount
-}
 
 const VI: Record<string, string> = {
   'Preparing live review…': 'Đang chuẩn bị xem lại…',
@@ -227,13 +201,14 @@ export function AgentSendCard({ params, onDone, onCancel }: {
     if (!prepared || busy) return
 
     // Check for an unresolved intent checkpoint from a previous attempt (same intent, same wallet).
-    // This blocks a second wallet request when the previous attempt reached UNKNOWN state and
-    // the card was unmounted/cleared before the user resolved it.
-    const existingIntent = readIntent(storage.current)
-    if (intentMatches(existingIntent, { account, chainId: ARC.chainId, recipient, symbol, amount })) {
+    // Each intent has its own slot in the keyed map — a different intent (B) cannot overwrite this
+    // slot (A), so a UNKNOWN checkpoint from A is always found exactly when A's card re-confirms.
+    const intentParams = { account, chainId: ARC.chainId, recipient, symbol, amount }
+    const existingIntent = readIntent(storage.current, intentParams)
+    if (intentMatches(existingIntent, intentParams)) {
       setError(lang === 'vi'
-        ? 'Giao dịch trước đó chưa rõ kết quả. Kiểm tra Activity trước khi thử lại.'
-        : 'A previous attempt for this transfer is unresolved. Check Activity before retrying.')
+        ? 'Giao dịch trước đó chưa rõ kết quả. Kiểm tra lịch sử giao dịch trong ví hoặc block explorer trước khi thử lại.'
+        : 'A previous attempt for this transfer is unresolved. Check your wallet\'s transaction history or a block explorer before retrying.')
       return
     }
 
@@ -252,12 +227,24 @@ export function AgentSendCard({ params, onDone, onCancel }: {
 
           // Write intent checkpoint BEFORE opening the wallet. If this fails, abort.
           // The checkpoint lets us detect an unresolved previous attempt on remount.
+          // writeIntent throws if an unresolved checkpoint for the same intent already
+          // exists (race between early check and guard entry) — treat it like the early check.
           const checkpoint: IntentCheckpoint = {
             account: fresh.account, chainId: fresh.chainId,
             recipient: fresh.recipient, symbol, amount,
             savedAt: Date.now(),
           }
-          writeIntent(storage.current, checkpoint)
+          try { writeIntent(storage.current, checkpoint) }
+          catch (writeErr) {
+            const msg = writeErr instanceof Error ? writeErr.message : ''
+            if (msg.includes('Unresolved intent')) {
+              setError(lang === 'vi'
+                ? 'Giao dịch trước đó chưa rõ kết quả. Kiểm tra lịch sử giao dịch trong ví hoặc block explorer trước khi thử lại.'
+                : 'A previous attempt for this transfer is unresolved. Check your wallet\'s transaction history or a block explorer before retrying.')
+              throw writeErr // propagate to abort the guard's run without entering 'requesting'
+            }
+            throw writeErr // storage quota / unavailable — propagate as-is
+          }
 
           setSendStatus('REQUESTING_WALLET')
           setStage('requesting')
@@ -266,8 +253,8 @@ export function AgentSendCard({ params, onDone, onCancel }: {
             txHash = await requestSend(p, prepared)
           } catch (e) {
             if (isWalletRejection(e)) {
-              // Definitive non-broadcast: safe to clear the checkpoint.
-              clearIntent(storage.current)
+              // Definitive non-broadcast: safe to clear the checkpoint for this specific intent.
+              clearIntent(storage.current, intentParams)
               setSendStatus('USER_REJECTED')
               setStage('rejected')
               return
@@ -297,7 +284,7 @@ export function AgentSendCard({ params, onDone, onCancel }: {
           if (!mounted.current) return
 
           // Finalize — clear checkpoint only on definitive outcomes.
-          if (outcome === 'confirmed' || outcome === 'failed') clearIntent(storage.current)
+          if (outcome === 'confirmed' || outcome === 'failed') clearIntent(storage.current, intentParams)
           // 'unknown' receipt: leave checkpoint so a future remount detects the ambiguity.
 
           const finalStatus = outcome === 'confirmed' ? 'CONFIRMED' : outcome === 'failed' ? 'FAILED' : 'UNKNOWN'
@@ -313,7 +300,7 @@ export function AgentSendCard({ params, onDone, onCancel }: {
           if (stageRef.current === 'requesting') {
             // We errored before the wallet call — checkpoint was written but wallet never saw the tx.
             // Clear the checkpoint (nothing was broadcast from 'requesting' pre-wallet-call errors).
-            clearIntent(storage.current)
+            clearIntent(storage.current, intentParams)
             setStage('review')
           }
           // 'unknown' stage errors: checkpoint stays — we cannot prove non-broadcast.
@@ -332,7 +319,9 @@ export function AgentSendCard({ params, onDone, onCancel }: {
     try {
       const result = await pollSendReceipt(p, hash, prepared, () => setSendStatus('PENDING'))
       if (!mounted.current) return
-      if (result === 'confirmed' || result === 'failed') clearIntent(storage.current)
+      if (result === 'confirmed' || result === 'failed') {
+        clearIntent(storage.current, { account: prepared.account, chainId: prepared.chainId, recipient: prepared.recipient, symbol, amount })
+      }
       const finalStatus = result === 'confirmed' ? 'CONFIRMED' : result === 'failed' ? 'FAILED' : 'UNKNOWN'
       setSendStatus(finalStatus)
       setStage(result === 'confirmed' ? 'confirmed' : result === 'failed' ? 'failed' : 'unknown')
@@ -399,11 +388,12 @@ export function AgentSendCard({ params, onDone, onCancel }: {
             )}
             {stage === 'unknown' && !hash && (
               /* No hash: wallet call errored before broadcast — we cannot prove a tx was sent.
-                 Direct user to Activity. Do NOT offer an automatic retry. */
+                 Direct user to their wallet's history or a block explorer — NOT Activity,
+                 since upsertSend was never called (no hash = no Activity record). */
               <p className="text-[11.5px] text-amber-200/70 text-center">
                 {lang === 'vi'
-                  ? 'Không có hash giao dịch. Kiểm tra Activity trước khi thử lại.'
-                  : 'No transaction hash. Check Activity before retrying.'}
+                  ? 'Không có hash giao dịch. Kiểm tra lịch sử giao dịch trong ví hoặc block explorer trước khi thử lại.'
+                  : 'No transaction hash. Check your wallet\'s transaction history or a block explorer before retrying.'}
               </p>
             )}
             {(stage === 'confirmed' || stage === 'failed' || stage === 'rejected' || stage === 'unknown') && (

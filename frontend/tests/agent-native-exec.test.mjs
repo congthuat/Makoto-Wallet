@@ -554,13 +554,15 @@ test('MOCKED chain change while tx submitted: submitted/pending state preserved,
 })
 
 // ── Test 12: Unresolved intent checkpoint blocks duplicate send ────────────────
+// Uses the NEW keyed-map format (mk.send.intents.v1).
 test('MOCKED unresolved intent checkpoint blocks second wallet request for same intent', async () => {
   await fixture({}, async ({ evaluate, wait, fill, click }) => {
-    // Plant a matching unresolved checkpoint for the exact same intent
-    const checkpoint = JSON.stringify({
-      account, chainId: 5042002, recipient, symbol: 'USDC', amount: '5', savedAt: Date.now() - 5000,
-    })
-    await evaluate(`sessionStorage.setItem('mk.send.intent.v1', ${JSON.stringify(checkpoint)})`)
+    // Plant a matching unresolved checkpoint for the exact same intent using the keyed map.
+    // Key = account.lower():chainId:recipient.lower():symbol:amount
+    const intentKey = `${account.toLowerCase()}:5042002:${recipient.toLowerCase()}:USDC:5`
+    const cpEntry = { account, chainId: 5042002, recipient, symbol: 'USDC', amount: '5', savedAt: Date.now() - 5000 }
+    const intentMap = JSON.stringify({ [intentKey]: cpEntry })
+    await evaluate(`sessionStorage.setItem('mk.send.intents.v1', ${JSON.stringify(intentMap)})`)
     await fill(0, `Send 5 USDC to ${recipient}`)
     await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
@@ -570,15 +572,121 @@ test('MOCKED unresolved intent checkpoint blocks second wallet request for same 
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`, 'Card must prepare successfully')
     // Click Confirm — checkpoint must block the wallet request
     await click('Confirm in wallet')
-    // An error message about the unresolved intent must appear
+    // An error message about the unresolved intent must appear (updated message: wallet/explorer, not Activity)
     await wait(
-      `document.body.innerText.includes('unresolved') || document.body.innerText.includes('chưa rõ kết quả') || document.body.innerText.includes('Check Activity') || document.body.innerText.includes('Kiểm tra Activity')`,
-      'Unresolved intent must produce an error blocking the wallet request'
+      `document.body.innerText.includes('unresolved') || document.body.innerText.includes('chưa rõ kết quả') || document.body.innerText.includes('transaction history') || document.body.innerText.includes('block explorer') || document.body.innerText.includes('lịch sử giao dịch')`,
+      'Unresolved intent must produce a wallet/explorer error message'
     )
     // No wallet request was made
     assert.equal(await evaluate(sendCount), 0, 'No wallet send when unresolved checkpoint exists')
-    // Card stays in review stage — Confirm is still enabled so the user can act after resolving Activity
+    // Card stays in review stage — Confirm is still enabled so the user can act after checking explorer
     const confirmEnabled = await evaluate(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
-    assert.ok(confirmEnabled, 'Confirm must remain enabled so user can retry after checking Activity')
+    assert.ok(confirmEnabled, 'Confirm must remain enabled so user can retry after checking explorer')
+  })
+})
+
+// ── Test 13: Intent A UNKNOWN, then intent B succeeds — A checkpoint untouched ─
+// Core invariant: B completing (clearing its own checkpoint) must NOT remove A's
+// unresolved checkpoint, so A's retry is still blocked.
+test('MOCKED intent A UNKNOWN checkpoint survives intent B completion', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    // Step 1: send intent A (recipient1) → wallet throws non-4001 → UNKNOWN
+    // First override the wallet to throw a generic error for eth_sendTransaction
+    await evaluate(`window.__agentHarness.sendMode = 'timeout'`)
+    await fill(0, `Send 5 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+    await click('Confirm in wallet')
+    // Should reach UNKNOWN
+    await wait(
+      `[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done') && (document.body.innerText.includes('unknown') || document.body.innerText.includes('Final status') || document.body.innerText.includes('Chưa rõ'))`,
+      'Intent A must reach UNKNOWN state'
+    )
+    // Verify A's checkpoint exists in sessionStorage
+    const aIntentKey = `${account.toLowerCase()}:5042002:${recipient.toLowerCase()}:USDC:5`
+    const hasACheckpoint = await evaluate(
+      `(() => { const raw = sessionStorage.getItem('mk.send.intents.v1'); if (!raw) return false; const m = JSON.parse(raw); return !!m[${JSON.stringify(aIntentKey)}]; })()`
+    )
+    assert.ok(hasACheckpoint, 'Intent A checkpoint must be written on UNKNOWN')
+    // Close A's card via Done
+    await click('Done')
+    await wait(`![...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')`, 'A card must close')
+
+    // Step 2: send intent B (different amount: 3 USDC to same recipient) → 4001 rejection → cleared
+    await evaluate(`window.__agentHarness.sendMode = '4001'`)
+    const recipientB = '0x2222222222222222222222222222222222222222'
+    await fill(0, `Send 3 USDC to ${recipientB}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+    await click('Confirm in wallet')
+    // B gets rejected → B checkpoint cleared
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')`, 'Intent B must reach rejected/done state')
+    await click('Done')
+    await wait(`![...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')`, 'B card must close')
+
+    // Step 3: verify A checkpoint still exists after B was cleared
+    const stillHasA = await evaluate(
+      `(() => { const raw = sessionStorage.getItem('mk.send.intents.v1'); if (!raw) return false; const m = JSON.parse(raw); return !!m[${JSON.stringify(aIntentKey)}]; })()`
+    )
+    assert.ok(stillHasA, 'Intent A checkpoint must survive intent B completion/clear')
+
+    // Step 4: retry intent A → must be blocked
+    await evaluate(`window.__agentHarness.calls = []`) // reset call log
+    await fill(0, `Send 5 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+    await click('Confirm in wallet')
+    // Retry must be blocked by the unresolved checkpoint
+    await wait(
+      `document.body.innerText.includes('unresolved') || document.body.innerText.includes('chưa rõ kết quả') || document.body.innerText.includes('transaction history') || document.body.innerText.includes('block explorer')`,
+      'Intent A retry must be blocked by unresolved checkpoint after B completion'
+    )
+    assert.equal(await evaluate(sendCount), 0, 'No wallet send on A retry when A checkpoint is unresolved')
+  })
+})
+
+// ── Test 14: Checkpoint persists across reload (sessionStorage survives page nav) ──
+// Simulates: UNKNOWN state, user navigates away (or component unmounts via Done),
+// then returns. The checkpoint must still block a second wallet request.
+test('MOCKED UNKNOWN checkpoint persists across component unmount and remount', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    // Plant an UNKNOWN checkpoint before even mounting the card (simulates prior session)
+    const intentKey = `${account.toLowerCase()}:5042002:${recipient.toLowerCase()}:USDC:7`
+    const cpEntry = { account, chainId: 5042002, recipient, symbol: 'USDC', amount: '7', savedAt: Date.now() - 30_000 }
+    const intentMap = JSON.stringify({ [intentKey]: cpEntry })
+    await evaluate(`sessionStorage.setItem('mk.send.intents.v1', ${JSON.stringify(intentMap)})`)
+
+    // Now mount the card for the same intent
+    await fill(0, `Send 7 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+    await click('Confirm in wallet')
+    // Must be blocked immediately
+    await wait(
+      `document.body.innerText.includes('unresolved') || document.body.innerText.includes('transaction history') || document.body.innerText.includes('block explorer')`,
+      'Re-mounted card must detect pre-existing UNKNOWN checkpoint and block wallet request'
+    )
+    assert.equal(await evaluate(sendCount), 0, 'No wallet send on remount when checkpoint present')
+    // Checkpoint must still be in sessionStorage — user did not resolve it
+    const checkpointStillPresent = await evaluate(
+      `(() => { const raw = sessionStorage.getItem('mk.send.intents.v1'); if (!raw) return false; const m = JSON.parse(raw); return !!m[${JSON.stringify(intentKey)}]; })()`
+    )
+    assert.ok(checkpointStillPresent, 'Checkpoint must remain in sessionStorage after blocked retry')
   })
 })

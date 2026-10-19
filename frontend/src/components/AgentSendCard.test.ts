@@ -28,6 +28,11 @@ import {
   isWalletRejection,
   type PreparedSend,
 } from '../lib/sendExecution.ts'
+import {
+  INTENTS_MAP_KEY,
+  readIntent, writeIntent, clearIntent, intentMatches,
+  type IntentCheckpoint,
+} from '../lib/sendIntentCheckpoint.ts'
 
 const MOCK_ACCOUNT = '0xabc0000000000000000000000000000000000001'
 const MOCK_RECIPIENT = '0xdef0000000000000000000000000000000000002'
@@ -147,80 +152,116 @@ describe('SendSubmissionGuard', () => {
   })
 })
 
-// ── Intent checkpoint helpers (inline contract verification) ──────────────────
-// These replicate the checkpoint contract from AgentSendCard so we can verify
-// the invariants without exporting internals.
-const INTENT_KEY = 'mk.send.intent.v1'
-type IntentCheckpoint = { account: string; chainId: number; recipient: string; symbol: string; amount: string; savedAt: number }
+// ── Intent checkpoint tests use the real helpers imported at top of file. ────────
+/** Minimal in-memory Storage for unit tests — no browser required. */
 const makeStorage = () => {
   const store: Record<string, string> = {}
   return {
     getItem: (k: string) => store[k] ?? null,
     setItem: (k: string, v: string) => { store[k] = v },
     removeItem: (k: string) => { delete store[k] },
+    length: 0,
+    key: () => null,
+    clear: () => { Object.keys(store).forEach((k) => delete store[k]) },
   } as unknown as Storage
-}
-function readIntent(s: Storage): IntentCheckpoint | null {
-  try { const raw = s.getItem(INTENT_KEY); return raw ? JSON.parse(raw) as IntentCheckpoint : null } catch { return null }
-}
-function writeIntent(s: Storage, cp: IntentCheckpoint) { s.setItem(INTENT_KEY, JSON.stringify(cp)) }
-function clearIntent(s: Storage) { s.removeItem(INTENT_KEY) }
-function intentMatches(cp: IntentCheckpoint | null, p: { account: string; chainId: number; recipient: string; symbol: string; amount: string }): boolean {
-  if (!cp) return false
-  return cp.account.toLowerCase() === p.account.toLowerCase() && cp.chainId === p.chainId
-    && cp.recipient.toLowerCase() === p.recipient.toLowerCase() && cp.symbol === p.symbol && cp.amount === p.amount
 }
 
 describe('AgentSendCard intent checkpoint invariants', () => {
   it('checkpoint is written before wallet request and cleared on USER_REJECTED', () => {
     const s = makeStorage()
-    const cp: IntentCheckpoint = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0', savedAt: Date.now() }
+    const intentP = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0' }
+    const cp: IntentCheckpoint = { ...intentP, savedAt: Date.now() }
     writeIntent(s, cp)
-    assert.ok(readIntent(s) !== null, 'Checkpoint must exist after writeIntent')
-    // USER_REJECTED: clear checkpoint (definitive non-broadcast)
-    clearIntent(s)
-    assert.equal(readIntent(s), null, 'Checkpoint must be cleared on USER_REJECTED')
+    assert.ok(readIntent(s, intentP) !== null, 'Checkpoint must exist after writeIntent')
+    // USER_REJECTED: clear checkpoint for this specific intent (definitive non-broadcast)
+    clearIntent(s, intentP)
+    assert.equal(readIntent(s, intentP), null, 'Checkpoint must be cleared on USER_REJECTED')
   })
 
   it('checkpoint stays on UNKNOWN — unresolved intent blocks re-submit for same params', () => {
     const s = makeStorage()
     const intent = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0' }
-    const cp: IntentCheckpoint = { ...intent, savedAt: Date.now() }
-    writeIntent(s, cp)
+    writeIntent(s, { ...intent, savedAt: Date.now() })
     // UNKNOWN: do NOT clear checkpoint
     // On remount with same params, intentMatches returns true → request is blocked
-    assert.ok(intentMatches(readIntent(s), intent), 'Same-intent should match unresolved checkpoint')
+    assert.ok(intentMatches(readIntent(s, intent), intent), 'Same-intent should match unresolved checkpoint')
+  })
+
+  it('intent B checkpoint does NOT overwrite intent A checkpoint (keyed map)', () => {
+    // This is the core invariant: two different intents occupy separate slots.
+    // A becoming UNKNOWN must still block A's retry even after B writes its own checkpoint.
+    const s = makeStorage()
+    const RECIPIENT_B = '0xbbbb000000000000000000000000000000000001'
+    const intentA = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0' }
+    const intentB = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: RECIPIENT_B,    symbol: 'USDC', amount: '2.0' }
+
+    // A reaches UNKNOWN — its checkpoint is written
+    writeIntent(s, { ...intentA, savedAt: Date.now() })
+    assert.ok(intentMatches(readIntent(s, intentA), intentA), 'A checkpoint must exist after A write')
+
+    // B now writes its own checkpoint (different intent, different key)
+    writeIntent(s, { ...intentB, savedAt: Date.now() })
+    assert.ok(intentMatches(readIntent(s, intentB), intentB), 'B checkpoint must exist after B write')
+
+    // A checkpoint must still be present — B write must not have touched it
+    assert.ok(intentMatches(readIntent(s, intentA), intentA), 'A checkpoint must survive B write')
+
+    // B completes — B checkpoint cleared
+    clearIntent(s, intentB)
+    assert.equal(readIntent(s, intentB), null, 'B checkpoint cleared')
+
+    // A checkpoint still present — B clear must not affect A
+    assert.ok(intentMatches(readIntent(s, intentA), intentA), 'A checkpoint must survive B clear')
+  })
+
+  it('writeIntent refuses to overwrite an existing checkpoint for the same intent', () => {
+    const s = makeStorage()
+    const intentP = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0' }
+    writeIntent(s, { ...intentP, savedAt: Date.now() })
+    // Second write for the same key must throw
+    assert.throws(
+      () => writeIntent(s, { ...intentP, savedAt: Date.now() + 1 }),
+      /Unresolved intent/,
+      'writeIntent must refuse to overwrite an unresolved checkpoint for the same intent'
+    )
   })
 
   it('checkpoint does not match a different recipient or amount', () => {
     const s = makeStorage()
-    const cp: IntentCheckpoint = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0', savedAt: Date.now() }
-    writeIntent(s, cp)
+    const intentP = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0' }
+    writeIntent(s, { ...intentP, savedAt: Date.now() })
     const differentRecipient = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: '0xdead000000000000000000000000000000000000', symbol: 'USDC', amount: '1.0' }
-    assert.ok(!intentMatches(readIntent(s), differentRecipient), 'Different recipient must not match')
+    assert.ok(!intentMatches(readIntent(s, differentRecipient), differentRecipient), 'Different recipient must not match')
     const differentAmount = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '2.0' }
-    assert.ok(!intentMatches(readIntent(s), differentAmount), 'Different amount must not match')
+    assert.ok(!intentMatches(readIntent(s, differentAmount), differentAmount), 'Different amount must not match')
   })
 
   it('checkpoint is cleared on confirmed receipt', () => {
     const s = makeStorage()
-    const cp: IntentCheckpoint = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0', savedAt: Date.now() }
-    writeIntent(s, cp)
-    // confirmed outcome: clear checkpoint
-    clearIntent(s)
-    assert.equal(readIntent(s), null, 'Checkpoint must be cleared after confirmed receipt')
+    const intentP = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0' }
+    writeIntent(s, { ...intentP, savedAt: Date.now() })
+    // confirmed outcome: clear only this intent's checkpoint
+    clearIntent(s, intentP)
+    assert.equal(readIntent(s, intentP), null, 'Checkpoint must be cleared after confirmed receipt')
+    // Verify the map key is also gone from the raw storage
+    const raw = s.getItem(INTENTS_MAP_KEY)
+    const map = raw ? JSON.parse(raw) : {}
+    assert.deepEqual(map, {}, 'Intents map must be empty after all checkpoints cleared')
   })
 
-  it('writeIntent fails fast when storage throws (simulates quota exceeded)', () => {
+  it('writeIntent fails fast when storage setItem throws (simulates quota exceeded)', () => {
+    // getItem returns null (empty map — no prior checkpoint), but setItem throws.
+    // writeIntent must surface a clear error so the caller can abort the wallet request.
     const badStorage = {
       getItem: () => null,
       setItem: () => { throw new Error('QuotaExceededError') },
       removeItem: () => {},
+      length: 0, key: () => null, clear: () => {},
     } as unknown as Storage
     assert.throws(
       () => writeIntent(badStorage, { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0', savedAt: Date.now() }),
-      /QuotaExceeded/,
-      'writeIntent must propagate storage failures so the caller can abort the wallet request'
+      /sessionStorage write failed|unavailable/,
+      'writeIntent must surface a storage-failure error so the caller can abort the wallet request'
     )
   })
 
@@ -241,9 +282,9 @@ describe('AgentSendCard intent checkpoint invariants', () => {
     } as any
     const result = await pollSendReceipt(confirmedProvider, '0x' + 'a'.repeat(64), MOCK_PREPARED)
     assert.equal(result, 'confirmed')
-    // After confirmation, clear checkpoint
-    clearIntent(s)
-    assert.ok(!intentMatches(readIntent(s), intent), 'After confirmed Check again, checkpoint must be cleared')
+    // After confirmation, clear only this intent's checkpoint
+    clearIntent(s, intent)
+    assert.ok(!intentMatches(readIntent(s, intent), intent), 'After confirmed Check again, checkpoint must be cleared')
   })
 })
 
