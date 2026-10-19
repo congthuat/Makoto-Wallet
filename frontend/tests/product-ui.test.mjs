@@ -400,13 +400,13 @@ function reviewFlow(intent, stage = 3, params = {}) {
 }
 
 function reviewProps(flow) {
-  return { msg: { id: 'localized-review', flow }, onChange: noOp, onConfirm: noOp, onContinue: noOp, onEdit: noOp }
+  return { msg: { id: 'localized-review', flow }, onChange: noOp, onConfirm: noOp, onContinue: noOp, onHandoff: noOp, onEdit: noOp }
 }
 
 for (const [intent, english, vietnamese] of [
-  ['send', 'Continue to Send preview', 'Mở màn hình Gửi'],
-  ['swap', 'Open Swap preview', 'Mở màn hình Hoán đổi'],
-  ['bridge', 'Open Bridge preview', 'Mở màn hình Chuyển chuỗi'],
+  ['send', 'Open Send page', 'Mở trang Gửi'],
+  ['swap', 'Open Swap page', 'Mở trang Hoán đổi'],
+  ['bridge', 'Open Bridge page', 'Mở trang Bridge'],
 ]) {
   test(`Vietnamese Agent ${intent} review translates its preview action and prototype label`, () => {
     const html = render(AgentReviewCard, { language: 'vi', props: reviewProps(reviewFlow(intent)) })
@@ -416,9 +416,9 @@ for (const [intent, english, vietnamese] of [
     assert.ok(text.includes('Tương tác thử nghiệm'))
     assert.ok(!text.includes(english))
     assert.doesNotMatch(text, /Prototype interaction|Parameters confirmed/)
-    assert.equal(translate('Open Send preview', 'vi'), 'Mở màn hình Gửi')
+    assert.equal(translate('Open Send page', 'vi'), 'Mở trang Gửi')
     const englishText = visibleText(render(AgentReviewCard, { props: reviewProps(reviewFlow(intent)) }))
-    assert.ok(englishText.includes(english), 'English preview action stays unchanged')
+    assert.ok(englishText.includes(english), 'English page action stays unchanged')
     assert.ok(englishText.includes('Prototype interaction'))
   })
 }

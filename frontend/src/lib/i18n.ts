@@ -94,6 +94,18 @@ const DICT: Record<string, [string, string, string, string]> = {
   'Connecting to Arc…': ['Đang kết nối Arc…', '正在连接 Arc…', 'Arc に接続中…', 'Arc 연결 중…'],
   'Arc unreachable': ['Arc không thể kết nối', 'Arc 无法访问', 'Arc に接続できません', 'Arc 연결 불가'],
   'Arc data is stale — last seen': ['Dữ liệu Arc cũ — cập nhật lần cuối', 'Arc 数据已过期 — 上次更新', 'Arc データ古い — 最終更新', 'Arc 데이터 오래됨 — 마지막 업데이트'],
+  // Agent native execution
+  'Execute directly in chat': ['Thực thi ngay trong chat', '直接在聊天中执行', 'チャット内で直接実行', '채팅에서 직접 실행'],
+  'Live review, then confirm transfer in your wallet — right here.': ['Xem lại trực tiếp, sau đó xác nhận giao dịch trong ví — ngay tại đây.', '实时审查后在钱包确认转账。', 'ライブレビュー後にウォレットで転送を確認。', '실시간 검토 후 지갑에서 전송 확인.'],
+  'Live quote from XyloNet, review, then confirm each step in your wallet — right here.': ['Báo giá trực tiếp từ XyloNet, xem lại, rồi xác nhận từng bước trong ví — ngay tại đây.', '从 XyloNet 获取实时报价，审查后在钱包逐步确认。', 'XyloNet からライブ見積もり取得後、各ステップをウォレットで確認。', 'XyloNet 실시간 견적 후 각 단계를 지갑에서 확인.'],
+  'Live Circle quote, separate approval and burn confirmations — right here.': ['Báo giá Circle trực tiếp, phê duyệt và đốt là hai xác nhận riêng — ngay tại đây.', '实时 Circle 报价，批准和销毁分开确认。', 'Circle のライブ見積もり、承認と Burn を別々に確認。', 'Circle 실시간 견적, 승인과 소각을 각각 확인.'],
+  'Execute Send in chat': ['Thực thi Gửi trong chat', '在聊天中执行发送', 'チャットで送金実行', '채팅에서 송금 실행'],
+  'Execute Swap in chat': ['Thực thi Hoán đổi trong chat', '在聊天中执行兑换', 'チャットでスワップ実行', '채팅에서 스왑 실행'],
+  'Execute Bridge in chat': ['Thực thi Bridge trong chat', '在聊天中执行跨链', 'チャットでブリッジ実行', '채팅에서 브리지 실행'],
+  'Open Send page': ['Mở trang Gửi', '打开发送页面', '送金ページを開く', '송금 페이지 열기'],
+  'Open Swap page': ['Mở trang Hoán đổi', '打开兑换页面', 'スワップページを開く', '스왑 페이지 열기'],
+  'Open Bridge page': ['Mở trang Bridge', '打开跨链页面', 'ブリッジページを開く', '브리지 페이지 열기'],
+  'Transaction complete': ['Giao dịch hoàn tất', '交易完成', 'トランザクション完了', '거래 완료'],
   'Arc network': ['Mạng Arc', 'Arc 网络', 'Arc ネットワーク', 'Arc 네트워크'],
   'Gas is paid in USDC': ['Phí gas trả bằng USDC', 'Gas 以 USDC 支付', 'ガス代は USDC で支払い', '가스비는 USDC로 지불'],
   // Page headers
