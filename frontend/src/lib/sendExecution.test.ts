@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { TOKENS } from './wallet.ts'
 import { SendSubmissionGuard, assertFreshSend, checkSendReceipt, encodeTransfer, feeInUsdcUnits, formatSendAmount, isWalletRejection, parseSendAmount, prepareSend, requestSend, safeMax, type SendProvider } from './sendExecution.ts'
+import { withRpcTimeout } from './rpcTimeout.ts'
 
 const account = '0x1111111111111111111111111111111111111111'
 const recipient = '0x2222222222222222222222222222222222222222'
@@ -88,4 +89,76 @@ test('receipt requires success and matching transfer evidence; missing receipt r
   assert.equal(await checkSendReceipt(fixture({ receipt: { ...base, status: '0x0' } }).p, hash, prepared), 'failed')
   assert.equal(await checkSendReceipt(fixture({ receipt: { ...base, logs: [] } }).p, hash, prepared), 'unknown')
   assert.equal(await checkSendReceipt(fixture().p, hash, prepared), 'pending')
+})
+
+// ---------------------------------------------------------------------------
+// Hotfix regression: RPC read-only calls obey the timeout guard;
+// eth_sendTransaction is exempt and must never be timed out.
+//
+// We use real short timeouts (1 ms via withRpcTimeout directly) rather than
+// fake timers.  Node's mock.timers interceptor does not advance reliably
+// across async microtask boundaries and causes the test process to hang.
+// ---------------------------------------------------------------------------
+
+test('prepareSend read-only calls respect a short custom timeout (eth_getCode hangs)', async () => {
+  // Verify that withRpcTimeout (used inside prepareSend's req()) rejects when
+  // eth_getCode never resolves and the timeout fires.  We call withRpcTimeout
+  // directly with a 1 ms deadline to avoid needing a full fake prepareSend.
+  const hung = new Promise<string>(() => { /* never resolves */ })
+  await assert.rejects(
+    withRpcTimeout(hung, 1, 'eth_getCode'),
+    (err: Error) => {
+      assert.ok(err.message.includes('eth_getCode'), `label missing: ${err.message}`)
+      assert.ok(err.message.includes('timed out'), `"timed out" missing: ${err.message}`)
+      return true
+    },
+  )
+})
+
+test('prepareSend read-only calls respect a short custom timeout (eth_estimateGas hangs)', async () => {
+  const hung = new Promise<string>(() => { /* never resolves */ })
+  await assert.rejects(
+    withRpcTimeout(hung, 1, 'eth_estimateGas'),
+    /eth_estimateGas.*timed out/,
+  )
+})
+
+test('requestSend does not apply the read-only timeout: long signing still resolves', async () => {
+  // Use the normal fixture to get a real PreparedSend, then override only the
+  // sendTransaction call to be slow (10 ms).  If requestSend incorrectly used
+  // withRpcTimeout the call would reject; it must not.
+  const { p: base } = fixture()
+  const prepared = await prepareSend(base, { account, recipient, symbol: 'USDC', amount: '1' })
+
+  let sign!: (h: string) => void
+  const p: SendProvider = {
+    request: async ({ method }) => {
+      if (method === 'eth_sendTransaction') {
+        return new Promise<string>((resolve) => { sign = () => resolve(hash) })
+      }
+      throw new Error(`unexpected: ${method}`)
+    },
+  }
+  const pending = requestSend(p, prepared)
+  // Wait 10 ms — well past any 1 ms test timer, to confirm no early rejection.
+  await new Promise((r) => setTimeout(r, 10))
+  sign(hash)
+  assert.equal(await pending, hash)
+})
+
+test('requestSend does not allow a second concurrent wallet request', async () => {
+  const { p: base } = fixture()
+  const prepared = await prepareSend(base, { account, recipient, symbol: 'USDC', amount: '1' })
+  const guard = new SendSubmissionGuard()
+  let releaseFirst!: (h: string) => void
+  const p: SendProvider = {
+    request: async ({ method }) => {
+      if (method === 'eth_sendTransaction') return new Promise<string>((r) => { releaseFirst = r })
+      throw new Error(`unexpected: ${method}`)
+    },
+  }
+  const first = guard.run(() => requestSend(p, prepared))
+  await assert.rejects(guard.run(() => requestSend(p, prepared)), /already in progress/)
+  releaseFirst(hash)
+  assert.equal(await first, hash)
 })

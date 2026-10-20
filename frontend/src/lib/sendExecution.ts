@@ -102,7 +102,8 @@ export class SendSubmissionGuard {
   }
 }
 export async function requestSend(p: SendProvider, prepared: PreparedSend): Promise<string> {
-  const hash = await req(p, 'eth_sendTransaction', [prepared.request])
+  // eth_sendTransaction is user-interactive wallet signing. Never apply a read-only timeout.
+  const hash = await p.request({ method: 'eth_sendTransaction', params: [prepared.request] })
   if (typeof hash !== 'string' || !/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error('Wallet returned no transaction hash')
   return hash
 }

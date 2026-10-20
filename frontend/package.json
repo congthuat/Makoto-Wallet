@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "type-check": "tsc --noEmit --incremental",
-    "test:brain": "node --experimental-strip-types --test src/brain/brain.test.ts src/lib/sendExecution.test.ts src/lib/activity.test.ts src/lib/faucet.test.ts src/components/AgentSendCard.test.ts",
+    "test:brain": "node --experimental-strip-types --test src/brain/brain.test.ts src/lib/sendExecution.test.ts src/lib/rpcTimeout.test.ts src/lib/activity.test.ts src/lib/faucet.test.ts src/components/AgentSendCard.test.ts",
     "test:agent": "node --experimental-strip-types --test src/agent/*.test.ts",
     "test:send": "node --test tests/send-handoff.test.mjs && npm run test:agent-native",
     "test:completion": "node --test tests/protocol-completion.test.mjs",

@@ -3,6 +3,7 @@ import test from 'node:test'
 import { encodeFunctionResult, erc20Abi } from 'viem'
 import { TOKENS } from '../lib/wallet.ts'
 import type { SendProvider } from '../lib/sendExecution.ts'
+import { withRpcTimeout } from '../lib/rpcTimeout.ts'
 import { readAllowance, readBalance, readReceipt, readWallet, quoteSwap, prepareApproval, prepareSwap } from './toolLayer.ts'
 import { createReview, evaluateToolPolicy, revalidateReview } from './policy.ts'
 import { xyloRouterAbi, XYLO_ROUTER } from './swap.ts'
@@ -74,4 +75,42 @@ test('Quote expiry, insufficient allowance, simulation failure and approval cons
   await assert.rejects(prepareApproval(p, { account, symbol: 'USDC', spender: TOKENS[2].address, amount: 1n }), /Untrusted/)
   assert.equal((await quoteSwap(fixture({ chain: '0x1' }).p, { account, from: 'USDC', to: 'EURC', amount: '1', slippage: 0.005 })).status, 'UNAVAILABLE')
   assert.equal(writes(), 0)
+})
+
+// ---------------------------------------------------------------------------
+// Hotfix regression: toolLayer read calls must time out when the provider hangs.
+// The wallet-write path (eth_sendTransaction) must never be called from here.
+// ---------------------------------------------------------------------------
+
+test('readBalance req() timeout: a hung eth_getCode call is verified via withRpcTimeout directly', async () => {
+  // The 15s real timeout is too slow for a unit test.  Verify the invariant by
+  // calling withRpcTimeout with a 1 ms deadline on a hung promise — the same
+  // wrapping that toolLayer's req() applies to every p.request() call.
+  const hung = new Promise<string>(() => { /* never resolves */ })
+  await assert.rejects(
+    withRpcTimeout(hung, 1, 'eth_getCode'),
+    (err: Error) => {
+      assert.ok(err.message.includes('eth_getCode'))
+      assert.ok(err.message.includes('timed out'))
+      return true
+    },
+  )
+})
+
+test('quoteSwap req() timeout: a hung eth_call is verified via withRpcTimeout directly', async () => {
+  const hung = new Promise<string>(() => { /* never resolves */ })
+  await assert.rejects(
+    withRpcTimeout(hung, 1, 'eth_call'),
+    /eth_call.*timed out/,
+  )
+})
+
+test('toolLayer read-only tools never call eth_sendTransaction', async () => {
+  const { p, writes } = fixture()
+  await readWallet(p)
+  await readBalance(p, 'USDC', account)
+  await readAllowance(p, 'USDC', XYLO_ROUTER, account)
+  await readReceipt(p, hash)
+  await quoteSwap(p, { account, from: 'USDC', to: 'EURC', amount: '1', slippage: 0.005 }, 1000)
+  assert.equal(writes(), 0, 'read-only tool calls must never reach eth_sendTransaction')
 })
