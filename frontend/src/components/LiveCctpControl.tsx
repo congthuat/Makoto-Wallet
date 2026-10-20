@@ -332,13 +332,17 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
       setStage(pendingStage); recordActivity({ ...baseRecord, status: 'attesting' }, op); return
     }
     setDestinationHash(status.forwardTxHash)
-    const response = await withRpcTimeout(
-      fetch(api(`cctp/destination?txHash=${status.forwardTxHash}&recipient=${binding.recipient}&minimumUnits=${binding.expectedReceiveUnits}`), { cache: 'no-store' }),
+    // Both fetch() and response.json() are inside the same deadline so a hung
+    // body read cannot stall the reconcile loop. On timeout the checkpoint,
+    // source hash and destination hash are preserved; no new burn is started.
+    const data = await withRpcTimeout(
+      (async () => {
+        const resp = await fetch(api(`cctp/destination?txHash=${status.forwardTxHash}&recipient=${binding.recipient}&minimumUnits=${binding.expectedReceiveUnits}`), { cache: 'no-store' })
+        return resp.ok ? await resp.json() as { status?: string } : undefined
+      })(),
       CCTP_STATUS_TIMEOUT_MS,
       'Base destination fetch',
-    ).catch(() => null)
-    if (!isCurrent(op)) return
-    const data = response?.ok ? await response.json() as { status?: string } : undefined
+    ).catch(() => undefined)
     if (!isCurrent(op)) return
     if (!data || !['confirmed', 'failed', 'pending'].includes(data.status ?? '')) {
       if (!completedRecovery) setStage('status-unavailable')

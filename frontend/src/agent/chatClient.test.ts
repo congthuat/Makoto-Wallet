@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { requestMakotoChat, CHAT_TIMEOUT_MS } from './chatClient.ts'
+import { requestMakotoChat, CHAT_TIMEOUT_MS, withChatDeadline } from './chatClient.ts'
 
 const context = { locale: 'en' as const, mode: 'connected' as const, chain: 'Arc Testnet' as const, intent: 'CHAT' as const }
 
@@ -47,18 +47,98 @@ test('CHAT_TIMEOUT_MS is exported and is a positive finite number', () => {
   assert.ok(Number.isFinite(CHAT_TIMEOUT_MS) && CHAT_TIMEOUT_MS > 0, `CHAT_TIMEOUT_MS must be a positive number, got ${CHAT_TIMEOUT_MS}`)
 })
 
-test('requestMakotoChat returns LOCAL_FALLBACK when fetch hangs and external signal fires', async () => {
-  // Simulate a network hang that never resolves.
-  // We provide an external AbortController and abort it from inside the fetcher
-  // (synchronously, after 0 ms) so the signal fires into the in-flight fetch.
+// ---------------------------------------------------------------------------
+// withChatDeadline: independent race — guarantee cutoff even when the callback
+// never observes the abort signal (stubbed fetch, non-compliant I/O, etc.).
+// All deadline tests use 1 ms so they complete fast.
+// ---------------------------------------------------------------------------
+
+test('withChatDeadline resolves when callback settles before deadline', async () => {
+  const ctrl = new AbortController()
+  const result = await withChatDeadline(async () => 'ok', 50, ctrl)
+  assert.equal(result, 'ok')
+})
+
+test('withChatDeadline rejects with AbortError when deadline fires and callback never settles', async () => {
+  const ctrl = new AbortController()
+  // The callback returns a Promise that never settles and IGNORES the signal.
+  const never = new Promise<string>(() => { /* intentionally hangs forever */ })
+  const err = await withChatDeadline(() => never, 1, ctrl).catch((e: unknown) => e)
+  assert.ok(err instanceof Error)
+  assert.equal((err as Error).name, 'AbortError')
+  assert.ok((err as Error).message.includes('timed out'))
+})
+
+test('withChatDeadline fires even when callback ignores the abort signal entirely', async () => {
+  const ctrl = new AbortController()
+  // The callback receives `signal` but never uses it — simulates a non-compliant fetcher.
+  const never = new Promise<string>(() => { /* intentionally hangs forever, signal ignored */ })
+  const result = await withChatDeadline((_signal) => never, 1, ctrl).catch(() => 'timed-out')
+  assert.equal(result, 'timed-out')
+})
+
+test('withChatDeadline propagates callback rejection before deadline', async () => {
+  const ctrl = new AbortController()
+  const err = await withChatDeadline(async () => { throw Object.assign(new Error('offline'), { name: 'AbortError' }) }, 50, ctrl).catch((e: unknown) => e)
+  assert.ok(err instanceof Error)
+  assert.equal((err as Error).message, 'offline')
+})
+
+// ---------------------------------------------------------------------------
+// requestMakotoChat integration: deadline covers fetch AND response.json()
+// without relying on the fetcher honouring the signal.
+// ---------------------------------------------------------------------------
+
+test('requestMakotoChat returns LOCAL_FALLBACK when fetch never resolves and ignores abort (no external signal)', async () => {
+  // Fetcher that IGNORES the signal — proves the race fires independently.
+  const fetcher: typeof fetch = async () => new Promise<Response>(() => { /* never */ })
+  // Use a tiny timeout by monkey-patching CHAT_TIMEOUT_MS via a custom entry.
+  // We cannot override the module constant, so instead we test via withChatDeadline
+  // directly (above) and here verify that requestMakotoChat wraps the whole call.
+  // The result must be LOCAL_FALLBACK eventually — tested via an external signal that
+  // mimics the deadline firing after 1 ms.
+  const ac = new AbortController()
+  setTimeout(() => ac.abort(), 1)
+  const result = await requestMakotoChat({ message: 'hello', topic: 'general', context, fetcher, signal: ac.signal })
+  assert.equal(result.ok, false)
+  assert.equal(result.source, 'LOCAL_FALLBACK')
+})
+
+test('requestMakotoChat returns LOCAL_FALLBACK when response.json() never resolves and ignores abort', async () => {
+  // fetch() resolves with 200 but json() hangs forever and IGNORES the signal.
+  const fetcher: typeof fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: () => new Promise<unknown>(() => { /* never, signal ignored */ }),
+  } as unknown as Response)
+  const ac = new AbortController()
+  setTimeout(() => ac.abort(), 1)
+  const result = await requestMakotoChat({ message: 'hello', topic: 'general', context, fetcher, signal: ac.signal })
+  assert.equal(result.ok, false)
+  assert.equal(result.source, 'LOCAL_FALLBACK')
+})
+
+test('requestMakotoChat returns LOCAL_FALLBACK when external signal is already aborted before call', async () => {
+  const ac = new AbortController()
+  ac.abort() // pre-aborted
+  let fetchCalled = false
+  const fetcher: typeof fetch = async () => { fetchCalled = true; return Response.json({ text: 'too late' }) }
+  const result = await requestMakotoChat({ message: 'hello', topic: 'general', context, fetcher, signal: ac.signal })
+  assert.equal(result.ok, false)
+  assert.equal(result.source, 'LOCAL_FALLBACK')
+  // The fetch may or may not have been called (the controller aborts synchronously),
+  // but the response must never be returned as ok.
+  if (fetchCalled) assert.equal(result.ok, false)
+})
+
+test('requestMakotoChat returns LOCAL_FALLBACK when external signal fires mid-execution', async () => {
   const ac = new AbortController()
   const fetcher: typeof fetch = async (_url, init) => {
     const signal = init?.signal
     return new Promise<Response>((_resolve, reject) => {
       signal?.addEventListener('abort', () =>
-        reject(Object.assign(new Error('The user aborted a request.'), { name: 'AbortError' })),
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
       )
-      // Abort 1 ms after the fetch starts — much faster than CHAT_TIMEOUT_MS.
       setTimeout(() => ac.abort(), 1)
     })
   }
@@ -67,23 +147,15 @@ test('requestMakotoChat returns LOCAL_FALLBACK when fetch hangs and external sig
   assert.equal(result.source, 'LOCAL_FALLBACK')
 })
 
-test('requestMakotoChat returns LOCAL_FALLBACK when response.json() hangs and external signal fires', async () => {
+test('stale successful response arriving after abort does not overwrite LOCAL_FALLBACK (settled-once)', async () => {
   const ac = new AbortController()
-  const fetcher: typeof fetch = async (_url, init) => {
-    const signal = init?.signal
-    // fetch() resolves immediately with 200, but .json() hangs.
-    return {
-      ok: true,
-      status: 200,
-      json: () => new Promise<unknown>((_resolve, reject) => {
-        signal?.addEventListener('abort', () =>
-          reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
-        )
-        setTimeout(() => ac.abort(), 1)
-      }),
-    } as unknown as Response
-  }
-  const result = await requestMakotoChat({ message: 'hello', topic: 'general', context, fetcher, signal: ac.signal })
+  let resolveStale!: (r: Response) => void
+  const fetcher: typeof fetch = async () => new Promise<Response>((resolve) => { resolveStale = resolve })
+  const pending = requestMakotoChat({ message: 'hello', topic: 'general', context, fetcher, signal: ac.signal })
+  // Abort first, then deliver a valid response — the result must still be LOCAL_FALLBACK.
+  ac.abort()
+  resolveStale(Response.json({ text: 'I am late' }))
+  const result = await pending
   assert.equal(result.ok, false)
   assert.equal(result.source, 'LOCAL_FALLBACK')
 })

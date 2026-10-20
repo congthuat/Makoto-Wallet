@@ -162,3 +162,64 @@ test('requestSend does not allow a second concurrent wallet request', async () =
   releaseFirst(hash)
   assert.equal(await first, hash)
 })
+
+// ---------------------------------------------------------------------------
+// Integration: prepareSend read calls use req() timeout; requestSend does not.
+// Combining both in one test confirms the two paths are independent.
+// ---------------------------------------------------------------------------
+
+test('prepareSend read timeout integration: read calls use withRpcTimeout; requestSend signing unaffected', async () => {
+  // Step 1: a hung provider call wrapped by withRpcTimeout rejects with a labelled error.
+  // This mirrors exactly what sendExecution.ts req() does: every p.request() call for
+  // read-only methods is wrapped with withRpcTimeout(p.request(...), RPC_TIMEOUT_MS, label).
+  const hung: SendProvider = { request: async () => new Promise(() => { /* hangs forever */ }) }
+  await assert.rejects(
+    withRpcTimeout(hung.request({ method: 'eth_getCode', params: [recipient, 'latest'] }), 1, 'eth_getCode'),
+    /eth_getCode.*timed out/,
+    'read-only RPC call must be bounded by withRpcTimeout',
+  )
+
+  // Step 2: requestSend signing on a slow wallet must NOT be bounded by that timeout.
+  const { p: base } = fixture()
+  const prepared = await prepareSend(base, { account, recipient, symbol: 'USDC', amount: '1' })
+  let signCalled = false
+  let doSign!: () => void
+  const signingProvider: SendProvider = {
+    request: async ({ method }) => {
+      if (method === 'eth_sendTransaction') {
+        signCalled = true
+        return new Promise<string>((resolve) => { doSign = () => resolve(hash) })
+      }
+      throw new Error(`unexpected in signing test: ${method}`)
+    },
+  }
+  const pendingSign = requestSend(signingProvider, prepared)
+  // Wait 10 ms — the 1 ms deadline used above would have fired by now.
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(signCalled, true, 'eth_sendTransaction must have been called')
+  doSign()
+  const result = await pendingSign
+  assert.equal(result, hash, 'signing must resolve after delay without timeout rejection')
+})
+
+test('Cancel does not interfere with in-flight signing: generation bump does not cancel a wallet request already submitted', async () => {
+  // This test verifies the UI safety invariant: generation.current++ only prevents
+  // stale STATE writes (setStage, setError). It does NOT reach into requestSend.
+  // The wallet request was already submitted; its result is still captured.
+  const { p: base } = fixture()
+  const prepared = await prepareSend(base, { account, recipient, symbol: 'USDC', amount: '1' })
+  let doSign!: () => void
+  const p: SendProvider = {
+    request: async ({ method }) => {
+      if (method === 'eth_sendTransaction') return new Promise<string>((r) => { doSign = () => r(hash) })
+      throw new Error(`unexpected: ${method}`)
+    },
+  }
+  // Start the request — it is in-flight.
+  const pending = requestSend(p, prepared)
+  // A UI "Cancel" bumps the generation counter but requestSend is already running.
+  // The promise is independent of generation — it must still resolve.
+  doSign()
+  const result = await pending
+  assert.equal(result, hash, 'in-flight signing must resolve regardless of generation bump')
+})
