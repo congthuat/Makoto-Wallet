@@ -21,7 +21,7 @@
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { withRpcTimeout, RPC_TIMEOUT_MS } from './rpcTimeout.ts'
+import { withRpcTimeout } from './rpcTimeout.ts'
 import { requestSend, type SendProvider, type PreparedSend } from './sendExecution.ts'
 import { TOKENS } from './wallet.ts'
 
