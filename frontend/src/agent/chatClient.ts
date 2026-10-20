@@ -29,6 +29,9 @@ export function withChatDeadline<T>(
   // whether `fn` honours the signal — this is the independent guarantee.
   return new Promise<T>((resolve, reject) => {
     let done = false
+    // `timer` is declared with `let` and initialized before `abort()` is ever called,
+    // so the closure never references an uninitialised binding (no TDZ).
+    let timer: ReturnType<typeof setTimeout> | undefined
     const abort = () => {
       if (!done) {
         done = true
@@ -36,12 +39,14 @@ export function withChatDeadline<T>(
         reject(Object.assign(new Error('Chat service timed out'), { name: 'AbortError' }))
       }
     }
-    // Case 2: already aborted before we started.
+    // Case 2: already aborted before we started — timer is still undefined here,
+    // clearTimeout(undefined) is a no-op, so this is safe.
     if (controller.signal.aborted) { abort(); return }
     // Case 3: aborted mid-execution (external signal or deadline from another call).
     controller.signal.addEventListener('abort', abort, { once: true })
-    // Case 1: deadline timer.
-    const timer = setTimeout(() => { controller.abort(); abort() }, ms)
+    // Case 1: deadline timer. Assigned after Case 2 guard so it is only set when
+    // the signal was not already aborted (avoids a timer that never fires being leaked).
+    timer = setTimeout(() => { controller.abort(); abort() }, ms)
     fn(controller.signal).then(
       (value) => { if (!done) { done = true; clearTimeout(timer); controller.signal.removeEventListener('abort', abort); resolve(value) } },
       (err)   => { if (!done) { done = true; clearTimeout(timer); controller.signal.removeEventListener('abort', abort); reject(err) } },

@@ -108,7 +108,7 @@ before(async () => {
   const baselineRef = process.env.MAKOTO_SEND_BASELINE_REF
   if (baselineRef) assert.match(baselineRef, /^[0-9a-f]{40}$/i, 'Negative control requires a full production commit SHA')
   const baselineSend = baselineRef ? execFileSync('git', ['show', `${baselineRef}:frontend/src/pages/Send.tsx`], { cwd: frontendRoot, encoding: 'utf8' }) : undefined
-  browser = createBrowserHarness({ frontendRoot, name: 'send', ready: 'window.__sendHarness?.ready && document.querySelector("input")',
+  browser = createBrowserHarness({ frontendRoot, name: 'send', ready: 'window.__sendHarness?.ready && (document.querySelector("input") || document.querySelector("dl > div"))',
     plugins: [tailwindcss(), {
       name: 'mocked-send-handoff-browser-fixture', enforce: 'pre',
       resolveId(source) {

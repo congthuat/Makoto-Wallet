@@ -38,3 +38,14 @@ export const PREPARE_TIMEOUT_MS = 20_000
 export const AGENT_EVIDENCE_TIMEOUT_MS = 12_000
 /** Timeout for Circle CCTP status / attestation HTTP calls. */
 export const CCTP_STATUS_TIMEOUT_MS = 15_000
+
+/**
+ * Test-only hook for RPC_TIMEOUT_MS.
+ * Call setRpcTimeoutMsForTest(1) in before() to shrink timeouts for fast tests.
+ * Call setRpcTimeoutMsForTest(undefined) in after() to restore production behaviour.
+ * Never call this from production code.
+ * @internal
+ */
+let _rpcTimeoutMsOverride: number | undefined = undefined
+export function _getRpcTimeoutMs(): number { return _rpcTimeoutMsOverride ?? RPC_TIMEOUT_MS }
+export function _setRpcTimeoutMsForTest(ms: number | undefined): void { _rpcTimeoutMsOverride = ms }

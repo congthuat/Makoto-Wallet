@@ -118,17 +118,19 @@ test('requestMakotoChat returns LOCAL_FALLBACK when response.json() never resolv
   assert.equal(result.source, 'LOCAL_FALLBACK')
 })
 
-test('requestMakotoChat returns LOCAL_FALLBACK when external signal is already aborted before call', async () => {
+test('requestMakotoChat returns LOCAL_FALLBACK when external signal is already aborted before call and fetch is never invoked', async () => {
   const ac = new AbortController()
-  ac.abort() // pre-aborted
+  ac.abort() // pre-aborted — withChatDeadline Case 2 must fire before fn() is called
   let fetchCalled = false
   const fetcher: typeof fetch = async () => { fetchCalled = true; return Response.json({ text: 'too late' }) }
   const result = await requestMakotoChat({ message: 'hello', topic: 'general', context, fetcher, signal: ac.signal })
+  // The TDZ fix ensures abort() is called synchronously in Case 2 before fn(signal) runs.
+  // fetch must NOT have been called at all.
+  assert.equal(fetchCalled, false, 'fetch must not be called when the signal is pre-aborted')
   assert.equal(result.ok, false)
   assert.equal(result.source, 'LOCAL_FALLBACK')
-  // The fetch may or may not have been called (the controller aborts synchronously),
-  // but the response must never be returned as ok.
-  if (fetchCalled) assert.equal(result.ok, false)
+  // The error must be the AbortError from our deadline, not a generic network error.
+  assert.ok((result as { reason: string }).reason.includes('timed out'), `expected "timed out" in reason: ${(result as { reason: string }).reason}`)
 })
 
 test('requestMakotoChat returns LOCAL_FALLBACK when external signal fires mid-execution', async () => {

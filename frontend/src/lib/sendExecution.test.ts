@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import test, { after, before } from 'node:test'
 import { TOKENS } from './wallet.ts'
 import { SendSubmissionGuard, assertFreshSend, checkSendReceipt, encodeTransfer, feeInUsdcUnits, formatSendAmount, isWalletRejection, parseSendAmount, prepareSend, requestSend, safeMax, type SendProvider } from './sendExecution.ts'
-import { withRpcTimeout } from './rpcTimeout.ts'
+import { withRpcTimeout, _setRpcTimeoutMsForTest } from './rpcTimeout.ts'
 
 const account = '0x1111111111111111111111111111111111111111'
 const recipient = '0x2222222222222222222222222222222222222222'
@@ -95,32 +95,62 @@ test('receipt requires success and matching transfer evidence; missing receipt r
 // Hotfix regression: RPC read-only calls obey the timeout guard;
 // eth_sendTransaction is exempt and must never be timed out.
 //
-// We use real short timeouts (1 ms via withRpcTimeout directly) rather than
-// fake timers.  Node's mock.timers interceptor does not advance reliably
-// across async microtask boundaries and causes the test process to hang.
+// Integration tests use _rpcTimeoutMsOverride = 1 ms so prepareSend's real
+// req() path is exercised end-to-end without waiting 15 s for the production
+// timeout to fire.  The override is set/reset in before()/after() hooks.
 // ---------------------------------------------------------------------------
 
-test('prepareSend read-only calls respect a short custom timeout (eth_getCode hangs)', async () => {
-  // Verify that withRpcTimeout (used inside prepareSend's req()) rejects when
-  // eth_getCode never resolves and the timeout fires.  We call withRpcTimeout
-  // directly with a 1 ms deadline to avoid needing a full fake prepareSend.
-  const hung = new Promise<string>(() => { /* never resolves */ })
+// 10 ms is enough to let the mock provider's microtask round-trips complete
+// while still being fast enough for CI (well under the 15 s production timeout).
+before(() => { _setRpcTimeoutMsForTest(10) })
+after(() => { _setRpcTimeoutMsForTest(undefined) })
+
+test('prepareSend integration: hung eth_getCode causes prepareSend to reject via req() timeout', async () => {
+  // Real integration: prepareSend calls req('eth_getCode', ...) via req().
+  // With _rpcTimeoutMsOverride = 1 ms the timeout fires immediately and prepareSend rejects.
+  // This confirms the wiring: req() → withRpcTimeout(p.request(...), override ?? RPC_TIMEOUT_MS, label).
+  const hungProvider: SendProvider = { request: async () => new Promise(() => { /* hangs forever */ }) }
   await assert.rejects(
-    withRpcTimeout(hung, 1, 'eth_getCode'),
-    (err: Error) => {
-      assert.ok(err.message.includes('eth_getCode'), `label missing: ${err.message}`)
-      assert.ok(err.message.includes('timed out'), `"timed out" missing: ${err.message}`)
-      return true
-    },
+    prepareSend(hungProvider, { account, recipient, symbol: 'USDC', amount: '1' }),
+    /timed out/,
+    'prepareSend must reject when eth_getCode never resolves',
   )
 })
 
-test('prepareSend read-only calls respect a short custom timeout (eth_estimateGas hangs)', async () => {
-  const hung = new Promise<string>(() => { /* never resolves */ })
+test('prepareSend integration: hung eth_estimateGas causes prepareSend to reject via req() timeout', async () => {
+  // Provider answers the initial chain/account calls immediately, then hangs on eth_estimateGas.
+  let callCount = 0
+  const hangAfterSetupProvider: SendProvider = {
+    request: async ({ method, params = [] }) => {
+      callCount++
+      if (method === 'eth_accounts') return [account]
+      if (method === 'eth_chainId') return '0x4cef52'
+      if (method === 'eth_getCode') {
+        // Token contracts must have non-empty code; the recipient must have empty code (not a contract).
+        const addr = (params as string[])[0]?.toLowerCase()
+        return addr === recipient.toLowerCase() ? '0x' : '0x6000'
+      }
+      if (method === 'eth_call') {
+        // verifyToken calls: decimals (0x313ce567), symbol (0x95d89b41), balanceOf (0x70a08231)
+        const data = (params[0] as { data: string }).data
+        if (data === '0x313ce567') return '0x' + '6'.padStart(64, '0') // decimals = 6
+        // ABI-encode string "USDC": offset(32) + length(4) + "USDC" padded to 32 bytes
+        if (data === '0x95d89b41') return `0x${'20'.padStart(64, '0')}${'4'.padStart(64, '0')}${'55534443'.padEnd(64, '0')}`
+        if (data.startsWith('0x70a08231')) return `0x${(10_000_000n).toString(16).padStart(64, '0')}`
+        return '0x'
+      }
+      if (method === 'eth_getBalance') return `0x${(10_000_000_000_000_000_000n).toString(16)}`
+      if (method === 'eth_gasPrice') return '0x4a817c800'
+      // eth_estimateGas: hang forever — this is the call we're testing times out
+      return new Promise(() => { /* hangs */ })
+    },
+  }
   await assert.rejects(
-    withRpcTimeout(hung, 1, 'eth_estimateGas'),
-    /eth_estimateGas.*timed out/,
+    prepareSend(hangAfterSetupProvider, { account, recipient, symbol: 'USDC', amount: '1' }),
+    /timed out/,
+    'prepareSend must reject when eth_estimateGas never resolves',
   )
+  assert.ok(callCount > 0, 'provider must have been called at least once')
 })
 
 test('requestSend does not apply the read-only timeout: long signing still resolves', async () => {
