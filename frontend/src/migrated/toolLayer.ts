@@ -1,6 +1,7 @@
 import { decodeFunctionResult, encodeFunctionData, erc20Abi, getAddress, isAddress, isHash, keccak256, stringToHex, zeroAddress, type Address, type Hex } from 'viem'
 import { ARC, TOKENS, getProvider, type Holding, type NetworkInfo, type TokenMeta, type Tx } from '../lib/wallet.ts'
 import { parseSendAmount, prepareSend, type PreparedSend, type SendProvider } from '../lib/sendExecution.ts'
+import { withRpcTimeout, _getRpcTimeoutMs } from '../lib/rpcTimeout.ts'
 import { getAssetById, type SupportedAssetId } from './assets.ts'
 import { CCTP_KIT_BRIDGE_TESTNET } from './cctp.ts'
 import { createXyloQuote, minimumSwapOutput, prepareXyloSwapRequest, SWAP_QUOTE_MAX_AGE_MS, XYLO_ROUTER, xyloRouterAbi, type SwapQuote } from './swap.ts'
@@ -66,7 +67,10 @@ export type PreparedToolAction = Readonly<{
 
 const empty = <T>(reason: string, source = 'wallet-provider'): ToolResult<T> => Object.freeze({ status: 'UNAVAILABLE', source, observedAt: Date.now(), reason })
 const ok = <T>(data: T, source = 'wallet-provider'): ToolResult<T> => Object.freeze({ status: 'OK', source, observedAt: Date.now(), data })
-const req = (p: SendProvider, method: string, params: unknown[] = []) => p.request({ method, params })
+/** Read-only RPC call with a hard timeout. Never use for wallet-signing methods.
+ *  _getRpcTimeoutMs() returns the test override when set, else RPC_TIMEOUT_MS. */
+const req = (p: SendProvider, method: string, params: unknown[] = []) =>
+  withRpcTimeout(p.request({ method, params }), _getRpcTimeoutMs(), method)
 const hex = (value: bigint): Hex => `0x${value.toString(16)}`
 const address = (value: string): Address => { if (!isAddress(value) || getAddress(value) === zeroAddress) throw new Error('Invalid address'); return getAddress(value) }
 const bigint = (value: unknown): bigint => { if (typeof value !== 'string' || !/^0x[0-9a-f]+$/i.test(value)) throw new Error('Invalid RPC result'); return BigInt(value) }

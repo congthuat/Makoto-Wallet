@@ -362,7 +362,18 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
     {error && <p className="text-rose-300 break-words">{vi && tr(error) === error ? tr(errorFallback) : tr(error)}</p>}
     {activityUnavailable && <p className="text-rose-300 break-words">{say('Activity could not be updated. The transaction hash remains on this page for status checks.', 'Chưa thể cập nhật Hoạt động. Mã giao dịch vẫn còn trên trang này để kiểm tra trạng thái.')}</p>}
     {checkpointUnavailable && <p className="text-rose-300 break-words">{say('Recovery could not be saved. Keep this transaction hash and check its status before leaving this page. Do not resubmit.', 'Chưa thể lưu trạng thái khôi phục. Hãy giữ mã giao dịch và kiểm tra trạng thái trước khi rời trang. Không gửi lại.')}</p>}
-    {(stage === 'idle' || stage === 'approval-confirmed' || stage === 'failed' || stage === 'rejected') && <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Loading…', 'Đang tải…') : stage === 'approval-confirmed' ? say('Retry fresh swap review', 'Chuẩn bị lại báo giá hoán đổi') : say('Get live quote and review', 'Lấy báo giá trực tiếp và xem lại')}</Button>}
+    {(stage === 'idle' || stage === 'approval-confirmed' || stage === 'failed' || stage === 'rejected') && (
+      <>
+        <Button variant="primary" disabled={busy || !amount} onClick={start}>{busy ? say('Loading…', 'Đang tải…') : stage === 'approval-confirmed' ? say('Retry fresh swap review', 'Chuẩn bị lại báo giá hoán đổi') : say('Get live quote and review', 'Lấy báo giá trực tiếp và xem lại')}</Button>
+        {busy && (
+          <button
+            type="button"
+            onClick={() => { generation.current += 1; operation.current = undefined; setBusy(false); setError(say('Cancelled. Try again when the network is available.', 'Đã hủy. Thử lại khi mạng khả dụng.')); }}
+            className={`text-[12px] ${T.sub} hover:text-white underline`}
+          >{say('Cancel', 'Hủy')}</button>
+        )}
+      </>
+    )}
     {stage === 'confirmed' && <Button variant="primary" disabled={busy} onClick={complete}>{say('Done', 'Hoàn tất')}</Button>}
     {(stage === 'review-approval' || stage === 'review-swap') && <div className="flex gap-2"><Button variant="primary" disabled={busy} onClick={confirm}>{busy ? say('Checking…', 'Đang kiểm tra…') : stage === 'review-approval' ? say('Confirm approval in wallet', 'Xác nhận phê duyệt trong ví') : say('Confirm swap in wallet', 'Xác nhận hoán đổi trong ví')}</Button><Button disabled={busy} onClick={() => { setStage('idle'); setPrepared(undefined); setReview(undefined) }}>{say('Cancel', 'Hủy')}</Button></div>}
     {(stage === 'unknown' || stage === 'pending') && hash && <Button disabled={busy} onClick={checkAgain}>{say('Check receipt again', 'Kiểm tra lại biên nhận')}</Button>}

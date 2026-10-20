@@ -17,6 +17,7 @@ import { prepareBrainReview, revalidateBrainReview } from '../brain/policy'
 import { createBrainHandoff, storeBrainHandoff } from '../brain/handoff'
 import type { BrainPreparation, BrainReviewSnapshot } from '../brain/types'
 import { planAgentRequest, replanAgentFromEvidence, type AgentEvidence } from '../migrated/planner'
+import { withRpcTimeout, AGENT_EVIDENCE_TIMEOUT_MS } from '../lib/rpcTimeout'
 import { readHomeAnswer, renderHomeAnswer, routeHomeRequest, type QuickAnswer } from '../agent/homeRequest'
 import { createAgentSession, recoverLatestAgentSession, rememberAgentSession, transitionAgentSession, type AgentSession } from '../brain/agentSession'
 import { localChatReply, routeAgentMessage, type ChatTopic } from '../agent/chatRouter'
@@ -343,7 +344,14 @@ export default function AgentPage() {
       const answer = await chat(routed.topic, 'CHAT')
       return { id: nid(), role: 'agent', text: answer.text, sample: false, conversation: true, source: answer.source, ...(answer.source === 'LOCAL_FALLBACK' ? { localChatTopic: routed.topic } : {}) }
     }
-    const observed = w.mode === 'connected' && (structured.status === 'ACTION' || structured.status === 'STRATEGY') ? await replanAgentFromEvidence(structured, getProvider(), w.address) : undefined
+    const evidencePromise = w.mode === 'connected' && (structured.status === 'ACTION' || structured.status === 'STRATEGY')
+      ? replanAgentFromEvidence(structured, getProvider(), w.address)
+      : undefined
+    const observed: AgentEvidence | undefined = evidencePromise
+      ? await withRpcTimeout(evidencePromise, AGENT_EVIDENCE_TIMEOUT_MS, 'Agent evidence preflight').catch(
+          (e): AgentEvidence => ({ status: 'UNAVAILABLE', reason: e instanceof Error ? e.message : 'Live evidence unavailable', observedAt: Date.now(), executionEnabled: false })
+        )
+      : undefined
     const liveEvidence = observed ? { status: observed.status, reason: observed.reason, quoteExpiresAt: observed.quoteExpiresAt } : undefined
     if (structured.status === 'INFORMATION' && structured.topic === 'current-datetime') {
       const currentTime = getCurrentDateTime()

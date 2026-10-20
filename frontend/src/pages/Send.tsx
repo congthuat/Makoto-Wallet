@@ -55,7 +55,7 @@ const SEND_VI: Record<string, string> = {
   'Self-send is blocked': 'Không thể gửi đến chính ví này', 'Unsupported asset': 'Tài sản chưa được hỗ trợ',
   'Send review changed or expired. Review again.': 'Bản xem lại đã thay đổi hoặc hết hạn. Hãy xem lại.',
   'Unable to complete this wallet request. Check the wallet and try again.': 'Không thể hoàn tất yêu cầu trong ví. Hãy kiểm tra ví rồi thử lại.',
-  'After wallet approval': 'Sau khi xác nhận trong ví',
+  'After wallet approval': 'Sau khi xác nhận trong ví', 'Cancel': 'Hủy',
   Prepared: 'Đã chuẩn bị', 'Wallet signature': 'Xác nhận trong ví', Submitted: 'Đã gửi', Confirming: 'Đang xác nhận', Completed: 'Hoàn thành', Failed: 'Thất bại',
   'Transaction prepared': 'Giao dịch đã chuẩn bị', 'The transaction is built and reviewed. Nothing has been signed yet.': 'Giao dịch đã được chuẩn bị và xem lại. Chưa có gì được ký.',
   'Sign in your wallet': 'Xác nhận trong ví', 'Your wallet would open here and ask you to authorize this transaction. Makoto cannot sign for you.': 'Ví của bạn sẽ mở để yêu cầu bạn xác nhận giao dịch. Makoto không thể ký thay bạn.',
@@ -369,6 +369,15 @@ export default function SendPage() {
               <Button variant="primary" size="lg" className="w-full" disabled={!canReview || busy} onClick={startReview}>
                 {s(busy ? 'Preparing live review…' : !to ? 'Enter recipient' : !amount ? 'Enter amount' : canReview ? 'Review' : 'Check the details above')}
               </Button>
+              {busy && (
+                <button
+                  type="button"
+                  onClick={() => { reviewGeneration.current += 1; reviewInFlight.current = false; setBusy(false) }}
+                  className={`mt-1 w-full text-center text-[12px] ${T.mute} hover:text-white underline`}
+                >
+                  {s('Cancel')}
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

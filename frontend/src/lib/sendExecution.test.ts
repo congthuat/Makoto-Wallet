@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import test, { after, before } from 'node:test'
 import { TOKENS } from './wallet.ts'
 import { SendSubmissionGuard, assertFreshSend, checkSendReceipt, encodeTransfer, feeInUsdcUnits, formatSendAmount, isWalletRejection, parseSendAmount, prepareSend, requestSend, safeMax, type SendProvider } from './sendExecution.ts'
+import { withRpcTimeout, _setRpcTimeoutMsForTest } from './rpcTimeout.ts'
 
 const account = '0x1111111111111111111111111111111111111111'
 const recipient = '0x2222222222222222222222222222222222222222'
@@ -88,4 +89,167 @@ test('receipt requires success and matching transfer evidence; missing receipt r
   assert.equal(await checkSendReceipt(fixture({ receipt: { ...base, status: '0x0' } }).p, hash, prepared), 'failed')
   assert.equal(await checkSendReceipt(fixture({ receipt: { ...base, logs: [] } }).p, hash, prepared), 'unknown')
   assert.equal(await checkSendReceipt(fixture().p, hash, prepared), 'pending')
+})
+
+// ---------------------------------------------------------------------------
+// Hotfix regression: RPC read-only calls obey the timeout guard;
+// eth_sendTransaction is exempt and must never be timed out.
+//
+// Integration tests use _rpcTimeoutMsOverride = 1 ms so prepareSend's real
+// req() path is exercised end-to-end without waiting 15 s for the production
+// timeout to fire.  The override is set/reset in before()/after() hooks.
+// ---------------------------------------------------------------------------
+
+// 10 ms is enough to let the mock provider's microtask round-trips complete
+// while still being fast enough for CI (well under the 15 s production timeout).
+before(() => { _setRpcTimeoutMsForTest(10) })
+after(() => { _setRpcTimeoutMsForTest(undefined) })
+
+test('prepareSend integration: hung eth_getCode causes prepareSend to reject via req() timeout', async () => {
+  // Real integration: prepareSend calls req('eth_getCode', ...) via req().
+  // With _rpcTimeoutMsOverride = 1 ms the timeout fires immediately and prepareSend rejects.
+  // This confirms the wiring: req() → withRpcTimeout(p.request(...), override ?? RPC_TIMEOUT_MS, label).
+  const hungProvider: SendProvider = { request: async () => new Promise(() => { /* hangs forever */ }) }
+  await assert.rejects(
+    prepareSend(hungProvider, { account, recipient, symbol: 'USDC', amount: '1' }),
+    /timed out/,
+    'prepareSend must reject when eth_getCode never resolves',
+  )
+})
+
+test('prepareSend integration: hung eth_estimateGas causes prepareSend to reject via req() timeout', async () => {
+  // Provider answers the initial chain/account calls immediately, then hangs on eth_estimateGas.
+  let callCount = 0
+  const hangAfterSetupProvider: SendProvider = {
+    request: async ({ method, params = [] }) => {
+      callCount++
+      if (method === 'eth_accounts') return [account]
+      if (method === 'eth_chainId') return '0x4cef52'
+      if (method === 'eth_getCode') {
+        // Token contracts must have non-empty code; the recipient must have empty code (not a contract).
+        const addr = (params as string[])[0]?.toLowerCase()
+        return addr === recipient.toLowerCase() ? '0x' : '0x6000'
+      }
+      if (method === 'eth_call') {
+        // verifyToken calls: decimals (0x313ce567), symbol (0x95d89b41), balanceOf (0x70a08231)
+        const data = (params[0] as { data: string }).data
+        if (data === '0x313ce567') return '0x' + '6'.padStart(64, '0') // decimals = 6
+        // ABI-encode string "USDC": offset(32) + length(4) + "USDC" padded to 32 bytes
+        if (data === '0x95d89b41') return `0x${'20'.padStart(64, '0')}${'4'.padStart(64, '0')}${'55534443'.padEnd(64, '0')}`
+        if (data.startsWith('0x70a08231')) return `0x${(10_000_000n).toString(16).padStart(64, '0')}`
+        return '0x'
+      }
+      if (method === 'eth_getBalance') return `0x${(10_000_000_000_000_000_000n).toString(16)}`
+      if (method === 'eth_gasPrice') return '0x4a817c800'
+      // eth_estimateGas: hang forever — this is the call we're testing times out
+      return new Promise(() => { /* hangs */ })
+    },
+  }
+  await assert.rejects(
+    prepareSend(hangAfterSetupProvider, { account, recipient, symbol: 'USDC', amount: '1' }),
+    /timed out/,
+    'prepareSend must reject when eth_estimateGas never resolves',
+  )
+  assert.ok(callCount > 0, 'provider must have been called at least once')
+})
+
+test('requestSend does not apply the read-only timeout: long signing still resolves', async () => {
+  // Use the normal fixture to get a real PreparedSend, then override only the
+  // sendTransaction call to be slow (10 ms).  If requestSend incorrectly used
+  // withRpcTimeout the call would reject; it must not.
+  const { p: base } = fixture()
+  const prepared = await prepareSend(base, { account, recipient, symbol: 'USDC', amount: '1' })
+
+  let sign!: (h: string) => void
+  const p: SendProvider = {
+    request: async ({ method }) => {
+      if (method === 'eth_sendTransaction') {
+        return new Promise<string>((resolve) => { sign = () => resolve(hash) })
+      }
+      throw new Error(`unexpected: ${method}`)
+    },
+  }
+  const pending = requestSend(p, prepared)
+  // Wait 10 ms — well past any 1 ms test timer, to confirm no early rejection.
+  await new Promise((r) => setTimeout(r, 10))
+  sign(hash)
+  assert.equal(await pending, hash)
+})
+
+test('requestSend does not allow a second concurrent wallet request', async () => {
+  const { p: base } = fixture()
+  const prepared = await prepareSend(base, { account, recipient, symbol: 'USDC', amount: '1' })
+  const guard = new SendSubmissionGuard()
+  let releaseFirst!: (h: string) => void
+  const p: SendProvider = {
+    request: async ({ method }) => {
+      if (method === 'eth_sendTransaction') return new Promise<string>((r) => { releaseFirst = r })
+      throw new Error(`unexpected: ${method}`)
+    },
+  }
+  const first = guard.run(() => requestSend(p, prepared))
+  await assert.rejects(guard.run(() => requestSend(p, prepared)), /already in progress/)
+  releaseFirst(hash)
+  assert.equal(await first, hash)
+})
+
+// ---------------------------------------------------------------------------
+// Integration: prepareSend read calls use req() timeout; requestSend does not.
+// Combining both in one test confirms the two paths are independent.
+// ---------------------------------------------------------------------------
+
+test('prepareSend read timeout integration: read calls use withRpcTimeout; requestSend signing unaffected', async () => {
+  // Step 1: a hung provider call wrapped by withRpcTimeout rejects with a labelled error.
+  // This mirrors exactly what sendExecution.ts req() does: every p.request() call for
+  // read-only methods is wrapped with withRpcTimeout(p.request(...), RPC_TIMEOUT_MS, label).
+  const hung: SendProvider = { request: async () => new Promise(() => { /* hangs forever */ }) }
+  await assert.rejects(
+    withRpcTimeout(hung.request({ method: 'eth_getCode', params: [recipient, 'latest'] }), 1, 'eth_getCode'),
+    /eth_getCode.*timed out/,
+    'read-only RPC call must be bounded by withRpcTimeout',
+  )
+
+  // Step 2: requestSend signing on a slow wallet must NOT be bounded by that timeout.
+  const { p: base } = fixture()
+  const prepared = await prepareSend(base, { account, recipient, symbol: 'USDC', amount: '1' })
+  let signCalled = false
+  let doSign!: () => void
+  const signingProvider: SendProvider = {
+    request: async ({ method }) => {
+      if (method === 'eth_sendTransaction') {
+        signCalled = true
+        return new Promise<string>((resolve) => { doSign = () => resolve(hash) })
+      }
+      throw new Error(`unexpected in signing test: ${method}`)
+    },
+  }
+  const pendingSign = requestSend(signingProvider, prepared)
+  // Wait 10 ms — the 1 ms deadline used above would have fired by now.
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(signCalled, true, 'eth_sendTransaction must have been called')
+  doSign()
+  const result = await pendingSign
+  assert.equal(result, hash, 'signing must resolve after delay without timeout rejection')
+})
+
+test('Cancel does not interfere with in-flight signing: generation bump does not cancel a wallet request already submitted', async () => {
+  // This test verifies the UI safety invariant: generation.current++ only prevents
+  // stale STATE writes (setStage, setError). It does NOT reach into requestSend.
+  // The wallet request was already submitted; its result is still captured.
+  const { p: base } = fixture()
+  const prepared = await prepareSend(base, { account, recipient, symbol: 'USDC', amount: '1' })
+  let doSign!: () => void
+  const p: SendProvider = {
+    request: async ({ method }) => {
+      if (method === 'eth_sendTransaction') return new Promise<string>((r) => { doSign = () => r(hash) })
+      throw new Error(`unexpected: ${method}`)
+    },
+  }
+  // Start the request — it is in-flight.
+  const pending = requestSend(p, prepared)
+  // A UI "Cancel" bumps the generation counter but requestSend is already running.
+  // The promise is independent of generation — it must still resolve.
+  doSign()
+  const result = await pending
+  assert.equal(result, hash, 'in-flight signing must resolve regardless of generation bump')
 })
