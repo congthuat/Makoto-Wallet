@@ -10,7 +10,7 @@ import { valuePortfolio } from '../../../shared/portfolioValuation.mjs'
 import { captureEligible, historyAccessEnabled, historyPoints, historyQueryKey, historyScope, portfolioHistoryApi } from './portfolioHistory'
 import { browserWalletRevision, clearBrowserProvider, discoverBrowserWallets, subscribeBrowserWallets, type BrowserWallet } from './walletProviders'
 import { translate } from './i18n'
-import { withRpcTimeout, RPC_TIMEOUT_MS } from './rpcTimeout'
+import { withRpcTimeout, _getRpcTimeoutMs } from './rpcTimeout'
 import {
   DEMO_ACTIVITY, DEMO_ADDRESS, DEMO_BALANCES, TOKENS, connectWallet, getProvider,
   type Contact, type Holding, type NetworkInfo, type Prices, type Tx, type WalletApi,
@@ -111,7 +111,7 @@ function useWalletState() {
     if (!p) return
     const reconcile = async () => {
       try {
-        const chain = await withRpcTimeout(p.request({ method: 'eth_chainId' }), RPC_TIMEOUT_MS, 'eth_chainId')
+        const chain = await withRpcTimeout(p.request({ method: 'eth_chainId' }), _getRpcTimeoutMs(), 'eth_chainId')
         if (Number(chain) !== 5042002) return
         for (const record of sendRecords.filter((r) => r.account.toLowerCase() === address.toLowerCase() && (r.status === 'pending' || r.status === 'unknown'))) {
           const token = TOKENS.find((x) => x.sym === record.symbol)
@@ -130,7 +130,7 @@ function useWalletState() {
     const p = getProvider(); if (!p) return
     const reconcile = async () => {
       try {
-        const chain = await withRpcTimeout(p.request({ method: 'eth_chainId' }), RPC_TIMEOUT_MS, 'eth_chainId')
+        const chain = await withRpcTimeout(p.request({ method: 'eth_chainId' }), _getRpcTimeoutMs(), 'eth_chainId')
         if (Number(chain) !== 5042002) return
         for (const record of (Array.isArray(swapRecords) ? swapRecords : []).filter((item) => item.account?.toLowerCase() === address.toLowerCase() && (item.status === 'pending' || item.status === 'unknown'))) {
           const status = await checkSwapRecord(p, record)
@@ -147,7 +147,7 @@ function useWalletState() {
     const p = getProvider(); if (!p) return
     const reconcile = async () => {
       try {
-        const chain = await withRpcTimeout(p.request({ method: 'eth_chainId' }), RPC_TIMEOUT_MS, 'eth_chainId')
+        const chain = await withRpcTimeout(p.request({ method: 'eth_chainId' }), _getRpcTimeoutMs(), 'eth_chainId')
         if (Number(chain) !== 5042002) return
         for (const record of (Array.isArray(bridgeRecords) ? bridgeRecords : []).filter((item) => item.account?.toLowerCase() === address.toLowerCase() && !['destination-confirmed', 'destination-failed', 'forwarding-failed', 'failed'].includes(item.status))) {
           const next = await checkBridgeRecord(p, record)
@@ -224,7 +224,7 @@ function useWalletState() {
     setWalletAccountConfirmed(false)
     // Read-only initial account check. Apply the standard read timeout so a stalled
     // provider cannot leave walletAccountConfirmed=false indefinitely.
-    withRpcTimeout(p.request({ method: 'eth_accounts' }), RPC_TIMEOUT_MS, 'eth_accounts').then((accounts) => {
+    withRpcTimeout(p.request({ method: 'eth_accounts' }), _getRpcTimeoutMs(), 'eth_accounts').then((accounts) => {
       if (!active) return
       const current = Array.isArray(accounts) && typeof accounts[0] === 'string' ? accounts[0] : ''
       if (!current) { setMode('demo'); setAddress(''); return }
@@ -254,7 +254,7 @@ function useWalletState() {
     setWalletChainId(undefined)
     // Read-only initial chain check. Apply the standard read timeout so a stalled
     // provider cannot leave walletChainId=undefined (blocking swap/bridge reviews).
-    withRpcTimeout(p.request({ method: 'eth_chainId' }), RPC_TIMEOUT_MS, 'eth_chainId').then(updateChain).catch(() => { if (active) setWalletChainId(undefined) })
+    withRpcTimeout(p.request({ method: 'eth_chainId' }), _getRpcTimeoutMs(), 'eth_chainId').then(updateChain).catch(() => { if (active) setWalletChainId(undefined) })
     p.on?.('chainChanged', updateChain)
     return () => { active = false; p.removeListener?.('chainChanged', updateChain) }
   }, [mode, address, providerRevision])

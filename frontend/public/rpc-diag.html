@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Makoto Wallet — RPC Diagnostic</title>
+  <style>
+    :root { --bg:#0f0f13; --fg:#e2e2e8; --muted:#888; --ok:#4ade80; --warn:#fbbf24; --err:#f87171; --card:#1a1a22; --border:#2a2a36 }
+    * { box-sizing:border-box; margin:0; padding:0 }
+    body { background:var(--bg); color:var(--fg); font:14px/1.6 'Menlo','Monaco','Consolas',monospace; padding:20px }
+    h1 { font-size:18px; margin-bottom:4px; color:#a78bfa }
+    .sub { color:var(--muted); font-size:12px; margin-bottom:20px }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px }
+    .card h2 { font-size:13px; color:#94a3b8; margin-bottom:10px; text-transform:uppercase; letter-spacing:.06em }
+    .row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:4px 0; border-bottom:1px solid var(--border) }
+    .row:last-child { border-bottom:none }
+    .lbl { color:var(--muted); flex-shrink:0; min-width:200px }
+    .val { word-break:break-all; text-align:right }
+    .ok  { color:var(--ok) }
+    .warn{ color:var(--warn) }
+    .err { color:var(--err) }
+    .pending { color:var(--muted) }
+    button { background:#6d28d9; color:#fff; border:none; border-radius:8px; padding:10px 20px; font:13px monospace; cursor:pointer; margin-right:8px; margin-bottom:8px }
+    button:disabled { opacity:.4; cursor:not-allowed }
+    button:hover:not(:disabled) { background:#7c3aed }
+    #log { background:#0a0a10; border:1px solid var(--border); border-radius:8px; padding:12px; font-size:12px; max-height:400px; overflow-y:auto; white-space:pre-wrap; word-break:break-all }
+    .note { font-size:12px; color:var(--muted); margin-top:8px; line-height:1.5 }
+    .badge { display:inline-block; font-size:10px; padding:1px 6px; border-radius:4px; vertical-align:middle; margin-left:6px }
+    .badge-ok   { background:#14532d; color:var(--ok) }
+    .badge-warn { background:#451a03; color:var(--warn) }
+    .badge-err  { background:#450a0a; color:var(--err) }
+  </style>
+</head>
+<body>
+  <h1>Makoto Wallet — RPC Diagnostic</h1>
+  <p class="sub">Read-only. No keys, seeds, signatures, or transactions collected or sent. Safe to run with any wallet connected.</p>
+
+  <div class="card" id="provider-card">
+    <h2>Provider identity</h2>
+    <div id="provider-rows"><div class="pending">Run diagnostics to populate…</div></div>
+  </div>
+
+  <div class="card" id="rpc-card">
+    <h2>Injected provider — read-only calls</h2>
+    <div id="rpc-rows"><div class="pending">Run diagnostics to populate…</div></div>
+  </div>
+
+  <div class="card" id="arc-card">
+    <h2>Official Arc Testnet RPC — independent baseline</h2>
+    <div id="arc-rows"><div class="pending">Run diagnostics to populate…</div></div>
+  </div>
+
+  <div class="card" id="send-card">
+    <h2>Send preflight path (eth_getCode + verifyToken reads)</h2>
+    <div id="send-rows"><div class="pending">Run diagnostics to populate…</div></div>
+    <p class="note">These are the calls that precede gas estimation in prepareSend(). A timeout here is what causes "Send eth_getCode timed out after 15s".</p>
+  </div>
+
+  <div class="card" id="swap-card">
+    <h2>Swap preflight path (eth_getCode + eth_call for quote)</h2>
+    <div id="swap-rows"><div class="pending">Run diagnostics to populate…</div></div>
+    <p class="note">These are the calls inside quoteSwap(). A timeout here causes "Swap live quote unavailable".</p>
+  </div>
+
+  <div style="margin-bottom:16px">
+    <button id="run-btn" onclick="runAll()">Run all diagnostics</button>
+    <button onclick="clearLog()">Clear log</button>
+  </div>
+
+  <div class="card">
+    <h2>Detailed log</h2>
+    <div id="log">Press "Run all diagnostics" to start.</div>
+  </div>
+
+  <p class="note" style="margin-top:12px">
+    <strong>What this page does not do:</strong> It does not request eth_requestAccounts, personal_sign, eth_sendTransaction, wallet_switchEthereumChain, or any write method.
+    It does not send any data off-device. It does not access private keys or seed phrases.
+    Source: <code>/rpc-diag.html</code> — static HTML, no bundler.
+  </p>
+
+<script>
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+const ARC_CHAIN_ID  = 5042002
+const ARC_CHAIN_HEX = '0x4cef52'
+const ARC_RPC       = 'https://rpc.testnet.arc.io'
+// Official token addresses (Arc Testnet)
+const USDC_ADDR  = '0x3600000000000000000000000000000000000000'
+const EURC_ADDR  = '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a'
+// Known router (XyloNet StableSwap — swap quote target)
+const XYLO_ROUTER = '0x7a250d5630b4cf539739df2c5dacb4c659f2488d'
+// Timeout for each injected-provider call (mirrors production withRpcTimeout)
+const PROVIDER_TIMEOUT_MS = 15000
+// Timeout for independent Arc RPC fetch calls
+const ARC_RPC_TIMEOUT_MS = 10000
+
+// ---------------------------------------------------------------------------
+// Logging
+// ---------------------------------------------------------------------------
+const logEl = document.getElementById('log')
+function log(msg) {
+  const ts = new Date().toISOString().split('T')[1].replace('Z','')
+  logEl.textContent += `[${ts}] ${msg}\n`
+  logEl.scrollTop = logEl.scrollHeight
+}
+function clearLog() { logEl.textContent = '' }
+
+// ---------------------------------------------------------------------------
+// DOM helpers
+// ---------------------------------------------------------------------------
+function rows(id, html) { document.getElementById(id).innerHTML = html }
+function row(lbl, val, cls) {
+  return `<div class="row"><span class="lbl">${lbl}</span><span class="val ${cls||''}">${val}</span></div>`
+}
+function badge(text, cls) { return `<span class="badge badge-${cls}">${text}</span>` }
+function fmt(ms) { return ms < 1000 ? `${ms}ms` : `${(ms/1000).toFixed(2)}s` }
+
+// ---------------------------------------------------------------------------
+// Timed wrapper for injected provider calls
+// ---------------------------------------------------------------------------
+async function timedProviderCall(p, method, params, label) {
+  const start = Date.now()
+  log(`→ provider.request ${method}${params?` ${JSON.stringify(params)}`:''}`)
+  try {
+    const result = await Promise.race([
+      p.request({ method, params }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error(`${method} timed out after ${PROVIDER_TIMEOUT_MS/1000}s`)), PROVIDER_TIMEOUT_MS))
+    ])
+    const elapsed = Date.now() - start
+    log(`← ${method} OK in ${fmt(elapsed)}: ${JSON.stringify(result)?.slice(0,120)}`)
+    return { ok: true, result, elapsed }
+  } catch (e) {
+    const elapsed = Date.now() - start
+    log(`✗ ${method} FAILED in ${fmt(elapsed)}: ${e.message}`)
+    return { ok: false, error: e.message, elapsed }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Timed wrapper for official Arc RPC JSON-RPC calls (independent baseline)
+// ---------------------------------------------------------------------------
+async function timedArcRpc(method, params) {
+  const start = Date.now()
+  log(`→ Arc RPC ${method}`)
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), ARC_RPC_TIMEOUT_MS)
+    const res = await fetch(ARC_RPC, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params || [] }),
+      signal: controller.signal,
+    })
+    clearTimeout(timeout)
+    const json = await res.json()
+    const elapsed = Date.now() - start
+    if (json.error) { log(`✗ Arc RPC ${method} error in ${fmt(elapsed)}: ${JSON.stringify(json.error)}`); return { ok: false, error: json.error, elapsed } }
+    log(`← Arc RPC ${method} OK in ${fmt(elapsed)}: ${JSON.stringify(json.result)?.slice(0,120)}`)
+    return { ok: true, result: json.result, elapsed }
+  } catch (e) {
+    const elapsed = Date.now() - start
+    log(`✗ Arc RPC ${method} FAILED in ${fmt(elapsed)}: ${e.message}`)
+    return { ok: false, error: e.message, elapsed }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Discover injected provider (EIP-6963 + legacy window.ethereum fallback)
+// ---------------------------------------------------------------------------
+function discoverProviders() {
+  const providers = []
+  // EIP-6963
+  if (window._eip6963Providers) {
+    for (const info of window._eip6963Providers) {
+      providers.push({ name: info.info?.name || 'EIP-6963 provider', rdns: info.info?.rdns, icon: info.info?.icon, provider: info.provider })
+    }
+  }
+  // legacy
+  if (window.ethereum && !providers.some(p => p.provider === window.ethereum)) {
+    const name = window.ethereum.isOKExWallet ? 'OKX Wallet' : window.ethereum.isRabby ? 'Rabby' : window.ethereum.isMetaMask ? 'MetaMask' : 'window.ethereum'
+    providers.push({ name, rdns: 'legacy', provider: window.ethereum })
+  }
+  return providers
+}
+
+// Register EIP-6963 listener early so announcements are captured.
+window._eip6963Providers = window._eip6963Providers || []
+window.addEventListener('eip6963:announceProvider', (e) => {
+  if (!window._eip6963Providers.some(p => p.info?.rdns === e.detail?.info?.rdns)) {
+    window._eip6963Providers.push(e.detail)
+  }
+})
+window.dispatchEvent(new Event('eip6963:requestProvider'))
+
+// ---------------------------------------------------------------------------
+// Main diagnostic runner
+// ---------------------------------------------------------------------------
+async function runAll() {
+  document.getElementById('run-btn').disabled = true
+  log('=== Makoto Wallet RPC Diagnostic ===')
+  log(`User agent: ${navigator.userAgent}`)
+  log(`Page origin: ${location.origin}`)
+
+  // ── Provider identity ────────────────────────────────────────────────────
+  const discovered = discoverProviders()
+  log(`Discovered ${discovered.length} provider(s)`)
+  let providerHtml = ''
+  if (discovered.length === 0) {
+    providerHtml = row('Injected provider', 'None found — install a wallet extension' + badge('BLOCKED','warn'), 'warn')
+    rows('provider-rows', providerHtml)
+    rows('rpc-rows', '<div class="pending">No provider — injected-provider checks skipped.</div>')
+    rows('send-rows', '<div class="pending">No provider — Send preflight checks skipped.</div>')
+    rows('swap-rows', '<div class="pending">No provider — Swap preflight checks skipped.</div>')
+  } else {
+    for (const p of discovered) {
+      providerHtml += row(p.name, `rdns: ${p.rdns || 'n/a'}${badge('FOUND','ok')}`, 'ok')
+    }
+    rows('provider-rows', providerHtml)
+  }
+
+  // ── Arc RPC independent baseline ─────────────────────────────────────────
+  log('--- Arc Testnet RPC baseline ---')
+  const arcChain = await timedArcRpc('eth_chainId')
+  const arcBlock = await timedArcRpc('eth_blockNumber')
+  const arcGas   = await timedArcRpc('eth_gasPrice')
+  const arcUsdcCode = await timedArcRpc('eth_getCode', [USDC_ADDR, 'latest'])
+  const arcEurcCode = await timedArcRpc('eth_getCode', [EURC_ADDR, 'latest'])
+  const arcXyloCode = await timedArcRpc('eth_getCode', [XYLO_ROUTER, 'latest'])
+
+  const arcChainOk = arcChain.ok && arcChain.result === ARC_CHAIN_HEX
+  let arcHtml = ''
+  arcHtml += row('eth_chainId', arcChain.ok ? `${arcChain.result} (${parseInt(arcChain.result,16)}) — ${fmt(arcChain.elapsed)}${badge(arcChainOk?'OK':'WRONG CHAIN',arcChainOk?'ok':'err')}` : `FAILED: ${arcChain.error}${badge('FAIL','err')}`, arcChainOk?'ok':'err')
+  arcHtml += row('eth_blockNumber', arcBlock.ok ? `${parseInt(arcBlock.result,16)} — ${fmt(arcBlock.elapsed)}${badge('OK','ok')}` : `FAILED: ${arcBlock.error}${badge('FAIL','err')}`, arcBlock.ok?'ok':'err')
+  arcHtml += row('eth_gasPrice', arcGas.ok ? `${parseInt(arcGas.result,16)/1e9} Gwei — ${fmt(arcGas.elapsed)}${badge('OK','ok')}` : `FAILED: ${arcGas.error}${badge('FAIL','err')}`, arcGas.ok?'ok':'err')
+  arcHtml += row('USDC eth_getCode', arcUsdcCode.ok ? `${(arcUsdcCode.result||'').length} bytes — ${fmt(arcUsdcCode.elapsed)}${badge(arcUsdcCode.result && arcUsdcCode.result !== '0x' ? 'CONTRACT':'MISSING',arcUsdcCode.result && arcUsdcCode.result !== '0x' ? 'ok':'err')}` : `FAILED: ${arcUsdcCode.error}${badge('FAIL','err')}`, arcUsdcCode.ok?'ok':'err')
+  arcHtml += row('EURC eth_getCode', arcEurcCode.ok ? `${(arcEurcCode.result||'').length} bytes — ${fmt(arcEurcCode.elapsed)}${badge(arcEurcCode.result && arcEurcCode.result !== '0x' ? 'CONTRACT':'MISSING',arcEurcCode.result && arcEurcCode.result !== '0x' ? 'ok':'err')}` : `FAILED: ${arcEurcCode.error}${badge('FAIL','err')}`, arcEurcCode.ok?'ok':'err')
+  arcHtml += row('XyloRouter eth_getCode', arcXyloCode.ok ? `${(arcXyloCode.result||'').length} bytes — ${fmt(arcXyloCode.elapsed)}${badge(arcXyloCode.result && arcXyloCode.result !== '0x' ? 'CONTRACT':'MISSING',arcXyloCode.result && arcXyloCode.result !== '0x' ? 'ok':'err')}` : `FAILED: ${arcXyloCode.error}${badge('FAIL','err')}`, arcXyloCode.ok?'ok':'err')
+  rows('arc-rows', arcHtml)
+
+  if (discovered.length === 0) {
+    document.getElementById('run-btn').disabled = false
+    return
+  }
+
+  // Use first discovered provider for remaining checks.
+  const { name: pName, provider: p } = discovered[0]
+  log(`Using provider: ${pName}`)
+
+  // ── Injected provider read-only calls ────────────────────────────────────
+  log('--- Injected provider reads ---')
+  const pChain    = await timedProviderCall(p, 'eth_chainId',   undefined, 'eth_chainId')
+  const pAccounts = await timedProviderCall(p, 'eth_accounts',  undefined, 'eth_accounts')
+
+  const providerChainDec = pChain.ok ? parseInt(pChain.result, 16) : null
+  const providerOnArc    = providerChainDec === ARC_CHAIN_ID
+  const connectedAccount = pAccounts.ok && Array.isArray(pAccounts.result) ? pAccounts.result[0] : null
+
+  let rpcHtml = ''
+  rpcHtml += row('Provider name', `${pName}`, '')
+  rpcHtml += row('eth_chainId', pChain.ok
+    ? `${pChain.result} (${providerChainDec}) — ${fmt(pChain.elapsed)}${badge(providerOnArc?'ARC OK':'WRONG CHAIN',providerOnArc?'ok':'err')}`
+    : `FAILED (${fmt(pChain.elapsed)}): ${pChain.error}${badge('FAIL','err')}`,
+    pChain.ok ? (providerOnArc?'ok':'err') : 'err')
+  rpcHtml += row('eth_accounts', pAccounts.ok
+    ? `${connectedAccount ? connectedAccount.slice(0,10)+'…'+connectedAccount.slice(-6) : 'none'} — ${fmt(pAccounts.elapsed)}${badge(connectedAccount?'CONNECTED':'DISCONNECTED',connectedAccount?'ok':'warn')}`
+    : `FAILED (${fmt(pAccounts.elapsed)}): ${pAccounts.error}${badge('FAIL','err')}`,
+    pAccounts.ok ? (connectedAccount?'ok':'warn') : 'err')
+
+  // Compare injected chain vs official Arc
+  if (pChain.ok && arcChain.ok) {
+    const match = pChain.result.toLowerCase() === arcChain.result.toLowerCase()
+    rpcHtml += row('Chain match (provider vs Arc RPC)', match ? `Match${badge('OK','ok')}` : `Mismatch — provider=${pChain.result} arc=${arcChain.result}${badge('MISMATCH','err')}`, match?'ok':'err')
+  }
+
+  rows('rpc-rows', rpcHtml)
+
+  // ── Send preflight path ───────────────────────────────────────────────────
+  log('--- Send preflight path ---')
+  if (!providerOnArc) {
+    rows('send-rows', row('Status', `Provider not on Arc (chain ${providerChainDec}) — Send preflight skipped${badge('SKIPPED','warn')}`, 'warn'))
+  } else {
+    const usdcCode = await timedProviderCall(p, 'eth_getCode', [USDC_ADDR, 'latest'], 'USDC code')
+    const eurcCode = await timedProviderCall(p, 'eth_getCode', [EURC_ADDR, 'latest'], 'EURC code')
+    // eth_call for USDC decimals (0x313ce567)
+    const usdcDecimals = await timedProviderCall(p, 'eth_call', [{ to: USDC_ADDR, data: '0x313ce567' }, 'latest'], 'USDC decimals')
+    // eth_call for USDC symbol (0x95d89b41)
+    const usdcSymbol = await timedProviderCall(p, 'eth_call', [{ to: USDC_ADDR, data: '0x95d89b41' }, 'latest'], 'USDC symbol')
+    // eth_gasPrice
+    const gasPrice = await timedProviderCall(p, 'eth_gasPrice', undefined, 'gasPrice')
+
+    let sendHtml = ''
+    sendHtml += row('USDC eth_getCode', usdcCode.ok ? `${(usdcCode.result||'').length} chars — ${fmt(usdcCode.elapsed)}${badge(usdcCode.result&&usdcCode.result!=='0x'?'CONTRACT OK':'MISSING',usdcCode.result&&usdcCode.result!=='0x'?'ok':'err')}` : `FAILED (${fmt(usdcCode.elapsed)}): ${usdcCode.error}${badge('FAIL','err')}`, usdcCode.ok?'ok':'err')
+    sendHtml += row('EURC eth_getCode', eurcCode.ok ? `${(eurcCode.result||'').length} chars — ${fmt(eurcCode.elapsed)}${badge(eurcCode.result&&eurcCode.result!=='0x'?'CONTRACT OK':'MISSING',eurcCode.result&&eurcCode.result!=='0x'?'ok':'err')}` : `FAILED (${fmt(eurcCode.elapsed)}): ${eurcCode.error}${badge('FAIL','err')}`, eurcCode.ok?'ok':'err')
+    sendHtml += row('USDC decimals (eth_call)', usdcDecimals.ok ? `${usdcDecimals.result} — ${fmt(usdcDecimals.elapsed)}${badge('OK','ok')}` : `FAILED (${fmt(usdcDecimals.elapsed)}): ${usdcDecimals.error}${badge('FAIL','err')}`, usdcDecimals.ok?'ok':'err')
+    sendHtml += row('USDC symbol (eth_call)', usdcSymbol.ok ? `${(usdcSymbol.result||'').slice(0,40)} — ${fmt(usdcSymbol.elapsed)}${badge('OK','ok')}` : `FAILED (${fmt(usdcSymbol.elapsed)}): ${usdcSymbol.error}${badge('FAIL','err')}`, usdcSymbol.ok?'ok':'err')
+    sendHtml += row('eth_gasPrice', gasPrice.ok ? `${parseInt(gasPrice.result||'0',16)/1e9} Gwei — ${fmt(gasPrice.elapsed)}${badge('OK','ok')}` : `FAILED (${fmt(gasPrice.elapsed)}): ${gasPrice.error}${badge('FAIL','err')}`, gasPrice.ok?'ok':'err')
+
+    // Cross-check USDC code provider vs Arc RPC
+    if (usdcCode.ok && arcUsdcCode.ok) {
+      const match = usdcCode.result === arcUsdcCode.result
+      sendHtml += row('USDC code: provider vs Arc RPC', match ? `Match${badge('OK','ok')}` : `Different bytecode${badge('MISMATCH','err')}`, match?'ok':'err')
+    }
+    rows('send-rows', sendHtml)
+  }
+
+  // ── Swap preflight path ───────────────────────────────────────────────────
+  log('--- Swap preflight path ---')
+  if (!providerOnArc) {
+    rows('swap-rows', row('Status', `Provider not on Arc — Swap preflight skipped${badge('SKIPPED','warn')}`, 'warn'))
+  } else {
+    const routerCode = await timedProviderCall(p, 'eth_getCode', [XYLO_ROUTER, 'latest'], 'XyloRouter code')
+    // eth_call getAmountOut(USDC→EURC, 1 USDC = 1000000 units): selector 0xd06ca61f
+    const getAmtOut = encodedGetAmountOut(USDC_ADDR, EURC_ADDR, 1000000n)
+    const quoteCall = await timedProviderCall(p, 'eth_call', [{ to: XYLO_ROUTER, data: getAmtOut }, 'latest'], 'getAmountOut quote')
+
+    let swapHtml = ''
+    swapHtml += row('XyloRouter eth_getCode', routerCode.ok ? `${(routerCode.result||'').length} chars — ${fmt(routerCode.elapsed)}${badge(routerCode.result&&routerCode.result!=='0x'?'CONTRACT OK':'NOT DEPLOYED',routerCode.result&&routerCode.result!=='0x'?'ok':'err')}` : `FAILED (${fmt(routerCode.elapsed)}): ${routerCode.error}${badge('FAIL','err')}`, routerCode.ok?'ok':'err')
+    swapHtml += row('getAmountOut quote (eth_call)', quoteCall.ok ? `${quoteCall.result?.slice(0,40)} — ${fmt(quoteCall.elapsed)}${badge(quoteCall.result&&quoteCall.result!=='0x'?'OK':'EMPTY',quoteCall.result&&quoteCall.result!=='0x'?'ok':'warn')}` : `FAILED (${fmt(quoteCall.elapsed)}): ${quoteCall.error}${badge('FAIL','err')}`, quoteCall.ok?'ok':'err')
+
+    // Cross-check router code provider vs Arc RPC
+    if (routerCode.ok && arcXyloCode.ok) {
+      const match = routerCode.result === arcXyloCode.result
+      swapHtml += row('Router code: provider vs Arc RPC', match ? `Match${badge('OK','ok')}` : routerCode.result === '0x' && arcXyloCode.result === '0x' ? `Not deployed on either${badge('WARN','warn')}` : `Different${badge('MISMATCH','err')}`, match?'ok':(routerCode.result === arcXyloCode.result?'ok':'warn'))
+    }
+    rows('swap-rows', swapHtml)
+  }
+
+  log('=== Diagnostic complete ===')
+  document.getElementById('run-btn').disabled = false
+}
+
+// Minimal ABI encoder for getAmountOut(address,address,uint256) → bytes
+function encodedGetAmountOut(fromAddr, toAddr, amount) {
+  // selector: keccak256('getAmountOut(address,address,uint256)') → 0xd06ca61f
+  const pad = (s) => s.replace(/^0x/,'').toLowerCase().padStart(64,'0')
+  const amtHex = amount.toString(16).padStart(64,'0')
+  return '0xd06ca61f' + pad(fromAddr) + pad(toAddr) + amtHex
+}
+</script>
+</body>
+</html>

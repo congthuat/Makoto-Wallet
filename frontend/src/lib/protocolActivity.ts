@@ -3,7 +3,7 @@ import type { SendProvider } from './sendExecution.ts'
 import { TOKENS } from './wallet.ts'
 import { api } from './api.ts'
 import { getOfficialCctpStatus, hasOfficialCctpMessageEvent, type CctpAdapterDependencies } from '../protocols/circle/cctpAdapter.ts'
-import { withRpcTimeout, RPC_TIMEOUT_MS } from './rpcTimeout.ts'
+import { withRpcTimeout, _getRpcTimeoutMs } from './rpcTimeout.ts'
 
 export type SwapRecord = Readonly<{ hash: string; account: string; target: string; calldata: string; fromSymbol: 'USDC' | 'EURC'; toSymbol: 'USDC' | 'EURC'; amount: string; minimumOutputUnits: string; timestamp: number; status: 'pending' | 'unknown' | 'completed' | 'failed' }>
 export type BridgeRecord = Readonly<{ hash: string; account: string; target: string; calldata: string; amount: string; expectedReceiveUnits: string; destinationDomain?: number; maxFeeUnits?: string; finalityThreshold?: string; timestamp: number; status: 'source-pending' | 'source-unknown' | 'source-confirmed' | 'attesting' | 'destination-pending' | 'destination-confirmed' | 'forwarding-failed' | 'destination-failed' | 'failed'; destinationHash?: string }>
@@ -45,12 +45,12 @@ export function mergeBridgeRecord(old: BridgeRecord | undefined, next: BridgeRec
 export async function checkBridgeRecord(p: SendProvider, record: BridgeRecord, fetcher: typeof fetch = fetch, dependencies: CctpAdapterDependencies = {}): Promise<BridgeRecord> {
   if (!isHash(record.hash) || !/^0x[0-9a-f]{40}$/i.test(record.account) || !/^0x[0-9a-f]{40}$/i.test(record.target) || !/^0x[0-9a-f]*$/i.test(record.calldata) || !/^\d+$/.test(record.expectedReceiveUnits)) return { ...record, status: 'source-unknown' }
   try {
-    const chainId = await withRpcTimeout(p.request({ method: 'eth_chainId' }), RPC_TIMEOUT_MS, 'eth_chainId')
+    const chainId = await withRpcTimeout(p.request({ method: 'eth_chainId' }), _getRpcTimeoutMs(), 'eth_chainId')
     if (typeof chainId !== 'string' || BigInt(chainId) !== 5042002n) return { ...record, status: 'source-unknown' }
-    const receipt = await withRpcTimeout(p.request({ method: 'eth_getTransactionReceipt', params: [record.hash] }), RPC_TIMEOUT_MS, 'eth_getTransactionReceipt')
+    const receipt = await withRpcTimeout(p.request({ method: 'eth_getTransactionReceipt', params: [record.hash] }), _getRpcTimeoutMs(), 'eth_getTransactionReceipt')
     if (!receipt) return { ...record, status: record.status === 'source-pending' ? 'source-pending' : record.status === 'source-unknown' ? 'source-unknown' : record.status }
     if (receipt.transactionHash?.toLowerCase() !== record.hash.toLowerCase() || !receipt.blockHash || !receipt.blockNumber) return { ...record, status: 'source-unknown' }
-    const tx = await withRpcTimeout(p.request({ method: 'eth_getTransactionByHash', params: [record.hash] }), RPC_TIMEOUT_MS, 'eth_getTransactionByHash')
+    const tx = await withRpcTimeout(p.request({ method: 'eth_getTransactionByHash', params: [record.hash] }), _getRpcTimeoutMs(), 'eth_getTransactionByHash')
     if (!tx || tx.hash?.toLowerCase() !== record.hash.toLowerCase() || tx.from?.toLowerCase() !== record.account.toLowerCase() || tx.to?.toLowerCase() !== record.target.toLowerCase() || tx.input?.toLowerCase() !== record.calldata.toLowerCase()) return { ...record, status: 'source-unknown' }
     if (receipt.status === '0x0') return { ...record, status: 'failed' }
     if (receipt.status !== '0x1') return { ...record, status: 'source-unknown' }
@@ -85,10 +85,10 @@ export async function checkSwapRecord(p: SendProvider, record: SwapRecord): Prom
   const token = TOKENS.find((item) => item.sym === record.toSymbol)
   if (!token) return 'unknown'
   try {
-    const receipt = await withRpcTimeout(p.request({ method: 'eth_getTransactionReceipt', params: [record.hash] }), RPC_TIMEOUT_MS, 'eth_getTransactionReceipt')
+    const receipt = await withRpcTimeout(p.request({ method: 'eth_getTransactionReceipt', params: [record.hash] }), _getRpcTimeoutMs(), 'eth_getTransactionReceipt')
     if (!receipt) return record.status === 'unknown' ? 'unknown' : 'pending'
     if (receipt.transactionHash?.toLowerCase() !== record.hash.toLowerCase() || !receipt.blockHash || !receipt.blockNumber) return 'unknown'
-    const tx = await withRpcTimeout(p.request({ method: 'eth_getTransactionByHash', params: [record.hash] }), RPC_TIMEOUT_MS, 'eth_getTransactionByHash')
+    const tx = await withRpcTimeout(p.request({ method: 'eth_getTransactionByHash', params: [record.hash] }), _getRpcTimeoutMs(), 'eth_getTransactionByHash')
     if (!tx || tx.hash?.toLowerCase() !== record.hash.toLowerCase() || tx.from?.toLowerCase() !== record.account.toLowerCase() || tx.to?.toLowerCase() !== record.target.toLowerCase() || tx.input?.toLowerCase() !== record.calldata.toLowerCase()) return 'unknown'
     if (receipt.status === '0x0') return 'failed'
     if (receipt.status !== '0x1') return 'unknown'
