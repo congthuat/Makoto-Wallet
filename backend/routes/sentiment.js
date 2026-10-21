@@ -23,7 +23,10 @@ router.get('/', async (_req, res) => {
     memo = { t: Date.now(), v }
     res.json(v)
   } catch (e) {
-    res.status(502).json({ error: String(e.message || e) })
+    // Surface upstream 402 (quota) as 402 so the client can distinguish
+    // billing-related unavailability from a network or server error.
+    const status = /402|PAID_BALANCE_ZERO|insufficient credit/i.test(String(e.message || e)) ? 402 : 502
+    res.status(status).json({ error: String(e.message || e), code: status === 402 ? 'QUOTA_EXCEEDED' : undefined })
   }
 })
 module.exports = router

@@ -125,11 +125,15 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
   }
   useLayoutEffect(() => {
     mounted.current = true; generation.current += 1; operation.current = undefined
+    // Reset resume flag before any localStorage read so a chain change cannot
+    // auto-resume a prior session without explicit user action.
+    needsResume.current = false
     let restored: StrategyRun | undefined
     try { restored = typeof localStorage === 'undefined' ? undefined : restoreStrategyRun(localStorage, 'swap', normalizedAccount) }
     catch { /* A blocked localStorage property must not crash receipt recovery UI. */ }
     run.current = restored; checkpoint.current = savedCheckpoint(normalizedAccount)
-    needsResume.current = restored?.phase === 'REVALIDATING' || restored?.phase === 'EXPIRED' && !!restored.approvalReceipt
+    // Only resume if the restored run's chainId matches the current wallet chain.
+    needsResume.current = !!(restored && walletChainId === ARC.chainId && (restored.phase === 'REVALIDATING' || (restored.phase === 'EXPIRED' && !!restored.approvalReceipt)))
     setBusy(false); setError(checkpoint.current === undefined ? 'Saved swap strategy state is unavailable.' : ''); setActivityUnavailable(false); setCheckpointUnavailable(false); setQuote(undefined); setPrepared(undefined); setReview(undefined); setReviewedInput('')
     setHash(restored?.hash as Hex | undefined)
     setStage(restored?.phase === 'COMPLETED' ? 'confirmed' : needsResume.current ? 'approval-confirmed' : restored?.phase === 'FAILED' ? 'failed' : restored?.phase === 'USER_REJECTED' ? 'rejected' : restored && ['RECOVERING', 'PENDING', 'UNKNOWN'].includes(restored.phase) ? restored.phase === 'PENDING' ? 'pending' : 'unknown' : 'idle')
