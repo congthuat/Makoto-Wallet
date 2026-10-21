@@ -3,7 +3,7 @@ import type { SendProvider } from './sendExecution.ts'
 import { TOKENS } from './wallet.ts'
 import { api } from './api.ts'
 import { getOfficialCctpStatus, hasOfficialCctpMessageEvent, type CctpAdapterDependencies } from '../protocols/circle/cctpAdapter.ts'
-import { withRpcTimeout, _getRpcTimeoutMs } from './rpcTimeout.ts'
+import { withRpcTimeout, _getCctpDestinationTimeoutMs, _getRpcTimeoutMs } from './rpcTimeout.ts'
 
 export type SwapRecord = Readonly<{ hash: string; account: string; target: string; calldata: string; fromSymbol: 'USDC' | 'EURC'; toSymbol: 'USDC' | 'EURC'; amount: string; minimumOutputUnits: string; timestamp: number; status: 'pending' | 'unknown' | 'completed' | 'failed' }>
 export type BridgeRecord = Readonly<{ hash: string; account: string; target: string; calldata: string; amount: string; expectedReceiveUnits: string; destinationDomain?: number; maxFeeUnits?: string; finalityThreshold?: string; timestamp: number; status: 'source-pending' | 'source-unknown' | 'source-confirmed' | 'attesting' | 'destination-pending' | 'destination-confirmed' | 'forwarding-failed' | 'destination-failed' | 'failed'; destinationHash?: string }>
@@ -66,11 +66,29 @@ export async function checkBridgeRecord(p: SendProvider, record: BridgeRecord, f
     if (official.state === 'forwarding-failed') return { ...record, status: 'forwarding-failed' }
     if (!official.forwardTxHash) return { ...record, status: 'attesting' }
     const destinationHash = official.forwardTxHash
-    const destinationResponse = await fetcher(api(`cctp/destination?txHash=${destinationHash}&recipient=${record.account}&minimumUnits=${record.expectedReceiveUnits}`), { cache: 'no-store' })
-    if (!destinationResponse.ok) return { ...record, destinationHash, status: 'destination-pending' }
-    const destination: unknown = await destinationResponse.json()
-    if (!destination || typeof destination !== 'object') return { ...record, destinationHash, status: 'destination-pending' }
-    const destinationStatus = (destination as { status?: string }).status
+    // Wrap both the HTTP request and response.json() in a single AbortController
+    // deadline so a stalled Railway backend cannot block the reconcile loop.
+    const destController = new AbortController()
+    const destTimer = setTimeout(() => destController.abort(), _getCctpDestinationTimeoutMs())
+    let destinationStatus: string | undefined
+    try {
+      const destinationResponse = await fetcher(
+        api(`cctp/destination?txHash=${destinationHash}&recipient=${record.account}&minimumUnits=${record.expectedReceiveUnits}`),
+        { cache: 'no-store', signal: destController.signal },
+      )
+      if (!destinationResponse.ok) {
+        clearTimeout(destTimer)
+        return { ...record, destinationHash, status: 'destination-pending' }
+      }
+      const destination: unknown = await destinationResponse.json()
+      clearTimeout(destTimer)
+      if (!destination || typeof destination !== 'object') return { ...record, destinationHash, status: 'destination-pending' }
+      destinationStatus = (destination as { status?: string }).status
+    } catch {
+      clearTimeout(destTimer)
+      // Network error, timeout, or JSON parse failure — preserve prior progress.
+      return { ...record, destinationHash, status: 'destination-pending' }
+    }
     return { ...record, destinationHash, status: destinationStatus === 'confirmed' ? 'destination-confirmed' : destinationStatus === 'failed' ? 'destination-failed' : 'destination-pending' }
   } catch { return { ...record, status: record.status === 'source-pending' ? 'source-unknown' : record.status } }
 }
