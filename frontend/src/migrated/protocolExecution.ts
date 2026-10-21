@@ -4,6 +4,7 @@ import { isWalletRejection, SendSubmissionGuard } from '../lib/sendExecution.ts'
 import { readAllowance, readReceipt, type PreparedToolAction, type SwapToolQuote } from './toolLayer.ts'
 import { getAssetById } from './assets.ts'
 import { executePreparedCctpCall, hasOfficialCctpMessageEvent } from '../protocols/circle/cctpAdapter.ts'
+import { withRpcTimeout, RPC_TIMEOUT_MS } from '../lib/rpcTimeout.ts'
 
 /** A prepared request may be submitted only by a user action after review and revalidation. */
 export async function requestReviewedAction(p: SendProvider, action: PreparedToolAction, guard: SendSubmissionGuard): Promise<Hex> {
@@ -29,8 +30,8 @@ export async function checkProtocolReceipt(p: SendProvider, action: PreparedTool
   if (basic.data.status !== 'confirmed') return basic.data.status
   try {
     const [receipt, transaction] = await Promise.all([
-      p.request({ method: 'eth_getTransactionReceipt', params: [hash] }),
-      p.request({ method: 'eth_getTransactionByHash', params: [hash] }),
+      withRpcTimeout(p.request({ method: 'eth_getTransactionReceipt', params: [hash] }), RPC_TIMEOUT_MS, 'eth_getTransactionReceipt'),
+      withRpcTimeout(p.request({ method: 'eth_getTransactionByHash', params: [hash] }), RPC_TIMEOUT_MS, 'eth_getTransactionByHash'),
     ])
     if (!receipt || !transaction || transaction.hash?.toLowerCase() !== hash.toLowerCase() || transaction.to?.toLowerCase() !== action.request.to.toLowerCase() || transaction.from?.toLowerCase() !== action.account.toLowerCase() || transaction.input?.toLowerCase() !== action.request.data.toLowerCase()) return 'unknown'
     if (action.kind === 'approval') {

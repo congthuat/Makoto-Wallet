@@ -222,7 +222,9 @@ function useWalletState() {
     if (!p) { setWalletAccountConfirmed(false); return }
     let active = true
     setWalletAccountConfirmed(false)
-    p.request({ method: 'eth_accounts' }).then((accounts) => {
+    // Read-only initial account check. Apply the standard read timeout so a stalled
+    // provider cannot leave walletAccountConfirmed=false indefinitely.
+    withRpcTimeout(p.request({ method: 'eth_accounts' }), RPC_TIMEOUT_MS, 'eth_accounts').then((accounts) => {
       if (!active) return
       const current = Array.isArray(accounts) && typeof accounts[0] === 'string' ? accounts[0] : ''
       if (!current) { setMode('demo'); setAddress(''); return }
@@ -250,7 +252,9 @@ function useWalletState() {
       setWalletChainId(Number.isSafeInteger(chainId) && chainId > 0 ? chainId : undefined)
     }
     setWalletChainId(undefined)
-    p.request({ method: 'eth_chainId' }).then(updateChain).catch(() => { if (active) setWalletChainId(undefined) })
+    // Read-only initial chain check. Apply the standard read timeout so a stalled
+    // provider cannot leave walletChainId=undefined (blocking swap/bridge reviews).
+    withRpcTimeout(p.request({ method: 'eth_chainId' }), RPC_TIMEOUT_MS, 'eth_chainId').then(updateChain).catch(() => { if (active) setWalletChainId(undefined) })
     p.on?.('chainChanged', updateChain)
     return () => { active = false; p.removeListener?.('chainChanged', updateChain) }
   }, [mode, address, providerRevision])
