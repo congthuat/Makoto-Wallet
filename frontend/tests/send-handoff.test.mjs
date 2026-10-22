@@ -26,9 +26,8 @@ function handleArcRpcMethod(method, params) {
   }
   if (method === 'eth_getBalance') return ['0x8ac7230489e80000', null]
   if (method === 'eth_estimateGas') {
-    if (queryFault === 'fee') return [null, { code: -32000, message: 'Fee estimate unavailable' }]
-    // hold=1: caller must release via window.__arcHarness.release() — handled async in browser.
-    // Server-side we always return immediately; the hold mechanism is browser-side only.
+    // Normal: return gas estimate. The fault=fee path is handled browser-side
+    // by the fetch wrapper (window.__arcRpcFetch intercept) — not server-side.
     return ['0x186a0', null]
   }
   if (method === 'eth_gasPrice') return ['0x4a817c800', null]
