@@ -4,7 +4,8 @@ import { isWalletRejection, SendSubmissionGuard } from '../lib/sendExecution.ts'
 import { readAllowance, readReceipt, type PreparedToolAction, type SwapToolQuote } from './toolLayer.ts'
 import { getAssetById } from './assets.ts'
 import { executePreparedCctpCall, hasOfficialCctpMessageEvent } from '../protocols/circle/cctpAdapter.ts'
-import { withRpcTimeout, _getRpcTimeoutMs } from '../lib/rpcTimeout.ts'
+import { rpcRead } from '../lib/arcRpc.ts'
+type RR = Record<string, unknown>
 
 /** A prepared request may be submitted only by a user action after review and revalidation. */
 export async function requestReviewedAction(p: SendProvider, action: PreparedToolAction, guard: SendSubmissionGuard): Promise<Hex> {
@@ -30,23 +31,23 @@ export async function checkProtocolReceipt(p: SendProvider, action: PreparedTool
   if (basic.data.status !== 'confirmed') return basic.data.status
   try {
     const [receipt, transaction] = await Promise.all([
-      withRpcTimeout(p.request({ method: 'eth_getTransactionReceipt', params: [hash] }), _getRpcTimeoutMs(), 'eth_getTransactionReceipt'),
-      withRpcTimeout(p.request({ method: 'eth_getTransactionByHash', params: [hash] }), _getRpcTimeoutMs(), 'eth_getTransactionByHash'),
+      rpcRead(p, 'eth_getTransactionReceipt', [hash]) as Promise<RR | null>,
+      rpcRead(p, 'eth_getTransactionByHash', [hash]) as Promise<RR | null>,
     ])
-    if (!receipt || !transaction || transaction.hash?.toLowerCase() !== hash.toLowerCase() || transaction.to?.toLowerCase() !== action.request.to.toLowerCase() || transaction.from?.toLowerCase() !== action.account.toLowerCase() || transaction.input?.toLowerCase() !== action.request.data.toLowerCase()) return 'unknown'
+    if (!receipt || !transaction || (transaction.hash as string)?.toLowerCase() !== hash.toLowerCase() || (transaction.to as string)?.toLowerCase() !== action.request.to.toLowerCase() || (transaction.from as string)?.toLowerCase() !== action.account.toLowerCase() || (transaction.input as string)?.toLowerCase() !== action.request.data.toLowerCase()) return 'unknown'
     if (action.kind === 'approval') {
       if (!options.approval) return 'unknown'
       const current = await readAllowance(p, options.approval.symbol, options.approval.spender, action.account)
       return current.status === 'OK' && current.data && current.data.units >= options.approval.minimum ? 'confirmed' : 'unknown'
     }
-    if (action.kind === 'cctp-burn') return hasOfficialCctpMessageEvent(action.account, receipt.logs ?? []) ? 'confirmed' : 'unknown' // Source chain only. Destination completion needs separate evidence.
+    if (action.kind === 'cctp-burn') return hasOfficialCctpMessageEvent(action.account, (receipt.logs ?? []) as Parameters<typeof hasOfficialCctpMessageEvent>[1]) ? 'confirmed' : 'unknown'
     if (!options.swapQuote) return 'unknown'
     const output = getAssetById(options.swapQuote.quote.toAssetId)
     if (!output) return 'unknown'
-    const transfer = (receipt.logs ?? []).some((log: { address?: string; data?: Hex; topics?: Hex[] }) => {
-      if (log.address?.toLowerCase() !== output.address.toLowerCase() || !log.data || !log.topics?.length) return false
+    const transfer = ((receipt.logs ?? []) as RR[]).some((log) => {
+      if ((log.address as string)?.toLowerCase() !== output.address.toLowerCase() || !log.data || !(log.topics as unknown[])?.length) return false
       try {
-        const event = decodeEventLog({ abi: erc20Abi, eventName: 'Transfer', data: log.data, topics: log.topics as [Hex, ...Hex[]] })
+        const event = decodeEventLog({ abi: erc20Abi, eventName: 'Transfer', data: log.data as Hex, topics: log.topics as [Hex, ...Hex[]] })
         return event.args.to.toLowerCase() === action.account.toLowerCase() && event.args.value >= options.swapQuote!.minimumReceive
       } catch { return false }
     })

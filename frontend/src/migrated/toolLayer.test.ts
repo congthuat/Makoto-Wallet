@@ -7,18 +7,22 @@ import { withRpcTimeout, _setRpcTimeoutMsForTest } from '../lib/rpcTimeout.ts'
 import { readAllowance, readBalance, readReceipt, readWallet, quoteSwap, prepareApproval, prepareSwap } from './toolLayer.ts'
 import { createReview, evaluateToolPolicy, revalidateReview } from './policy.ts'
 import { xyloRouterAbi, XYLO_ROUTER } from './swap.ts'
+import { startMockArcRpc, stopMockArcRpc, setMockArcRpcHandler } from '../lib/testArcRpcServer.ts'
 
 const account = '0x1111111111111111111111111111111111111111'
 const hash = `0x${'a'.repeat(64)}`
+// Arc RPC mock server for bypass methods; provider mock retains eth_accounts, eth_chainId, eth_sendTransaction.
+before(async () => { await startMockArcRpc() })
+after(async () => { await stopMockArcRpc() })
+
 function fixture(options: { chain?: string; account?: string; unavailable?: boolean; output?: bigint; allowance?: bigint; balance?: bigint } = {}) {
   let writes = 0
-  const p: SendProvider = { request: async ({ method, params = [] }) => {
+  setMockArcRpcHandler((method, params) => {
     if (options.unavailable) throw new Error('RPC offline')
-    if (method === 'eth_accounts') return [options.account ?? account]
-    if (method === 'eth_chainId') return options.chain ?? '0x4cef52'
+    const p0 = (params as unknown[])[0]
     if (method === 'eth_getCode') return '0x6000'
     if (method === 'eth_call') {
-      const { to, data } = params[0] as { to: string; data: string }
+      const { to, data } = p0 as { to: string; data: string }
       if (data === '0x313ce567') return '0x6'
       if (data === '0x95d89b41') return encodeFunctionResult({ abi: erc20Abi, functionName: 'symbol', result: to.toLowerCase() === TOKENS[1].address.toLowerCase() ? 'EURC' : 'USDC' })
       if (to.toLowerCase() === XYLO_ROUTER.toLowerCase()) return encodeFunctionResult({ abi: xyloRouterAbi, functionName: 'getAmountOut', result: options.output ?? 990_000n })
@@ -30,8 +34,14 @@ function fixture(options: { chain?: string; account?: string; unavailable?: bool
     if (method === 'eth_estimateGas') return '0x186a0'
     if (method === 'eth_gasPrice') return '0x3b9aca00'
     if (method === 'eth_getTransactionReceipt') return null
+    throw new Error(`unexpected arcRpc method: ${method}`)
+  })
+  const p: SendProvider = { request: async ({ method }) => {
+    if (options.unavailable) throw new Error('RPC offline')
+    if (method === 'eth_accounts') return [options.account ?? account]
+    if (method === 'eth_chainId') return options.chain ?? '0x4cef52'
     if (method === 'eth_sendTransaction') { writes++; return hash }
-    throw new Error(method)
+    throw new Error(`unexpected provider method: ${method}`)
   } }
   return { p, writes: () => writes }
 }
@@ -86,9 +96,10 @@ test('Quote expiry, insufficient allowance, simulation failure and approval cons
 // the test completes immediately. Reset in after() to leave no side-effects.
 // ---------------------------------------------------------------------------
 
-// 10 ms gives the mock provider's microtask round-trips time to complete
-// while still being fast for CI (well under the 15 s production timeout).
-before(() => { _setRpcTimeoutMsForTest(10) })
+// 500 ms is enough for a local mock HTTP server round-trip (including fetch cold-start)
+// while still being well under the 15 s production timeout.
+// Hung-provider tests reduce to 10 ms inline only for their own scope.
+before(() => { _setRpcTimeoutMsForTest(500) })
 after(() => { _setRpcTimeoutMsForTest(undefined) })
 
 test('toolLayer read-only tools never call eth_sendTransaction', async () => {
@@ -101,22 +112,37 @@ test('toolLayer read-only tools never call eth_sendTransaction', async () => {
   assert.equal(writes(), 0, 'read-only tool calls must never reach eth_sendTransaction')
 })
 
-test('readBalance integration: hung provider is timed out by req() and returns UNAVAILABLE', async () => {
-  // Real integration: call readBalance() with a provider that never resolves.
-  // _rpcTimeoutMsOverride = 1 ms means req() fires the timeout in < 2 ms.
-  // readBalance catches all errors and returns { status: 'UNAVAILABLE' } — never throws.
-  const hungProvider: SendProvider = { request: async () => new Promise(() => { /* hangs forever */ }) }
-  const result = await readBalance(hungProvider, 'USDC', account)
-  assert.equal(result.status, 'UNAVAILABLE', 'hung provider must return UNAVAILABLE, not hang forever')
-  assert.ok(result.reason, 'UNAVAILABLE result must carry a reason')
+test('readBalance integration: hung Arc RPC is timed out by arcRpc() and returns UNAVAILABLE', async () => {
+  // Real integration: readBalance calls arcRpc() for bypass methods (eth_getCode, eth_call).
+  // A hung mock Arc RPC server triggers the timeout inside arcRpc() and readBalance returns UNAVAILABLE.
+  _setRpcTimeoutMsForTest(10)
+  try {
+    setMockArcRpcHandler(() => new Promise(() => { /* hangs forever */ }))
+    const p: SendProvider = { request: async ({ method }) => {
+      if (method === 'eth_accounts') return [account]
+      if (method === 'eth_chainId') return '0x4cef52'
+      throw new Error(`unexpected: ${method}`)
+    } }
+    const result = await readBalance(p, 'USDC', account)
+    assert.equal(result.status, 'UNAVAILABLE', 'hung Arc RPC must return UNAVAILABLE, not hang forever')
+    assert.ok(result.reason, 'UNAVAILABLE result must carry a reason')
+  } finally { _setRpcTimeoutMsForTest(500) }
 })
 
-test('quoteSwap integration: hung provider is timed out by req() and returns UNAVAILABLE', async () => {
-  // Real integration: quoteSwap calls req() for eth_chainId, eth_accounts, eth_call, etc.
-  // A hung provider triggers the timeout inside req() and quoteSwap returns UNAVAILABLE.
-  const hungProvider: SendProvider = { request: async () => new Promise(() => { /* hangs forever */ }) }
-  const result = await quoteSwap(hungProvider, { account, from: 'USDC', to: 'EURC', amount: '1', slippage: 0.005 }, 1000)
-  assert.equal(result.status, 'UNAVAILABLE', 'hung provider in quoteSwap must return UNAVAILABLE')
+test('quoteSwap integration: hung Arc RPC is timed out by arcRpc() and returns UNAVAILABLE', async () => {
+  // Real integration: quoteSwap calls arcRpc() for bypass methods (eth_getCode, eth_call, eth_gasPrice).
+  // A hung mock Arc RPC triggers the timeout and quoteSwap returns UNAVAILABLE.
+  _setRpcTimeoutMsForTest(10)
+  try {
+    setMockArcRpcHandler(() => new Promise(() => { /* hangs forever */ }))
+    const p: SendProvider = { request: async ({ method }) => {
+      if (method === 'eth_accounts') return [account]
+      if (method === 'eth_chainId') return '0x4cef52'
+      throw new Error(`unexpected: ${method}`)
+    } }
+    const result = await quoteSwap(p, { account, from: 'USDC', to: 'EURC', amount: '1', slippage: 0.005 }, 1000)
+    assert.equal(result.status, 'UNAVAILABLE', 'hung Arc RPC in quoteSwap must return UNAVAILABLE')
+  } finally { _setRpcTimeoutMsForTest(500) }
 })
 
 test('CCTP destination: withRpcTimeout covers both fetch and response.json() — async IIFE pattern', async () => {

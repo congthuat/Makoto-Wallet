@@ -3,7 +3,7 @@ import { formatUnits, type Hex } from 'viem'
 import { useT } from '../lib/i18n.ts'
 import { ARC, explorerTx, getProvider } from '../lib/wallet.ts'
 import { SendSubmissionGuard } from '../lib/sendExecution.ts'
-import { withRpcTimeout, _getRpcTimeoutMs } from '../lib/rpcTimeout.ts'
+import { rpcRead } from '../lib/arcRpc.ts'
 import { isWalletRejection, pollProtocolReceipt, requestReviewedAction } from '../migrated/protocolExecution.ts'
 import { createReview, evaluateToolPolicy, revalidateReview, verifyFiniteApproval, type ReviewSnapshot } from '../migrated/policy.ts'
 import { prepareApproval, prepareSwap, quoteSwap, readAllowance, readBalance, readWallet, type PreparedToolAction, type SwapToolQuote } from '../migrated/toolLayer.ts'
@@ -166,7 +166,7 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
     const p = getProvider()
     if (!p) return false
     // eth_call is a read-only preflight simulation. Apply the standard read timeout.
-    try { await withRpcTimeout(p.request({ method: 'eth_call', params: [action.request, 'latest'] }), _getRpcTimeoutMs(), 'eth_call'); return true }
+    try { await rpcRead(p, 'eth_call', [action.request, 'latest']); return true }
     catch { return false }
   }
   async function refreshAfterReceipt(op: Operation) {
@@ -243,7 +243,7 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
       if (prepared.account.toLowerCase() !== normalizedAccount) throw new Error('Wallet account or chain changed. Review again.')
       if (Date.now() > prepared.expiresAt || Date.now() > quote.expiresAt) throw new Error('Quote expired. Review again.')
       // eth_gasPrice is a read-only check before asking the wallet to sign. Apply the standard read timeout.
-      const latestPrice = await withRpcTimeout(p.request({ method: 'eth_gasPrice' }), _getRpcTimeoutMs(), 'eth_gasPrice'); requireCurrent(op)
+      const latestPrice = await rpcRead(p, 'eth_gasPrice'); requireCurrent(op)
       if (typeof latestPrice !== 'string' || BigInt(latestPrice) > BigInt(prepared.request.gasPrice)) throw new Error('Network fee changed. Review again.')
       const freshBalance = await readBalance(p, from, account); requireCurrent(op)
       const freshAllowance = await readAllowance(p, from, XYLO_ROUTER, account); requireCurrent(op)

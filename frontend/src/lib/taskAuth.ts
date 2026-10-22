@@ -1,7 +1,7 @@
 import { stringToHex } from 'viem'
 import { api } from './api.ts'
 import { getProvider } from './wallet.ts'
-import { withRpcTimeout, _getRpcTimeoutMs } from './rpcTimeout.ts'
+import { rpcRead } from './arcRpc.ts'
 
 export type TaskSession = { authenticated: boolean; address: string | null }
 
@@ -25,7 +25,7 @@ export const taskAuthApi = {
     const provider = getProvider()
     if (!provider) throw new Error('AUTH_WALLET_REQUIRED')
     // Read-only pre-sign account check. Apply the standard read timeout.
-    const accounts = await withRpcTimeout(provider.request({ method: 'eth_accounts' }), _getRpcTimeoutMs(), 'eth_accounts') as string[]
+    const accounts = await rpcRead(provider, 'eth_accounts') as string[]
     if (!Array.isArray(accounts) || accounts[0]?.toLowerCase() !== address.toLowerCase()) throw new Error('AUTH_WALLET_MISMATCH')
     const { message } = await authRequest<{ message: string }>('nonce', { address, chainId: 5042002 })
     let signature: unknown
@@ -37,7 +37,7 @@ export const taskAuthApi = {
     }
     if (typeof signature !== 'string') throw new Error('AUTH_SIGN_FAILED')
     // Read-only post-sign account check to confirm no account change during signing. Apply the standard read timeout.
-    const currentAccounts = await withRpcTimeout(provider.request({ method: 'eth_accounts' }), _getRpcTimeoutMs(), 'eth_accounts') as string[]
+    const currentAccounts = await rpcRead(provider, 'eth_accounts') as string[]
     if (!Array.isArray(currentAccounts) || currentAccounts[0]?.toLowerCase() !== address.toLowerCase()) throw new Error('AUTH_WALLET_MISMATCH')
     return authRequest<TaskSession>('verify', { message, signature })
   },

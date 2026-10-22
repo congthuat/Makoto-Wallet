@@ -1,7 +1,8 @@
 import { decodeFunctionResult, encodeFunctionData, erc20Abi, getAddress, isAddress, isHash, keccak256, stringToHex, zeroAddress, type Address, type Hex } from 'viem'
 import { ARC, TOKENS, getProvider, type Holding, type NetworkInfo, type TokenMeta, type Tx } from '../lib/wallet.ts'
 import { parseSendAmount, prepareSend, type PreparedSend, type SendProvider } from '../lib/sendExecution.ts'
-import { withRpcTimeout, _getRpcTimeoutMs } from '../lib/rpcTimeout.ts'
+import { _getRpcTimeoutMs } from '../lib/rpcTimeout.ts'
+import { rpcRead } from '../lib/arcRpc.ts'
 import { getAssetById, type SupportedAssetId } from './assets.ts'
 import { CCTP_KIT_BRIDGE_TESTNET } from './cctp.ts'
 import { createXyloQuote, minimumSwapOutput, prepareXyloSwapRequest, SWAP_QUOTE_MAX_AGE_MS, XYLO_ROUTER, xyloRouterAbi, type SwapQuote } from './swap.ts'
@@ -67,10 +68,11 @@ export type PreparedToolAction = Readonly<{
 
 const empty = <T>(reason: string, source = 'wallet-provider'): ToolResult<T> => Object.freeze({ status: 'UNAVAILABLE', source, observedAt: Date.now(), reason })
 const ok = <T>(data: T, source = 'wallet-provider'): ToolResult<T> => Object.freeze({ status: 'OK', source, observedAt: Date.now(), data })
-/** Read-only RPC call with a hard timeout. Never use for wallet-signing methods.
- *  _getRpcTimeoutMs() returns the test override when set, else RPC_TIMEOUT_MS. */
+/** Read-only RPC call. Bypass methods go direct to Arc RPC; others go through provider.
+ *  Never use for wallet-signing methods. See arcRpc.ts for the bypass decision table. */
 const req = (p: SendProvider, method: string, params: unknown[] = []) =>
-  withRpcTimeout(p.request({ method, params }), _getRpcTimeoutMs(), method)
+  rpcRead(p, method, params)
+type RR = Record<string, unknown>
 const hex = (value: bigint): Hex => `0x${value.toString(16)}`
 const address = (value: string): Address => { if (!isAddress(value) || getAddress(value) === zeroAddress) throw new Error('Invalid address'); return getAddress(value) }
 const bigint = (value: unknown): bigint => { if (typeof value !== 'string' || !/^0x[0-9a-f]+$/i.test(value)) throw new Error('Invalid RPC result'); return BigInt(value) }
@@ -192,9 +194,9 @@ export async function readAllowance(p: SendProvider, symbol: string, spender: st
 export async function readReceipt(p: SendProvider, hash: string): Promise<ToolResult<ReceiptObservation>> {
   if (!isHash(hash)) return empty('Invalid hash', 'arc-rpc')
   try {
-    const receipt = await req(p, 'eth_getTransactionReceipt', [hash])
+    const receipt = await req(p, 'eth_getTransactionReceipt', [hash]) as RR | null
     if (!receipt) return ok({ hash, status: 'pending' }, 'arc-rpc')
-    if (receipt.transactionHash?.toLowerCase() !== hash.toLowerCase() || !receipt.blockHash || !receipt.blockNumber) return ok({ hash, status: 'unknown' }, 'arc-rpc')
+    if ((receipt.transactionHash as string)?.toLowerCase() !== hash.toLowerCase() || !receipt.blockHash || !receipt.blockNumber) return ok({ hash, status: 'unknown' }, 'arc-rpc')
     return ok({ hash, status: receipt.status === '0x1' ? 'confirmed' : receipt.status === '0x0' ? 'failed' : 'unknown', blockNumber: bigint(receipt.blockNumber) }, 'arc-rpc')
   } catch { return empty('Receipt unavailable', 'arc-rpc') }
 }

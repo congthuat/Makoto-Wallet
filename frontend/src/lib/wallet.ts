@@ -1,6 +1,6 @@
 // Arc Testnet constants, types, formatters and injected-wallet helpers
 import { commitBrowserProvider, getProvider, hasBrowserProvider, type BrowserWallet, type Eip1193 } from './walletProviders.ts'
-import { withRpcTimeout, _getRpcTimeoutMs } from './rpcTimeout.ts'
+import { rpcRead } from './arcRpc.ts'
 export { getProvider } from './walletProviders.ts'
 
 export const ARC = {
@@ -183,9 +183,9 @@ export async function connectWallet(wallet?: BrowserWallet, signal?: AbortSignal
   checkCurrent()
   // eth_chainId and eth_accounts here are silent readbacks (wallet popup already closed).
   // Apply a read timeout so a non-responsive provider cannot hang the connect flow.
-  const chainId = Number(await withRpcTimeout(p.request({ method: 'eth_chainId' }), _getRpcTimeoutMs(), 'eth_chainId'))
+  const chainId = Number(await rpcRead(p, 'eth_chainId'))
   if (chainId !== ARC.chainId) throw new Error('Wallet is not on Arc Testnet.')
-  const currentAccounts: unknown = await withRpcTimeout(p.request({ method: 'eth_accounts' }), _getRpcTimeoutMs(), 'eth_accounts')
+  const currentAccounts: unknown = await rpcRead(p, 'eth_accounts')
   if (!Array.isArray(currentAccounts) || typeof currentAccounts[0] !== 'string' || !isAddress(currentAccounts[0])) throw new Error('No account returned')
   if (currentAccounts[0].toLowerCase() !== accounts[0].toLowerCase()) throw new Error('Wallet account changed. Connect again.')
   checkCurrent()

@@ -1,6 +1,7 @@
 import { ARC, TOKENS, getProvider, isAddress } from './wallet.ts'
 import type { TokenMeta } from './wallet.ts'
-import { withRpcTimeout, _getRpcTimeoutMs } from './rpcTimeout.ts'
+import { _getRpcTimeoutMs } from './rpcTimeout.ts'
+import { rpcRead } from './arcRpc.ts'
 
 export type SendProvider = NonNullable<ReturnType<typeof getProvider>>
 export type SendRequest = Readonly<{ from: string; to: string; data: string; value: '0x0'; gas: string; gasPrice: string }>
@@ -35,10 +36,10 @@ export function safeMax(balance: bigint, usdcBalance: bigint, fee18: bigint, sym
   return result > 0n ? result : undefined
 }
 export function encodeTransfer(recipient: string, units: bigint) { return `0xa9059cbb${addressWord(safeAddress(recipient))}${word(units)}` }
-/** Read-only RPC call with a hard timeout. Never use for eth_sendTransaction.
- *  _getRpcTimeoutMs() returns the test override when set, else RPC_TIMEOUT_MS. */
+/** Read-only RPC call. Bypass methods go direct to Arc RPC; others go through provider.
+ *  Never use for eth_sendTransaction. See arcRpc.ts for the bypass decision table. */
 async function req(p: SendProvider, method: string, params: unknown[] = []) {
-  return withRpcTimeout(p.request({ method, params }), _getRpcTimeoutMs(), method)
+  return rpcRead(p, method, params)
 }
 async function chainAndAccount(p: SendProvider) {
   const [accounts, chain] = await Promise.all([req(p, 'eth_accounts'), req(p, 'eth_chainId')])
@@ -108,13 +109,42 @@ export async function requestSend(p: SendProvider, prepared: PreparedSend): Prom
   if (typeof hash !== 'string' || !/^0x[0-9a-f]{64}$/i.test(hash)) throw new Error('Wallet returned no transaction hash')
   return hash
 }
+/** Validate a JSON-RPC receipt object before using its fields. Returns null if structure is invalid. */
+function parseReceipt(raw: unknown): { transactionHash: string; blockHash: string; blockNumber: string; status: string; logs: unknown[] } | null {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const r = raw as Record<string, unknown>
+  if (typeof r.transactionHash !== 'string') return null
+  if (typeof r.blockHash !== 'string' || !r.blockHash) return null
+  if (typeof r.blockNumber !== 'string' || !r.blockNumber) return null
+  if (typeof r.status !== 'string') return null
+  return { transactionHash: r.transactionHash, blockHash: r.blockHash, blockNumber: r.blockNumber, status: r.status, logs: Array.isArray(r.logs) ? r.logs : [] }
+}
+/** Validate a single ERC-20 Transfer log entry. */
+function parseLog(raw: unknown): { address: string; topics: string[]; data: string } | null {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const l = raw as Record<string, unknown>
+  if (typeof l.address !== 'string') return null
+  if (!Array.isArray(l.topics) || !l.topics.every((t) => typeof t === 'string')) return null
+  if (typeof l.data !== 'string') return null
+  return { address: l.address, topics: l.topics as string[], data: l.data }
+}
 export async function checkSendReceipt(p: SendProvider, hash: string, prepared: Pick<PreparedSend, 'token' | 'account' | 'recipient' | 'units'>): Promise<'pending' | 'confirmed' | 'failed' | 'unknown'> {
-  const receipt = await req(p, 'eth_getTransactionReceipt', [hash])
-  if (!receipt) return 'pending'
-  if (receipt.transactionHash?.toLowerCase() !== hash.toLowerCase() || !receipt.blockHash || !receipt.blockNumber) return 'unknown'
+  const raw = await req(p, 'eth_getTransactionReceipt', [hash])
+  if (raw === null || raw === undefined) return 'pending'
+  const receipt = parseReceipt(raw)
+  if (!receipt) return 'unknown'
+  if (receipt.transactionHash.toLowerCase() !== hash.toLowerCase()) return 'unknown'
   if (receipt.status === '0x0') return 'failed'
   if (receipt.status !== '0x1') return 'unknown'
-  const transfer = (receipt.logs ?? []).some((log: { address?: string; topics?: string[]; data?: string }) => log.address?.toLowerCase() === prepared.token.address.toLowerCase() && log.topics?.[0]?.toLowerCase() === TRANSFER_TOPIC && log.topics?.[1]?.toLowerCase() === `0x${addressWord(prepared.account)}` && log.topics?.[2]?.toLowerCase() === `0x${addressWord(prepared.recipient)}` && log.data && BigInt(log.data) === prepared.units)
+  const transfer = receipt.logs.some((entry) => {
+    const log = parseLog(entry)
+    if (!log) return false
+    return log.address.toLowerCase() === prepared.token.address.toLowerCase()
+      && log.topics[0]?.toLowerCase() === TRANSFER_TOPIC
+      && log.topics[1]?.toLowerCase() === `0x${addressWord(prepared.account)}`
+      && log.topics[2]?.toLowerCase() === `0x${addressWord(prepared.recipient)}`
+      && (() => { try { return BigInt(log.data) === prepared.units } catch { return false } })()
+  })
   return transfer ? 'confirmed' : 'unknown'
 }
 export async function pollSendReceipt(p: SendProvider, hash: string, prepared: PreparedSend, onPending?: () => void): Promise<'confirmed' | 'failed' | 'unknown'> {
