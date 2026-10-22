@@ -26,21 +26,35 @@ import { _setRpcTimeoutMsForTest } from './rpcTimeout.ts'
 // ---------------------------------------------------------------------------
 type MockConfig = {
   statusCode?: number
-  body?: unknown
+  /** result value — echoed with the request's own id. Mutually exclusive with error/rawBody. */
+  result?: unknown
+  /** JSON-RPC error object — echoed with the request's own id. */
+  error?: { code: number; message: string }
+  /** Override the entire response body verbatim (bypasses id echo). Use only for envelope tests. */
+  rawBody?: unknown
   delayMs?: number
 }
 let mockConfig: MockConfig = {}
-let lastRequest: { method: string; params: unknown[] } | null = null
+let lastRequest: { method: string; params: unknown[]; id: number } | null = null
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   let body = ''
   req.on('data', (chunk: Buffer) => { body += chunk.toString() })
   req.on('end', async () => {
     await new Promise<void>((resolve) => setTimeout(resolve, mockConfig.delayMs ?? 0))
-    try { lastRequest = JSON.parse(body) } catch { lastRequest = null }
+    let parsed: { method: string; params: unknown[]; id: number } | null = null
+    try { parsed = JSON.parse(body) } catch { /* ignore */ }
+    lastRequest = parsed
     const cfg = mockConfig
+    const reqId = parsed?.id ?? 1
     res.writeHead(cfg.statusCode ?? 200, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify(cfg.body ?? { jsonrpc: '2.0', id: 1, result: '0x1' }))
+    if (cfg.rawBody !== undefined) {
+      res.end(JSON.stringify(cfg.rawBody))
+    } else if (cfg.error !== undefined) {
+      res.end(JSON.stringify({ jsonrpc: '2.0', id: reqId, error: cfg.error }))
+    } else {
+      res.end(JSON.stringify({ jsonrpc: '2.0', id: reqId, result: cfg.result ?? '0x1' }))
+    }
   })
 })
 
@@ -106,14 +120,14 @@ describe('ARC_RPC_BYPASS_METHODS', () => {
 // ---------------------------------------------------------------------------
 describe('arcRpc()', () => {
   test('sends request to Arc RPC URL and returns result', async () => {
-    mockConfig = { body: { jsonrpc: '2.0', id: 1, result: '0x4cef52' } }
+    mockConfig = { result: '0x4cef52' }
     const result = await arcRpc('eth_chainId', [])
     assert.equal(result, '0x4cef52')
     assert.equal(lastRequest?.method, 'eth_chainId')
   })
 
   test('throws on RPC error response', async () => {
-    mockConfig = { body: { jsonrpc: '2.0', id: 1, error: { code: -32000, message: 'execution reverted' } } }
+    mockConfig = { error: { code: -32000, message: 'execution reverted' } }
     await assert.rejects(() => arcRpc('eth_call', []), /execution reverted/)
   })
 
@@ -130,7 +144,7 @@ describe('arcRpc()', () => {
 // ---------------------------------------------------------------------------
 describe('rpcRead() bypass routing', () => {
   test('eth_getCode goes to Arc RPC, NOT provider', async () => {
-    mockConfig = { body: { jsonrpc: '2.0', id: 1, result: '0x60806040' } }
+    mockConfig = { result: '0x60806040' }
     const provider = makeProvider([], 0)
     const result = await rpcRead(provider, 'eth_getCode', ['0x3600000000000000000000000000000000000000', 'latest'])
     assert.equal(result, '0x60806040')
@@ -140,28 +154,28 @@ describe('rpcRead() bypass routing', () => {
   })
 
   test('eth_call goes to Arc RPC, NOT provider', async () => {
-    mockConfig = { body: { jsonrpc: '2.0', id: 1, result: '0xresult' } }
+    mockConfig = { result: '0xresult' }
     const provider = makeProvider([], 0)
     await rpcRead(provider, 'eth_call', [{ to: '0x0', data: '0x' }, 'latest'])
     assert.deepEqual(provider.calls, [], 'eth_call must bypass provider')
   })
 
   test('eth_gasPrice goes to Arc RPC, NOT provider', async () => {
-    mockConfig = { body: { jsonrpc: '2.0', id: 1, result: '0x5d21dba00' } }
+    mockConfig = { result: '0x5d21dba00' }
     const provider = makeProvider([], 0)
     await rpcRead(provider, 'eth_gasPrice')
     assert.deepEqual(provider.calls, [], 'eth_gasPrice must bypass provider')
   })
 
   test('eth_estimateGas goes to Arc RPC, NOT provider', async () => {
-    mockConfig = { body: { jsonrpc: '2.0', id: 1, result: '0x5208' } }
+    mockConfig = { result: '0x5208' }
     const provider = makeProvider([], 0)
     await rpcRead(provider, 'eth_estimateGas', [{ from: '0x0', to: '0x0', data: '0x' }])
     assert.deepEqual(provider.calls, [], 'eth_estimateGas must bypass provider')
   })
 
   test('eth_getTransactionReceipt goes to Arc RPC, NOT provider', async () => {
-    mockConfig = { body: { jsonrpc: '2.0', id: 1, result: null } }
+    mockConfig = { result: null }
     const provider = makeProvider([], 0)
     await rpcRead(provider, 'eth_getTransactionReceipt', ['0x' + 'a'.repeat(64)])
     assert.deepEqual(provider.calls, [], 'eth_getTransactionReceipt must bypass provider')
@@ -216,7 +230,7 @@ describe('OKX simulation', () => {
     const okxSimulation = makeProvider(
       ['eth_getCode', 'eth_call', 'eth_gasPrice', 'eth_estimateGas'],
     )
-    mockConfig = { body: { jsonrpc: '2.0', id: 1, result: '0x60806040' } }
+    mockConfig = { result: '0x60806040' }
     const t0 = Date.now()
     const result = await rpcRead(okxSimulation, 'eth_getCode', ['0x3600000000000000000000000000000000000000', 'latest'])
     const elapsed = Date.now() - t0
