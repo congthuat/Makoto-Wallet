@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { createServer } from 'node:http'
 import test from 'node:test'
 import { CCTPV2BridgingProvider } from '@circle-fin/provider-cctp-v2'
 import { decodeFunctionData, encodeFunctionData, encodeFunctionResult, erc20Abi, pad, zeroHash, type Address, type Hex } from 'viem'
@@ -11,6 +12,9 @@ import { prepareCctpApproval, prepareCctpBurn, quoteBridge } from '../../migrate
 import { requestReviewedCctpAction } from '../../migrated/protocolExecution.ts'
 import { SendSubmissionGuard } from '../../lib/sendExecution.ts'
 import { CIRCLE_CUSTOM_BURN_WITH_HOOK_ABI, cctpGasCeilingExceeded, cctpGasEstimateChanged, executePreparedCctpCall, getOfficialCctpQuote, getOfficialCctpStatus, prepareExactCctpApproval, prepareOfficialCctpBurn, sameCctpActionMaterial, simulatePreparedCctpCall } from './cctpAdapter.ts'
+import { makeArcRpcBridgeProvider } from '../../lib/arcRpcBridgeProvider.ts'
+import { _setArcRpcUrlForTest, _getArcRpcUrl } from '../../lib/arcRpc.ts'
+import { _setRpcTimeoutMsForTest } from '../../lib/rpcTimeout.ts'
 
 const account = '0x1111111111111111111111111111111111111111' as Address
 const txHash = `0x${'a'.repeat(64)}` as Hex
@@ -513,6 +517,143 @@ test('actual Circle SDK status timeouts remain unavailable after two 10-second a
     assert.equal(attempts, 2)
     assert.equal(f.calls.length, 0)
   } finally { globalThis.fetch = previous; t.mock.timers.reset() }
+})
+
+// ---------------------------------------------------------------------------
+// Regression: OKX-style hung provider — Bridge must not stall on read-only calls
+// ---------------------------------------------------------------------------
+
+test('arcRpcBridgeProvider routes read-only methods to Arc RPC, not the injected provider', async () => {
+  // Simulate an OKX-style provider that answers eth_accounts/eth_chainId but
+  // hangs forever on eth_estimateGas, eth_call, eth_gasPrice, eth_getBalance.
+  const walletCalls: string[] = []
+  const hungMethods = new Set(['eth_estimateGas', 'eth_call', 'eth_gasPrice', 'eth_getBalance', 'eth_getCode'])
+  const okxProvider: SendProvider = { request: async ({ method }: { method: string }): Promise<unknown> => {
+    walletCalls.push(method)
+    if (method === 'eth_accounts') return [account]
+    if (method === 'eth_chainId') return '0x4cef52'
+    if (hungMethods.has(method)) return new Promise(() => { /* hang forever */ })
+    throw new Error(`Unexpected OKX provider method: ${method}`)
+  } }
+
+  const arcRpcCalls: string[] = []
+  const previousUrl = _getArcRpcUrl()
+  // Spin up a minimal Arc RPC mock
+  await new Promise<void>((resolve) => {
+    const srv = createServer((_req, res) => {
+      let body = ''
+      _req.on('data', (c: Buffer) => { body += c.toString() })
+      _req.on('end', () => {
+        const { method, id } = JSON.parse(body) as { method: string; id: number }
+        arcRpcCalls.push(method)
+        let result: unknown = '0x0'
+        if (method === 'eth_estimateGas') result = '0x186a0'
+        if (method === 'eth_gasPrice') result = '0x3b9aca00'
+        if (method === 'eth_getBalance') result = '0x1000000000000000'
+        if (method === 'eth_call') result = '0x' + '0'.repeat(64)
+        if (method === 'eth_getCode') result = '0x6000'
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ jsonrpc: '2.0', id, result }))
+      })
+    })
+    srv.listen(0, '127.0.0.1', () => {
+      const port = (srv.address() as { port: number }).port
+      _setArcRpcUrlForTest(`http://127.0.0.1:${port}`)
+      // Close after all tests in this block finish.
+      setTimeout(() => srv.close(), 2000)
+      resolve()
+    })
+  })
+  _setRpcTimeoutMsForTest(5_000)
+
+  try {
+    const wrapped = makeArcRpcBridgeProvider(okxProvider)
+
+    // Read-only methods must go via Arc RPC (fast), not the hung OKX provider.
+    const gasPrice = await wrapped.request({ method: 'eth_gasPrice', params: [] })
+    assert.equal(gasPrice, '0x3b9aca00', 'eth_gasPrice should come from Arc RPC')
+    assert.ok(!walletCalls.includes('eth_gasPrice'), 'OKX provider must NOT receive eth_gasPrice')
+    assert.ok(arcRpcCalls.includes('eth_gasPrice'), 'Arc RPC must receive eth_gasPrice')
+
+    const estimate = await wrapped.request({ method: 'eth_estimateGas', params: [{}] })
+    assert.equal(estimate, '0x186a0', 'eth_estimateGas should come from Arc RPC')
+    assert.ok(!walletCalls.includes('eth_estimateGas'), 'OKX provider must NOT receive eth_estimateGas')
+
+    const callResult = await wrapped.request({ method: 'eth_call', params: [{}] })
+    assert.ok(typeof callResult === 'string', 'eth_call should return a hex string from Arc RPC')
+    assert.ok(!walletCalls.includes('eth_call'), 'OKX provider must NOT receive eth_call')
+
+    // Wallet-interactive methods must still go through the injected provider.
+    const chainId = await wrapped.request({ method: 'eth_chainId', params: [] })
+    assert.equal(chainId, '0x4cef52', 'eth_chainId should come from wallet provider')
+    assert.ok(walletCalls.includes('eth_chainId'), 'OKX provider must receive eth_chainId')
+
+    const accounts = await wrapped.request({ method: 'eth_accounts', params: [] })
+    assert.deepEqual(accounts, [account], 'eth_accounts should come from wallet provider')
+    assert.ok(walletCalls.includes('eth_accounts'), 'OKX provider must receive eth_accounts')
+
+  } finally {
+    _setArcRpcUrlForTest(previousUrl)
+    _setRpcTimeoutMsForTest(undefined)
+  }
+})
+
+test('arcRpcBridgeProvider: eth_sendTransaction always goes to injected provider, never Arc RPC', async () => {
+  let sentToProvider = false
+  const sendProvider: SendProvider = { request: async ({ method }: { method: string }): Promise<unknown> => {
+    if (method === 'eth_sendTransaction') { sentToProvider = true; return `0x${'b'.repeat(64)}` }
+    if (method === 'eth_accounts') return [account]
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`Unexpected: ${method}`)
+  } }
+
+  const arcRpcCallsSend: string[] = []
+  const previousFetch = globalThis.fetch
+  globalThis.fetch = (async (_u, init) => {
+    const { method, id } = JSON.parse(String((init as RequestInit).body ?? '{}')) as { method: string; id: number }
+    arcRpcCallsSend.push(method)
+    return Response.json({ jsonrpc: '2.0', id, result: '0x0' })
+  }) as typeof fetch
+
+  try {
+    const wrapped = makeArcRpcBridgeProvider(sendProvider)
+    const hash = await wrapped.request({ method: 'eth_sendTransaction', params: [{ from: account, to: account, value: '0x0' }] })
+    assert.ok(sentToProvider, 'eth_sendTransaction must go through the injected provider')
+    assert.ok(!arcRpcCallsSend.includes('eth_sendTransaction'), 'Arc RPC must never receive eth_sendTransaction')
+    assert.ok(typeof hash === 'string' && hash.startsWith('0x'), 'should return a tx hash from provider')
+  } finally {
+    globalThis.fetch = previousFetch
+  }
+})
+
+test('CCTP prepare+estimate uses Arc RPC for gas when OKX provider hangs eth_estimateGas', async () => {
+  // This test proves the regression fix: before arcRpcBridgeProvider,
+  // prepareCctpApproval would hang because the Circle SDK viem adapter called
+  // eth_estimateGas through the OKX provider which never responds.
+  const f = fixture()
+  // Override the injected provider to hang on eth_estimateGas
+  const originalRequest = f.p.request.bind(f.p)
+  let estimateGasCalledOnProvider = false
+  f.p.request = async ({ method, params = [] }: { method: string; params?: unknown[] }): Promise<unknown> => {
+    if (method === 'eth_estimateGas') {
+      estimateGasCalledOnProvider = true
+      return new Promise(() => { /* hung forever — OKX behaviour */ })
+    }
+    return originalRequest({ method, params })
+  }
+
+  const q = await quote(f, 'FAST')
+  // prepareCctpApproval must complete despite the hung provider because
+  // arcRpcBridgeProvider redirects eth_estimateGas to Arc RPC.
+  const approval = await withMockArcRpc(
+    () => prepareCctpApproval(f.p, q, 0n),
+    () => false,
+    { allowance: 0n, balance: 10_000_000n },
+  )
+  assert.equal(approval.kind, 'approval', 'should prepare an approval action')
+  assert.ok(approval.gasEstimate && approval.gasEstimate.gasLimit > 0n, 'gas estimate must be non-zero from Arc RPC')
+  assert.equal(estimateGasCalledOnProvider, false,
+    'eth_estimateGas must NOT reach the hung OKX provider — arcRpcBridgeProvider must intercept it')
 })
 
 test('Circle status retries preserve every reviewed message binding and cannot claim destination completion', async () => {
