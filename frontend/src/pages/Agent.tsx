@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, ArrowUpRight, ArrowLeftRight, Rainbow, PieChart, Radar, Check, Trash2, Wallet, Boxes, ListChecks, Pencil, Lock, Zap } from 'lucide-react'
-import { AgentSendCard } from '../components/AgentSendCard'
+import { AgentSendCard, type AgentSendStage } from '../components/AgentSendCard'
 import { AgentSwapCard } from '../components/AgentSwapCard'
 import { AgentBridgeCard } from '../components/AgentBridgeCard'
 import type { CctpTransferSpeed } from '../migrated/toolLayer'
@@ -32,6 +32,21 @@ export const STEPS = [
   'User request', 'Planner proposal', 'Review parameters', 'Parameters confirmed', 'Strategy prepared',
   'Review transaction', 'Wallet signature', 'Submitted', 'Confirming', 'Completed',
 ] as const
+
+/** Map real Send execution evidence to the 10-step UI.
+ * UNKNOWN, REJECTED and FAILED must never promote the flow to completed.
+ * 'confirmed' is emitted only after the Send card verified a matching on-chain receipt. */
+export function agentSendProgressStage(state: AgentSendStage, previous: number): number {
+  switch (state) {
+    case 'preparing': return 4
+    case 'review': return 5
+    case 'requesting': return 6
+    case 'submitted': return 7
+    case 'pending': return 8
+    case 'confirmed': return STEPS.length
+    default: return previous
+  }
+}
 
 type Intent = 'send' | 'swap' | 'bridge'
 type Params = { asset: string; amount: string; recipient: string; toAsset: string; dest: string }
@@ -65,13 +80,13 @@ const nid = () => `m${Date.now()}${uid++}`
 function Stepper({ stage, compact = false }: { stage: number; compact?: boolean }) {
   const [tr] = useT()
   if (compact) return (
-    <div className="flex items-center gap-2 text-[12px]">
+    <div className="flex items-center gap-2 text-[12px]" data-step={stage}>
       <div className="flex gap-0.5">{STEPS.map((_, i) => <span key={i} className={`h-1 w-3 rounded-full ${i < stage || (i === 3 && stage === 3) ? 'bg-neon-400' : i === stage ? 'bg-neon-300/60' : 'bg-white/10'}`} />)}</div>
       <span className={T.sub}>{tr('Step')} {Math.min(stage + 1, STEPS.length)} · {tr(STEPS[Math.min(stage, STEPS.length - 1)])}</span>
     </div>
   )
   return (
-    <ol className="space-y-0">
+    <ol className="space-y-0" data-step={stage}>
       {STEPS.map((s, i) => {
         const done = i < stage || (i === 3 && stage === 3) // "Parameters confirmed" is a reached state, not an action
         const cur = i === stage && !done
@@ -229,7 +244,11 @@ function ContextPanel({ flow }: { flow?: Flow }) {
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3"><span className="text-[13px] font-semibold">{tr('Progress')}</span></div>
           <Stepper stage={flow.stage} />
-          <p className={`mt-3 text-[11.5px] ${T.mute}`}>{tr(flow.stage >= 3 ? 'The preview stops at Parameters confirmed. Later steps are shown for reference only.' : 'Waiting for you to review the parameters.')}</p>
+          {flow.stage >= STEPS.length ? (
+            <p className={`mt-3 text-[11.5px] ${T.mute}`}>{tr('Transaction complete')}</p>
+          ) : !flow.execCard ? (
+            <p className={`mt-3 text-[11.5px] ${T.mute}`}>{tr(flow.stage >= 3 ? 'The preview stops at Parameters confirmed. Later steps are shown for reference only.' : 'Waiting for you to review the parameters.')}</p>
+          ) : null}
         </Card>
       )}
       <Card className="p-4">
@@ -535,7 +554,7 @@ export default function AgentPage() {
                     {messageRows(m).map(([k, v], index) => <div key={`${k}-${index}`} className="flex justify-between gap-3 px-3.5 py-2"><dt className={`capitalize ${T.mute}`}>{k}</dt><dd className="font-num text-right">{v}</dd></div>)}
                   </dl>
                 ) : null}
-                {m.flow && !m.flow.execCard && (
+                {m.flow && !m.flow.execCard && m.flow.stage < STEPS.length && (
                   <ReviewCard
                     msg={m}
                     onChange={(p) => patch(m.id, (f) => ({ ...f, params: { ...f.params, ...p } }))}
@@ -547,17 +566,20 @@ export default function AgentPage() {
                     onHandoff={() => handoff(m)}
                   />
                 )}
+                {m.flow && !m.flow.execCard && m.flow.stage >= STEPS.length && (
+                  <p role="status" className="mt-3 text-[12px] text-neon-300">{tr('Transaction complete')}</p>
+                )}
                 {m.flow?.execCard === 'active' && w.mode === 'connected' && (() => {
                   const f = m.flow!
                   const p = f.params
-                  const dismissExec = () => patch(m.id, (x) => ({ ...x, execCard: undefined }))
+                  const dismissExec = () => patch(m.id, (x) => ({ ...x, execCard: undefined, stage: 3 }))
                   /** onDone(outcome) — called by the execution card when the user clicks Done/Hoàn tất.
                    *  'confirmed' / 'completed' → success toast + mark handed-off.
                    *  'failed' / 'rejected' / 'unknown' → card closes silently — the card already showed the error.
                    *  'unknown' must NEVER fire a success toast; the user must check Activity for evidence. */
                   const doneExec = (outcome: 'confirmed' | 'failed' | 'rejected' | 'unknown' | 'completed') => {
                     const succeeded = outcome === 'confirmed' || outcome === 'completed'
-                    patch(m.id, (x) => ({ ...x, execCard: undefined, handedOff: succeeded }))
+                    patch(m.id, (x) => ({ ...x, execCard: undefined, handedOff: succeeded, stage: succeeded ? STEPS.length : 3 }))
                     if (succeeded) w.notify(tr('Transaction complete'), 'ok')
                     // failed / rejected / unknown: card closes silently — the card already showed the error
                   }
@@ -565,6 +587,7 @@ export default function AgentPage() {
                     return (
                       <AgentSendCard
                         params={{ account: w.address, symbol: p.asset, amount: p.amount, recipient: p.recipient }}
+                        onStageChange={(stage) => patch(m.id, (x) => ({ ...x, stage: agentSendProgressStage(stage, x.stage) }))}
                         onDone={doneExec}
                         onCancel={dismissExec}
                       />

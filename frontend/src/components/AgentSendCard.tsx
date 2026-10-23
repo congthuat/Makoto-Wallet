@@ -44,7 +44,8 @@ export type AgentSendParams = {
   recipient: string
 }
 
-type Stage = 'preparing' | 'review' | 'requesting' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'rejected' | 'unknown'
+export type AgentSendStage = 'preparing' | 'review' | 'requesting' | 'submitted' | 'pending' | 'confirmed' | 'failed' | 'rejected' | 'unknown'
+type Stage = AgentSendStage
 
 /** Stages in which a wallet request has been initiated or is in-flight.
  *  Account/chain changes must NOT reset these stages — the checkpoint and
@@ -89,7 +90,7 @@ function sv(en: string, lang: string): string {
   return lang === 'vi' ? (VI[en] ?? translate(en, 'vi')) : en
 }
 
-export function AgentSendCard({ params, onDone, onCancel }: {
+export function AgentSendCard({ params, onDone, onCancel, onStageChange }: {
   params: AgentSendParams
   /** Called when the user explicitly clicks Done.
    *  'confirmed'  → transaction proven on-chain; caller may show success.
@@ -99,6 +100,8 @@ export function AgentSendCard({ params, onDone, onCancel }: {
    *                 inconclusive. Caller must NOT assume success or failure. */
   onDone: (outcome: 'confirmed' | 'failed' | 'rejected' | 'unknown') => void
   onCancel: () => void
+  /** Read-only execution progress; parent must never equate UNKNOWN/FAILED with completion. */
+  onStageChange?: (stage: AgentSendStage) => void
 }) {
   const { mode, address, walletChainId, upsertSend, refetchWallet, holdings } = useWallet()
   const [, lang] = useT()
@@ -107,7 +110,11 @@ export function AgentSendCard({ params, onDone, onCancel }: {
   // stageRef MUST be declared before setStage so the closure captures a live ref, never undefined.
   const stageRef = useRef<Stage>('preparing')
   const [stage, setStageRaw] = useState<Stage>('preparing')
-  const setStage = (s: Stage) => { stageRef.current = s; setStageRaw(s) }
+  const setStage = (s: Stage) => {
+    stageRef.current = s
+    setStageRaw(s)
+    onStageChange?.(s)
+  }
   const [prepared, setPrepared] = useState<PreparedSend | null>(null)
   const [error, setError] = useState('')
   const [hash, setHash] = useState<string | null>(null)
