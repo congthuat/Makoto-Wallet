@@ -6,6 +6,38 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createBrowserHarness } from './browser-harness.mjs'
 
+// Arc RPC mock — handles all bypass methods (eth_call, eth_gasPrice,
+// eth_getCode, eth_estimateGas, eth_getBalance, eth_getTransactionReceipt,
+// eth_getTransactionByHash, eth_blockNumber). Called server-side by the
+// Vite middleware at /__completion_arc_rpc__; browser sets
+// window.__arcRpcOverrideUrl so arcRpc.ts routes fetch() there instead of
+// rpc.testnet.arc.io. This prevents SIMULATION_REVERTED from a live Arc call
+// and prevents HTTP 429 rate-limit failures.
+function handleCompletionArcRpc(method, _params) {
+  // [result, error] — error is a JSON-RPC error object or null
+  if (method === 'eth_call') {
+    // Simulate all calls as successful (return empty 32-byte word).
+    // simulate() in LiveSwapControl treats any non-throw as success.
+    return ['0x' + '0'.repeat(64), null]
+  }
+  if (method === 'eth_gasPrice') {
+    // Must be <= prepared.request.gasPrice (which comes from toolFixture gasPrice='1').
+    // Return 1 wei so the gasPrice freshness check passes.
+    return ['0x1', null]
+  }
+  if (method === 'eth_getCode') {
+    // All token/contract addresses return non-empty code.
+    return ['0x6000', null]
+  }
+  if (method === 'eth_estimateGas') return ['0x186a0', null]
+  if (method === 'eth_getBalance') return ['0x' + (100n * 10n ** 18n).toString(16), null]
+  if (method === 'eth_getTransactionReceipt') return [null, null]
+  if (method === 'eth_getTransactionByHash') return [null, null]
+  if (method === 'eth_blockNumber') return ['0x7b', null]
+  if (method === 'eth_chainId') return ['0x4cef52', null]
+  return [null, { code: -32601, message: `Unexpected Arc RPC mock method: ${method}` }]
+}
+
 // Actual production SwapPage/BridgePage, controls, strategy state machine,
 // policy/finite-approval validation, CCTP gas/material and Activity merge helpers.
 // Wallet context, quote/prepare/simulation, submission, receipt and Circle/Base
@@ -262,14 +294,29 @@ const entry = `
   }
   localStorage.setItem('mk.swap.records.v1', JSON.stringify(h.swap));
   localStorage.setItem('mk.bridge.records.v1', JSON.stringify(h.bridge));
+  // Route arcRpc.ts bypass calls to the local Vite mock, not the real Arc RPC.
+  // arcRpc.ts reads window.__arcRpcOverrideUrl when set; the guard in arcRpc.ts
+  // allows override on localhost (preview server runs on 127.0.0.1).
+  // Save original fetch before overriding, so Arc RPC mock requests can still
+  // reach the Vite dev server's /__completion_arc_rpc__ endpoint.
+  globalThis.__originalFetch = globalThis.fetch;
+  window.__arcRpcOverrideUrl = '/__completion_arc_rpc__';
   window.ethereum = {isMetaMask: true, request: async ({method}) => {
     h.calls.push(method);
-    if (method === 'eth_call') return '0x';
-    if (method === 'eth_gasPrice') return '0x' + BigInt(h.gasPrice).toString(16);
-    if (method === 'eth_getTransactionReceipt') return null;
+    // Only wallet-identity and signing methods are handled by the injected provider.
+    // All read-only blockchain calls (eth_call, eth_gasPrice, eth_getCode, etc.)
+    // are routed through arcRpc.ts → /__completion_arc_rpc__ mock above.
+    if (method === 'eth_accounts') return [h.activeAccount];
+    if (method === 'eth_chainId') return '0x' + h.activeChain.toString(16);
+    if (method === 'wallet_switchEthereumChain') return null;
     throw new Error('Unexpected provider request in MOCKED completion QA: ' + method);
   }};
-  window.fetch = async (url) => {
+  window.fetch = async (url, opts) => {
+    // Arc RPC mock requests from arcRpc.ts go to the Vite-served /__completion_arc_rpc__
+    // endpoint. Pass them through to the real fetch (the Vite dev server handles them).
+    if (String(url).startsWith('/__completion_arc_rpc__')) {
+      return globalThis.__originalFetch ? globalThis.__originalFetch(url, opts) : fetch.call(undefined, url, opts);
+    }
     if (h.realShape && String(url).startsWith('https://iris-api-sandbox.circle.com/v2/messages/26?transactionHash=')) {
       h.circleHttpReads.push(String(url));
       if (new URL(String(url)).searchParams.get('transactionHash') !== '${realBurnHash}') throw new Error('Wrong captured Circle burn hash');
@@ -343,6 +390,32 @@ before(async () => {
     },
     configureServer(vite) {
       vite.middlewares.use(async (req, res, next) => {
+        // Arc RPC mock endpoint — handles all bypass methods.
+        if (req.url?.startsWith('/__completion_arc_rpc__') && req.method === 'POST') {
+          let body = ''
+          req.on('data', (chunk) => { body += chunk })
+          req.on('end', async () => {
+            try {
+              const { method, params = [], id } = JSON.parse(body)
+              const [result, error] = handleCompletionArcRpc(method, params)
+              const payload = error
+                ? JSON.stringify({ jsonrpc: '2.0', id, error })
+                : JSON.stringify({ jsonrpc: '2.0', id, result })
+              res.setHeader('Content-Type', 'application/json')
+              res.setHeader('Access-Control-Allow-Origin', '*')
+              res.end(payload)
+            } catch (e) {
+              res.statusCode = 400; res.end(JSON.stringify({ error: e.message }))
+            }
+          })
+          return
+        }
+        if (req.url?.startsWith('/__completion_arc_rpc__') && req.method === 'OPTIONS') {
+          res.setHeader('Access-Control-Allow-Origin', '*')
+          res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+          res.statusCode = 204; res.end(); return
+        }
         if (!req.url?.startsWith('/__completion_test__?')) return next()
         const html = await vite.transformIndexHtml(req.url, '<!doctype html><html><body><div id="app"></div><script type="module" src="/__completion_test__/entry.js"></script></body></html>')
         res.setHeader('Content-Type', 'text/html'); res.end(html)
