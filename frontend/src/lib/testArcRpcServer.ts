@@ -33,7 +33,7 @@ import { _setArcRpcUrlForTest } from './arcRpc.ts'
 type HandlerResult = unknown
 type Handler = (method: string, params: unknown[]) => HandlerResult | Promise<HandlerResult>
 
-let defaultHandler: Handler = () => '0x1'
+const defaultHandler: Handler = () => '0x1'
 let currentHandler: Handler = defaultHandler
 let server: ReturnType<typeof createServer> | null = null
 
