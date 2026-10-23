@@ -16,10 +16,29 @@ const destination = official.supportedChains.find((chain) => chain.type === 'evm
 const sourceMessenger = source.cctp!.contracts.v2!.type === 'split' ? source.cctp!.contracts.v2!.tokenMessenger : ''
 const destinationMessenger = destination.cctp!.contracts.v2!.type === 'split' ? destination.cctp!.contracts.v2!.tokenMessenger : ''
 const base: BridgeRecord = { hash, account, target, calldata: '0x1234', amount: '1', expectedReceiveUnits: '1000000', destinationDomain: 6, maxFeeUnits: '0', finalityThreshold: '1000', timestamp: 1, status: 'source-pending' }
-const provider = (receipt: unknown, transaction: unknown = { hash, from: account, to: target, input: '0x1234' }) => ({ request: async ({ method }: { method: string }) => method === 'eth_chainId' ? '0x4cef52' : method === 'eth_getTransactionReceipt' ? receipt : method === 'eth_getTransactionByHash' ? transaction : undefined })
 const success = { transactionHash: hash, blockHash: hash, blockNumber: '0x1', status: '0x1' }
 const messageLog = { address: (source.cctp!.contracts.v2!.type === 'split' ? source.cctp!.contracts.v2!.messageTransmitter : ''), topics: encodeEventTopics({ abi: CCTP_MESSAGE_SENT_ABI, eventName: 'MessageSent' }), data: encodeAbiParameters([{ type: 'bytes' }], ['0x01']) }
 const sourceSuccess = { ...success, logs: [messageLog] }
+
+// After Rev 6, checkBridgeRecord/checkSwapRecord call rpcRead() → arcRpc() → fetch() for
+// eth_getTransactionReceipt and eth_getTransactionByHash.  The provider() helper below
+// only handles eth_chainId; receipt/tx data is served by the Arc RPC mock via globalThis.fetch.
+function withArcReceiptMock<T>(receipt: unknown, transaction: unknown, fn: () => Promise<T>): Promise<T> {
+  const prev = globalThis.fetch
+  const tx = transaction ?? { hash, from: account, to: target, input: '0x1234' }
+  globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const payload = JSON.parse(String(init?.body ?? '{}')) as { id?: number; method?: string }
+    const id = payload.id ?? 1
+    if (payload.method === 'eth_getTransactionReceipt') return Response.json({ jsonrpc: '2.0', id, result: receipt })
+    if (payload.method === 'eth_getTransactionByHash') return Response.json({ jsonrpc: '2.0', id, result: tx })
+    if (payload.method === 'eth_chainId') return Response.json({ jsonrpc: '2.0', id, result: '0x4cef52' })
+    return Response.json({ jsonrpc: '2.0', id, result: '0x' })
+  }) as typeof fetch
+  return fn().finally(() => { globalThis.fetch = prev })
+}
+
+// provider only handles wallet-identity methods; all read-only RPC goes through arcRpc() mock above.
+const provider = (chainId = '0x4cef52') => ({ request: async ({ method }: { method: string }) => method === 'eth_chainId' ? chainId : undefined })
 
 test('checkpoint cleanup requires durable completed Activity for the same account, hash and protocol', () => {
   const values = new Map<string, string>()
@@ -70,46 +89,70 @@ const noDestination = (responses: unknown[], visited: string[]) => (async (input
 
 test('source receipt checks the Arc network and transaction binding before status lookup', async () => {
   const visited: string[] = []
-  assert.equal((await checkBridgeRecord(provider(null), base, noDestination([], visited))).status, 'source-pending')
-  assert.equal((await checkBridgeRecord(provider({ ...success, status: '0x0' }), base)).status, 'failed')
-  assert.equal((await checkBridgeRecord(provider(success, { hash, from: account, to: target, input: '0x9999' }), base)).status, 'source-unknown')
+  // null receipt → source-pending (Arc RPC returns no receipt yet)
+  await withArcReceiptMock(null, null, async () => {
+    assert.equal((await checkBridgeRecord(provider(), base, noDestination([], visited))).status, 'source-pending')
+  })
+  // failed receipt (status 0x0)
+  await withArcReceiptMock({ ...success, status: '0x0' }, null, async () => {
+    assert.equal((await checkBridgeRecord(provider(), base)).status, 'failed')
+  })
+  // wrong calldata in transaction
+  await withArcReceiptMock(success, { hash, from: account, to: target, input: '0x9999' }, async () => {
+    assert.equal((await checkBridgeRecord(provider(), base)).status, 'source-unknown')
+  })
+  // wrong chain from provider
   const wrongChain = { request: async ({ method }: { method: string }) => method === 'eth_chainId' ? '0x1' : null }
-  assert.equal((await checkBridgeRecord(wrongChain, base)).status, 'source-unknown')
+  await withArcReceiptMock(null, null, async () => {
+    assert.equal((await checkBridgeRecord(wrongChain, base)).status, 'source-unknown')
+  })
   assert.equal(visited.length, 0)
 })
 
 test('official Circle attestation and forwarding states remain pending until Base proof', async () => {
   const visited: string[] = []
-  const dependencies = cctp('pending')
-  const pending = await checkBridgeRecord(provider(sourceSuccess), base, noDestination([], visited), dependencies)
+  const pending = await withArcReceiptMock(sourceSuccess, { hash, from: account, to: target, input: '0x1234' }, () =>
+    checkBridgeRecord(provider(), base, noDestination([], visited), cctp('pending')))
   assert.equal(pending.status, 'attesting')
   assert.equal(visited.length, 0)
 
-  const forwarding = await checkBridgeRecord(provider(sourceSuccess), base, noDestination([], visited), cctp('forwarding-pending'))
+  const forwarding = await withArcReceiptMock(sourceSuccess, { hash, from: account, to: target, input: '0x1234' }, () =>
+    checkBridgeRecord(provider(), base, noDestination([], visited), cctp('forwarding-pending')))
   assert.equal(forwarding.status, 'attesting')
   assert.equal(visited.length, 0)
 
-  const confirmed = await checkBridgeRecord(provider(sourceSuccess), base, noDestination([{ status: 'confirmed' }], visited), cctp('forwarded'))
+  const confirmed = await withArcReceiptMock(sourceSuccess, { hash, from: account, to: target, input: '0x1234' }, () =>
+    checkBridgeRecord(provider(), base, noDestination([{ status: 'confirmed' }], visited), cctp('forwarded')))
   assert.equal(confirmed.status, 'destination-confirmed')
   assert.equal(confirmed.destinationHash, hash)
   assert.match(visited.at(-1)!, /cctp\/destination/)
-  const missingProof = await checkBridgeRecord(provider(sourceSuccess), base, noDestination([{ status: 'unknown' }], visited), cctp('forwarded'))
+
+  const missingProof = await withArcReceiptMock(sourceSuccess, { hash, from: account, to: target, input: '0x1234' }, () =>
+    checkBridgeRecord(provider(), base, noDestination([{ status: 'unknown' }], visited), cctp('forwarded')))
   assert.equal(missingProof.status, 'destination-pending')
-  const failedForward = await checkBridgeRecord(provider(sourceSuccess), base, noDestination([], visited), cctp('forwarding-failed'))
+
+  const failedForward = await withArcReceiptMock(sourceSuccess, { hash, from: account, to: target, input: '0x1234' }, () =>
+    checkBridgeRecord(provider(), base, noDestination([], visited), cctp('forwarding-failed')))
   assert.equal(failedForward.status, 'forwarding-failed')
   assert.equal(mergeBridgeRecord(failedForward, { ...base, status: 'source-pending' }).status, 'forwarding-failed')
 })
 
 test('missing source receipts cannot downgrade UNKNOWN or later bridge evidence to PENDING', async () => {
   const unknown = { ...base, status: 'source-unknown' as const }
-  assert.equal((await checkBridgeRecord(provider(null), unknown)).status, 'source-unknown')
+  await withArcReceiptMock(null, null, async () => {
+    assert.equal((await checkBridgeRecord(provider(), unknown)).status, 'source-unknown')
+  })
   assert.equal(mergeBridgeRecord(unknown, base).status, 'source-unknown')
   const destinationPending = { ...base, status: 'destination-pending' as const, destinationHash: hash }
-  assert.equal((await checkBridgeRecord(provider(null), destinationPending)).status, 'destination-pending')
+  await withArcReceiptMock(null, null, async () => {
+    assert.equal((await checkBridgeRecord(provider(), destinationPending)).status, 'destination-pending')
+  })
   const destinationFailed = { ...base, status: 'destination-failed' as const, destinationHash: hash }
   assert.equal(mergeBridgeRecord(destinationFailed, { ...base, status: 'source-unknown' }).status, 'destination-failed')
   const swap: SwapRecord = { hash, account, target, calldata: '0x1234', fromSymbol: 'USDC', toSymbol: 'EURC', amount: '1', minimumOutputUnits: '1', timestamp: 1, status: 'unknown' }
-  assert.equal(await checkSwapRecord(provider(null), swap), 'unknown')
+  await withArcReceiptMock(null, null, async () => {
+    assert.equal(await checkSwapRecord(provider(), swap), 'unknown')
+  })
 })
 
 test('an unavailable read can retain a new forward hash without downgrading or completing saved progress', () => {

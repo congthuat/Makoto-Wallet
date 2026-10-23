@@ -60,23 +60,42 @@ function fixture(burn = false) {
 }
 
 async function quote(f: ReturnType<typeof fixture>, speed: 'FAST' | 'SLOW' = 'FAST', now = Date.now()): Promise<BridgeToolQuote> {
-  return getOfficialCctpQuote(f.p, { account, amount, transferSpeed: speed, now }, { createProvider: f.createProvider })
+  return withMockArcRpc(() => getOfficialCctpQuote(f.p, { account, amount, transferSpeed: speed, now }, { createProvider: f.createProvider }),
+    () => false, { allowance: f.state.allowance, balance: f.state.balance })
 }
 
-async function withMockArcRpc<T>(run: () => Promise<T>, failEthCall: () => boolean = () => false): Promise<T> {
+type MockArcRpcState = { allowance?: bigint; balance?: bigint }
+async function withMockArcRpc<T>(run: () => Promise<T>, failEthCall: () => boolean = () => false, mockState?: MockArcRpcState): Promise<T> {
   const previous = globalThis.fetch
   globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
-    const payload = JSON.parse(String(init?.body ?? '{}')) as { id?: number; method?: string }
-    const result = payload.method === 'eth_chainId' ? '0x4cef52'
-      : payload.method === 'eth_gasPrice' ? '0x3b9aca00'
-        : payload.method === 'eth_estimateGas' ? '0x186a0'
-          : payload.method === 'eth_getBalance' ? '0x1000000000000000'
-            : payload.method === 'eth_call' ? (failEthCall() ? undefined : '0x')
-              : payload.method === 'eth_getBlockByNumber' ? { baseFeePerGas: '0x3b9aca00', gasLimit: '0x1c9c380' }
-                : '0x'
-    return payload.method === 'eth_call' && failEthCall()
-      ? Response.json({ jsonrpc: '2.0', id: payload.id ?? 1, error: { code: 3, message: 'execution reverted' } })
-      : Response.json({ jsonrpc: '2.0', id: payload.id ?? 1, result })
+    const payload = JSON.parse(String(init?.body ?? '{}')) as { id?: number; method?: string; params?: unknown[] }
+    const id = payload.id ?? 1
+    if (payload.method === 'eth_call' && failEthCall()) {
+      return Response.json({ jsonrpc: '2.0', id, error: { code: 3, message: 'execution reverted' } })
+    }
+    let result: unknown = '0x'
+    if (payload.method === 'eth_chainId') result = '0x4cef52'
+    else if (payload.method === 'eth_gasPrice') result = '0x3b9aca00'
+    else if (payload.method === 'eth_estimateGas') result = '0x186a0'
+    else if (payload.method === 'eth_getBalance') result = '0x1000000000000000'
+    else if (payload.method === 'eth_getBlockByNumber') result = { baseFeePerGas: '0x3b9aca00', gasLimit: '0x1c9c380' }
+    else if (payload.method === 'eth_getCode') result = '0x6000'
+    else if (payload.method === 'eth_call') {
+      // Decode calldata to return ABI-correct responses.
+      // verifyToken calls decimals (0x313ce567), symbol (0x95d89b41).
+      // readBalance calls balanceOf (0x70a08231).
+      // readAllowance calls allowance (0xdd62ed3e).
+      const callParams = payload.params as [{ to: string; data: string }, string] | undefined
+      const { data = '', to = '' } = callParams?.[0] ?? {}
+      if (data === '0x313ce567') result = '0x6' // decimals = 6
+      else if (data === '0x95d89b41') result = encodeFunctionResult({ abi: erc20Abi, functionName: 'symbol', result: 'USDC' })
+      else if (data.startsWith('0x70a08231')) result = encodeFunctionResult({ abi: erc20Abi, functionName: 'balanceOf', result: mockState?.balance ?? 10_000_000n })
+      else if (data.startsWith('0xdd62ed3e')) result = encodeFunctionResult({ abi: erc20Abi, functionName: 'allowance', result: mockState?.allowance ?? 2_000_000n })
+      else result = to ? '0x' : '0x'
+    }
+    else if (payload.method === 'eth_getTransactionReceipt') result = null
+    else if (payload.method === 'eth_getTransactionByHash') result = null
+    return Response.json({ jsonrpc: '2.0', id, result })
   }) as typeof fetch
   try { return await run() } finally { globalThis.fetch = previous }
 }
@@ -101,19 +120,21 @@ test('Circle SDK quote binds Arc to Base Sepolia USDC and uses amount-minus-maxi
 })
 
 test('CCTP fails closed for unsupported speed, asset, route, unavailable provider, changed wallet context, and expired quote', async () => {
-  const f = fixture()
-  const params = { account, amount: '1', asset: 'USDC', sourceChainId: 5042002, destinationChainId: 84532 }
-  const deps = { createProvider: f.createProvider }
-  assert.equal((await quoteBridge(f.p, { ...params, transferSpeed: 'TURBO' as never }, Date.now(), deps)).status, 'UNAVAILABLE')
-  assert.equal((await quoteBridge(f.p, { ...params, asset: 'EURC' }, Date.now(), deps)).status, 'UNAVAILABLE')
-  assert.equal((await quoteBridge(f.p, { ...params, destinationChainId: 84532 + 1 }, Date.now(), deps)).status, 'UNAVAILABLE')
-  assert.equal((await quoteBridge(f.p, params, Date.now(), { createProvider: () => { throw new Error('Circle provider unavailable') } })).status, 'UNAVAILABLE')
-  const wrongChain: SendProvider = { request: (args) => args.method === 'eth_chainId' ? Promise.resolve('0x1') : f.p.request(args) }
-  assert.equal((await quoteBridge(wrongChain, params, Date.now(), deps)).status, 'UNAVAILABLE')
-  const changedAccount: SendProvider = { request: (args) => args.method === 'eth_accounts' ? Promise.resolve(['0x2222222222222222222222222222222222222222']) : f.p.request(args) }
-  assert.equal((await quoteBridge(changedAccount, params, Date.now(), deps)).status, 'UNAVAILABLE')
-  const q = await quote(f)
-  await assert.rejects(prepareOfficialCctpBurn(f.p, q, q.expiresAt + 1, deps), /expired/i)
+  await withMockArcRpc(async () => {
+    const f = fixture()
+    const params = { account, amount: '1', asset: 'USDC', sourceChainId: 5042002, destinationChainId: 84532 }
+    const deps = { createProvider: f.createProvider }
+    assert.equal((await quoteBridge(f.p, { ...params, transferSpeed: 'TURBO' as never }, Date.now(), deps)).status, 'UNAVAILABLE')
+    assert.equal((await quoteBridge(f.p, { ...params, asset: 'EURC' }, Date.now(), deps)).status, 'UNAVAILABLE')
+    assert.equal((await quoteBridge(f.p, { ...params, destinationChainId: 84532 + 1 }, Date.now(), deps)).status, 'UNAVAILABLE')
+    assert.equal((await quoteBridge(f.p, params, Date.now(), { createProvider: () => { throw new Error('Circle provider unavailable') } })).status, 'UNAVAILABLE')
+    const wrongChain: SendProvider = { request: (args) => args.method === 'eth_chainId' ? Promise.resolve('0x1') : f.p.request(args) }
+    assert.equal((await quoteBridge(wrongChain, params, Date.now(), deps)).status, 'UNAVAILABLE')
+    const changedAccount: SendProvider = { request: (args) => args.method === 'eth_accounts' ? Promise.resolve(['0x2222222222222222222222222222222222222222']) : f.p.request(args) }
+    assert.equal((await quoteBridge(changedAccount, params, Date.now(), deps)).status, 'UNAVAILABLE')
+    const q = await quote(f)
+    await assert.rejects(prepareOfficialCctpBurn(f.p, q, q.expiresAt + 1, deps), /expired/i)
+  })
 })
 
 test('CCTP approval uses one exact finite approve request and never submits a burn with it', async () => {
@@ -244,8 +265,9 @@ test('CCTP simulation failure blocks before any wallet request', async () => {
 })
 
 test('mock connected EIP-1193 Flow A uses no approval and Flow B submits only an exact approval', async () => {
+  // Flow A: sufficient.state.allowance = 2_000_000n (default) — no approval needed
+  const sufficient = fixture(true)
   await withMockArcRpc(async () => {
-    const sufficient = fixture(true)
     const depsA = { createProvider: sufficient.createProvider }
     const quoteA = await quoteBridge(sufficient.p, { account, amount: '1', asset: 'USDC', sourceChainId: 5042002, destinationChainId: 84532 }, Date.now(), depsA)
     assert.equal(quoteA.status, 'OK')
@@ -254,9 +276,12 @@ test('mock connected EIP-1193 Flow A uses no approval and Flow B submits only an
     assert.equal(sufficient.state.burnPreparations, 1)
     assert.equal(sufficient.calls.filter((call) => call.method === 'eth_sendTransaction').length, 0)
     assert.equal(sufficient.calls.some((call) => call.method === 'eth_call' && String((call.params[0] as { data?: string })?.data).startsWith('0x095ea7b3')), false)
+  }, () => false, { allowance: sufficient.state.allowance, balance: sufficient.state.balance })
 
-    const insufficient = fixture(true)
-    insufficient.state.allowance = 0n
+  // Flow B: insufficient.state.allowance = 0n — approval required
+  const insufficient = fixture(true)
+  insufficient.state.allowance = 0n
+  await withMockArcRpc(async () => {
     const depsB = { createProvider: insufficient.createProvider }
     const quoteB = await quoteBridge(insufficient.p, { account, amount: '1', asset: 'USDC', sourceChainId: 5042002, destinationChainId: 84532 }, Date.now(), depsB)
     assert.equal(quoteB.status, 'OK')
@@ -274,7 +299,7 @@ test('mock connected EIP-1193 Flow A uses no approval and Flow B submits only an
     assert.equal(approvalCall.functionName, 'approve')
     assert.equal(approvalCall.args[1], quoteB.data!.totalDebit)
     assert.equal(insufficient.state.burnPreparations, 0)
-  })
+  }, () => false, { allowance: 0n, balance: insufficient.state.balance })
 })
 
 test('CCTP approval rejection submits no transaction hash and cannot be retried from the same prepared request', async () => {
