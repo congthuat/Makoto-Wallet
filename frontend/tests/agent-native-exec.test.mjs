@@ -194,7 +194,31 @@ before(async () => {
         if (id === '/__agent_test__/entry.js') return entry
       },
       configureServer(vite) {
+        // Server-side state for dynamic receipt mocking.
+        // Set via PUT /__arc_agent_rpc_state__ { confirmedHash: '0x...' | null }
+        const rpcState = { confirmedHash: null }
         vite.middlewares.use(async (req, res, next) => {
+          // State control endpoint — allows tests to arm a confirmed receipt.
+          if (req.url === '/__arc_agent_rpc_state__' && req.method === 'PUT') {
+            let body = ''
+            req.on('data', (c) => { body += c })
+            req.on('end', () => {
+              try {
+                const patch = JSON.parse(body)
+                if ('confirmedHash' in patch) rpcState.confirmedHash = patch.confirmedHash
+                res.setHeader('Content-Type', 'application/json')
+                res.setHeader('Access-Control-Allow-Origin', '*')
+                res.end(JSON.stringify({ ok: true }))
+              } catch (_) { res.statusCode = 400; res.end('{}') }
+            })
+            return
+          }
+          if (req.url === '/__arc_agent_rpc_state__' && req.method === 'OPTIONS') {
+            res.setHeader('Access-Control-Allow-Origin', '*')
+            res.setHeader('Access-Control-Allow-Methods', 'PUT, OPTIONS')
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+            res.statusCode = 204; res.end(); return
+          }
           // Arc RPC mock endpoint — handles all bypass methods server-side.
           if (req.url?.startsWith('/__arc_agent_rpc_mock__') && req.method === 'POST') {
             let body = ''
@@ -202,7 +226,32 @@ before(async () => {
             req.on('end', () => {
               try {
                 const { method, params = [], id } = JSON.parse(body)
-                const [result, error] = handleArcRpcMethod(method, params)
+                // Dynamic receipt: return confirmed receipt when hash matches armed hash.
+                let [result, error] = handleArcRpcMethod(method, params)
+                if (method === 'eth_getTransactionReceipt' && rpcState.confirmedHash) {
+                  const reqHash = (params[0] ?? '').toLowerCase()
+                  if (reqHash === rpcState.confirmedHash.toLowerCase()) {
+                    // ERC20 Transfer log: USDC transfer of 1_000_000 units
+                    const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+                    const from32 = '0x000000000000000000000000' + account.slice(2).toLowerCase()
+                    const to32 = '0x000000000000000000000000' + recipient.slice(2).toLowerCase()
+                    const amount32 = '0x' + (1_000_000n).toString(16).padStart(64, '0')
+                    result = {
+                      transactionHash: rpcState.confirmedHash,
+                      blockHash: '0x' + 'a'.repeat(64),
+                      blockNumber: '0x7c',
+                      status: '0x1',
+                      from: account,
+                      to: '0x3600000000000000000000000000000000000000',
+                      logs: [{
+                        address: '0x3600000000000000000000000000000000000000',
+                        topics: [transferTopic, from32, to32],
+                        data: amount32,
+                      }],
+                    }
+                    error = null
+                  }
+                }
                 const payload = error
                   ? JSON.stringify({ jsonrpc: '2.0', id, error })
                   : JSON.stringify({ jsonrpc: '2.0', id, result })
@@ -697,6 +746,70 @@ test('MOCKED UNKNOWN checkpoint persists across component unmount and remount', 
 })
 
 test('MOCKED onStageChange fires real execution stages and "confirmed" reaches step 10/10', async () => {
+  const CONFIRMED_HASH = '0x' + 'f'.repeat(64)
+  // Arm the receipt mock before the test starts.
+  await fetch('/__arc_agent_rpc_state__', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirmedHash: CONFIRMED_HASH }),
+  })
+  try {
+    await fixture({}, async ({ evaluate, wait, fill, click }) => {
+      // Set wallet to return the confirmed hash instead of rejecting.
+      await evaluate(`window.__agentHarness.sendMode = 'ok'`)
+
+      await fill(0, `Send 1 USDC to ${recipient}`)
+      await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+      await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+      await click('Confirm parameters')
+      await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+      await click('Execute Send in chat')
+      // Wait for prepare to complete — Confirm in wallet button enabled at review stage.
+      await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+      // Stepper must show stage >= 5 (review = 5) before signing.
+      const stageBeforeSign = await evaluate(
+        `Number(document.querySelector('[data-step]')?.dataset?.step ?? 0)`
+      )
+      assert.ok(stageBeforeSign >= 5, `Stepper must advance to at least step 5 at review; got ${stageBeforeSign}`)
+
+      // Sign — wallet returns CONFIRMED_HASH; Arc RPC mock will return confirmed receipt.
+      await click('Confirm in wallet')
+      // Card must show confirmed state — this fires after receipt polling finds status=0x1.
+      await wait(
+        `document.body.innerText.includes('Giao dịch đã xác nhận') || document.body.innerText.includes('Transfer confirmed')`,
+        'Card must show confirmed after receipt', 15000
+      )
+      // ── KEY ASSERTION: step 10 must be shown BEFORE clicking Done ──
+      const stageAfterConfirm = await evaluate(
+        `Number(document.querySelector('[data-step]')?.dataset?.step ?? 0)`
+      )
+      assert.equal(stageAfterConfirm, 10, `Stepper must reach step 10 after confirmed receipt (got ${stageAfterConfirm})`)
+
+      assert.equal(await evaluate(sendCount), 1, 'Exactly one wallet send')
+
+      // Click Done — card dismisses, "Giao dịch hoàn tất" remains visible.
+      await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Hoàn tất' || b.textContent.trim() === 'Done')`)
+      const doneLabel = await evaluate(
+        `([...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Hoàn tất' || b.textContent.trim() === 'Done') || {}).textContent?.trim()`
+      )
+      await click(doneLabel)
+      await wait(
+        `document.body.innerText.includes('Giao dịch hoàn tất') || document.body.innerText.includes('Transaction complete')`,
+        'Completion message must persist after Done'
+      )
+    })
+  } finally {
+    // Disarm receipt mock so other tests keep getting null (pending).
+    await fetch('/__arc_agent_rpc_state__', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmedHash: null }),
+    })
+  }
+})
+
+test('MOCKED wallet rejection: Progress stays at step 3, no "Transaction complete" shown', async () => {
+  // Default fixture: sendMode = '4001' (wallet rejects with code 4001). No walletOutcome param needed.
   await fixture({}, async ({ evaluate, wait, fill, click }) => {
     await fill(0, `Send 1 USDC to ${recipient}`)
     await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
@@ -704,53 +817,36 @@ test('MOCKED onStageChange fires real execution stages and "confirmed" reaches s
     await click('Confirm parameters')
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
     await click('Execute Send in chat')
-    // review stage fires immediately during prepare — stepper must be past step 4
-    await wait(`document.body.innerText.includes('Bước') || document.body.innerText.includes('Step')`)
-    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
-    // At review stage the stepper must show step 6 or above (review = step 5, requesting = step 6)
-    const stageAtReview = await evaluate(
-      `(() => { const el = document.querySelector('[aria-label*="step"], [data-step]'); return el ? el.getAttribute('aria-label') || el.dataset.step : document.body.innerText })()`
-    )
-    // stage >= 5 means stepper advanced past 4 (Parameters confirmed)
-    // Wallet sends confirmed hash — receipt polling will confirm
-    await click('Confirm in wallet')
-    await wait(
-      `document.body.innerText.includes('Giao dịch đã xác nhận') || document.body.innerText.includes('Transfer confirmed')`,
-      'Card must show confirmed after receipt'
-    )
-    // Click Done
-    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Hoàn tất' || b.textContent.trim() === 'Done')`)
-    await click('Hoàn tất')
-    // Progress must now show step 10/10
-    await wait(
-      `document.body.innerText.includes('10') && (document.body.innerText.includes('Hoàn tất') || document.body.innerText.includes('Completed'))`,
-      'Progress must reach step 10 after confirmed send'
-    )
-    assert.equal(await evaluate(sendCount), 1, 'Exactly one wallet send')
-    void stageAtReview // used for evidence above
-  })
-})
-
-test('MOCKED wallet rejection: Progress stays at step 3, no "Transaction complete" shown', async () => {
-  await fixture({ walletOutcome: 'reject' }, async ({ evaluate, wait, fill, click }) => {
-    await fill(0, `Send 1 USDC to ${recipient}`)
-    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
-    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
-    await click('Confirm parameters')
-    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
-    await click('Execute Send in chat')
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
     await click('Confirm in wallet')
+    // Wallet called eth_sendTransaction (sendCount = 1) and rejected with 4001.
+    assert.equal(await evaluate(sendCount), 1, 'eth_sendTransaction called exactly once (then rejected)')
     await wait(
-      `document.body.innerText.includes('Ví đã từ chối') || document.body.innerText.includes('Wallet rejected')`,
-      'Card must show rejection'
+      `document.body.innerText.includes('Ví đã từ chối') || document.body.innerText.includes('Wallet rejected') || document.body.innerText.includes('rejected')`,
+      'Card must show rejection state'
     )
-    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Hoàn tất' || b.textContent.trim() === 'Done')`)
-    await click('Hoàn tất')
-    // Progress must NOT show step 10 or "Transaction complete"
+    // Stage must NOT be 10 — rejection keeps stage at previous value.
+    const stageAfterReject = await evaluate(
+      `Number(document.querySelector('[data-step]')?.dataset?.step ?? 0)`
+    )
+    assert.ok(stageAfterReject < 10, `Stage must not reach 10 after rejection (got ${stageAfterReject})`)
+    // No success toast.
+    assert.equal(
+      await evaluate(`window.__agentHarness.notices.filter((n) => n.tone === 'ok').length`),
+      0, 'No success toast after rejection'
+    )
+    // Find and click Done/Hoàn tất — locale may be 'en'.
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done' || b.textContent.trim() === 'Hoàn tất')`)
+    const doneLabel = await evaluate(
+      `([...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Done' || b.textContent.trim() === 'Hoàn tất') || {}).textContent?.trim()`
+    )
+    await click(doneLabel)
+    // After dismiss: no completion message visible.
     const body = await evaluate(`document.body.innerText`)
-    assert.ok(!body.includes('Giao dịch hoàn tất') && !body.includes('Transaction complete'), 'No completion message after rejection')
-    assert.equal(await evaluate(sendCount), 0, 'No wallet send on rejection')
+    assert.ok(
+      !body.includes('Giao dịch hoàn tất') && !body.includes('Transaction complete'),
+      'No completion message after rejection + Done'
+    )
   })
 })
 
@@ -763,16 +859,31 @@ test('MOCKED Cancel before signing: execCard dismissed, stage returns to 3', asy
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
     await click('Execute Send in chat')
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
-    // Cancel before signing
-    await wait(`[...document.querySelectorAll('button, a')].some((b) => b.textContent.trim() === 'Cancel' || b.textContent.trim() === 'Hủy')`)
-    await click('Hủy')
-    // ExecCard dismissed — ReviewCard must reappear at stage 3
-    await wait(
-      `[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' || document.body.innerText.includes('Xem lại giao dịch') || document.body.innerText.includes('Review transaction'))`,
-      'After cancel, review card or retry button must appear'
+    // Cancel before signing — find cancel button regardless of locale.
+    await wait(`[...document.querySelectorAll('button, a')].some((b) => /^(Cancel|Hủy)$/.test(b.textContent.trim()))`)
+    const cancelLabel = await evaluate(
+      `([...document.querySelectorAll('button, a')].find((b) => /^(Cancel|Hủy)$/.test(b.textContent.trim())) || {}).textContent?.trim()`
     )
+    await click(cancelLabel)
+    // ExecCard dismissed — ReviewCard must reappear at stage 3, or Execute Send button reappears.
+    await wait(
+      `[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat' || document.body.innerText.includes('Review transaction') || document.body.innerText.includes('Xem lại giao dịch'))`,
+      'After cancel, Execute Send or review card must reappear'
+    )
+    // No eth_sendTransaction.
+    assert.equal(await evaluate(sendCount), 0, 'No wallet send after cancel')
+    // Stage must be reset to 3 (not 10, not mid-execution).
+    const stageAfterCancel = await evaluate(
+      `Number(document.querySelector('[data-step]')?.dataset?.step ?? 0)`
+    )
+    assert.ok(stageAfterCancel <= 3, `Stage must reset to ≤3 after cancel (got ${stageAfterCancel})`)
+    // No completion message.
     const body = await evaluate(`document.body.innerText`)
     assert.ok(!body.includes('Giao dịch hoàn tất') && !body.includes('Transaction complete'), 'No completion after cancel')
-    assert.equal(await evaluate(sendCount), 0, 'No wallet send after cancel')
+    // No success toast.
+    assert.equal(
+      await evaluate(`window.__agentHarness.notices.filter((n) => n.tone === 'ok').length`),
+      0, 'Cancel must not fire success toast'
+    )
   })
 })

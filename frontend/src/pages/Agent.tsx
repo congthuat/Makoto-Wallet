@@ -80,13 +80,13 @@ const nid = () => `m${Date.now()}${uid++}`
 function Stepper({ stage, compact = false }: { stage: number; compact?: boolean }) {
   const [tr] = useT()
   if (compact) return (
-    <div className="flex items-center gap-2 text-[12px]">
+    <div className="flex items-center gap-2 text-[12px]" data-step={stage}>
       <div className="flex gap-0.5">{STEPS.map((_, i) => <span key={i} className={`h-1 w-3 rounded-full ${i < stage || (i === 3 && stage === 3) ? 'bg-neon-400' : i === stage ? 'bg-neon-300/60' : 'bg-white/10'}`} />)}</div>
       <span className={T.sub}>{tr('Step')} {Math.min(stage + 1, STEPS.length)} · {tr(STEPS[Math.min(stage, STEPS.length - 1)])}</span>
     </div>
   )
   return (
-    <ol className="space-y-0">
+    <ol className="space-y-0" data-step={stage}>
       {STEPS.map((s, i) => {
         const done = i < stage || (i === 3 && stage === 3) // "Parameters confirmed" is a reached state, not an action
         const cur = i === stage && !done
