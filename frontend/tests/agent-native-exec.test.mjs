@@ -747,14 +747,17 @@ test('MOCKED UNKNOWN checkpoint persists across component unmount and remount', 
 
 test('MOCKED onStageChange fires real execution stages and "confirmed" reaches step 10/10', async () => {
   const CONFIRMED_HASH = '0x' + 'f'.repeat(64)
-  // Arm the receipt mock before the test starts.
-  await fetch('/__arc_agent_rpc_state__', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ confirmedHash: CONFIRMED_HASH }),
-  })
-  try {
-    await fixture({}, async ({ evaluate, wait, fill, click }) => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    // Arm receipt mock from the browser so the relative URL resolves against the fixture origin.
+    const armOk = await evaluate(`
+      fetch('/__arc_agent_rpc_state__', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmedHash: '${CONFIRMED_HASH}' }),
+      }).then((r) => r.ok)
+    `)
+    assert.ok(armOk, 'Receipt mock must be armed successfully')
+    try {
       // Set wallet to return the confirmed hash instead of rejecting.
       await evaluate(`window.__agentHarness.sendMode = 'ok'`)
 
@@ -797,15 +800,17 @@ test('MOCKED onStageChange fires real execution stages and "confirmed" reaches s
         `document.body.innerText.includes('Giao dịch hoàn tất') || document.body.innerText.includes('Transaction complete')`,
         'Completion message must persist after Done'
       )
-    })
-  } finally {
-    // Disarm receipt mock so other tests keep getting null (pending).
-    await fetch('/__arc_agent_rpc_state__', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirmedHash: null }),
-    })
-  }
+    } finally {
+      // Disarm receipt mock from browser so other tests keep getting null (pending).
+      await evaluate(`
+        fetch('/__arc_agent_rpc_state__', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirmedHash: null }),
+        })
+      `)
+    }
+  })
 })
 
 test('MOCKED wallet rejection: Progress stays at step 3, no "Transaction complete" shown', async () => {
@@ -819,12 +824,13 @@ test('MOCKED wallet rejection: Progress stays at step 3, no "Transaction complet
     await click('Execute Send in chat')
     await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
     await click('Confirm in wallet')
-    // Wallet called eth_sendTransaction (sendCount = 1) and rejected with 4001.
-    assert.equal(await evaluate(sendCount), 1, 'eth_sendTransaction called exactly once (then rejected)')
+    // Wait for the card to show rejection — ensures confirmSend() has fully run (including the wallet call).
     await wait(
       `document.body.innerText.includes('Ví đã từ chối') || document.body.innerText.includes('Wallet rejected') || document.body.innerText.includes('rejected')`,
       'Card must show rejection state'
     )
+    // Now the wallet call has completed (rejected). Assert exactly 1 eth_sendTransaction attempt.
+    assert.equal(await evaluate(sendCount), 1, 'eth_sendTransaction called exactly once (then rejected with 4001)')
     // Stage must NOT be 10 — rejection keeps stage at previous value.
     const stageAfterReject = await evaluate(
       `Number(document.querySelector('[data-step]')?.dataset?.step ?? 0)`
