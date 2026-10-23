@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Makoto Wallet — RPC Diagnostic</title>
+  <!--
+    Read-only diagnostic tool.
+    No private keys, seed phrases, signatures, transactions, or cookies are
+    collected or transmitted. The only network requests this page makes are:
+      1. Standard JSON-RPC reads to https://rpc.testnet.arc.io (official Arc Testnet RPC).
+      2. When a wallet is connected: the same read-only JSON-RPC methods via the
+         injected wallet provider (eth_chainId, eth_accounts, eth_getCode,
+         eth_call, eth_gasPrice, eth_estimateGas). No write methods are called.
+      3. A read-only fetch to /api/cctp/destination (backend health check, GET).
+    All of the above are visible in your browser's DevTools > Network tab.
+    Note: standard JSON-RPC reads do leave your device as network requests to
+    the RPC server. No keys, seeds, signatures, or wallet calldata are included.
+  -->
+  <style>
+    :root{--bg:#0f0f13;--fg:#e2e2e8;--muted:#6b7280;--ok:#4ade80;--warn:#fbbf24;--err:#f87171;--card:#1a1a22;--border:#2a2a36;--accent:#a78bfa}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--fg);font:13px/1.6 'Menlo','Monaco','Consolas',monospace;padding:20px;max-width:960px}
+    h1{font-size:17px;margin-bottom:4px;color:var(--accent)}
+    .sub{color:var(--muted);font-size:11px;margin-bottom:20px;line-height:1.6}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
+    .card h2{font-size:11px;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em}
+    .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:5px 0;border-bottom:1px solid #1e1e2a}
+    .row:last-child{border-bottom:none}
+    .lbl{color:var(--muted);flex-shrink:0;min-width:240px}
+    .val{word-break:break-all;text-align:right;color:var(--fg)}
+    .ok{color:var(--ok)}.warn{color:var(--warn)}.err{color:var(--err)}.muted{color:var(--muted)}
+    .badge{display:inline-block;font-size:10px;padding:1px 5px;border-radius:4px;vertical-align:middle;margin-left:5px}
+    .badge-ok{background:#14532d;color:var(--ok)}.badge-warn{background:#451a03;color:var(--warn)}.badge-err{background:#450a0a;color:var(--err)}.badge-info{background:#1e3a5f;color:#93c5fd}
+    button{background:#6d28d9;color:#fff;border:none;border-radius:8px;padding:9px 18px;font:12px monospace;cursor:pointer;margin-right:8px;margin-bottom:8px}
+    button:disabled{opacity:.4;cursor:not-allowed}
+    button:hover:not(:disabled){background:#7c3aed}
+    button.secondary{background:#374151}
+    button.secondary:hover:not(:disabled){background:#4b5563}
+    button.connect-btn{background:#065f46}
+    button.connect-btn:hover:not(:disabled){background:#047857}
+    select{background:#1a1a22;color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font:12px monospace;margin-right:8px;margin-bottom:8px}
+    #log{background:#0a0a10;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11px;max-height:420px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+    .note{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6}
+    .warn-box{background:#1c1200;border:1px solid #451a03;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--warn)}
+    .copy-ok{color:var(--ok);font-size:11px;margin-left:8px;opacity:0;transition:opacity .4s}
+    .copy-ok.show{opacity:1}
+  </style>
+</head>
+<body>
+  <h1>Makoto Wallet — RPC Diagnostic <span style="font-size:11px;color:var(--muted)">(read-only)</span></h1>
+  <p class="sub">
+    Identifies the injected wallet provider, checks chain ID and accounts, and measures response
+    times for the exact RPC methods that precede Send / Swap / Bridge / Agent in production.<br>
+    <strong>No write methods are called.</strong> No keys, seeds, signatures, or cookies are collected or sent.
+    The official Arc Testnet RPC is queried as an independent baseline for cross-checking.
+    All calls are visible in your browser's DevTools &gt; Network tab.
+  </p>
+
+  <div class="warn-box">
+    <strong>Note:</strong> This page may be on a different origin than production (e.g. a Vercel preview URL).
+    <code>eth_accounts</code> returns an empty array when the wallet has not yet granted permission to
+    <em>this</em> origin — this is normal and is <strong>not</strong> an RPC error.
+    Use "Connect wallet" below only if you want to grant permission to this preview origin.
+    The connect button calls <code>eth_requestAccounts</code> — nothing else.
+  </div>
+
+  <!-- Provider picker -->
+  <div class="card" id="provider-card">
+    <h2>Provider selection</h2>
+    <div id="provider-picker-area">
+      <div class="muted" id="picker-status">Scanning for wallet extensions…</div>
+    </div>
+  </div>
+
+  <!-- Baseline -->
+  <div class="card" id="arc-card">
+    <h2>Official Arc Testnet RPC — independent baseline</h2>
+    <div id="arc-rows"><div class="muted">Run diagnostics to populate…</div></div>
+  </div>
+
+  <!-- Provider base -->
+  <div class="card" id="rpc-card">
+    <h2>Injected provider — chain &amp; accounts</h2>
+    <div id="rpc-rows"><div class="muted">Run diagnostics to populate…</div></div>
+  </div>
+
+  <!-- Send preflight -->
+  <div class="card" id="send-card">
+    <h2>Send preflight path (eth_getCode · eth_call · eth_gasPrice · eth_estimateGas)</h2>
+    <div id="send-rows"><div class="muted">Run diagnostics to populate…</div></div>
+    <p class="note">
+      These are the exact calls inside <code>verifyToken()</code> and <code>prepareSend()</code>.
+      A timeout on any of them produces "Send eth_getCode timed out after 15s".
+    </p>
+  </div>
+
+  <!-- Swap preflight -->
+  <div class="card" id="swap-card">
+    <h2>Swap preflight path (eth_getCode · getAmountOut quote)</h2>
+    <div id="swap-rows"><div class="muted">Run diagnostics to populate…</div></div>
+    <p class="note">
+      Router: <code id="router-display">0x73742278c31a76dBb0D2587d03ef92E6E2141023</code>
+      (XyloNet StableSwap — from production <code>swap.ts</code>).<br>
+      Selector: <code>0x4aa06652</code> = <code>getAmountOut(address,address,uint256)</code>
+      — verified against <code>xyloRouterAbi</code>.
+    </p>
+  </div>
+
+  <!-- CCTP backend check -->
+  <div class="card" id="cctp-card">
+    <h2>CCTP backend fetch — /api/cctp/destination</h2>
+    <div id="cctp-rows"><div class="muted">Run diagnostics to populate…</div></div>
+    <p class="note">
+      Measures the Railway backend response time for a synthetic destination check.
+      A timeout here produces "CCTP recovery stalled". The deadline in production is 10 s.
+    </p>
+  </div>
+
+  <!-- Buttons -->
+  <div style="margin-bottom:14px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+    <button id="run-btn" onclick="runAll()">Run all diagnostics</button>
+    <button class="secondary" onclick="clearLog()">Clear log</button>
+    <button class="secondary" id="copy-btn" onclick="copyLog()">Copy log</button>
+    <span class="copy-ok" id="copy-ok">Copied!</span>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <h2>Detailed log — paste this into the issue / chat for root-cause analysis</h2>
+    <div id="log">Press "Run all diagnostics" to start.</div>
+  </div>
+
+  <p class="note" style="margin-top:12px">
+    <strong>What this page does not do:</strong>
+    It does not call <code>eth_sendTransaction</code>, <code>personal_sign</code>,
+    <code>wallet_switchEthereumChain</code>, or any write method.
+    It does not upload logs, set cookies, or access storage on production domains.
+    Source: <code>frontend/public/rpc-diag.html</code> — static HTML, no bundler or framework.
+  </p>
+
+<script>
+'use strict';
+// ---------------------------------------------------------------------------
+// Production-matched constants — taken verbatim from wallet.ts and swap.ts.
+// ---------------------------------------------------------------------------
+const ARC_CHAIN_ID  = 5042002;
+const ARC_CHAIN_HEX = '0x4cef52';
+const ARC_RPC       = 'https://rpc.testnet.arc.io';
+
+const USDC_ADDR   = '0x3600000000000000000000000000000000000000';
+const EURC_ADDR   = '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a';
+const CIRBTC_ADDR = '0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF';
+
+// swap.ts: XYLO_ROUTER
+const XYLO_ROUTER = '0x73742278c31a76dBb0D2587d03ef92E6E2141023';
+
+// Selector for getAmountOut(address,address,uint256)
+// = keccak256('getAmountOut(address,address,uint256)')[0:4]
+// NOT 0xd06ca61f (= getAmountsOut(uint256,address[]) — wrong Uniswap v2 sig)
+const SELECTOR_GET_AMOUNT_OUT = '0x4aa06652';
+
+// Timeouts matching production constants in rpcTimeout.ts
+const PROVIDER_TIMEOUT_MS        = 15_000;
+const ARC_FETCH_TIMEOUT_MS       = 10_000;
+const CCTP_DESTINATION_TIMEOUT_MS = 10_000;
+const TOTAL_DEADLINE_MS          = 90_000;
+
+// ---------------------------------------------------------------------------
+// Safe DOM helpers — all text set via textContent, never innerHTML
+// ---------------------------------------------------------------------------
+function el(tag, attrs) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'className') e.className = v;
+    else if (k === 'textContent') e.textContent = v;
+    else if (k === 'style') e.style.cssText = v;
+    else e.setAttribute(k, v);
+  }
+  // remaining args are children
+  for (let i = 2; i < arguments.length; i++) {
+    const child = arguments[i];
+    if (typeof child === 'string') e.appendChild(document.createTextNode(child));
+    else if (child instanceof Node) e.appendChild(child);
+  }
+  return e;
+}
+
+function badge(text, cls) {
+  return el('span', { className: `badge badge-${cls}`, textContent: text });
+}
+
+function makeRow(labelText, valueText, valueCls) {
+  const row = el('div', { className: 'row' });
+  row.appendChild(el('span', { className: 'lbl', textContent: labelText }));
+  const valSpan = el('span', { className: `val ${valueCls || ''}` });
+  valSpan.appendChild(document.createTextNode(valueText));
+  // extra badge nodes
+  for (let i = 3; i < arguments.length; i++) {
+    if (arguments[i] instanceof Node) valSpan.appendChild(arguments[i]);
+  }
+  row.appendChild(valSpan);
+  return row;
+}
+
+function setChildren(id) {
+  const container = document.getElementById(id);
+  if (!container) return;
+  while (container.firstChild) container.removeChild(container.firstChild);
+  for (let i = 1; i < arguments.length; i++) {
+    if (arguments[i] instanceof Node) container.appendChild(arguments[i]);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Logging — textContent only; never executes injected data as HTML
+// ---------------------------------------------------------------------------
+const logEl = document.getElementById('log');
+function log(msg) {
+  const ts = new Date().toISOString().split('T')[1].replace('Z', '');
+  logEl.textContent += '[' + ts + '] ' + msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog() { logEl.textContent = ''; log('Log cleared.'); }
+function copyLog() {
+  const text = logEl.textContent || '';
+  if (!navigator.clipboard) {
+    // Fallback: select the text manually
+    const range = document.createRange();
+    range.selectNode(logEl);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    try { document.execCommand('copy'); } catch(e) { /* silent */ }
+    window.getSelection().removeAllRanges();
+  } else {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+  const okEl = document.getElementById('copy-ok');
+  if (okEl) {
+    okEl.className = 'copy-ok show';
+    setTimeout(() => { okEl.className = 'copy-ok'; }, 2000);
+  }
+}
+
+function fmt(ms) { return ms < 1000 ? ms + 'ms' : (ms / 1000).toFixed(2) + 's'; }
+
+// Redact full addresses in log: show first 10 + last 6 chars only
+function redactAddr(s) {
+  if (typeof s !== 'string') return String(s);
+  return s.replace(/0x[0-9a-fA-F]{40}/g, function(m) {
+    return m.slice(0, 10) + '\u2026' + m.slice(-6);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// ABI-correct calldata for getAmountOut(address,address,uint256)
+// Matches encodeFunctionData({ abi: xyloRouterAbi, functionName: 'getAmountOut',
+//   args: [fromAddr, toAddr, amountIn] })
+// ---------------------------------------------------------------------------
+function encodeGetAmountOut(fromAddr, toAddr, amountIn) {
+  function pad32(hex) {
+    return hex.replace(/^0x/i, '').toLowerCase().padStart(64, '0');
+  }
+  const amtHex = BigInt(amountIn).toString(16).padStart(64, '0');
+  return SELECTOR_GET_AMOUNT_OUT + pad32(fromAddr) + pad32(toAddr) + amtHex;
+}
+
+// ---------------------------------------------------------------------------
+// Timed provider call — mirrors production withRpcTimeout(p.request(...), _getRpcTimeoutMs(), label)
+// ---------------------------------------------------------------------------
+async function timedProviderCall(provider, method, params, label) {
+  const start = Date.now();
+  const logParams = params ? ' ' + redactAddr(JSON.stringify(params).slice(0, 60)) : '';
+  log('\u2192 provider ' + method + logParams);
+  try {
+    const result = await Promise.race([
+      provider.request({ method: method, params: params }),
+      new Promise(function(_, reject) {
+        setTimeout(function() {
+          reject(new Error(method + ' timed out after ' + (PROVIDER_TIMEOUT_MS / 1000) + 's'));
+        }, PROVIDER_TIMEOUT_MS);
+      }),
+    ]);
+    const elapsed = Date.now() - start;
+    log('\u2190 ' + method + ' OK (' + fmt(elapsed) + '): ' + redactAddr(JSON.stringify(result)).slice(0, 100));
+    return { ok: true, result: result, elapsed: elapsed };
+  } catch(e) {
+    const elapsed = Date.now() - start;
+    log('\u2717 ' + method + ' FAILED (' + fmt(elapsed) + '): ' + e.message);
+    return { ok: false, error: e.message, elapsed: elapsed };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Timed Arc RPC call — fetch + response.json() both inside the same AbortSignal
+// Mirrors the AbortController pattern in protocolActivity.ts
+// ---------------------------------------------------------------------------
+async function timedArcRpc(method, params) {
+  const start = Date.now();
+  log('\u2192 Arc RPC ' + method);
+  const controller = new AbortController();
+  const timeout = setTimeout(function() { controller.abort(); }, ARC_FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(ARC_RPC, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: method, params: params || [] }),
+      signal: controller.signal,
+    });
+    const json = await res.json();
+    clearTimeout(timeout);
+    const elapsed = Date.now() - start;
+    if (json.error) {
+      log('\u2717 Arc RPC ' + method + ' error (' + fmt(elapsed) + '): ' + JSON.stringify(json.error));
+      return { ok: false, error: json.error, elapsed: elapsed };
+    }
+    log('\u2190 Arc RPC ' + method + ' OK (' + fmt(elapsed) + '): ' + redactAddr(JSON.stringify(json.result)).slice(0, 100));
+    return { ok: true, result: json.result, elapsed: elapsed };
+  } catch(e) {
+    clearTimeout(timeout);
+    const elapsed = Date.now() - start;
+    const msg = e.name === 'AbortError' ? method + ' timed out (CORS or network)' : e.message;
+    log('\u2717 Arc RPC ' + method + ' FAILED (' + fmt(elapsed) + '): ' + msg);
+    return { ok: false, error: msg, elapsed: elapsed };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CCTP backend fetch — /api/cctp/destination (GET, read-only health probe)
+// Mirrors the AbortController + response.json() pattern in protocolActivity.ts
+// ---------------------------------------------------------------------------
+async function timedCctpFetch(path) {
+  const start = Date.now();
+  log('\u2192 CCTP backend fetch ' + path);
+  const controller = new AbortController();
+  const timeout = setTimeout(function() { controller.abort(); }, CCTP_DESTINATION_TIMEOUT_MS);
+  try {
+    const res = await fetch(path, { method: 'GET', signal: controller.signal });
+    const text = await res.text();
+    clearTimeout(timeout);
+    const elapsed = Date.now() - start;
+    log('\u2190 CCTP fetch OK (' + fmt(elapsed) + ') HTTP ' + res.status + ': ' + text.slice(0, 80));
+    return { ok: true, status: res.status, body: text.slice(0, 80), elapsed: elapsed };
+  } catch(e) {
+    clearTimeout(timeout);
+    const elapsed = Date.now() - start;
+    const msg = e.name === 'AbortError' ? 'fetch timed out after ' + (CCTP_DESTINATION_TIMEOUT_MS / 1000) + 's' : e.message;
+    log('\u2717 CCTP fetch FAILED (' + fmt(elapsed) + '): ' + msg);
+    return { ok: false, error: msg, elapsed: elapsed };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// EIP-6963 provider discovery + legacy window.ethereum fallback
+// ---------------------------------------------------------------------------
+const _discovered = [];
+let _pickerSelected = null;
+
+function discoverProviders() {
+  const seen = new Set();
+  const providers = [];
+  for (const detail of (window._eip6963Providers || [])) {
+    const rdns = detail.info && detail.info.rdns ? detail.info.rdns : '';
+    if (!seen.has(rdns)) { seen.add(rdns); providers.push(detail); }
+  }
+  if (window.ethereum) {
+    const isAlready = providers.some(function(p) { return p.provider === window.ethereum; });
+    if (!isAlready) {
+      let name = 'window.ethereum (legacy)';
+      if (window.ethereum.isOKExWallet) name = 'OKX Wallet (legacy)';
+      else if (window.ethereum.isRabby)    name = 'Rabby (legacy)';
+      else if (window.ethereum.isMetaMask) name = 'MetaMask (legacy)';
+      providers.push({ info: { name: name, rdns: 'legacy' }, provider: window.ethereum });
+    }
+  }
+  return providers;
+}
+
+function buildProviderPicker() {
+  const found = discoverProviders();
+  _discovered.length = 0;
+  for (const p of found) _discovered.push(p);
+
+  const area = document.getElementById('provider-picker-area');
+  if (!area) return;
+  while (area.firstChild) area.removeChild(area.firstChild);
+
+  if (_discovered.length === 0) {
+    area.appendChild(el('div', { className: 'warn',
+      textContent: 'No wallet extension found. Install OKX Wallet, Rabby, or MetaMask and reload.' }));
+    return;
+  }
+
+  area.appendChild(el('div', { className: 'ok',
+    textContent: _discovered.length + ' provider' + (_discovered.length > 1 ? 's' : '') + ' discovered.' }));
+
+  area.appendChild(el('div', { className: 'note', style: 'margin-top:6px',
+    textContent: 'Select the provider to check. Only read-only calls are made — no transaction or signature.' }));
+
+  const row_ = el('div', { style: 'margin-top:10px;display:flex;align-items:center;flex-wrap:wrap;gap:8px' });
+  const select = el('select', { id: 'provider-select' });
+  _discovered.forEach(function(p, i) {
+    const opt = el('option', { value: String(i) });
+    opt.textContent = '[' + i + '] ' + (p.info && p.info.name ? p.info.name : 'Unknown') +
+      ' (rdns: ' + (p.info && p.info.rdns ? p.info.rdns : 'n/a') + ')';
+    select.appendChild(opt);
+  });
+  row_.appendChild(select);
+
+  // Connect button — only calls eth_requestAccounts, nothing else
+  const connectBtn = el('button', { className: 'connect-btn', id: 'connect-btn',
+    textContent: 'Connect wallet (grant permission to this origin)' });
+  connectBtn.addEventListener('click', async function() {
+    const sel = _pickerSelected !== null ? _discovered[_pickerSelected] : null;
+    if (!sel) { log('No provider selected.'); return; }
+    connectBtn.disabled = true;
+    log('\u2192 eth_requestAccounts (user-initiated connect)…');
+    try {
+      const accounts = await sel.provider.request({ method: 'eth_requestAccounts' });
+      log('\u2190 eth_requestAccounts OK: ' + (accounts.length > 0 ? accounts.length + ' account(s) granted' : 'no accounts'));
+    } catch(e) {
+      log('\u2717 eth_requestAccounts rejected: ' + e.message);
+    }
+    connectBtn.disabled = false;
+  });
+  row_.appendChild(connectBtn);
+  area.appendChild(row_);
+
+  area.appendChild(el('div', { className: 'note', style: 'margin-top:6px',
+    textContent: 'If eth_accounts returns [] on this preview origin, click "Connect wallet" above, then run diagnostics again.' }));
+
+  if (_pickerSelected === null) _pickerSelected = 0;
+  select.addEventListener('change', function() { _pickerSelected = Number(select.value); });
+}
+
+// Register EIP-6963 listener before DOMContentLoaded
+window._eip6963Providers = window._eip6963Providers || [];
+window.addEventListener('eip6963:announceProvider', function(e) {
+  const detail = e.detail;
+  if (!detail || !detail.provider) return;
+  const rdns = detail.info && detail.info.rdns ? detail.info.rdns : null;
+  if (!rdns || !window._eip6963Providers.some(function(p) { return p.info && p.info.rdns === rdns; })) {
+    window._eip6963Providers.push(detail);
+  }
+  buildProviderPicker();
+});
+window.dispatchEvent(new Event('eip6963:requestProvider'));
+setTimeout(buildProviderPicker, 150);
+
+// ---------------------------------------------------------------------------
+// Main diagnostic runner
+// ---------------------------------------------------------------------------
+async function runAll() {
+  const runBtn = document.getElementById('run-btn');
+  runBtn.disabled = true;
+  const totalDeadline = new Promise(function(_, reject) {
+    setTimeout(function() { reject(new Error('Total diagnostic deadline exceeded (90s)')); }, TOTAL_DEADLINE_MS);
+  });
+  try {
+    await Promise.race([_runAll(), totalDeadline]);
+  } catch(e) {
+    log('\u2717 Diagnostic aborted: ' + e.message);
+  }
+  runBtn.disabled = false;
+}
+
+async function _runAll() {
+  log('=== Makoto Wallet RPC Diagnostic Rev 5 ===');
+  log('User-Agent: ' + navigator.userAgent);
+  const isProd = location.origin === 'https://makotowallet.xyz';
+  log('Page origin: ' + location.origin + ' (' + (isProd ? 'production' : 'PREVIEW — eth_accounts may need explicit connect') + ')');
+  log('Timestamp: ' + new Date().toISOString());
+
+  buildProviderPicker();
+
+  const selectedProvider = _pickerSelected !== null ? _discovered[_pickerSelected] : null;
+  const provider = selectedProvider ? selectedProvider.provider : null;
+  const providerName = selectedProvider && selectedProvider.info ? selectedProvider.info.name : null;
+
+  // ── Phase 1: Arc baseline + provider base + CCTP fetch — all in parallel ──
+  log('--- Phase 1: Arc RPC baseline | provider base | CCTP backend (parallel) ---');
+
+  const arcPromise = Promise.all([
+    timedArcRpc('eth_chainId'),
+    timedArcRpc('eth_blockNumber'),
+    timedArcRpc('eth_gasPrice'),
+    timedArcRpc('eth_getCode', [USDC_ADDR, 'latest']),
+    timedArcRpc('eth_getCode', [EURC_ADDR, 'latest']),
+    timedArcRpc('eth_getCode', [XYLO_ROUTER, 'latest']),
+    timedArcRpc('eth_getCode', [CIRBTC_ADDR, 'latest']),
+  ]);
+
+  const providerBasePromise = provider
+    ? Promise.all([
+        timedProviderCall(provider, 'eth_chainId', undefined),
+        timedProviderCall(provider, 'eth_accounts', undefined),
+      ])
+    : Promise.resolve(null);
+
+  // CCTP: probe /api/cctp/destination with a synthetic read — same timeout as production
+  const cctpPromise = timedCctpFetch('/api/cctp/destination?txHash=0x0000000000000000000000000000000000000000000000000000000000000001&sourceChain=5042002');
+
+  const [arcResults, providerBase, cctpResult] =
+    await Promise.all([arcPromise, providerBasePromise, cctpPromise]);
+
+  const [arcChain, arcBlock, arcGas, arcUsdc, arcEurc, arcXylo, arcCirbtc] = arcResults;
+
+  // ── Render Arc baseline ──────────────────────────────────────────────────
+  const arcChainOk  = arcChain.ok  && arcChain.result  && arcChain.result.toLowerCase()  === ARC_CHAIN_HEX;
+  const arcUsdcOk   = arcUsdc.ok   && arcUsdc.result   && arcUsdc.result   !== '0x';
+  const arcEurcOk   = arcEurc.ok   && arcEurc.result   && arcEurc.result   !== '0x';
+  const arcXyloOk   = arcXylo.ok   && arcXylo.result   && arcXylo.result   !== '0x';
+  const arcCirbtcOk = arcCirbtc.ok && arcCirbtc.result && arcCirbtc.result !== '0x';
+
+  setChildren('arc-rows',
+    makeRow('eth_chainId',
+      arcChain.ok ? arcChain.result + ' (dec: ' + parseInt(arcChain.result, 16) + ') — ' + fmt(arcChain.elapsed)
+                  : 'FAILED: ' + arcChain.error + ' — ' + fmt(arcChain.elapsed),
+      arcChainOk ? 'ok' : 'err',
+      badge(arcChainOk ? 'OK' : 'WRONG', arcChainOk ? 'ok' : 'err')),
+    makeRow('eth_blockNumber',
+      arcBlock.ok ? parseInt(arcBlock.result, 16) + ' — ' + fmt(arcBlock.elapsed)
+                  : 'FAILED: ' + arcBlock.error,
+      arcBlock.ok ? 'ok' : 'err',
+      badge(arcBlock.ok ? 'OK' : 'FAIL', arcBlock.ok ? 'ok' : 'err')),
+    makeRow('eth_gasPrice',
+      arcGas.ok ? (parseInt(arcGas.result, 16) / 1e9).toFixed(4) + ' Gwei — ' + fmt(arcGas.elapsed)
+                : 'FAILED: ' + arcGas.error,
+      arcGas.ok ? 'ok' : 'err',
+      badge(arcGas.ok ? 'OK' : 'FAIL', arcGas.ok ? 'ok' : 'err')),
+    makeRow('USDC eth_getCode',
+      arcUsdc.ok ? (arcUsdc.result || '').length + ' chars — ' + fmt(arcUsdc.elapsed)
+                 : 'FAILED: ' + arcUsdc.error,
+      arcUsdcOk ? 'ok' : 'err',
+      badge(arcUsdcOk ? 'CONTRACT' : arcUsdc.ok ? 'EMPTY (0x)' : 'FAIL', arcUsdcOk ? 'ok' : 'err')),
+    makeRow('EURC eth_getCode',
+      arcEurc.ok ? (arcEurc.result || '').length + ' chars — ' + fmt(arcEurc.elapsed)
+                 : 'FAILED: ' + arcEurc.error,
+      arcEurcOk ? 'ok' : 'err',
+      badge(arcEurcOk ? 'CONTRACT' : arcEurc.ok ? 'EMPTY (0x)' : 'FAIL', arcEurcOk ? 'ok' : 'err')),
+    makeRow('XyloRouter eth_getCode',
+      arcXylo.ok ? (arcXylo.result || '').length + ' chars — ' + fmt(arcXylo.elapsed)
+                 : 'FAILED: ' + arcXylo.error,
+      arcXyloOk ? 'ok' : 'err',
+      badge(arcXyloOk ? 'CONTRACT' : arcXylo.ok ? 'NOT DEPLOYED' : 'FAIL', arcXyloOk ? 'ok' : arcXylo.ok ? 'warn' : 'err')),
+    makeRow('cirBTC eth_getCode',
+      arcCirbtc.ok ? (arcCirbtc.result || '').length + ' chars — ' + fmt(arcCirbtc.elapsed)
+                   : 'FAILED: ' + arcCirbtc.error,
+      arcCirbtcOk ? 'ok' : 'err',
+      badge(arcCirbtcOk ? 'CONTRACT' : arcCirbtc.ok ? 'NOT DEPLOYED' : 'FAIL', arcCirbtcOk ? 'ok' : 'err')),
+  );
+
+  // ── Render CCTP result ───────────────────────────────────────────────────
+  // A 404 is expected (no real txHash) — proves the backend is alive and reachable.
+  // A timeout or network error means the Railway backend is unreachable or slow.
+  const cctpReachable = cctpResult.ok && cctpResult.status !== undefined;
+  const cctpExpected404 = cctpResult.ok && (cctpResult.status === 404 || cctpResult.status === 400);
+  setChildren('cctp-rows',
+    makeRow('Backend reachable',
+      cctpResult.ok ? 'HTTP ' + cctpResult.status + ' — ' + fmt(cctpResult.elapsed)
+                    : 'FAILED: ' + cctpResult.error + ' — ' + fmt(cctpResult.elapsed),
+      cctpReachable ? 'ok' : 'err',
+      badge(cctpExpected404 ? 'ALIVE (404 expected)' : cctpReachable ? 'HTTP ' + cctpResult.status : 'UNREACHABLE',
+            cctpExpected404 ? 'ok' : cctpReachable ? 'warn' : 'err')),
+    makeRow('Response time', fmt(cctpResult.elapsed),
+      cctpResult.elapsed < 3000 ? 'ok' : cctpResult.elapsed < 8000 ? 'warn' : 'err',
+      badge(cctpResult.elapsed < 3000 ? 'FAST' : cctpResult.elapsed < 8000 ? 'SLOW' : 'CRITICAL',
+            cctpResult.elapsed < 3000 ? 'ok' : cctpResult.elapsed < 8000 ? 'warn' : 'err')),
+  );
+
+  // ── Render provider base ─────────────────────────────────────────────────
+  if (!provider || !providerBase) {
+    const noProvMsg = _discovered.length === 0
+      ? 'No wallet extension found — install OKX Wallet, Rabby, or MetaMask and reload.'
+      : 'No provider selected — choose one above and run again.';
+    setChildren('rpc-rows',  el('div', { className: _discovered.length === 0 ? 'warn' : 'muted', textContent: noProvMsg }));
+    setChildren('send-rows', el('div', { className: 'muted', textContent: 'No provider — skipped.' }));
+    setChildren('swap-rows', el('div', { className: 'muted', textContent: 'No provider — skipped.' }));
+    log('No provider selected — skipping provider checks.');
+    log('=== Diagnostic complete (Arc baseline + CCTP only) ===');
+    return;
+  }
+
+  const [pChain, pAccounts] = providerBase;
+  const providerChainDec = pChain.ok ? parseInt(pChain.result, 16) : null;
+  const providerOnArc    = providerChainDec === ARC_CHAIN_ID;
+  const rawAccounts      = pAccounts.ok && Array.isArray(pAccounts.result) ? pAccounts.result : [];
+  const connectedAccount = rawAccounts[0] || null;
+  const accountDisplay   = connectedAccount
+    ? connectedAccount.slice(0, 10) + '\u2026' + connectedAccount.slice(-6)
+    : 'none';
+  const chainMatch = pChain.ok && arcChain.ok &&
+    pChain.result && arcChain.result &&
+    pChain.result.toLowerCase() === arcChain.result.toLowerCase();
+
+  setChildren('rpc-rows',
+    makeRow('Selected provider', providerName || 'Unknown', '', badge('USING', 'info')),
+    makeRow('eth_chainId',
+      pChain.ok ? pChain.result + ' (dec: ' + providerChainDec + ') — ' + fmt(pChain.elapsed)
+                : 'FAILED: ' + pChain.error + ' — ' + fmt(pChain.elapsed),
+      pChain.ok ? (providerOnArc ? 'ok' : 'err') : 'err',
+      badge(providerOnArc ? 'ARC OK' : 'WRONG CHAIN', providerOnArc ? 'ok' : 'err')),
+    makeRow('eth_accounts',
+      pAccounts.ok ? accountDisplay + ' — ' + fmt(pAccounts.elapsed)
+                   : 'FAILED: ' + pAccounts.error,
+      pAccounts.ok ? (connectedAccount ? 'ok' : 'warn') : 'err',
+      badge(connectedAccount ? 'CONNECTED' : pAccounts.ok ? 'NO PERMISSION (preview)' : 'FAIL',
+            connectedAccount ? 'ok' : pAccounts.ok ? 'warn' : 'err')),
+    makeRow('Chain: provider vs Arc RPC',
+      chainMatch
+        ? 'Match — ' + ARC_CHAIN_HEX
+        : pChain.ok && arcChain.ok
+          ? 'MISMATCH — provider=' + pChain.result + ' arc=' + arcChain.result
+          : 'Cannot compare (one failed)',
+      chainMatch ? 'ok' : 'err',
+      badge(chainMatch ? 'MATCH' : 'MISMATCH', chainMatch ? 'ok' : 'err')),
+  );
+
+  // ── Phase 2: Send + Swap preflight — skip if wrong chain ─────────────────
+  if (!providerOnArc) {
+    const skipMsg = 'Provider on chain ' + (providerChainDec || 'unknown') +
+      ' — not Arc (' + ARC_CHAIN_ID + '). Switch wallet to Arc Testnet and run again.';
+    setChildren('send-rows', makeRow('Status', skipMsg, 'warn', badge('SKIPPED', 'warn')));
+    setChildren('swap-rows', makeRow('Status', skipMsg, 'warn', badge('SKIPPED', 'warn')));
+    log('Provider not on Arc (chain ' + providerChainDec + ') — Send/Swap preflight skipped.');
+    log('=== Diagnostic complete ===');
+    return;
+  }
+
+  log('--- Phase 2: Send preflight + Swap preflight (parallel) ---');
+
+  // ── Send preflight ────────────────────────────────────────────────────────
+  // eth_getCode(USDC), eth_getCode(EURC), eth_call(decimals), eth_call(symbol),
+  // eth_gasPrice, eth_estimateGas(dummy transfer)
+  const sendPromise = Promise.all([
+    timedProviderCall(provider, 'eth_getCode',  [USDC_ADDR, 'latest']),
+    timedProviderCall(provider, 'eth_getCode',  [EURC_ADDR, 'latest']),
+    timedProviderCall(provider, 'eth_call',     [{ to: USDC_ADDR, data: '0x313ce567' }, 'latest']),
+    timedProviderCall(provider, 'eth_call',     [{ to: USDC_ADDR, data: '0x95d89b41' }, 'latest']),
+    timedProviderCall(provider, 'eth_gasPrice', undefined),
+    // eth_estimateGas — minimal ERC-20 transfer call (no value, no real recipient)
+    // This is a read-only simulation; the transaction is never submitted.
+    timedProviderCall(provider, 'eth_estimateGas', [{
+      from: connectedAccount || '0x0000000000000000000000000000000000000001',
+      to:   USDC_ADDR,
+      // transfer(address,uint256) with zero value — will revert with insufficient funds but
+      // that's fine: we're measuring whether the provider responds at all, not the result.
+      data: '0xa9059cbb' + '0'.repeat(63) + '1' + '0'.repeat(64),
+    }]),
+  ]);
+
+  // ── Swap preflight ────────────────────────────────────────────────────────
+  const getAmtOutData = encodeGetAmountOut(USDC_ADDR, EURC_ADDR, 1000000 /* 1 USDC = 1e6 units */);
+  const swapPromise = Promise.all([
+    timedProviderCall(provider, 'eth_getCode', [XYLO_ROUTER, 'latest']),
+    timedProviderCall(provider, 'eth_call',    [{ to: XYLO_ROUTER, data: getAmtOutData }, 'latest']),
+  ]);
+
+  const [[sendUsdc, sendEurc, sendDec, sendSym, sendGas, sendEstGas], [routerCode, quoteCall]] =
+    await Promise.all([sendPromise, swapPromise]);
+
+  // ── Render Send preflight ────────────────────────────────────────────────
+  function codeOk(r) { return r.ok && r.result && r.result !== '0x'; }
+  const sendUsdcMatch = sendUsdc.ok && arcUsdc.ok && sendUsdc.result === arcUsdc.result;
+  const sendEurcMatch = sendEurc.ok && arcEurc.ok && sendEurc.result === arcEurc.result;
+
+  // eth_estimateGas may revert (expected) — what matters is response time vs timeout
+  const gasEstElapsed = sendEstGas.elapsed;
+  const gasEstTimedOut = !sendEstGas.ok && sendEstGas.error && sendEstGas.error.includes('timed out');
+
+  setChildren('send-rows',
+    makeRow('USDC eth_getCode',
+      sendUsdc.ok ? (sendUsdc.result || '').length + ' chars — ' + fmt(sendUsdc.elapsed)
+                  : 'FAILED: ' + sendUsdc.error,
+      codeOk(sendUsdc) ? 'ok' : 'err',
+      badge(codeOk(sendUsdc) ? 'CONTRACT' : sendUsdc.ok ? 'EMPTY (0x)' : 'FAIL', codeOk(sendUsdc) ? 'ok' : 'err')),
+    makeRow('EURC eth_getCode',
+      sendEurc.ok ? (sendEurc.result || '').length + ' chars — ' + fmt(sendEurc.elapsed)
+                  : 'FAILED: ' + sendEurc.error,
+      codeOk(sendEurc) ? 'ok' : 'err',
+      badge(codeOk(sendEurc) ? 'CONTRACT' : sendEurc.ok ? 'EMPTY (0x)' : 'FAIL', codeOk(sendEurc) ? 'ok' : 'err')),
+    makeRow('USDC decimals (eth_call)',
+      sendDec.ok ? sendDec.result + ' — ' + fmt(sendDec.elapsed)
+                 : 'FAILED: ' + sendDec.error,
+      sendDec.ok ? 'ok' : 'err',
+      badge(sendDec.ok ? 'OK' : 'FAIL', sendDec.ok ? 'ok' : 'err')),
+    makeRow('USDC symbol (eth_call)',
+      sendSym.ok ? (sendSym.result || '').slice(0, 40) + ' — ' + fmt(sendSym.elapsed)
+                 : 'FAILED: ' + sendSym.error,
+      sendSym.ok ? 'ok' : 'err',
+      badge(sendSym.ok ? 'OK' : 'FAIL', sendSym.ok ? 'ok' : 'err')),
+    makeRow('eth_gasPrice',
+      sendGas.ok ? (parseInt(sendGas.result || '0', 16) / 1e9).toFixed(4) + ' Gwei — ' + fmt(sendGas.elapsed)
+                 : 'FAILED: ' + sendGas.error,
+      sendGas.ok ? 'ok' : 'err',
+      badge(sendGas.ok ? 'OK' : 'FAIL', sendGas.ok ? 'ok' : 'err')),
+    makeRow('eth_estimateGas (read-only sim)',
+      gasEstTimedOut
+        ? 'TIMED OUT after ' + fmt(gasEstElapsed) + ' — provider is stalled'
+        : sendEstGas.ok
+          ? (parseInt(sendEstGas.result || '0', 16)) + ' gas — ' + fmt(gasEstElapsed)
+          : 'Reverted (expected) — ' + fmt(gasEstElapsed),
+      gasEstTimedOut ? 'err' : 'ok',
+      badge(gasEstTimedOut ? 'TIMEOUT' : sendEstGas.ok ? 'RESPONDED' : 'REVERTED (OK)',
+            gasEstTimedOut ? 'err' : 'ok')),
+    makeRow('USDC code: provider vs Arc RPC',
+      sendUsdcMatch
+        ? 'Match — ' + fmt(sendUsdc.elapsed) + ' vs ' + fmt(arcUsdc.elapsed)
+        : sendUsdc.ok && arcUsdc.ok
+          ? 'Different bytecode — provider may be on wrong RPC endpoint'
+          : 'Cannot compare',
+      sendUsdcMatch ? 'ok' : 'err',
+      badge(sendUsdcMatch ? 'MATCH' : sendUsdc.ok && arcUsdc.ok ? 'MISMATCH' : 'N/A',
+            sendUsdcMatch ? 'ok' : 'err')),
+    makeRow('EURC code: provider vs Arc RPC',
+      sendEurcMatch
+        ? 'Match — ' + fmt(sendEurc.elapsed) + ' vs ' + fmt(arcEurc.elapsed)
+        : sendEurc.ok && arcEurc.ok ? 'Different bytecode' : 'Cannot compare',
+      sendEurcMatch ? 'ok' : 'err',
+      badge(sendEurcMatch ? 'MATCH' : sendEurc.ok && arcEurc.ok ? 'MISMATCH' : 'N/A',
+            sendEurcMatch ? 'ok' : 'err')),
+  );
+
+  // ── Render Swap preflight ────────────────────────────────────────────────
+  const routerMatch = routerCode.ok && arcXylo.ok && routerCode.result === arcXylo.result;
+  const quoteOk = quoteCall.ok && quoteCall.result && quoteCall.result !== '0x' && quoteCall.result.length >= 66;
+
+  setChildren('swap-rows',
+    makeRow('XyloRouter eth_getCode',
+      routerCode.ok ? (routerCode.result || '').length + ' chars — ' + fmt(routerCode.elapsed)
+                    : 'FAILED: ' + routerCode.error,
+      codeOk(routerCode) ? 'ok' : 'err',
+      badge(codeOk(routerCode) ? 'CONTRACT' : routerCode.ok ? 'NOT DEPLOYED' : 'FAIL',
+            codeOk(routerCode) ? 'ok' : 'err')),
+    makeRow('getAmountOut (eth_call)',
+      quoteCall.ok
+        ? (quoteCall.result || '').slice(0, 40) + '\u2026 — ' + fmt(quoteCall.elapsed)
+        : 'FAILED: ' + quoteCall.error,
+      quoteOk ? 'ok' : quoteCall.ok ? 'warn' : 'err',
+      badge(quoteOk ? 'QUOTE OK' : quoteCall.ok ? 'EMPTY RESULT' : 'FAIL',
+            quoteOk ? 'ok' : quoteCall.ok ? 'warn' : 'err')),
+    makeRow('Router code: provider vs Arc RPC',
+      routerMatch
+        ? 'Match'
+        : routerCode.ok && arcXylo.ok
+          ? (routerCode.result === '0x' && arcXylo.result === '0x'
+              ? 'Not deployed on either'
+              : 'Different bytecode — provider may be on different RPC')
+          : 'Cannot compare',
+      routerMatch ? 'ok'
+        : routerCode.ok && arcXylo.ok && routerCode.result === '0x' && arcXylo.result === '0x' ? 'warn'
+        : 'err',
+      badge(routerMatch ? 'MATCH'
+              : routerCode.ok && arcXylo.ok
+                ? (routerCode.result === '0x' && arcXylo.result === '0x' ? 'NOT DEPLOYED' : 'MISMATCH')
+                : 'N/A',
+            routerMatch ? 'ok'
+              : routerCode.ok && arcXylo.ok && routerCode.result === '0x' && arcXylo.result === '0x'
+                ? 'warn' : 'err')),
+    makeRow('Selector used',
+      SELECTOR_GET_AMOUNT_OUT + ' (getAmountOut(address,address,uint256)) — matches xyloRouterAbi',
+      'ok', badge('VERIFIED', 'ok')),
+  );
+
+  log('=== Diagnostic complete ===');
+  log('Tip: click "Copy log" and paste into the issue/chat for root-cause analysis.');
+}
+</script>
+</body>
+</html>

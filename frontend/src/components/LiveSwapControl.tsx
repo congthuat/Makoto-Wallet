@@ -3,6 +3,7 @@ import { formatUnits, type Hex } from 'viem'
 import { useT } from '../lib/i18n.ts'
 import { ARC, explorerTx, getProvider } from '../lib/wallet.ts'
 import { SendSubmissionGuard } from '../lib/sendExecution.ts'
+import { rpcRead } from '../lib/arcRpc.ts'
 import { isWalletRejection, pollProtocolReceipt, requestReviewedAction } from '../migrated/protocolExecution.ts'
 import { createReview, evaluateToolPolicy, revalidateReview, verifyFiniteApproval, type ReviewSnapshot } from '../migrated/policy.ts'
 import { prepareApproval, prepareSwap, quoteSwap, readAllowance, readBalance, readWallet, type PreparedToolAction, type SwapToolQuote } from '../migrated/toolLayer.ts'
@@ -125,11 +126,15 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
   }
   useLayoutEffect(() => {
     mounted.current = true; generation.current += 1; operation.current = undefined
+    // Reset resume flag before any localStorage read so a chain change cannot
+    // auto-resume a prior session without explicit user action.
+    needsResume.current = false
     let restored: StrategyRun | undefined
     try { restored = typeof localStorage === 'undefined' ? undefined : restoreStrategyRun(localStorage, 'swap', normalizedAccount) }
     catch { /* A blocked localStorage property must not crash receipt recovery UI. */ }
     run.current = restored; checkpoint.current = savedCheckpoint(normalizedAccount)
-    needsResume.current = restored?.phase === 'REVALIDATING' || restored?.phase === 'EXPIRED' && !!restored.approvalReceipt
+    // Only resume if the restored run's chainId matches the current wallet chain.
+    needsResume.current = !!(restored && walletChainId === ARC.chainId && (restored.phase === 'REVALIDATING' || (restored.phase === 'EXPIRED' && !!restored.approvalReceipt)))
     setBusy(false); setError(checkpoint.current === undefined ? 'Saved swap strategy state is unavailable.' : ''); setActivityUnavailable(false); setCheckpointUnavailable(false); setQuote(undefined); setPrepared(undefined); setReview(undefined); setReviewedInput('')
     setHash(restored?.hash as Hex | undefined)
     setStage(restored?.phase === 'COMPLETED' ? 'confirmed' : needsResume.current ? 'approval-confirmed' : restored?.phase === 'FAILED' ? 'failed' : restored?.phase === 'USER_REJECTED' ? 'rejected' : restored && ['RECOVERING', 'PENDING', 'UNKNOWN'].includes(restored.phase) ? restored.phase === 'PENDING' ? 'pending' : 'unknown' : 'idle')
@@ -160,7 +165,8 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
   async function simulate(action: PreparedToolAction) {
     const p = getProvider()
     if (!p) return false
-    try { await p.request({ method: 'eth_call', params: [action.request, 'latest'] }); return true }
+    // eth_call is a read-only preflight simulation. Apply the standard read timeout.
+    try { await rpcRead(p, 'eth_call', [action.request, 'latest']); return true }
     catch { return false }
   }
   async function refreshAfterReceipt(op: Operation) {
@@ -236,7 +242,8 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
       await walletContext(p); requireCurrent(op)
       if (prepared.account.toLowerCase() !== normalizedAccount) throw new Error('Wallet account or chain changed. Review again.')
       if (Date.now() > prepared.expiresAt || Date.now() > quote.expiresAt) throw new Error('Quote expired. Review again.')
-      const latestPrice = await p.request({ method: 'eth_gasPrice' }); requireCurrent(op)
+      // eth_gasPrice is a read-only check before asking the wallet to sign. Apply the standard read timeout.
+      const latestPrice = await rpcRead(p, 'eth_gasPrice'); requireCurrent(op)
       if (typeof latestPrice !== 'string' || BigInt(latestPrice) > BigInt(prepared.request.gasPrice)) throw new Error('Network fee changed. Review again.')
       const freshBalance = await readBalance(p, from, account); requireCurrent(op)
       const freshAllowance = await readAllowance(p, from, XYLO_ROUTER, account); requireCurrent(op)

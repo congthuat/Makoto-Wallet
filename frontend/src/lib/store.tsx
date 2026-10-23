@@ -10,6 +10,7 @@ import { valuePortfolio } from '../../../shared/portfolioValuation.mjs'
 import { captureEligible, historyAccessEnabled, historyPoints, historyQueryKey, historyScope, portfolioHistoryApi } from './portfolioHistory'
 import { browserWalletRevision, clearBrowserProvider, discoverBrowserWallets, subscribeBrowserWallets, type BrowserWallet } from './walletProviders'
 import { translate } from './i18n'
+import { rpcRead } from './arcRpc'
 import {
   DEMO_ACTIVITY, DEMO_ADDRESS, DEMO_BALANCES, TOKENS, connectWallet, getProvider,
   type Contact, type Holding, type NetworkInfo, type Prices, type Tx, type WalletApi,
@@ -110,7 +111,7 @@ function useWalletState() {
     if (!p) return
     const reconcile = async () => {
       try {
-        const chain = await p.request({ method: 'eth_chainId' })
+        const chain = await rpcRead(p, 'eth_chainId')
         if (Number(chain) !== 5042002) return
         for (const record of sendRecords.filter((r) => r.account.toLowerCase() === address.toLowerCase() && (r.status === 'pending' || r.status === 'unknown'))) {
           const token = TOKENS.find((x) => x.sym === record.symbol)
@@ -129,7 +130,7 @@ function useWalletState() {
     const p = getProvider(); if (!p) return
     const reconcile = async () => {
       try {
-        const chain = await p.request({ method: 'eth_chainId' })
+        const chain = await rpcRead(p, 'eth_chainId')
         if (Number(chain) !== 5042002) return
         for (const record of (Array.isArray(swapRecords) ? swapRecords : []).filter((item) => item.account?.toLowerCase() === address.toLowerCase() && (item.status === 'pending' || item.status === 'unknown'))) {
           const status = await checkSwapRecord(p, record)
@@ -146,7 +147,7 @@ function useWalletState() {
     const p = getProvider(); if (!p) return
     const reconcile = async () => {
       try {
-        const chain = await p.request({ method: 'eth_chainId' })
+        const chain = await rpcRead(p, 'eth_chainId')
         if (Number(chain) !== 5042002) return
         for (const record of (Array.isArray(bridgeRecords) ? bridgeRecords : []).filter((item) => item.account?.toLowerCase() === address.toLowerCase() && !['destination-confirmed', 'destination-failed', 'forwarding-failed', 'failed'].includes(item.status))) {
           const next = await checkBridgeRecord(p, record)
@@ -172,13 +173,13 @@ function useWalletState() {
 
   const prices = useQuery<Prices>({
     queryKey: ['prices'],
-    queryFn: () => fetch(api('prices')).then((r) => r.json()),
+    queryFn: ({ signal }) => fetch(api('prices'), { signal }).then((r) => r.json()),
     refetchInterval: 60_000,
   })
   const network = useQuery<NetworkInfo>({
     queryKey: ['arc-network'],
-    queryFn: async () => {
-      const r = await fetch(api('arc/network'))
+    queryFn: async ({ signal }) => {
+      const r = await fetch(api('arc/network'), { signal })
       const j = await r.json()
       if (!r.ok) throw new Error(j?.errorKind ?? 'network')
       return j
@@ -193,8 +194,8 @@ function useWalletState() {
   })
   const feed = useQuery<Feed>({
     queryKey: ['arc-feed'],
-    queryFn: async () => {
-      const r = await fetch(api('arc/feed'))
+    queryFn: async ({ signal }) => {
+      const r = await fetch(api('arc/feed'), { signal })
       if (!r.ok) throw new Error('feed')
       return r.json()
     },
@@ -205,8 +206,8 @@ function useWalletState() {
   const wallet = useQuery<WalletApi>({
     queryKey: ['arc-wallet', address],
     enabled: live,
-    queryFn: async () => {
-      const r = await fetch(api(`arc/wallet?address=${address}`))
+    queryFn: async ({ signal }) => {
+      const r = await fetch(api(`arc/wallet?address=${address}`), { signal })
       const j = await r.json()
       if (!r.ok) throw new Error(j?.error ?? 'wallet')
       return j
@@ -221,7 +222,9 @@ function useWalletState() {
     if (!p) { setWalletAccountConfirmed(false); return }
     let active = true
     setWalletAccountConfirmed(false)
-    p.request({ method: 'eth_accounts' }).then((accounts) => {
+    // Read-only initial account check. Apply the standard read timeout so a stalled
+    // provider cannot leave walletAccountConfirmed=false indefinitely.
+    rpcRead(p, 'eth_accounts').then((accounts) => {
       if (!active) return
       const current = Array.isArray(accounts) && typeof accounts[0] === 'string' ? accounts[0] : ''
       if (!current) { setMode('demo'); setAddress(''); return }
@@ -249,7 +252,9 @@ function useWalletState() {
       setWalletChainId(Number.isSafeInteger(chainId) && chainId > 0 ? chainId : undefined)
     }
     setWalletChainId(undefined)
-    p.request({ method: 'eth_chainId' }).then(updateChain).catch(() => { if (active) setWalletChainId(undefined) })
+    // Read-only initial chain check. Apply the standard read timeout so a stalled
+    // provider cannot leave walletChainId=undefined (blocking swap/bridge reviews).
+    rpcRead(p, 'eth_chainId').then((v) => updateChain(v as string)).catch(() => { if (active) setWalletChainId(undefined) })
     p.on?.('chainChanged', updateChain)
     return () => { active = false; p.removeListener?.('chainChanged', updateChain) }
   }, [mode, address, providerRevision])
@@ -268,7 +273,7 @@ function useWalletState() {
         'No account returned', 'Wallet provider is no longer available.',
         'Wallet is not on Arc Testnet.', 'Wallet account changed. Connect again.',
       ]
-      const message = error.code === 4001 ? 'Wallet connection rejected.' : knownErrors.includes(error.message ?? '') ? error.message! : 'Connection failed'
+      const message = (error.code === 4001 || error.code === 4100) ? 'Wallet connection rejected.' : knownErrors.includes(error.message ?? '') ? error.message! : 'Connection failed'
       notify(translate(message), 'err')
       return false
     }

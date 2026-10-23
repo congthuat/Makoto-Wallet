@@ -38,14 +38,29 @@ export const PREPARE_TIMEOUT_MS = 20_000
 export const AGENT_EVIDENCE_TIMEOUT_MS = 12_000
 /** Timeout for Circle CCTP status / attestation HTTP calls. */
 export const CCTP_STATUS_TIMEOUT_MS = 15_000
+/**
+ * Timeout for the CCTP destination-status backend fetch, covering both the
+ * HTTP request and response.json() parsing.  Intentionally shorter than
+ * CCTP_STATUS_TIMEOUT_MS because this is a lightweight Railway read, not a
+ * Circle attestation poll.
+ */
+export const CCTP_DESTINATION_TIMEOUT_MS = 10_000
 
 /**
  * Test-only hook for RPC_TIMEOUT_MS.
- * Call setRpcTimeoutMsForTest(1) in before() to shrink timeouts for fast tests.
- * Call setRpcTimeoutMsForTest(undefined) in after() to restore production behaviour.
+ * Call _setRpcTimeoutMsForTest(1) in before() to shrink timeouts for fast tests.
+ * Call _setRpcTimeoutMsForTest(undefined) in after() to restore production behaviour.
  * Never call this from production code.
  * @internal
  */
 let _rpcTimeoutMsOverride: number | undefined = undefined
 export function _getRpcTimeoutMs(): number { return _rpcTimeoutMsOverride ?? RPC_TIMEOUT_MS }
 export function _setRpcTimeoutMsForTest(ms: number | undefined): void { _rpcTimeoutMsOverride = ms }
+
+/**
+ * Test-only hook for CCTP_DESTINATION_TIMEOUT_MS.
+ * @internal
+ */
+let _cctpDestinationTimeoutMsOverride: number | undefined = undefined
+export function _getCctpDestinationTimeoutMs(): number { return _cctpDestinationTimeoutMsOverride ?? CCTP_DESTINATION_TIMEOUT_MS }
+export function _setCctpDestinationTimeoutMsForTest(ms: number | undefined): void { _cctpDestinationTimeoutMsOverride = ms }

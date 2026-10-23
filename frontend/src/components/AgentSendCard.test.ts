@@ -16,7 +16,7 @@
  */
 
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
+import { describe, it, before, after } from 'node:test'
 
 // ── Import execution functions directly ───────────────────────────────────────
 import {
@@ -33,6 +33,19 @@ import {
   readIntent, writeIntent, clearIntent, intentMatches,
   type IntentCheckpoint,
 } from '../lib/sendIntentCheckpoint.ts'
+import { startMockArcRpc, stopMockArcRpc, setMockArcRpcHandler } from '../lib/testArcRpcServer.ts'
+import { _setRpcTimeoutMsForTest } from '../lib/rpcTimeout.ts'
+
+// pollSendReceipt calls checkSendReceipt which routes eth_getTransactionReceipt via arcRpc().
+// We need a mock Arc RPC server so those calls don't hit the real network.
+before(async () => {
+  await startMockArcRpc()
+  _setRpcTimeoutMsForTest(500)
+})
+after(async () => {
+  _setRpcTimeoutMsForTest(undefined)
+  await stopMockArcRpc()
+})
 
 const MOCK_ACCOUNT = '0xabc0000000000000000000000000000000000001'
 const MOCK_RECIPIENT = '0xdef0000000000000000000000000000000000002'
@@ -270,17 +283,18 @@ describe('AgentSendCard intent checkpoint invariants', () => {
     const s = makeStorage()
     const intent = { account: MOCK_ACCOUNT, chainId: 5042002, recipient: MOCK_RECIPIENT, symbol: 'USDC', amount: '1.0' }
     writeIntent(s, { ...intent, savedAt: Date.now() })
-    // Simulate "Check again" confirming the tx
-    const confirmedProvider = {
-      request: async ({ method }: { method: string }) => {
-        if (method === 'eth_getTransactionReceipt') return {
-          transactionHash: '0x' + 'a'.repeat(64), blockHash: '0x' + 'b'.repeat(64), blockNumber: '0x1', status: '0x1',
-          logs: [{ address: MOCK_TOKEN.address, topics: ['0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef', '0x' + MOCK_ACCOUNT.slice(2).padStart(64, '0'), '0x' + MOCK_RECIPIENT.slice(2).padStart(64, '0')], data: '0x' + (1_000_000n).toString(16).padStart(64, '0') }],
-        }
-        return null
-      },
-    } as any
-    const result = await pollSendReceipt(confirmedProvider, '0x' + 'a'.repeat(64), MOCK_PREPARED)
+    // pollSendReceipt → checkSendReceipt → arcRpc('eth_getTransactionReceipt')
+    // Must use mock Arc RPC server, not provider mock.
+    const txHash = '0x' + 'a'.repeat(64)
+    setMockArcRpcHandler((method) => {
+      if (method === 'eth_getTransactionReceipt') return {
+        transactionHash: txHash, blockHash: '0x' + 'b'.repeat(64), blockNumber: '0x1', status: '0x1',
+        logs: [{ address: MOCK_TOKEN.address, topics: ['0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef', '0x' + MOCK_ACCOUNT.slice(2).padStart(64, '0'), '0x' + MOCK_RECIPIENT.slice(2).padStart(64, '0')], data: '0x' + (1_000_000n).toString(16).padStart(64, '0') }],
+      }
+      return null
+    })
+    const bareProvider = { request: async () => null } as any
+    const result = await pollSendReceipt(bareProvider, txHash, MOCK_PREPARED)
     assert.equal(result, 'confirmed')
     // After confirmation, clear only this intent's checkpoint
     clearIntent(s, intent)
@@ -318,38 +332,35 @@ describe('AgentSendCard safety invariants (logic-only, no DOM)', () => {
     await first
   })
 
-  it('pending does not auto-resubmit: pollSendReceipt returns unknown after 30 tries, no second tx', async () => {
-    // The contract: pollSendReceipt returns 'unknown' and does NOT call eth_sendTransaction again.
-    // This is structural — confirmed by reading the function body (no recursive call to requestSend).
+  it('pending does not auto-resubmit: pollSendReceipt returns confirmed, no sendTransaction call', async () => {
+    // pollSendReceipt → checkSendReceipt → arcRpc('eth_getTransactionReceipt').
+    // Provider mock has no eth_sendTransaction — if pollSendReceipt ever called it, it would throw.
     const { pollSendReceipt } = await import('../lib/sendExecution.ts')
-    const sendCallCount = 0
-    // Reduce iterations via small test: just verify it returns 'unknown' without sending
-    // (we can't run 30 * 2000ms in test; the real loop logic is correct by source inspection)
-    // Instead test the immediate-receipt path:
-    const confirmedProvider = {
-      request: async ({ method }: { method: string }) => {
-        if (method === 'eth_getTransactionReceipt') {
-          return {
-            transactionHash: '0x' + 'a'.repeat(64),
-            blockHash: '0x' + 'b'.repeat(64),
-            blockNumber: '0x1',
-            status: '0x1',
-            logs: [{
-              address: MOCK_TOKEN.address,
-              topics: [
-                '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
-                '0x' + MOCK_ACCOUNT.slice(2).padStart(64, '0'),
-                '0x' + MOCK_RECIPIENT.slice(2).padStart(64, '0'),
-              ],
-              data: '0x' + (1_000_000n).toString(16).padStart(64, '0'),
-            }],
-          }
-        }
-        return null
-      },
-    } as any
-    const result = await pollSendReceipt(confirmedProvider, '0x' + 'a'.repeat(64), MOCK_PREPARED)
+    const txHash = '0x' + 'a'.repeat(64)
+    setMockArcRpcHandler((method) => {
+      if (method === 'eth_getTransactionReceipt') return {
+        transactionHash: txHash,
+        blockHash: '0x' + 'b'.repeat(64),
+        blockNumber: '0x1',
+        status: '0x1',
+        logs: [{
+          address: MOCK_TOKEN.address,
+          topics: [
+            '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+            '0x' + MOCK_ACCOUNT.slice(2).padStart(64, '0'),
+            '0x' + MOCK_RECIPIENT.slice(2).padStart(64, '0'),
+          ],
+          data: '0x' + (1_000_000n).toString(16).padStart(64, '0'),
+        }],
+      }
+      return null
+    })
+    // Provider throws if eth_sendTransaction is called — proving pollSendReceipt never submits
+    const noSendProvider = { request: async ({ method }: { method: string }) => {
+      if (method === 'eth_sendTransaction') throw new Error('pollSendReceipt must never call eth_sendTransaction')
+      return null
+    } } as any
+    const result = await pollSendReceipt(noSendProvider, txHash, MOCK_PREPARED)
     assert.equal(result, 'confirmed')
-    assert.equal(sendCallCount, 0) // pollSendReceipt never calls sendTransaction
   })
 })

@@ -3,6 +3,7 @@ import test, { after, before } from 'node:test'
 import { TOKENS } from './wallet.ts'
 import { SendSubmissionGuard, assertFreshSend, checkSendReceipt, encodeTransfer, feeInUsdcUnits, formatSendAmount, isWalletRejection, parseSendAmount, prepareSend, requestSend, safeMax, type SendProvider } from './sendExecution.ts'
 import { withRpcTimeout, _setRpcTimeoutMsForTest } from './rpcTimeout.ts'
+import { startMockArcRpc, stopMockArcRpc, setMockArcRpcHandler } from './testArcRpcServer.ts'
 
 const account = '0x1111111111111111111111111111111111111111'
 const recipient = '0x2222222222222222222222222222222222222222'
@@ -11,24 +12,36 @@ const topic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3e
 const word = (x: string) => `0x${x.slice(2).toLowerCase().padStart(64, '0')}`
 const symbolHex = (s: string) => `0x${'20'.padStart(64, '0')}${s.length.toString(16).padStart(64, '0')}${Array.from(s).map((x) => x.charCodeAt(0).toString(16).padStart(2, '0')).join('').padEnd(64, '0')}`
 
+// Arc RPC mock server — covers all bypass methods (eth_getCode, eth_call, eth_gasPrice,
+// eth_estimateGas, eth_getBalance, eth_getTransactionReceipt, eth_getTransactionByHash).
+// Provider mock retains eth_accounts, eth_chainId, eth_sendTransaction.
+before(async () => { await startMockArcRpc() })
+after(async () => { await stopMockArcRpc() })
+
 function fixture(options: { tokenBalance?: bigint; usdcBalance?: bigint; nativeBalance?: bigint; chain?: string; account?: string; code?: string; reject?: boolean; receipt?: any } = {}) {
   let sends = 0
-  const p: SendProvider = { request: async ({ method, params = [] }) => {
-    if (method === 'eth_accounts') return [options.account ?? account]
-    if (method === 'eth_chainId') return options.chain ?? '0x4cef52'
-    if (method === 'eth_getCode') return params[0] === recipient ? options.code ?? '0x' : '0x6000'
+  // Set the Arc RPC mock handler for bypass methods
+  setMockArcRpcHandler((method, params) => {
+    const p0 = (params as unknown[])[0]
+    if (method === 'eth_getCode') return (p0 as string)?.toLowerCase() === recipient.toLowerCase() ? (options.code ?? '0x') : '0x6000'
     if (method === 'eth_call') {
-      const data = (params[0] as { data: string }).data
+      const { to, data } = p0 as { to: string; data: string }
       if (data === '0x313ce567') return '0x6'
-      if (data === '0x95d89b41') return symbolHex((params[0] as { to: string }).to.toLowerCase() === TOKENS[1].address.toLowerCase() ? 'EURC' : 'USDC')
-      if (data.startsWith('0x70a08231')) return `0x${((params[0] as { to: string }).to.toLowerCase() === TOKENS[1].address.toLowerCase() ? options.tokenBalance ?? 5_000_000n : options.usdcBalance ?? 10_000_000n).toString(16)}`
+      if (data === '0x95d89b41') return symbolHex(to.toLowerCase() === TOKENS[1].address.toLowerCase() ? 'EURC' : 'USDC')
+      if (data.startsWith('0x70a08231')) return `0x${(to.toLowerCase() === TOKENS[1].address.toLowerCase() ? options.tokenBalance ?? 5_000_000n : options.usdcBalance ?? 10_000_000n).toString(16)}`
+      return '0x'
     }
     if (method === 'eth_getBalance') return `0x${(options.nativeBalance ?? 10_000_000_000_000_000_000n).toString(16)}`
     if (method === 'eth_estimateGas') return '0x186a0'
     if (method === 'eth_gasPrice') return '0x4a817c800'
-    if (method === 'eth_sendTransaction') { sends++; if (options.reject) throw Object.assign(new Error('User rejected'), { code: 4001 }); return hash }
     if (method === 'eth_getTransactionReceipt') return options.receipt ?? null
-    throw new Error(method)
+    throw new Error(`unexpected arcRpc method: ${method}`)
+  })
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [options.account ?? account]
+    if (method === 'eth_chainId') return options.chain ?? '0x4cef52'
+    if (method === 'eth_sendTransaction') { sends++; if (options.reject) throw Object.assign(new Error('User rejected'), { code: 4001 }); return hash }
+    throw new Error(`unexpected provider method: ${method}`)
   } }
   return { p, sends: () => sends }
 }
@@ -100,57 +113,68 @@ test('receipt requires success and matching transfer evidence; missing receipt r
 // timeout to fire.  The override is set/reset in before()/after() hooks.
 // ---------------------------------------------------------------------------
 
-// 10 ms is enough to let the mock provider's microtask round-trips complete
-// while still being fast enough for CI (well under the 15 s production timeout).
-before(() => { _setRpcTimeoutMsForTest(10) })
+// 500 ms is enough for a local mock HTTP server round-trip (including fetch cold-start)
+// while still being well under the 15 s production timeout.
+// Hung-Arc-RPC integration tests reduce to 10 ms inline for their own scope only.
+before(() => { _setRpcTimeoutMsForTest(500) })
 after(() => { _setRpcTimeoutMsForTest(undefined) })
 
 test('prepareSend integration: hung eth_getCode causes prepareSend to reject via req() timeout', async () => {
-  // Real integration: prepareSend calls req('eth_getCode', ...) via req().
-  // With _rpcTimeoutMsOverride = 1 ms the timeout fires immediately and prepareSend rejects.
-  // This confirms the wiring: req() → withRpcTimeout(p.request(...), override ?? RPC_TIMEOUT_MS, label).
-  const hungProvider: SendProvider = { request: async () => new Promise(() => { /* hangs forever */ }) }
-  await assert.rejects(
-    prepareSend(hungProvider, { account, recipient, symbol: 'USDC', amount: '1' }),
-    /timed out/,
-    'prepareSend must reject when eth_getCode never resolves',
-  )
+  // Real integration: prepareSend calls req('eth_getCode', ...) via arcRpc() (bypass layer).
+  // Reduce timeout to 10 ms so the test completes quickly without waiting 500 ms.
+  _setRpcTimeoutMsForTest(10)
+  try {
+    setMockArcRpcHandler((_method, _params) => new Promise(() => { /* hangs forever */ }))
+    const p: SendProvider = { request: async ({ method }) => {
+      if (method === 'eth_accounts') return [account]
+      if (method === 'eth_chainId') return '0x4cef52'
+      throw new Error(`unexpected: ${method}`)
+    } }
+    await assert.rejects(
+      prepareSend(p, { account, recipient, symbol: 'USDC', amount: '1' }),
+      /timed out/,
+      'prepareSend must reject when Arc RPC never resolves',
+    )
+  } finally { _setRpcTimeoutMsForTest(500) }
 })
 
 test('prepareSend integration: hung eth_estimateGas causes prepareSend to reject via req() timeout', async () => {
-  // Provider answers the initial chain/account calls immediately, then hangs on eth_estimateGas.
+  // Arc RPC mock answers all calls up to eth_estimateGas, then hangs.
+  // Reduce timeout to 10 ms so the hung test completes quickly.
+  _setRpcTimeoutMsForTest(10)
   let callCount = 0
-  const hangAfterSetupProvider: SendProvider = {
-    request: async ({ method, params = [] }) => {
-      callCount++
-      if (method === 'eth_accounts') return [account]
-      if (method === 'eth_chainId') return '0x4cef52'
-      if (method === 'eth_getCode') {
-        // Token contracts must have non-empty code; the recipient must have empty code (not a contract).
-        const addr = (params as string[])[0]?.toLowerCase()
-        return addr === recipient.toLowerCase() ? '0x' : '0x6000'
-      }
-      if (method === 'eth_call') {
-        // verifyToken calls: decimals (0x313ce567), symbol (0x95d89b41), balanceOf (0x70a08231)
-        const data = (params[0] as { data: string }).data
-        if (data === '0x313ce567') return '0x' + '6'.padStart(64, '0') // decimals = 6
-        // ABI-encode string "USDC": offset(32) + length(4) + "USDC" padded to 32 bytes
-        if (data === '0x95d89b41') return `0x${'20'.padStart(64, '0')}${'4'.padStart(64, '0')}${'55534443'.padEnd(64, '0')}`
-        if (data.startsWith('0x70a08231')) return `0x${(10_000_000n).toString(16).padStart(64, '0')}`
-        return '0x'
-      }
-      if (method === 'eth_getBalance') return `0x${(10_000_000_000_000_000_000n).toString(16)}`
-      if (method === 'eth_gasPrice') return '0x4a817c800'
-      // eth_estimateGas: hang forever — this is the call we're testing times out
-      return new Promise(() => { /* hangs */ })
-    },
-  }
+  try {
+  setMockArcRpcHandler((method, params) => {
+    callCount++
+    const p0 = (params as unknown[])[0]
+    if (method === 'eth_getCode') {
+      const addr = (p0 as string)?.toLowerCase()
+      return addr === recipient.toLowerCase() ? '0x' : '0x6000'
+    }
+    if (method === 'eth_call') {
+      const { data } = p0 as { data: string }
+      if (data === '0x313ce567') return '0x' + '6'.padStart(64, '0')
+      if (data === '0x95d89b41') return `0x${'20'.padStart(64, '0')}${'4'.padStart(64, '0')}${'55534443'.padEnd(64, '0')}`
+      if (data.startsWith('0x70a08231')) return `0x${(10_000_000n).toString(16).padStart(64, '0')}`
+      return '0x'
+    }
+    if (method === 'eth_getBalance') return `0x${(10_000_000_000_000_000_000n).toString(16)}`
+    if (method === 'eth_gasPrice') return '0x4a817c800'
+    // eth_estimateGas: hang forever
+    return new Promise(() => { /* hangs */ })
+  })
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [account]
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`unexpected: ${method}`)
+  } }
   await assert.rejects(
-    prepareSend(hangAfterSetupProvider, { account, recipient, symbol: 'USDC', amount: '1' }),
+    prepareSend(p, { account, recipient, symbol: 'USDC', amount: '1' }),
     /timed out/,
     'prepareSend must reject when eth_estimateGas never resolves',
   )
-  assert.ok(callCount > 0, 'provider must have been called at least once')
+  assert.ok(callCount > 0, 'arc rpc mock must have been called at least once')
+  } finally { _setRpcTimeoutMsForTest(500) }
 })
 
 test('requestSend does not apply the read-only timeout: long signing still resolves', async () => {
@@ -252,4 +276,66 @@ test('Cancel does not interfere with in-flight signing: generation bump does not
   doSign()
   const result = await pending
   assert.equal(result, hash, 'in-flight signing must resolve regardless of generation bump')
+})
+
+// ---------------------------------------------------------------------------
+// Regression: wrong-chain / account-change / Arc-RPC-failure safety guards
+// ---------------------------------------------------------------------------
+
+test('regression: wallet on wrong chain — prepareSend rejects before any Arc RPC call', async () => {
+  // Provider returns chain 0x1 (Ethereum mainnet). prepareSend must reject on
+  // chain check, before touching Arc RPC. Confirms chain is read from provider.
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [account]
+    if (method === 'eth_chainId') return '0x1'  // Mainnet — wrong
+    throw new Error(`unexpected: ${method}`)
+  } }
+  await assert.rejects(
+    prepareSend(p, { account, recipient, symbol: 'USDC', amount: '1' }),
+    /Wrong network/,
+    'prepareSend must gate on provider chain — not Arc RPC chain',
+  )
+})
+
+test('regression: account changed between call and input — prepareSend rejects', async () => {
+  // Provider returns a different account than input.account.
+  const differentAccount = '0x3333333333333333333333333333333333333333'
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [differentAccount]  // different from `account`
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`unexpected: ${method}`)
+  } }
+  await assert.rejects(
+    prepareSend(p, { account, recipient, symbol: 'USDC', amount: '1' }),
+    /account changed/,
+    'prepareSend must verify live account matches input.account',
+  )
+})
+
+test('regression: Arc RPC error response — prepareSend returns actionable error, not a crash', async () => {
+  // setMockArcRpcHandler throws — server returns a JSON-RPC error response.
+  // prepareSend must propagate a clear error, not hang or crash.
+  setMockArcRpcHandler(() => { throw new Error('Arc RPC node error') })
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [account]
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`unexpected: ${method}`)
+  } }
+  await assert.rejects(
+    prepareSend(p, { account, recipient, symbol: 'USDC', amount: '1' }),
+    (err: Error) => typeof err.message === 'string',
+    'Arc RPC error must produce an error, not a hang',
+  )
+})
+
+test('regression: receipt pending/null never returns confirmed', async () => {
+  // null receipt → 'pending'; partial receipt → 'unknown'; neither is 'confirmed'.
+  const prepared = await prepareSend(fixture().p, { account, recipient, symbol: 'USDC', amount: '1' })
+  assert.equal(await checkSendReceipt(fixture({ receipt: null }).p, hash, prepared), 'pending')
+  // Receipt with no logs → 'unknown', not 'confirmed'
+  const noLogs = { transactionHash: hash, blockHash: hash, blockNumber: '0x1', status: '0x1', logs: [] }
+  assert.equal(await checkSendReceipt(fixture({ receipt: noLogs }).p, hash, prepared), 'unknown')
+  // Receipt with malformed structure → 'unknown', not crash
+  assert.equal(await checkSendReceipt(fixture({ receipt: 'garbage' }).p, hash, prepared), 'unknown')
+  assert.equal(await checkSendReceipt(fixture({ receipt: 42 }).p, hash, prepared), 'unknown')
 })

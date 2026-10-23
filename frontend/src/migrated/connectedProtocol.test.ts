@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
-import test from 'node:test'
+import test, { after, before } from 'node:test'
 import { encodeAbiParameters, encodeEventTopics, encodeFunctionResult, erc20Abi } from 'viem'
 import { CCTPV2BridgingProvider } from '@circle-fin/provider-cctp-v2'
 import { TOKENS } from '../lib/wallet.ts'
 import type { SendProvider } from '../lib/sendExecution.ts'
 import { SendSubmissionGuard } from '../lib/sendExecution.ts'
+import { startMockArcRpc, stopMockArcRpc, setMockArcRpcHandler } from '../lib/testArcRpcServer.ts'
+import { _setRpcTimeoutMsForTest } from '../lib/rpcTimeout.ts'
 import { checkProtocolReceipt, requestReviewedAction } from './protocolExecution.ts'
 import { planAgentRequest, replanAgentFromEvidence } from './planner.ts'
 import { createStrategyRun, restoreStrategyRun, saveStrategyRun, transitionStrategy } from './strategyController.ts'
@@ -14,21 +16,32 @@ import { xyloRouterAbi, XYLO_ROUTER } from './swap.ts'
 import { CCTP_KIT_BRIDGE_TESTNET } from './cctp.ts'
 import { CCTP_MESSAGE_SENT_ABI } from '../protocols/circle/cctpAdapter.ts'
 
+before(async () => {
+  await startMockArcRpc()
+  // 500ms: enough time for fetch() cold-start on first call; much less than production 15s.
+  _setRpcTimeoutMsForTest(500)
+})
+after(async () => {
+  _setRpcTimeoutMsForTest(undefined)
+  await stopMockArcRpc()
+})
+
 const account = '0x1111111111111111111111111111111111111111'
 const other = '0x2222222222222222222222222222222222222222'
 const hash = `0x${'a'.repeat(64)}` as `0x${string}`
 function fixture() {
   const state = { allowance: 2_000_000n, balance: 10_000_000n, chain: '0x4cef52', account, receipt: 'pending', rejected: false, offline: false, writes: 0, cctpLogs: undefined as unknown[] | undefined, last: undefined as undefined | { from: string; to: string; data: string } }
-  const p: SendProvider = { request: async ({ method, params = [] }) => {
+
+  // Arc RPC mock handler — serves all bypass methods (eth_getCode, eth_call, etc.)
+  // reading live state so test mutations (state.allowance, state.receipt, etc.) are reflected.
+  setMockArcRpcHandler((method, params) => {
     if (state.offline) throw new Error('RPC offline')
-    if (method === 'eth_accounts') return [state.account]
-    if (method === 'eth_chainId') return state.chain
     if (method === 'eth_getCode') return '0x6000'
     if (method === 'eth_getBalance') return '0x1000000000000000'
     if (method === 'eth_estimateGas') return '0x186a0'
     if (method === 'eth_gasPrice') return '0x3b9aca00'
     if (method === 'eth_call') {
-      const { to, data } = params[0] as { to: string; data: string }
+      const { to, data } = (params as [{ to: string; data: string }])[0]
       if (data === '0x313ce567') return '0x6'
       if (data === '0x95d89b41') return encodeFunctionResult({ abi: erc20Abi, functionName: 'symbol', result: to.toLowerCase() === TOKENS[1].address.toLowerCase() ? 'EURC' : 'USDC' })
       if (data.startsWith('0x70a08231')) return encodeFunctionResult({ abi: erc20Abi, functionName: 'balanceOf', result: state.balance })
@@ -36,18 +49,27 @@ function fixture() {
       if (to.toLowerCase() === XYLO_ROUTER.toLowerCase()) return encodeFunctionResult({ abi: xyloRouterAbi, functionName: 'getAmountOut', result: 990_000n })
       return '0x'
     }
-    if (method === 'eth_sendTransaction') {
-      if (state.rejected) throw Object.assign(new Error('User rejected'), { code: 4001 })
-      state.writes++; state.last = params[0] as typeof state.last; return hash
-    }
-    if (method === 'eth_getTransactionByHash') return state.last && { hash, from: state.last.from, to: state.last.to, input: state.last.data }
+    if (method === 'eth_getTransactionByHash') return state.last ? { hash, from: state.last.from, to: state.last.to, input: state.last.data } : null
     if (method === 'eth_getTransactionReceipt') {
       if (state.receipt === 'pending') return null
       const topics = encodeEventTopics({ abi: erc20Abi, eventName: 'Transfer', args: { from: other, to: account } })
       const logs = [{ address: TOKENS[1].address, topics, data: encodeAbiParameters([{ type: 'uint256' }], [990_000n]) }]
       return { transactionHash: hash, blockHash: hash, blockNumber: '0x1', status: state.receipt === 'failed' ? '0x0' : '0x1', logs: state.cctpLogs ?? logs }
     }
-    throw new Error(method)
+    return '0x'
+  })
+
+  // Provider handles only wallet-identity and signing methods.
+  // All read-only blockchain calls are routed through arcRpc() → mock server above.
+  const p: SendProvider = { request: async ({ method, params = [] }) => {
+    if (state.offline) throw new Error('RPC offline')
+    if (method === 'eth_accounts') return [state.account]
+    if (method === 'eth_chainId') return state.chain
+    if (method === 'eth_sendTransaction') {
+      if (state.rejected) throw Object.assign(new Error('User rejected'), { code: 4001 })
+      state.writes++; state.last = params[0] as typeof state.last; return hash
+    }
+    throw new Error(`Unexpected provider method: ${method}`)
   } }
   return { state, p }
 }

@@ -83,8 +83,13 @@ async function rpc(method, params = []) {
   }
 }
 
-async function explorer(path) {
-  const r = await fetch(`${EXPLORER_API}${path}`, { signal: AbortSignal.timeout(10000), headers: { accept: 'application/json' } })
+async function explorer(path, outerSignal) {
+  // Compose the outer (deadline) signal with a per-call 10s timeout.
+  // When outerSignal fires first it propagates the abort; the 10s timeout
+  // acts as a fallback so standalone explorer calls always have a ceiling.
+  const perCallSignal = AbortSignal.timeout(10000)
+  const signal = outerSignal ? AbortSignal.any([outerSignal, perCallSignal]) : perCallSignal
+  const r = await fetch(`${EXPLORER_API}${path}`, { signal, headers: { accept: 'application/json' } })
   if (r.status === 404) return null
   if (!r.ok) throw new Error(`explorer ${r.status}`)
   return r.json()
@@ -134,16 +139,21 @@ router.get('/network', async (_req, res) => {
 
 async function readWallet(address) {
   if (!isAddr(address)) throw new Error('Invalid address')
-  const [info, balances, transfers] = await Promise.all([
-    explorer(`/addresses/${address}`),
-    explorer(`/addresses/${address}/token-balances`),
-    explorer(`/addresses/${address}/token-transfers`),
-  ])
-  if (!info || typeof info.coin_balance !== 'string' || !/^\d+$/.test(info.coin_balance) || !Array.isArray(balances)) {
-    throw new Error('Wallet balances unavailable')
-  }
-
-  const tokens = []
+  // 12-second outer deadline so a slow Arc explorer never hangs the wallet endpoint.
+  // Individual explorer() calls already have their own 10-second AbortSignal.timeout.
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(new Error('Arc explorer timeout after 12s')), 12000)
+  try {
+    const [info, balances, transfers] = await Promise.all([
+      explorer(`/addresses/${address}`, controller.signal),
+      explorer(`/addresses/${address}/token-balances`, controller.signal),
+      explorer(`/addresses/${address}/token-transfers`, controller.signal),
+    ])
+    clearTimeout(timeout)
+    if (!info || typeof info.coin_balance !== 'string' || !/^\d+$/.test(info.coin_balance) || !Array.isArray(balances)) {
+      throw new Error('Wallet balances unavailable')
+    }
+    const tokens = []
   // Native USDC (gas token)
   tokens.push({
     symbol: 'USDC',
@@ -204,7 +214,11 @@ async function readWallet(address) {
       }
     })
 
-  return { address, chainId: 5042002, observedAt: new Date().toISOString(), txCount: Number(info?.transactions_count ?? 0) || null, tokens, activity }
+    return { address, chainId: 5042002, observedAt: new Date().toISOString(), txCount: Number(info?.transactions_count ?? 0) || null, tokens, activity }
+  } catch (e) {
+    clearTimeout(timeout)
+    throw e
+  }
 }
 
 router.get('/wallet', async (req, res) => {

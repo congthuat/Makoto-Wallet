@@ -23,6 +23,61 @@ import { createBrowserHarness, delay } from './browser-harness.mjs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+// Arc RPC mock handler — server-side, mirrors send-handoff.test.mjs.
+// Handles all bypass methods (eth_getCode, eth_call, eth_estimateGas, eth_gasPrice,
+// eth_getBalance, eth_getTransactionReceipt, eth_getTransactionByHash, eth_blockNumber).
+// Returns [result, error] — error is null on success.
+function handleArcRpcMethod(method, params) {
+  const TOKEN_ADDRS = new Set([
+    '0x3600000000000000000000000000000000000000', // USDC
+    '0x89b50855aa3be2f677cd6303cec089b5f319d72a', // EURC
+    '0xf0c4a4ce82a5746abaad9425360ab04fbba432bf', // cirBTC
+  ])
+  const TOKEN_SYMBOL = {
+    '0x3600000000000000000000000000000000000000': 'USDC',
+    '0x89b50855aa3be2f677cd6303cec089b5f319d72a': 'EURC',
+    '0xf0c4a4ce82a5746abaad9425360ab04fbba432bf': 'cirBTC',
+  }
+  const TOKEN_DECIMALS = {
+    '0x3600000000000000000000000000000000000000': 6,
+    '0x89b50855aa3be2f677cd6303cec089b5f319d72a': 6,
+    '0xf0c4a4ce82a5746abaad9425360ab04fbba432bf': 8,
+  }
+  const abiString = (s) => {
+    const hex = [...s].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('').padEnd(64, '0')
+    return '0x' +
+      '0000000000000000000000000000000000000000000000000000000000000020' +
+      s.length.toString(16).padStart(64, '0') + hex
+  }
+
+  if (method === 'eth_getCode') {
+    const addr = (params[0] ?? '').toLowerCase()
+    return [TOKEN_ADDRS.has(addr) ? '0x6000' : '0x', null]
+  }
+  if (method === 'eth_call') {
+    const { data, to } = params[0] ?? {}
+    const addr = (to ?? '').toLowerCase()
+    if (data === '0x313ce567') {
+      const dec = TOKEN_DECIMALS[addr] ?? 6
+      return ['0x' + dec.toString(16).padStart(64, '0'), null]
+    }
+    if (data === '0x95d89b41') return [abiString(TOKEN_SYMBOL[addr] ?? 'USDC'), null]
+    if (data?.startsWith('0x70a08231')) {
+      const dec = TOKEN_DECIMALS[addr] ?? 6
+      const bal = dec === 8 ? 50_000_000n : 50_000_000n
+      return ['0x' + bal.toString(16).padStart(64, '0'), null]
+    }
+    return ['0x' + '0'.repeat(64), null]
+  }
+  if (method === 'eth_getBalance') return ['0x' + (100n * 10n ** 18n).toString(16), null]
+  if (method === 'eth_estimateGas') return ['0x186a0', null]
+  if (method === 'eth_gasPrice') return ['0x4a817c800', null]
+  if (method === 'eth_blockNumber') return ['0x7b', null]
+  if (method === 'eth_getTransactionReceipt') return [null, null]
+  if (method === 'eth_getTransactionByHash') return [null, null]
+  return [null, { code: -32601, message: `Unexpected Arc RPC mock method: ${method}` }]
+}
+
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const account = '0x1111111111111111111111111111111111111111'
 const recipient = '0x1951f95962442b6b6be2671e4d39bc88ff6cbe71'
@@ -67,100 +122,53 @@ const entry = `
   import { createRoot } from 'react-dom/client';
   import { WalletFixture } from '/__agent_test__/wallet.jsx';
   import AgentPage from '/src/pages/Agent.tsx';
-  const h = window.__agentHarness = { calls: [], notices: [], records: [], ready: false };
+  const h = window.__agentHarness = { calls: [], arcCalls: [], notices: [], records: [], ready: false };
   localStorage.setItem('mk.lang', new URLSearchParams(location.search).get('lang') || 'en');
   document.documentElement.dataset.theme = 'dark';
   document.documentElement.className = 'dark';
 
-  // ABI-encode a short string as Solidity 'string' return value (dynamic type).
-  // offset(32) + length(32) + utf8 bytes padded to 32 = 96 bytes total.
-  const abiString = (s) => {
-    const hex = [...s].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('').padEnd(64, '0');
-    return '0x' +
-      '0000000000000000000000000000000000000000000000000000000000000020' +
-      s.length.toString(16).padStart(64, '0') +
-      hex;
+  // Two separate mock channels — mirrors send-handoff.test.mjs Rev 6+ split:
+  //   window.ethereum  → injected wallet provider (eth_accounts, eth_chainId, signing only)
+  //   window.__arcRpcOverrideUrl → Arc read-only RPC (bypass methods via fetch)
+  const arcMockUrl = location.origin + '/__arc_agent_rpc_mock__';
+  window.__arcRpcOverrideUrl = arcMockUrl;
+
+  // Safety: fail immediately if the mock is not active.
+  if (!window.__arcRpcOverrideUrl || !window.__arcRpcOverrideUrl.startsWith(location.origin)) {
+    throw new Error('Arc RPC mock override not set — agent tests would hit real Arc Testnet RPC');
+  }
+
+  // Wrap fetch to record Arc RPC calls for assertion purposes.
+  const _origFetch = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    if (typeof input === 'string' && input.startsWith(arcMockUrl)) {
+      const body = init?.body ? JSON.parse(init.body) : {};
+      h.arcCalls.push({ method: body.method, params: body.params });
+    }
+    return _origFetch(input, init);
   };
 
-  // Token contract addresses on Arc Testnet (must match src/lib/wallet.ts TOKENS).
-  const TOKEN_ADDRS = new Set([
-    '0x3600000000000000000000000000000000000000', // USDC
-    '0x89b50855aa3be2f677cd6303cec089b5f319d72a', // EURC
-    '0xf0c4a4ce82a5746abaad9425360ab04fbba432bf', // cirBTC
-  ]);
-  // symbol() selector: 0x95d89b41  decimals(): 0x313ce567  balanceOf(addr): 0x70a08231
-  const TOKEN_SYMBOL = {
-    '0x3600000000000000000000000000000000000000': 'USDC',
-    '0x89b50855aa3be2f677cd6303cec089b5f319d72a': 'EURC',
-    '0xf0c4a4ce82a5746abaad9425360ab04fbba432bf': 'cirBTC',
-  };
-  const TOKEN_DECIMALS = {
-    '0x3600000000000000000000000000000000000000': 6,
-    '0x89b50855aa3be2f677cd6303cec089b5f319d72a': 6,
-    '0xf0c4a4ce82a5746abaad9425360ab04fbba432bf': 8,
-  };
-
+  // Injected wallet provider: only wallet-interactive methods.
+  // Bypass methods (eth_getCode, eth_call, eth_estimateGas, eth_gasPrice,
+  // eth_getBalance, eth_getTransactionReceipt, eth_getTransactionByHash) are
+  // routed by arcRpc.ts to window.__arcRpcOverrideUrl via fetch — NOT here.
   window.ethereum = { isMetaMask: true, request: async ({method, params = []}) => {
     h.calls.push({method, params});
-
     if (method === 'eth_accounts') return [h.getWallet?.()?.address || '${account}'];
     if (method === 'eth_chainId') return '0x' + (h.getWallet?.()?.walletChainId || 5042002).toString(16);
-
-    if (method === 'eth_getCode') {
-      // Token contracts must return non-empty bytecode so verifyToken passes.
-      // EOA recipients (including the test recipient) must return '0x'.
-      const addr = (params[0] || '').toLowerCase();
-      return TOKEN_ADDRS.has(addr) ? '0x6000' : '0x';
-    }
-
-    if (method === 'eth_call') {
-      const to   = (params[0]?.to || '').toLowerCase();
-      const data = params[0]?.data || '';
-      // decimals() — must match the token's actual decimals
-      if (data === '0x313ce567') {
-        const dec = TOKEN_DECIMALS[to] ?? 6;
-        return '0x' + dec.toString(16).padStart(64, '0');
-      }
-      // symbol() — must ABI-encode the exact symbol string
-      if (data === '0x95d89b41') {
-        const sym = TOKEN_SYMBOL[to] ?? 'USDC';
-        return abiString(sym);
-      }
-      // balanceOf(address) — return a healthy balance for all tokens
-      if (data.startsWith('0x70a08231')) {
-        // 50 USDC/EURC (6 dec) or 0.5 cirBTC (8 dec)
-        const dec = TOKEN_DECIMALS[to] ?? 6;
-        const bal = dec === 8 ? 50_000_000n : 50_000_000n; // 50 units in both cases
-        return '0x' + bal.toString(16).padStart(64, '0');
-      }
-      return '0x' + '0'.repeat(64);
-    }
-
-    // Healthy native gas balance (100 USDC-as-native on Arc, 18 dec)
-    if (method === 'eth_getBalance') return '0x' + (100n * 10n**18n).toString(16);
-
-    // Gas estimation — prepareSend calls this legitimately; return a realistic value
-    if (method === 'eth_estimateGas') return '0x186a0'; // 100 000 gas
-
-    if (method === 'eth_gasPrice') return '0x4a817c800'; // 20 gwei
-
     // Wallet send behaviour is controlled by h.sendMode:
-    //   '4001'     (default) — user-rejected, code 4001, no hash
-    //   'timeout'  — non-rejection error, no hash (simulates wallet timeout / popup closed)
-    //   'ok'       — returns a fake hash (simulates successful broadcast)
+    //   '4001'    (default) — user-rejected, code 4001, no hash
+    //   'timeout' — non-rejection error, no hash
+    //   'ok'      — returns a fake hash
     if (method === 'eth_sendTransaction') {
       const mode = h.sendMode || '4001';
       if (mode === '4001') throw Object.assign(new Error('MOCK rejection; no broadcast'), {code: 4001});
       if (mode === 'timeout') throw new Error('MOCK wallet timeout; no hash returned');
-      // mode === 'ok': return a fake hash so submitted/pending states are reachable
       return '0x' + 'f'.repeat(64);
     }
-
-    // Always return null receipt — keeps submitted/pending cards in spinner state.
-    if (method === 'eth_getTransactionReceipt') return null;
-
     if (method === 'wallet_switchEthereumChain') return null;
-    return null;
+    // Any other method reaching here is unexpected — throw so tests detect routing bugs.
+    throw new Error('Unexpected provider method: ' + method + ' — should be handled by Arc RPC mock');
   }};
 
   createRoot(document.getElementById('app')).render(
@@ -187,6 +195,32 @@ before(async () => {
       },
       configureServer(vite) {
         vite.middlewares.use(async (req, res, next) => {
+          // Arc RPC mock endpoint — handles all bypass methods server-side.
+          if (req.url?.startsWith('/__arc_agent_rpc_mock__') && req.method === 'POST') {
+            let body = ''
+            req.on('data', (chunk) => { body += chunk })
+            req.on('end', () => {
+              try {
+                const { method, params = [], id } = JSON.parse(body)
+                const [result, error] = handleArcRpcMethod(method, params)
+                const payload = error
+                  ? JSON.stringify({ jsonrpc: '2.0', id, error })
+                  : JSON.stringify({ jsonrpc: '2.0', id, result })
+                res.setHeader('Content-Type', 'application/json')
+                res.setHeader('Access-Control-Allow-Origin', '*')
+                res.end(payload)
+              } catch (e) {
+                res.statusCode = 400; res.end(JSON.stringify({ error: e.message }))
+              }
+            })
+            return
+          }
+          if (req.url?.startsWith('/__arc_agent_rpc_mock__') && req.method === 'OPTIONS') {
+            res.setHeader('Access-Control-Allow-Origin', '*')
+            res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+            res.statusCode = 204; res.end(); return
+          }
           if (!req.url?.startsWith('/__agent_test__?')) return next()
           const html = await vite.transformIndexHtml(req.url,
             '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main id="app" class="mk-app p-4"></main><script type="module" src="/__agent_test__/entry.js"></script></body></html>')
@@ -417,37 +451,16 @@ test('MOCKED UNKNOWN state without hash: Done button appears, no "Transaction co
   // This test uses a wallet mock that throws a non-rejection error (no code 4001)
   // so requestSend goes to UNKNOWN stage with no txHash.
   await fixture({ walletOverride: 'throwNoHash' }, async ({ evaluate, wait, fill, click }) => {
-    // Inject wallet that throws a generic error (no code 4001, no hash)
+    // Override only the signing method — bypass methods still go to Arc RPC mock.
+    // This throws a generic (non-4001) error to trigger UNKNOWN stage with no txHash.
     await evaluate(`
       window.ethereum.request = async ({method, params = []}) => {
         window.__agentHarness.calls.push({method, params});
         if (method === 'eth_accounts') return [window.__agentHarness.getWallet?.()?.address || '${account}'];
         if (method === 'eth_chainId') return '0x' + (5042002).toString(16);
-        if (method === 'eth_getCode') {
-          const TOKEN_ADDRS = new Set(['0x3600000000000000000000000000000000000000','0x89b50855aa3be2f677cd6303cec089b5f319d72a','0xf0c4a4ce82a5746abaad9425360ab04fbba432bf']);
-          return TOKEN_ADDRS.has((params[0] || '').toLowerCase()) ? '0x6000' : '0x';
-        }
-        if (method === 'eth_call') {
-          const to = (params[0]?.to || '').toLowerCase();
-          const data = params[0]?.data || '';
-          const DEC = {'0x3600000000000000000000000000000000000000':6,'0x89b50855aa3be2f677cd6303cec089b5f319d72a':6,'0xf0c4a4ce82a5746abaad9425360ab04fbba432bf':8};
-          const SYM = {'0x3600000000000000000000000000000000000000':'USDC','0x89b50855aa3be2f677cd6303cec089b5f319d72a':'EURC','0xf0c4a4ce82a5746abaad9425360ab04fbba432bf':'cirBTC'};
-          if (data === '0x313ce567') return '0x' + ((DEC[to] ?? 6)).toString(16).padStart(64, '0');
-          if (data === '0x95d89b41') {
-            const s = SYM[to] ?? 'USDC';
-            const hex = [...s].map((c) => c.charCodeAt(0).toString(16).padStart(2,'0')).join('').padEnd(64,'0');
-            return '0x0000000000000000000000000000000000000000000000000000000000000020' + s.length.toString(16).padStart(64,'0') + hex;
-          }
-          if (data.startsWith('0x70a08231')) return '0x' + (50_000_000n).toString(16).padStart(64,'0');
-          return '0x' + '0'.repeat(64);
-        }
-        if (method === 'eth_getBalance') return '0x' + (100n * 10n**18n).toString(16);
-        if (method === 'eth_estimateGas') return '0x186a0';
-        if (method === 'eth_gasPrice') return '0x4a817c800';
-        // Throw a generic (non-4001) error — this triggers UNKNOWN stage, no txHash
         if (method === 'eth_sendTransaction') throw new Error('MOCK network error, no hash');
         if (method === 'wallet_switchEthereumChain') return null;
-        return null;
+        throw new Error('Unexpected provider method in throwNoHash override: ' + method);
       };
     `)
     await fill(0, `Send 5 USDC to ${recipient}`)
