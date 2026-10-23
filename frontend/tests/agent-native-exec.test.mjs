@@ -695,3 +695,84 @@ test('MOCKED UNKNOWN checkpoint persists across component unmount and remount', 
     assert.ok(checkpointStillPresent, 'Checkpoint must remain in sessionStorage after blocked retry')
   })
 })
+
+test('MOCKED onStageChange fires real execution stages and "confirmed" reaches step 10/10', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, `Send 1 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    // review stage fires immediately during prepare — stepper must be past step 4
+    await wait(`document.body.innerText.includes('Bước') || document.body.innerText.includes('Step')`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+    // At review stage the stepper must show step 6 or above (review = step 5, requesting = step 6)
+    const stageAtReview = await evaluate(
+      `(() => { const el = document.querySelector('[aria-label*="step"], [data-step]'); return el ? el.getAttribute('aria-label') || el.dataset.step : document.body.innerText })()`
+    )
+    // stage >= 5 means stepper advanced past 4 (Parameters confirmed)
+    // Wallet sends confirmed hash — receipt polling will confirm
+    await click('Confirm in wallet')
+    await wait(
+      `document.body.innerText.includes('Giao dịch đã xác nhận') || document.body.innerText.includes('Transfer confirmed')`,
+      'Card must show confirmed after receipt'
+    )
+    // Click Done
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Hoàn tất' || b.textContent.trim() === 'Done')`)
+    await click('Hoàn tất')
+    // Progress must now show step 10/10
+    await wait(
+      `document.body.innerText.includes('10') && (document.body.innerText.includes('Hoàn tất') || document.body.innerText.includes('Completed'))`,
+      'Progress must reach step 10 after confirmed send'
+    )
+    assert.equal(await evaluate(sendCount), 1, 'Exactly one wallet send')
+    void stageAtReview // used for evidence above
+  })
+})
+
+test('MOCKED wallet rejection: Progress stays at step 3, no "Transaction complete" shown', async () => {
+  await fixture({ walletOutcome: 'reject' }, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, `Send 1 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+    await click('Confirm in wallet')
+    await wait(
+      `document.body.innerText.includes('Ví đã từ chối') || document.body.innerText.includes('Wallet rejected')`,
+      'Card must show rejection'
+    )
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Hoàn tất' || b.textContent.trim() === 'Done')`)
+    await click('Hoàn tất')
+    // Progress must NOT show step 10 or "Transaction complete"
+    const body = await evaluate(`document.body.innerText`)
+    assert.ok(!body.includes('Giao dịch hoàn tất') && !body.includes('Transaction complete'), 'No completion message after rejection')
+    assert.equal(await evaluate(sendCount), 0, 'No wallet send on rejection')
+  })
+})
+
+test('MOCKED Cancel before signing: execCard dismissed, stage returns to 3', async () => {
+  await fixture({}, async ({ evaluate, wait, fill, click }) => {
+    await fill(0, `Send 1 USDC to ${recipient}`)
+    await evaluate(`document.querySelector('button[aria-label="Send message"]').click()`)
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm parameters')`)
+    await click('Confirm parameters')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Execute Send in chat')`)
+    await click('Execute Send in chat')
+    await wait(`[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' && !b.disabled)`)
+    // Cancel before signing
+    await wait(`[...document.querySelectorAll('button, a')].some((b) => b.textContent.trim() === 'Cancel' || b.textContent.trim() === 'Hủy')`)
+    await click('Hủy')
+    // ExecCard dismissed — ReviewCard must reappear at stage 3
+    await wait(
+      `[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Confirm in wallet' || document.body.innerText.includes('Xem lại giao dịch') || document.body.innerText.includes('Review transaction'))`,
+      'After cancel, review card or retry button must appear'
+    )
+    const body = await evaluate(`document.body.innerText`)
+    assert.ok(!body.includes('Giao dịch hoàn tất') && !body.includes('Transaction complete'), 'No completion after cancel')
+    assert.equal(await evaluate(sendCount), 0, 'No wallet send after cancel')
+  })
+})

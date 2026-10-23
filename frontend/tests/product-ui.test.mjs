@@ -15,7 +15,7 @@ const account = '0x1111111111111111111111111111111111111111'
 const noOp = () => {}
 const fixtureKey = '__makotoProductUiFixture'
 let server
-let App, SettingsPage, PortfolioCard, PriceAttribution, translate, TOKENS, agentSession, agentPresentation, historyQueryKey, AgentStepper, AgentReviewCard, AgentContextPanel, agentSteps, agentPlanner
+let App, SettingsPage, PortfolioCard, PriceAttribution, translate, TOKENS, agentSession, agentPresentation, historyQueryKey, AgentStepper, AgentReviewCard, AgentContextPanel, agentSteps, agentPlanner, agentSendProgressStage
 const storage = new Map()
 const previousStorage = globalThis.localStorage
 const previousFixture = globalThis[fixtureKey]
@@ -70,6 +70,7 @@ before(async () => {
   AgentReviewCard = agent.ReviewCard
   AgentContextPanel = agent.ContextPanel
   agentSteps = agent.STEPS
+  agentSendProgressStage = agent.agentSendProgressStage
   agentPlanner = await server.ssrLoadModule('/src/migrated/planner.ts')
 })
 
@@ -390,6 +391,23 @@ test('Vietnamese Agent progress renders every production step without English fa
   const compact = visibleText(render(AgentStepper, { language: 'vi', props: { stage: 2, compact: true } }))
   assert.ok(compact.includes('Bước 3 · Xem lại thông số'))
   assert.doesNotMatch(compact, /Step|Review parameters/)
+})
+
+test('Agent Send advances through real execution states and completes only after verified receipt', () => {
+  assert.equal(agentSendProgressStage('preparing', 3), 4)
+  assert.equal(agentSendProgressStage('review', 4), 5)
+  assert.equal(agentSendProgressStage('requesting', 5), 6)
+  assert.equal(agentSendProgressStage('submitted', 6), 7)
+  assert.equal(agentSendProgressStage('pending', 7), 8)
+  for (const outcome of ['unknown', 'failed', 'rejected']) {
+    assert.equal(agentSendProgressStage(outcome, 8), 8, `${outcome} must not imply completion`)
+  }
+  assert.equal(agentSendProgressStage('confirmed', 8), agentSteps.length)
+  const compact = visibleText(render(AgentStepper, { language: 'vi', props: { stage: agentSteps.length, compact: true } }))
+  assert.ok(compact.includes('Bước 10 · Hoàn tất'))
+  const complete = visibleText(render(AgentContextPanel, { language: 'vi', props: { flow: reviewFlow('send', agentSteps.length) } }))
+  assert.ok(complete.includes('Giao dịch hoàn tất'))
+  assert.doesNotMatch(complete, /Bản xem trước dừng ở bước xác nhận thông số/)
 })
 
 function reviewFlow(intent, stage = 3, params = {}) {
