@@ -480,19 +480,42 @@ test('Vietnamese Agent orchestration blockers use exact translated source keys',
 
 test('Vietnamese Agent translates actual read-only Send and Bridge evidence reasons', async () => {
   const calls = []
+  const _originalFetch = globalThis.fetch
+  // Each provider carries its own balance for the Arc RPC fetch mock.
   function provider({ walletAccount = account, chainId = 5042002, balance = 2_000_000n } = {}) {
-    return { request: async ({ method, params = [] }) => {
-      calls.push(method)
-      if (method === 'eth_accounts') return [walletAccount]
-      if (method === 'eth_chainId') return `0x${chainId.toString(16)}`
-      if (method === 'eth_getCode') return '0x6000'
-      if (method === 'eth_call') {
-        if (params[0].data === '0x313ce567') return '0x6'
-        if (params[0].data === '0x95d89b41') return `0x${'20'.padStart(64, '0')}${'4'.padStart(64, '0')}${Buffer.from('USDC').toString('hex').padEnd(64, '0')}`
-        if (params[0].data.startsWith('0x70a08231')) return `0x${balance.toString(16)}`
+    return {
+      _balance: balance,
+      request: async ({ method }) => {
+        calls.push(method)
+        if (method === 'eth_accounts') return [walletAccount]
+        if (method === 'eth_chainId') return `0x${chainId.toString(16)}`
+        throw new Error(`Unexpected provider method in UI test: ${method}`)
       }
-      throw new Error(`Unexpected read-only mock request: ${method}`)
-    } }
+    }
+  }
+  // Mock Arc RPC fetch for a given balance, call fn, then restore.
+  async function withArcMock(balance, fn) {
+    globalThis.fetch = async (url, opts) => {
+      const urlStr = String(url)
+      if (urlStr.includes('rpc.testnet.arc.io') || urlStr.includes('arc.io/rpc') || urlStr.includes('/__arc_rpc')) {
+        const body = JSON.parse(opts?.body ?? '{}')
+        const { method, params = [], id } = body
+        let result
+        if (method === 'eth_getCode') result = '0x6000'
+        else if (method === 'eth_call') {
+          const data = params[0]?.data ?? ''
+          if (data === '0x313ce567') result = `0x${'6'.padStart(64, '0')}`
+          else if (data === '0x95d89b41') result = `0x${'20'.padStart(64, '0')}${'4'.padStart(64, '0')}${Buffer.from('USDC').toString('hex').padEnd(64, '0')}`
+          else if (data.startsWith('0x70a08231')) result = `0x${balance.toString(16).padStart(64, '0')}`
+          else result = `0x${'0'.repeat(64)}`
+        } else result = `0x${'0'.repeat(64)}`
+        const json = JSON.stringify({ jsonrpc: '2.0', id, result })
+        return new Response(json, { status: 200, headers: { 'content-type': 'application/json' } })
+      }
+      return _originalFetch(url, opts)
+    }
+    try { return await fn() }
+    finally { globalThis.fetch = _originalFetch }
   }
   const recipient = '0x2222222222222222222222222222222222222222'
   const send = agentPlanner.planAgentRequest(`Send 1 USDC to ${recipient}`)
@@ -510,7 +533,8 @@ test('Vietnamese Agent translates actual read-only Send and Bridge evidence reas
     [send, provider({ balance: 0n }), 'Balance changed or insufficient', 'Số dư đã thay đổi hoặc không đủ'],
     [bridge, provider(), 'Direct CCTP currently supports the connected account as recipient', 'CCTP trực tiếp hiện chỉ hỗ trợ tài khoản đang kết nối làm người nhận'],
   ]) {
-    const observed = await agentPlanner.replanAgentFromEvidence(plan, wallet, account)
+    const caseBalance = wallet?._balance ?? 2_000_000n
+    const observed = await withArcMock(caseBalance, () => agentPlanner.replanAgentFromEvidence(plan, wallet, account))
     assert.equal(observed.reason, english)
     assert.equal(translate(observed.reason, 'vi'), vietnamese)
     assert.equal(translate(observed.reason, 'en'), english)
@@ -518,7 +542,9 @@ test('Vietnamese Agent translates actual read-only Send and Bridge evidence reas
   }
   assert.equal(JSON.stringify([send, bridge]), before, 'Localization must preserve plan evidence')
   assert.ok(calls.length > 0)
-  assert.ok(calls.every((method) => ['eth_accounts', 'eth_chainId', 'eth_getCode', 'eth_call'].includes(method)), 'Evidence localization never signs or submits')
+  // After Rev 6, eth_getCode and eth_call bypass the provider and go to arcRpc().
+  // Provider only receives wallet-identity methods.
+  assert.ok(calls.every((method) => ['eth_accounts', 'eth_chainId'].includes(method)), 'Evidence localization never signs or submits via provider')
   for (const [english, vietnamese] of [
     ['Swap preparation failed', 'Không thể chuẩn bị lệnh hoán đổi'],
     ['CCTP preparation failed', 'Không thể chuẩn bị giao dịch CCTP'],
