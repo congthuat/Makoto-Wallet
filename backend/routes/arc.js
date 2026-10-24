@@ -71,12 +71,16 @@ async function rpcOnce(method, params = [], timeoutMs = 8000) {
 
 // One retry with 400ms backoff — only for transient DNS/network or timeout failures.
 // JSON-RPC errors and HTTP errors are deterministic; retrying them is wrong.
+let _retryDelayMs = 400
+// Test-only override — do not call in production code.
+function _setRetryDelayMsForTest(ms) { _retryDelayMs = ms ?? 400 }
+
 async function rpc(method, params = []) {
   try {
     return await rpcOnce(method, params)
   } catch (e) {
     if (e instanceof RpcError && (e.kind === RpcErrorKind.DNS_OR_NETWORK || e.kind === RpcErrorKind.TIMEOUT)) {
-      await new Promise((resolve) => setTimeout(resolve, 400))
+      await new Promise((resolve) => setTimeout(resolve, _retryDelayMs))
       return rpcOnce(method, params)
     }
     throw e
@@ -342,3 +346,4 @@ module.exports.readWallet = readWallet
 // Export for tests
 module.exports.RpcError = RpcError
 module.exports.RpcErrorKind = RpcErrorKind
+module.exports._setRetryDelayMsForTest = _setRetryDelayMsForTest

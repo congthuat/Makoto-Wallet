@@ -15,7 +15,7 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const express = require('express')
 const router = require('../routes/arc')
-const { RpcError, RpcErrorKind } = require('../routes/arc')
+const { RpcError, RpcErrorKind, _setRetryDelayMsForTest } = require('../routes/arc')
 
 const EXPECTED_RPC_HOST = 'rpc.testnet.arc.io'
 const STALE_RPC_HOST = 'rpc.testnet.arc.network'
@@ -254,6 +254,10 @@ test('arc/network retry does not fire for HTTP or JSON-RPC errors (deterministic
 
 test('arc/network retry fires once for DNS/network errors then propagates failure', async () => {
   const previous = global.fetch
+  // Set retry delay to 0ms so both parallel retry paths complete before the
+  // response is received by the test client, eliminating the race condition
+  // where Promise.all rejects before the slower rpc() call fires its attempt 2.
+  _setRetryDelayMsForTest(0)
   try {
     let callCount = 0
     const netErr = new Error('getaddrinfo ENOTFOUND rpc.testnet.arc.io')
@@ -268,7 +272,12 @@ test('arc/network retry fires once for DNS/network errors then propagates failur
       const body = await res.json()
       assert.equal(body.errorKind, RpcErrorKind.DNS_OR_NETWORK)
       // Two parallel rpc() calls × 2 attempts each = 4 total fetch calls.
+      // delay=0 ensures both retry paths complete before the route handler
+      // catches and sends the 502, so callCount is deterministically 4.
       assert.equal(callCount, 4, 'DNS error must retry once per rpc() call — 2 parallel × 2 attempts = 4')
     })
-  } finally { global.fetch = previous }
+  } finally {
+    global.fetch = previous
+    _setRetryDelayMsForTest(400)
+  }
 })
