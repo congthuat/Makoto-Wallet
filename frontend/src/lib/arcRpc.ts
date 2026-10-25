@@ -59,6 +59,10 @@ const ARC_RPC_PRODUCTION_URL = 'https://rpc.testnet.arc.io'
 let _arcRpcUrlOverride: string | undefined = undefined
 /** Test-only: override the Arc RPC URL (e.g. point at a mock server). */
 export function _setArcRpcUrlForTest(url: string | undefined): void { _arcRpcUrlOverride = url }
+/** Test-only: return the exact override value (undefined when no override is active).
+ * Use this — not _getArcRpcUrl() — to snapshot/restore test state, so that restoring
+ * undefined correctly clears the override rather than hardening the production URL. */
+export function _getArcRpcUrlOverride(): string | undefined { return _arcRpcUrlOverride }
 
 /**
  * Resolve the active Arc RPC URL.

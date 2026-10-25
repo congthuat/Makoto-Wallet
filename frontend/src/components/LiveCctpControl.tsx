@@ -570,9 +570,9 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     if (m.includes('gas exceeds the reviewed maximum')) return 'Phí gas Arc vượt mức đã xem xét. Xem xét lại mức trần gas mới.'
     if (m.includes('review expired')) return 'Bước xem xét đã hết hạn. Xem xét lại yêu cầu mới.'
     if (m.includes('wallet provider unavailable')) return 'Ví chưa kết nối.'
-    // Unknown error: show a safe diagnostic code derived from the first words, no wallet data exposed.
-    const code = msg.replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\s+/).slice(0, 4).join('_').toUpperCase().slice(0, 48)
-    return `Không thể lấy trạng thái CCTP. Vui lòng thử lại. [${code || 'ERR'}]`
+    // Unknown error: use a fixed diagnostic code — never derive from raw error text which
+    // could expose SDK internals, wallet addresses, calldata, or other sensitive data.
+    return 'Không thể lấy trạng thái CCTP. Vui lòng thử lại. [CCTP_UNKNOWN_ERROR]'
   }
   return <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5 text-[13px] space-y-3" aria-live="polite">
     <div className="font-semibold">{say('Direct Circle CCTP v2 · Arc → Base Sepolia', 'Circle CCTP v2 trực tiếp · Arc → Base Sepolia')}</div>

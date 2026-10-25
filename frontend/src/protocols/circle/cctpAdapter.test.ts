@@ -13,7 +13,7 @@ import { requestReviewedCctpAction } from '../../migrated/protocolExecution.ts'
 import { SendSubmissionGuard } from '../../lib/sendExecution.ts'
 import { CIRCLE_CUSTOM_BURN_WITH_HOOK_ABI, cctpGasCeilingExceeded, cctpGasEstimateChanged, executePreparedCctpCall, getOfficialCctpQuote, getOfficialCctpStatus, prepareExactCctpApproval, prepareOfficialCctpBurn, sameCctpActionMaterial, simulatePreparedCctpCall } from './cctpAdapter.ts'
 import { makeArcRpcBridgeProvider } from '../../lib/arcRpcBridgeProvider.ts'
-import { _setArcRpcUrlForTest, _getArcRpcUrl } from '../../lib/arcRpc.ts'
+import { _setArcRpcUrlForTest, _getArcRpcUrlOverride } from '../../lib/arcRpc.ts'
 import { _setRpcTimeoutMsForTest } from '../../lib/rpcTimeout.ts'
 
 const account = '0x1111111111111111111111111111111111111111' as Address
@@ -537,7 +537,10 @@ test('arcRpcBridgeProvider routes read-only methods to Arc RPC, not the injected
   } }
 
   const arcRpcCalls: string[] = []
-  const previousUrl = _getArcRpcUrl()
+  // Snapshot the *override* state (undefined when no override is active), not the resolved URL.
+  // Restoring undefined correctly clears the override; restoring a resolved production URL
+  // would incorrectly leave the production URL hardened as an override after the test.
+  const previousUrlOverride = _getArcRpcUrlOverride()
   // Start a minimal Arc RPC mock server and set the URL override before running assertions.
   const srv = createServer((_req, res) => {
     let body = ''
@@ -598,7 +601,9 @@ test('arcRpcBridgeProvider routes read-only methods to Arc RPC, not the injected
   } finally {
     // Always restore URL and timeout overrides, and close the mock server,
     // regardless of test outcome — no setTimeout, deterministic cleanup.
-    _setArcRpcUrlForTest(previousUrl)
+    // Restore exact override state: undefined clears the override entirely;
+    // a non-undefined value restores a prior test-set URL.
+    _setArcRpcUrlForTest(previousUrlOverride)
     _setRpcTimeoutMsForTest(undefined)
     await new Promise<void>((resolve) => srv.close(() => resolve()))
   }
