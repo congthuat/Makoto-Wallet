@@ -14,7 +14,7 @@ import { SendSubmissionGuard } from '../../lib/sendExecution.ts'
 import { CIRCLE_CUSTOM_BURN_WITH_HOOK_ABI, cctpGasCeilingExceeded, cctpGasEstimateChanged, executePreparedCctpCall, getOfficialCctpQuote, getOfficialCctpStatus, prepareExactCctpApproval, prepareOfficialCctpBurn, sameCctpActionMaterial, simulatePreparedCctpCall } from './cctpAdapter.ts'
 import { makeArcRpcBridgeProvider } from '../../lib/arcRpcBridgeProvider.ts'
 import { _setArcRpcUrlForTest, _getArcRpcUrlOverride } from '../../lib/arcRpc.ts'
-import { _setRpcTimeoutMsForTest } from '../../lib/rpcTimeout.ts'
+import { _getRpcTimeoutMsOverride, _setRpcTimeoutMsForTest } from '../../lib/rpcTimeout.ts'
 
 const account = '0x1111111111111111111111111111111111111111' as Address
 const txHash = `0x${'a'.repeat(64)}` as Hex
@@ -537,10 +537,11 @@ test('arcRpcBridgeProvider routes read-only methods to Arc RPC, not the injected
   } }
 
   const arcRpcCalls: string[] = []
-  // Snapshot the *override* state (undefined when no override is active), not the resolved URL.
-  // Restoring undefined correctly clears the override; restoring a resolved production URL
-  // would incorrectly leave the production URL hardened as an override after the test.
+  // Snapshot the *override* states (undefined when no override is active), not the resolved values.
+  // Restoring undefined correctly clears the override; restoring a resolved production URL/timeout
+  // would incorrectly harden those values as persistent overrides affecting subsequent tests.
   const previousUrlOverride = _getArcRpcUrlOverride()
+  const previousTimeoutOverride = _getRpcTimeoutMsOverride()
   // Start a minimal Arc RPC mock server and set the URL override before running assertions.
   const srv = createServer((_req, res) => {
     let body = ''
@@ -599,12 +600,12 @@ test('arcRpcBridgeProvider routes read-only methods to Arc RPC, not the injected
     assert.ok(!arcRpcCalls.includes('eth_unknownFutureMethod'), 'Unknown method must not reach Arc RPC')
 
   } finally {
-    // Always restore URL and timeout overrides, and close the mock server,
+    // Always restore exact override states and close the mock server,
     // regardless of test outcome — no setTimeout, deterministic cleanup.
-    // Restore exact override state: undefined clears the override entirely;
-    // a non-undefined value restores a prior test-set URL.
+    // Restoring undefined clears the override entirely (no test-state bleed);
+    // a non-undefined value restores a prior test-set override.
     _setArcRpcUrlForTest(previousUrlOverride)
-    _setRpcTimeoutMsForTest(undefined)
+    _setRpcTimeoutMsForTest(previousTimeoutOverride)
     await new Promise<void>((resolve) => srv.close(() => resolve()))
   }
 })
@@ -665,6 +666,44 @@ test('CCTP prepare+estimate uses Arc RPC for gas when OKX provider hangs eth_est
   assert.ok(approval.gasEstimate && approval.gasEstimate.gasLimit > 0n, 'gas estimate must be non-zero from Arc RPC')
   assert.equal(estimateGasCalledOnProvider, false,
     'eth_estimateGas must NOT reach the hung OKX provider — arcRpcBridgeProvider must intercept it')
+})
+
+test('CCTP simulation uses Arc RPC for eth_call when OKX provider hangs on eth_call', async () => {
+  // Regression: before arcRpcBridgeProvider, simulatePreparedCctpCall would hang because
+  // the Circle SDK viem adapter called eth_call through the OKX provider which never responds.
+  const f = fixture()
+  // Override the injected provider to hang on eth_call (OKX behaviour)
+  const originalRequest = f.p.request.bind(f.p)
+  let ethCallCalledOnProvider = false
+  f.p.request = async ({ method, params = [] }: { method: string; params?: unknown[] }): Promise<unknown> => {
+    if (method === 'eth_call') {
+      ethCallCalledOnProvider = true
+      return new Promise(() => { /* hang forever — OKX behaviour */ })
+    }
+    return originalRequest({ method, params })
+  }
+
+  const q = await quote(f, 'FAST')
+  // Prepare a burn action (requires eth_estimateGas and eth_call via Circle SDK)
+  const burn = await withMockArcRpc(
+    () => prepareOfficialCctpBurn(f.p, q),
+    () => false,
+    { allowance: 10_000_000n, balance: 10_000_000n },
+  )
+  assert.equal(burn.kind, 'cctp-burn', 'should prepare a burn action despite hung OKX provider')
+
+  // Simulate the prepared burn — Circle SDK needs eth_call for simulation;
+  // arcRpcBridgeProvider must intercept it and route to Arc RPC, not OKX.
+  const simulation = await withMockArcRpc(
+    () => simulatePreparedCctpCall(burn),
+    () => false,
+    { allowance: 10_000_000n, balance: 10_000_000n },
+  )
+  // simulatePreparedCctpCall returns { success, error? } — does not throw on revert.
+  // We only verify it completed without hanging (OKX would hang forever).
+  assert.ok(typeof simulation.success === 'boolean', 'simulation must complete and return a result, not hang')
+  assert.equal(ethCallCalledOnProvider, false,
+    'eth_call must NOT reach the hung OKX provider — arcRpcBridgeProvider must intercept it')
 })
 
 test('Circle status retries preserve every reviewed message binding and cannot claim destination completion', async () => {
