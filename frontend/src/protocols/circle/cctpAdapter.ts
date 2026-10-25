@@ -23,6 +23,7 @@ import {
 } from 'viem'
 import { ARC, TOKENS } from '../../lib/wallet.ts'
 import type { SendProvider } from '../../lib/sendExecution.ts'
+import { makeArcRpcBridgeProvider } from '../../lib/arcRpcBridgeProvider.ts'
 import {
   BASE_SEPOLIA_USDC,
   ARC_CCTP_DOMAIN,
@@ -127,9 +128,17 @@ async function exactRoute(p: SendProvider, account: string, dependencies: CctpAd
   // address context means the already-observed eth_accounts value is supplied
   // per operation; it avoids requestAddresses()/eth_requestAccounts() during
   // quote or prepare. Chain mismatch is rejected, never switched by the SDK.
+  //
+  // arcRpcBridgeProvider wraps the injected wallet so that read-only calls
+  // (eth_estimateGas, eth_call, eth_gasPrice, …) go directly to Arc Testnet
+  // RPC instead of through the injected provider.  OKX Wallet and similar
+  // extensions stall those methods when used with custom chains.  Wallet-
+  // interactive methods (eth_sendTransaction, eth_accounts, eth_chainId, …)
+  // are still forwarded to the original provider unchanged.
+  const bridgeProvider = makeArcRpcBridgeProvider(p)
   const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2/next')
   const adapter = createViemAdapterFromProvider({
-    provider: p as unknown as EIP1193Provider,
+    provider: bridgeProvider as unknown as EIP1193Provider,
     capabilities: { addressContext: 'developer-controlled' },
     chainSwitch: { onMismatch: 'throw' },
   })

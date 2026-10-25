@@ -544,7 +544,36 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
   const savedBurn = Boolean(hash && run.current?.hash === hash && run.current?.step === 'cctp-burn')
   const errorText = savedBurn
     ? tr('Circle status is unavailable. Do not resubmit the transfer; check its saved status.')
-    : lang === 'vi' && tr(error) === error ? tr('CCTP review or status unavailable.') : tr(error)
+    : lang === 'vi' ? describeCctpErrorVi(error) : error
+
+  function describeCctpErrorVi(msg: string): string {
+    if (!msg) return ''
+    const m = msg.toLowerCase()
+    if (m.includes('circle fee quote unavailable') || m.includes('getmaxfee') || m.includes('official circle fee')) return 'Không lấy được báo giá Circle. Vui lòng thử lại.'
+    if (m.includes('rpc') && (m.includes('timeout') || m.includes('timed out'))) return 'Kết nối Arc RPC đã hết thời gian. Vui lòng thử lại. [RPC_TIMEOUT]'
+    if (m.includes('gas estimate') || m.includes('gasestimate') || m.includes('invalid gas')) return 'Không ước tính được phí gas. Vui lòng thử lại. [GAS_UNAVAILABLE]'
+    if (m.includes('simulation') || m.includes('simulate') || m.includes('reverted')) return 'Giao dịch không thể mô phỏng. Kiểm tra số dư và ủy quyền. [SIMULATE_FAILED]'
+    if (m.includes('balance') && (m.includes('unavailable') || m.includes('insufficient'))) return 'Không đọc được số dư USDC. Vui lòng thử lại. [BALANCE_UNAVAILABLE]'
+    if (m.includes('allowance') && m.includes('unavailable')) return 'Không đọc được ủy quyền USDC. Vui lòng thử lại. [ALLOWANCE_UNAVAILABLE]'
+    if (m.includes('allowance') && m.includes('sufficient')) return 'Đã đủ ủy quyền. Bắt đầu xem xét lệnh đốt mới.'
+    if (m.includes('quote expired') || m.includes('expired') || m.includes('circle cctp fee observation expired')) return 'Báo giá đã hết hạn. Lấy báo giá mới. [QUOTE_EXPIRED]'
+    if (m.includes('policy') || m.includes('must stop') || m.includes('policy rejected')) return 'Chính sách an toàn đã dừng giao dịch. Kiểm tra số dư và ủy quyền. [POLICY_REJECTED]'
+    if (m.includes('cctp status') || m.includes('circle status')) return 'Không lấy được trạng thái CCTP từ Circle. Thử lại sau. [CCTP_STATUS_UNAVAILABLE]'
+    if (m.includes('destination') && m.includes('unavailable')) return 'Không lấy được bằng chứng đích Base Sepolia. Thử lại sau. [DEST_UNAVAILABLE]'
+    if (m.includes('connect the reviewed account') || m.includes('arc testnet')) return 'Vui lòng kết nối đúng tài khoản trên Arc Testnet.'
+    if (m.includes('stale cctp operation') || m.includes('checkpoint')) return 'Trạng thái CCTP đã thay đổi. Vui lòng bắt đầu lại.'
+    if (m.includes('circle cctp v2 arc testnet to base sepolia configuration')) return 'Cấu hình route CCTP Circle chưa sẵn sàng.'
+    if (m.includes('arc usdc conflicts') || m.includes('messenger conflicts') || m.includes('transmitter conflicts')) return 'Cấu hình CCTP xung đột với registry Makoto. Liên hệ hỗ trợ. [ROUTE_CONFLICT]'
+    if (m.includes('circle burn fields differ') || m.includes('calldata does not match')) return 'Dữ liệu lệnh đốt Circle không khớp với giao dịch đã xem xét. [BURN_MISMATCH]'
+    if (m.includes('amount, account or transfer speed changed')) return 'Thông số thay đổi. Xem xét lại.'
+    if (m.includes('circle fee or request changed')) return 'Phí hoặc yêu cầu Circle đã thay đổi. Xem xét lại yêu cầu mới.'
+    if (m.includes('gas exceeds the reviewed maximum')) return 'Phí gas Arc vượt mức đã xem xét. Xem xét lại mức trần gas mới.'
+    if (m.includes('review expired')) return 'Bước xem xét đã hết hạn. Xem xét lại yêu cầu mới.'
+    if (m.includes('wallet provider unavailable')) return 'Ví chưa kết nối.'
+    // Unknown error: use a fixed diagnostic code — never derive from raw error text which
+    // could expose SDK internals, wallet addresses, calldata, or other sensitive data.
+    return 'Không thể lấy trạng thái CCTP. Vui lòng thử lại. [CCTP_UNKNOWN_ERROR]'
+  }
   return <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5 text-[13px] space-y-3" aria-live="polite">
     <div className="font-semibold">{say('Direct Circle CCTP v2 · Arc → Base Sepolia', 'Circle CCTP v2 trực tiếp · Arc → Base Sepolia')}</div>
     {quote && <div className={T.sub}>

@@ -56,6 +56,11 @@ export const CCTP_DESTINATION_TIMEOUT_MS = 10_000
 let _rpcTimeoutMsOverride: number | undefined = undefined
 export function _getRpcTimeoutMs(): number { return _rpcTimeoutMsOverride ?? RPC_TIMEOUT_MS }
 export function _setRpcTimeoutMsForTest(ms: number | undefined): void { _rpcTimeoutMsOverride = ms }
+/** Test-only: returns the exact override value (undefined when no override is active).
+ * Distinct from _getRpcTimeoutMs() which always returns a resolved number.
+ * Use this to snapshot state before a test so the finally block can restore undefined
+ * (no override) instead of hardening the production default as a persistent override. */
+export function _getRpcTimeoutMsOverride(): number | undefined { return _rpcTimeoutMsOverride }
 
 /**
  * Test-only hook for CCTP_DESTINATION_TIMEOUT_MS.

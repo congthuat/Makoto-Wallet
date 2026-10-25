@@ -543,9 +543,21 @@ test('MOCKED Vietnamese CCTP review unavailable text is localized before any wal
     const names = labels('bridge', 'vi')
     await ui.fill(0, '1')
     await ui.click(names.start)
-    await ui.wait(`document.body.innerText.includes('Không thể lấy trạng thái CCTP lúc này. Hãy kiểm tra lại sau.')`, 'Unknown CCTP review error must use the Vietnamese fallback')
-    assert.doesNotMatch(await ui.evaluate('document.body.innerText'), /CCTP review or status unavailable\.|MOCK raw English Circle error/)
-    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
+    // describeCctpErrorVi() maps unknown errors to a fixed Vietnamese fallback with the
+    // static code [CCTP_UNKNOWN_ERROR]. The code must never be derived from raw error text
+    // (which could expose SDK internals or wallet data). Assert the fixed code is present
+    // and no raw English error or old hardcoded fallback leaks to the user.
+    await ui.wait(
+      `document.body.innerText.includes('CCTP_UNKNOWN_ERROR')`,
+      'Unknown CCTP review error must display the fixed [CCTP_UNKNOWN_ERROR] diagnostic code',
+    )
+    const bodyText = await ui.evaluate('document.body.innerText')
+    assert.ok(bodyText.includes('Không thể lấy trạng thái CCTP'), 'Must show Vietnamese fallback message')
+    assert.ok(bodyText.includes('[CCTP_UNKNOWN_ERROR]'), 'Must include fixed diagnostic code, not raw error text')
+    assert.doesNotMatch(bodyText, /MOCK.RAW.ENGLISH.CIRCLE|MOCK raw English Circle error/, 'Must not expose raw English SDK error text')
+    assert.doesNotMatch(bodyText, /CCTP review or status unavailable\./, 'Must not show old English fallback')
+    assert.doesNotMatch(bodyText, /Hãy kiểm tra lại sau\.$/m, 'Must not show old Vietnamese fallback')
+    assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [], 'No wallet request must be made when review fails')
   })
 })
 
