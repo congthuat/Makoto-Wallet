@@ -81,11 +81,15 @@ export async function readWallet(p = getProvider()): Promise<ToolResult<WalletOb
   if (!p) return empty('Wallet provider unavailable')
   try {
     const [rawAccounts, rawChain] = await Promise.all([req(p, 'eth_accounts'), req(p, 'eth_chainId')])
-    const account = Array.isArray(rawAccounts) ? rawAccounts[0] : undefined
-    if (typeof account !== 'string' || !isAddress(account)) return empty('Wallet disconnected')
+    // Use accounts[0] exclusively — consistent with connectWallet() and the store's
+    // accountsChanged handler, both of which treat index 0 as the active account.
+    // Never search the list for an expected account: that would make the caller's
+    // comparison a tautology and remove the mismatch-detection guarantee.
+    const rawAccount = Array.isArray(rawAccounts) ? rawAccounts[0] : undefined
+    if (typeof rawAccount !== 'string' || !isAddress(rawAccount)) return empty('Wallet disconnected')
     const chainId = Number(rawChain)
     if (!Number.isSafeInteger(chainId) || chainId <= 0) return empty('Wallet chain unavailable')
-    return ok({ account: address(account), chainId })
+    return ok({ account: address(rawAccount), chainId })
   } catch { return empty('Wallet context unavailable') }
 }
 
