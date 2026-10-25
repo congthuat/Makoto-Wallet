@@ -203,13 +203,21 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
   const captureInput = () => `${account.toLowerCase()}:${amount}:${transferSpeed}`
 
   async function walletContext(p: NonNullable<ReturnType<typeof getProvider>>) {
-    // Pass the expected account so readWallet can find it anywhere in the
-    // accounts list, not just at index 0.  Some wallets (e.g. OKX with multiple
-    // accounts) return the active account at index > 0.
-    const wallet = await readWallet(p, account)
+    // readWallet uses accounts[0] — the same convention as connectWallet() and
+    // the store's accountsChanged handler.  Do not pass the expected account:
+    // the comparison below is the guard; making readWallet search for it would
+    // turn that guard into a tautology.
+    const wallet = await readWallet(p)
     if (wallet.status !== 'OK' || !wallet.data) throw new Error('Wallet session expired. Reconnect your wallet.')
     if (wallet.data.chainId !== ARC.chainId) throw new Error('Wallet is not on Arc Testnet. Switch to Arc Testnet in your wallet.')
-    if (wallet.data.account.toLowerCase() !== account.toLowerCase()) throw new Error('Connect the reviewed account on Arc Testnet.')
+    if (wallet.data.account.toLowerCase() !== account.toLowerCase()) {
+      // The active account in the wallet differs from the account used to review
+      // this transaction.  This can happen when the user switches accounts in their
+      // wallet extension after opening the Bridge page but before confirming.
+      // The only safe recovery is to disconnect and reconnect so the store, the
+      // reviewed parameters, and the wallet are back in sync.
+      throw new Error('Wallet account changed. Disconnect and reconnect, then request a new quote.')
+    }
     return wallet.data
   }
 
@@ -567,6 +575,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     if (m.includes('destination') && m.includes('unavailable')) return 'Không lấy được bằng chứng đích Base Sepolia. Thử lại sau. [DEST_UNAVAILABLE]'
     if (m.includes('wallet session expired') || m.includes('reconnect your wallet')) return 'Phiên làm việc ví đã hết hạn. Vui lòng ngắt kết nối và kết nối lại. [SESSION_EXPIRED]'
     if (m.includes('not on arc testnet') || m.includes('switch to arc testnet')) return 'Ví đang ở mạng sai. Chuyển sang Arc Testnet trong ví của bạn. [WRONG_CHAIN]'
+    if (m.includes('wallet account changed') || m.includes('disconnect and reconnect')) return 'Account trong ví đã thay đổi. Vui lòng ngắt kết nối và kết nối lại, sau đó tạo báo giá CCTP mới. [WRONG_ACCOUNT]'
     if (m.includes('connect the reviewed account') || m.includes('arc testnet')) return 'Vui lòng kết nối đúng tài khoản trên Arc Testnet. [WRONG_ACCOUNT]'
     if (m.includes('stale cctp operation') || m.includes('checkpoint')) return 'Trạng thái CCTP đã thay đổi. Vui lòng bắt đầu lại.'
     if (m.includes('circle cctp v2 arc testnet to base sepolia configuration')) return 'Cấu hình route CCTP Circle chưa sẵn sàng.'

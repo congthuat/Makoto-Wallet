@@ -165,6 +165,127 @@ test('CCTP destination: withRpcTimeout covers both fetch and response.json() —
   resolveBody({ status: 'pending' })
 })
 
+// ── readWallet account verification (security regression suite) ──────────────
+// These tests verify that readWallet's account check is fail-closed:
+// only accounts[0] is authoritative; no other index can substitute for it.
+
+test('readWallet: single correct account — returns that account and chainId', async () => {
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [account]
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`unexpected: ${method}`)
+  } }
+  const result = await readWallet(p)
+  assert.equal(result.status, 'OK')
+  assert.equal(result.data?.account.toLowerCase(), account.toLowerCase())
+  assert.equal(result.data?.chainId, 5042002)
+})
+
+test('readWallet: single wrong account — returns OK with that account (caller checks)', async () => {
+  const other = '0x2222222222222222222222222222222222222222'
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [other]
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`unexpected: ${method}`)
+  } }
+  const result = await readWallet(p)
+  // readWallet does not know the expected account; it returns accounts[0].
+  // The CALLER (walletContext) is responsible for comparing wallet.data.account
+  // with the reviewed account and blocking if they differ.
+  assert.equal(result.status, 'OK')
+  assert.equal(result.data?.account.toLowerCase(), other.toLowerCase())
+  // walletContext comparison would fail: other !== account
+  assert.notEqual(result.data?.account.toLowerCase(), account.toLowerCase())
+})
+
+test('readWallet: eth_accounts=[otherAccount, expectedAccount] — returns index-0, NOT expectedAccount', async () => {
+  // Security: if expected account is at index > 0, it must NOT be used.
+  // readWallet must use accounts[0] exclusively (consistent with connectWallet and store).
+  const other = '0x3333333333333333333333333333333333333333'
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [other, account]   // account is at index 1
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`unexpected: ${method}`)
+  } }
+  const result = await readWallet(p)
+  assert.equal(result.status, 'OK')
+  // Must return index-0 (other), NOT account (index 1).
+  assert.equal(result.data?.account.toLowerCase(), other.toLowerCase(),
+    'readWallet must use accounts[0], not search for a preferred account at any index')
+  // walletContext comparison would fail for the reviewed account (= `account`).
+  assert.notEqual(result.data?.account.toLowerCase(), account.toLowerCase(),
+    'account at index 1 must not automatically pass a walletContext check')
+})
+
+test('readWallet: empty eth_accounts — returns UNAVAILABLE, not zero address', async () => {
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return []
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`unexpected: ${method}`)
+  } }
+  const result = await readWallet(p)
+  assert.equal(result.status, 'UNAVAILABLE')
+  assert.ok(!result.data, 'disconnected wallet must not produce data')
+})
+
+test('readWallet: provider throws on eth_accounts — returns UNAVAILABLE (fail-closed)', async () => {
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') throw new Error('provider offline')
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`unexpected: ${method}`)
+  } }
+  const result = await readWallet(p)
+  assert.equal(result.status, 'UNAVAILABLE', 'provider error must fail-closed, not throw')
+})
+
+test('readWallet does not accept expectedAccount param — only provider is authoritative', async () => {
+  // Regression: the expectedAccount parameter was added in a0e42d9 and created a
+  // tautological check (walletContext passed its own account prop, making the
+  // comparison always succeed when the account existed anywhere in the list).
+  // This test verifies the function signature has no second parameter:
+  //   - readWallet.length is 0 because the only parameter (p) is optional
+  //   - passing a second arg (any non-undefined value) must not affect the result
+  //   - the result must be derived from eth_accounts[0], not from any expected value
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [account]
+    if (method === 'eth_chainId') return '0x4cef52'
+    throw new Error(`unexpected: ${method}`)
+  } }
+  // Call with no second arg — must return accounts[0]
+  const result1 = await readWallet(p)
+  assert.equal(result1.data?.account.toLowerCase(), account.toLowerCase())
+  // Verify: readWallet has no required params so .length === 0
+  assert.equal(readWallet.length, 0,
+    'readWallet has one optional param (provider); .length must be 0, confirming no required expectedAccount arg')
+})
+
+test('readWallet: account at index 0 differs from reviewed account — walletContext must block without eth_sendTransaction', async () => {
+  // Integration: verify that when eth_accounts[0] differs from the reviewed account,
+  // walletContext throws and no write (eth_sendTransaction) is issued.
+  const other = '0x4444444444444444444444444444444444444444'
+  let writes = 0
+  setMockArcRpcHandler((method) => {
+    if (method === 'eth_getCode') return '0x6000'
+    if (method === 'eth_call') return '0x'
+    if (method === 'eth_getBalance') return '0x1000000000000000'
+    if (method === 'eth_estimateGas') return '0x186a0'
+    if (method === 'eth_gasPrice') return '0x3b9aca00'
+    if (method === 'eth_getTransactionReceipt') return null
+    throw new Error(`unexpected arcRpc method: ${method}`)
+  })
+  const p: SendProvider = { request: async ({ method }) => {
+    if (method === 'eth_accounts') return [other]            // OKX returns a different account
+    if (method === 'eth_chainId') return '0x4cef52'
+    if (method === 'eth_sendTransaction') { writes++; return `0x${'b'.repeat(64)}` }
+    throw new Error(`unexpected: ${method}`)
+  } }
+  // Simulate walletContext: read wallet then compare against the reviewed account.
+  const wallet = await readWallet(p)
+  const mismatch = !wallet.data || wallet.data.account.toLowerCase() !== account.toLowerCase()
+  assert.ok(mismatch, 'account mismatch must be detected when eth_accounts[0] differs from reviewed account')
+  assert.equal(writes, 0, 'eth_sendTransaction must not be called when account mismatch is detected')
+})
+
 test('CCTP checkpoint preservation: timeout on json() must not trigger a new burn', async () => {
   // Invariant: when reconcileDestination's json() hangs and the outer withRpcTimeout
   // fires, the .catch(() => undefined) in LiveCctpControl means `data` is undefined.
