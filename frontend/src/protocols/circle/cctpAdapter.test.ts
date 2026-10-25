@@ -538,32 +538,26 @@ test('arcRpcBridgeProvider routes read-only methods to Arc RPC, not the injected
 
   const arcRpcCalls: string[] = []
   const previousUrl = _getArcRpcUrl()
-  // Spin up a minimal Arc RPC mock
-  await new Promise<void>((resolve) => {
-    const srv = createServer((_req, res) => {
-      let body = ''
-      _req.on('data', (c: Buffer) => { body += c.toString() })
-      _req.on('end', () => {
-        const { method, id } = JSON.parse(body) as { method: string; id: number }
-        arcRpcCalls.push(method)
-        let result: unknown = '0x0'
-        if (method === 'eth_estimateGas') result = '0x186a0'
-        if (method === 'eth_gasPrice') result = '0x3b9aca00'
-        if (method === 'eth_getBalance') result = '0x1000000000000000'
-        if (method === 'eth_call') result = '0x' + '0'.repeat(64)
-        if (method === 'eth_getCode') result = '0x6000'
-        res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ jsonrpc: '2.0', id, result }))
-      })
-    })
-    srv.listen(0, '127.0.0.1', () => {
-      const port = (srv.address() as { port: number }).port
-      _setArcRpcUrlForTest(`http://127.0.0.1:${port}`)
-      // Close after all tests in this block finish.
-      setTimeout(() => srv.close(), 2000)
-      resolve()
+  // Start a minimal Arc RPC mock server and set the URL override before running assertions.
+  const srv = createServer((_req, res) => {
+    let body = ''
+    _req.on('data', (c: Buffer) => { body += c.toString() })
+    _req.on('end', () => {
+      const { method, id } = JSON.parse(body) as { method: string; id: number }
+      arcRpcCalls.push(method)
+      let result: unknown = '0x0'
+      if (method === 'eth_estimateGas') result = '0x186a0'
+      if (method === 'eth_gasPrice') result = '0x3b9aca00'
+      if (method === 'eth_getBalance') result = '0x1000000000000000'
+      if (method === 'eth_call') result = '0x' + '0'.repeat(64)
+      if (method === 'eth_getCode') result = '0x6000'
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ jsonrpc: '2.0', id, result }))
     })
   })
+  await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve))
+  const port = (srv.address() as { port: number }).port
+  _setArcRpcUrlForTest(`http://127.0.0.1:${port}`)
   _setRpcTimeoutMsForTest(5_000)
 
   try {
@@ -592,9 +586,21 @@ test('arcRpcBridgeProvider routes read-only methods to Arc RPC, not the injected
     assert.deepEqual(accounts, [account], 'eth_accounts should come from wallet provider')
     assert.ok(walletCalls.includes('eth_accounts'), 'OKX provider must receive eth_accounts')
 
+    // Unknown method must be rejected (fail-closed), never silently routed.
+    await assert.rejects(
+      () => wrapped.request({ method: 'eth_unknownFutureMethod', params: [] }),
+      /arcRpcBridgeProvider: unsupported method/,
+      'Unknown method must throw rather than silently reaching OKX or Arc RPC',
+    )
+    assert.ok(!walletCalls.includes('eth_unknownFutureMethod'), 'Unknown method must not reach OKX provider')
+    assert.ok(!arcRpcCalls.includes('eth_unknownFutureMethod'), 'Unknown method must not reach Arc RPC')
+
   } finally {
+    // Always restore URL and timeout overrides, and close the mock server,
+    // regardless of test outcome — no setTimeout, deterministic cleanup.
     _setArcRpcUrlForTest(previousUrl)
     _setRpcTimeoutMsForTest(undefined)
+    await new Promise<void>((resolve) => srv.close(() => resolve()))
   }
 })
 

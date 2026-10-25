@@ -6,28 +6,32 @@
  * eth_call, eth_gasPrice, eth_getBalance and eth_getCode when those methods
  * are forwarded internally by an SDK (e.g. Circle's viem adapter).
  *
- * This wrapper routes every read-only method directly to the official Arc
- * Testnet RPC endpoint so the Circle SDK never touches the injected provider
- * for blockchain reads.  Only wallet-interactive methods are forwarded to the
- * injected provider:
+ * This wrapper uses two explicit whitelists.  Every method must appear in
+ * exactly one; anything else is rejected (fail-closed), never silently routed
+ * to the injected provider.
  *
- *   Injected provider only (wallet-gated):
+ *   WALLET_METHODS — forwarded to the injected provider (wallet-gated):
  *     eth_sendTransaction, eth_requestAccounts, personal_sign, eth_signTypedData,
  *     eth_accounts, eth_chainId, wallet_switchEthereumChain, wallet_addEthereumChain
  *
- *   Arc RPC direct (read-only):
+ *   ARC_RPC_BRIDGE_READ_METHODS — sent directly to Arc Testnet RPC (read-only):
  *     eth_call, eth_estimateGas, eth_gasPrice, eth_getBalance, eth_getCode,
  *     eth_getTransactionCount, eth_getTransactionReceipt, eth_getTransactionByHash,
- *     eth_blockNumber, eth_getLogs, eth_feeHistory, net_version, and everything else.
+ *     eth_blockNumber, eth_getLogs, eth_feeHistory, eth_getBlockByNumber,
+ *     eth_maxPriorityFeePerGas, net_version, net_chainId
+ *
+ *   Unknown methods → throw (fail-closed).  The Circle SDK does not call any
+ *   method outside these two sets; an unknown method reaching this wrapper means
+ *   something unexpected is happening and must not silently reach the wallet.
  *
  * Security invariants preserved:
- *  - Chain ID and account are read from the injected provider so UI checks
- *    still use the wallet's own chain/account state.
- *  - eth_sendTransaction is never wrapped or timed out.
+ *  - Chain ID and account are always read from the injected provider so wallet
+ *    chain-verification guards remain authoritative.
+ *  - eth_sendTransaction is never wrapped, timed out, or auto-submitted.
  *  - Only public Arc RPC data is read; no signing keys are involved.
  */
 
-import { rpcRead } from './arcRpc.ts'
+import { arcRpc } from './arcRpc.ts'
 import type { SendProvider } from './sendExecution.ts'
 
 /** Methods that must always go through the injected wallet provider. */
@@ -49,23 +53,63 @@ const WALLET_METHODS = new Set([
 ])
 
 /**
+ * Read-only methods routed directly to Arc Testnet RPC, bypassing the injected
+ * wallet provider entirely.  This set is the explicit whitelist: only methods
+ * verified to be used by the Circle SDK viem adapter and Makoto's own
+ * prepareCctpApproval / prepareCctpBurn / simulatePreparedCctpCall paths are
+ * included.  Adding a new method here requires intentional review.
+ */
+const ARC_RPC_BRIDGE_READ_METHODS = new Set([
+  // Core reads used by the Circle SDK viem adapter
+  'eth_call',
+  'eth_estimateGas',
+  'eth_gasPrice',
+  'eth_getBalance',
+  'eth_getCode',
+  'eth_getTransactionCount',
+  // Receipt + tx reads
+  'eth_getTransactionReceipt',
+  'eth_getTransactionByHash',
+  // Chain state
+  'eth_blockNumber',
+  'eth_getLogs',
+  'eth_feeHistory',
+  'eth_getBlockByNumber',
+  'eth_getBlockByHash',
+  'eth_maxPriorityFeePerGas',
+  // Network info
+  'net_version',
+  'net_chainId',
+])
+
+/**
  * Wraps an EIP-1193 provider so that read-only RPC calls bypass the injected
  * wallet and go directly to Arc Testnet RPC.  Wallet-interactive calls are
- * forwarded to the original provider unchanged.
+ * forwarded to the original provider unchanged.  Unknown methods are rejected
+ * (fail-closed) rather than silently forwarded to either destination.
  *
  * The returned object implements the minimal `SendProvider` interface used
  * throughout the Makoto codebase and is safe to pass to the Circle SDK adapter.
  */
 export function makeArcRpcBridgeProvider(p: SendProvider): SendProvider {
   return {
-    request: async ({ method, params }: { method: string; params?: unknown[] }): Promise<unknown> => {
+    request: async ({ method, params = [] }: { method: string; params?: unknown[] }): Promise<unknown> => {
       if (WALLET_METHODS.has(method)) {
         // Wallet-interactive: always goes through the connected provider.
         return p.request({ method, params })
       }
-      // Read-only: bypass the injected provider and call Arc RPC directly.
-      // rpcRead uses _getRpcTimeoutMs() so tests can override the timeout.
-      return rpcRead(p, method, params)
+      if (ARC_RPC_BRIDGE_READ_METHODS.has(method)) {
+        // Read-only: call Arc RPC directly, never the injected provider.
+        // arcRpc() uses _getRpcTimeoutMs() so tests can control the timeout.
+        return arcRpc(method, params)
+      }
+      // Fail-closed: unknown method is rejected rather than silently routed.
+      // If the Circle SDK introduces a new method, add it to one of the two
+      // sets above after reviewing whether it belongs to wallet or read-only.
+      throw new Error(
+        `arcRpcBridgeProvider: unsupported method "${method}" — ` +
+        `add it to WALLET_METHODS or ARC_RPC_BRIDGE_READ_METHODS after review`,
+      )
     },
   }
 }

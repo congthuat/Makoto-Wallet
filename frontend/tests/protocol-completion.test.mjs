@@ -543,8 +543,18 @@ test('MOCKED Vietnamese CCTP review unavailable text is localized before any wal
     const names = labels('bridge', 'vi')
     await ui.fill(0, '1')
     await ui.click(names.start)
-    await ui.wait(`document.body.innerText.includes('Không thể lấy trạng thái CCTP lúc này. Hãy kiểm tra lại sau.')`, 'Unknown CCTP review error must use the Vietnamese fallback')
+    // describeCctpErrorVi() maps unknown errors to a stable Vietnamese fallback with a
+    // diagnostic code. The exact fallback text is "[ERR]"-suffixed and must not expose
+    // raw English SDK messages or internal error strings to the user.
+    await ui.wait(
+      `(function(){` +
+        `const t = document.body.innerText;` +
+        `return t.includes('Không thể lấy trạng thái CCTP') && t.includes('[') && t.includes(']');` +
+      `}())`,
+      'Unknown CCTP review error must use the Vietnamese fallback with a diagnostic code',
+    )
     assert.doesNotMatch(await ui.evaluate('document.body.innerText'), /CCTP review or status unavailable\.|MOCK raw English Circle error/)
+    assert.doesNotMatch(await ui.evaluate('document.body.innerText'), /Hãy kiểm tra lại sau\.$/m)
     assert.deepEqual(await ui.evaluate(`${h}.walletRequests`), [])
   })
 })
