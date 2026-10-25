@@ -564,7 +564,10 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     if (m.includes('destination') && m.includes('unavailable')) return 'Không lấy được bằng chứng đích Base Sepolia. Thử lại sau. [DEST_UNAVAILABLE]'
     if (m.includes('wallet session expired') || m.includes('reconnect your wallet')) return 'Phiên làm việc ví đã hết hạn. Vui lòng ngắt kết nối và kết nối lại. [SESSION_EXPIRED]'
     if (m.includes('not on arc testnet') || m.includes('switch to arc testnet')) return 'Ví đang ở mạng sai. Chuyển sang Arc Testnet trong ví của bạn. [WRONG_CHAIN]'
-    if (m.includes('connect the reviewed account') || m.includes('arc testnet')) return 'Vui lòng kết nối đúng tài khoản trên Arc Testnet. [WRONG_ACCOUNT]'
+    // SDK transport failures (e.g. "RPC endpoint error on Arc Testnet") are not account errors.
+    if (m.includes('rpc endpoint error') || m.includes('rpc_endpoint_error')) return 'Không kết nối được Arc RPC. Vui lòng thử lại. [RPC_UNAVAILABLE]'
+    // Only walletContext()'s exact wrong-account message; other errors mentioning "Arc Testnet" are not account mismatches.
+    if (m.includes('connect the reviewed account')) return 'Vui lòng kết nối đúng tài khoản trên Arc Testnet. [WRONG_ACCOUNT]'
     if (m.includes('stale cctp operation') || m.includes('checkpoint')) return 'Trạng thái CCTP đã thay đổi. Vui lòng bắt đầu lại.'
     if (m.includes('circle cctp v2 arc testnet to base sepolia configuration')) return 'Cấu hình route CCTP Circle chưa sẵn sàng.'
     if (m.includes('arc usdc conflicts') || m.includes('messenger conflicts') || m.includes('transmitter conflicts')) return 'Cấu hình CCTP xung đột với registry Makoto. Liên hệ hỗ trợ. [ROUTE_CONFLICT]'

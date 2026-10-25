@@ -5,6 +5,9 @@ import {
 } from '@circle-fin/adapter-viem-v2/next'
 import type { CCTPV2BridgingProvider } from '@circle-fin/provider-cctp-v2'
 import {
+  createPublicClient,
+  custom,
+  http,
   decodeFunctionData,
   decodeEventLog,
   encodeFunctionData,
@@ -139,6 +142,18 @@ async function exactRoute(p: SendProvider, account: string, dependencies: CctpAd
   const { createViemAdapterFromProvider } = await import('@circle-fin/adapter-viem-v2/next')
   const adapter = createViemAdapterFromProvider({
     provider: bridgeProvider as unknown as EIP1193Provider,
+    // Circle's bundled Arc Testnet definition still lists
+    // https://rpc.testnet.arc.network/, which is NXDOMAIN (see lib/wallet.ts and
+    // docs/ARC_RPC_HOTFIX_2026-10-16.md). Without this override the adapter's
+    // own public client fails every estimate()/simulate() with
+    // RPC_ENDPOINT_ERROR, so approval and burn preparation never reach review.
+    // Arc reads go through the same whitelisted bridge provider (read-only
+    // methods → rpc.testnet.arc.io); it cannot sign. Other chains keep the
+    // SDK default transport.
+    getPublicClient: ({ chain }) => createPublicClient({
+      chain,
+      transport: chain.id === ARC.chainId ? custom(bridgeProvider as unknown as EIP1193Provider) : http(),
+    }),
     capabilities: { addressContext: 'developer-controlled' },
     chainSwitch: { onMismatch: 'throw' },
   })
