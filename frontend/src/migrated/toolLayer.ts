@@ -77,12 +77,20 @@ const hex = (value: bigint): Hex => `0x${value.toString(16)}`
 const address = (value: string): Address => { if (!isAddress(value) || getAddress(value) === zeroAddress) throw new Error('Invalid address'); return getAddress(value) }
 const bigint = (value: unknown): bigint => { if (typeof value !== 'string' || !/^0x[0-9a-f]+$/i.test(value)) throw new Error('Invalid RPC result'); return BigInt(value) }
 
-export async function readWallet(p = getProvider()): Promise<ToolResult<WalletObservation>> {
+export async function readWallet(p = getProvider(), expectedAccount?: string): Promise<ToolResult<WalletObservation>> {
   if (!p) return empty('Wallet provider unavailable')
   try {
     const [rawAccounts, rawChain] = await Promise.all([req(p, 'eth_accounts'), req(p, 'eth_chainId')])
-    const account = Array.isArray(rawAccounts) ? rawAccounts[0] : undefined
-    if (typeof account !== 'string' || !isAddress(account)) return empty('Wallet disconnected')
+    const accounts: string[] = Array.isArray(rawAccounts) ? rawAccounts.filter((a): a is string => typeof a === 'string' && isAddress(a)) : []
+    if (accounts.length === 0) return empty('Wallet disconnected')
+    // If an expected account is supplied (e.g. from store), prefer it when the
+    // wallet reports it anywhere in the accounts list.  Some injected providers
+    // (e.g. OKX with multiple accounts) return the active account at index > 0.
+    const matched = expectedAccount
+      ? accounts.find((a) => a.toLowerCase() === expectedAccount.toLowerCase())
+      : undefined
+    const account = matched ?? accounts[0]
+    if (!account || !isAddress(account)) return empty('Wallet disconnected')
     const chainId = Number(rawChain)
     if (!Number.isSafeInteger(chainId) || chainId <= 0) return empty('Wallet chain unavailable')
     return ok({ account: address(account), chainId })

@@ -203,7 +203,10 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
   const captureInput = () => `${account.toLowerCase()}:${amount}:${transferSpeed}`
 
   async function walletContext(p: NonNullable<ReturnType<typeof getProvider>>) {
-    const wallet = await readWallet(p)
+    // Pass the expected account so readWallet can find it anywhere in the
+    // accounts list, not just at index 0.  Some wallets (e.g. OKX with multiple
+    // accounts) return the active account at index > 0.
+    const wallet = await readWallet(p, account)
     if (wallet.status !== 'OK' || !wallet.data) throw new Error('Wallet session expired. Reconnect your wallet.')
     if (wallet.data.chainId !== ARC.chainId) throw new Error('Wallet is not on Arc Testnet. Switch to Arc Testnet in your wallet.')
     if (wallet.data.account.toLowerCase() !== account.toLowerCase()) throw new Error('Connect the reviewed account on Arc Testnet.')
