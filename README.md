@@ -41,6 +41,7 @@ Makoto is non-custodial: the connected wallet remains the final signer. The Agen
 | Activity | Evidence-based transaction and activity states, with pending, unknown, and confirmed outcomes kept distinct. |
 | Analytics | Read-only Arc network and onchain intelligence, with verified source labels and bounded transfer/holder samples. |
 | Localization / UI | English and Vietnamese UI (earlier Chinese, Japanese and Korean choices fall back to English); light/dark themes; responsive desktop and mobile layouts. |
+| Payment requests | `MakotoPayRequests` contract (no owner, no admin, never holds funds): invoices and split bills in USDC/EURC with shareable links and QR codes; exact approvals and receipt + event evidence. Deployed from the owner's wallet inside the app. |
 | Get test tokens | Arc Testnet faucet surface linking to Circle's external faucet. Opening the faucet does not itself request or deliver tokens. |
 
 ## Agent safety model
@@ -113,7 +114,8 @@ backend/                API, authentication, persistence, and scheduler
 shared/                 Shared portfolio valuation
 docs/                   Current documentation and engineering notes
 validation-qa/          Recorded QA and verification evidence
-brain-donor-reference/  Historical/reference material only
+contracts/              MakotoPayRequests.sol (Foundry): payment requests and bill splitting
+brain-donor-reference/  Archived reference only (not part of the app; PenguJar/Vault is retired)
 AGENTS.md               Repository working rules
 ```
 

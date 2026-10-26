@@ -16,7 +16,7 @@ import {
   type Contact, type Holding, type NetworkInfo, type Prices, type Tx, type WalletApi,
 } from './wallet'
 
-export type Page = 'home' | 'agent' | 'tasks' | 'dashboard' | 'assets' | 'activity' | 'send' | 'swap' | 'bridge' | 'settings' | 'insights' | 'audit' | 'faucet' | 'about' | 'legal' | 'changelog' | 'status'
+export type Page = 'home' | 'agent' | 'tasks' | 'dashboard' | 'assets' | 'activity' | 'send' | 'swap' | 'bridge' | 'pay' | 'settings' | 'insights' | 'audit' | 'faucet' | 'about' | 'legal' | 'changelog' | 'status'
 
 export type FeedTx = {
   hash: string; logIndex: number; block: number; timestamp: string; from: string | null; to: string | null
@@ -61,7 +61,7 @@ function useWalletState() {
   const queryClient = useQueryClient()
   const providerRevision = useSyncExternalStore(subscribeBrowserWallets, browserWalletRevision, () => 0)
   useEffect(() => { discoverBrowserWallets() }, [])
-  const [page, setPage] = useState<Page>(() => { if (typeof window === 'undefined') return 'home'; const h = window.location.hash.slice(1); return (['about', 'legal', 'changelog', 'status', 'faucet'] as string[]).includes(h) ? (h as Page) : 'home' })
+  const [page, setPage] = useState<Page>(() => { if (typeof window === 'undefined') return 'home'; const h = window.location.hash.slice(1); if (/^pay(?:-\d{1,20})?$/.test(h)) return 'pay'; return (['about', 'legal', 'changelog', 'status', 'faucet'] as string[]).includes(h) ? (h as Page) : 'home' })
   const [hidden, setHidden] = useLocal('mk.hidden', false)
   const [mode, setMode] = useLocal<Mode>('mk.mode', 'demo')
   const [address, setAddress] = useLocal<string>('mk.address', '')

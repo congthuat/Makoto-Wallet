@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import {
   Wallet, History, Sparkles, ArrowLeftRight, Rainbow, Settings, HelpCircle, MessageSquareText,
-  Search, Copy, ListChecks, PieChart, Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Menu, X, Bell, Check, Home, LogOut, Droplets, Globe, ChevronDown, Sun, Moon, EyeOff as EyeOffIcon, Info, Command, AlertTriangle, Plus, Coins, ExternalLink,
+  Search, Copy, ListChecks, PieChart, Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Menu, X, Bell, Check, Home, LogOut, Droplets, Globe, ChevronDown, Sun, Moon, EyeOff as EyeOffIcon, Info, Command, AlertTriangle, Plus, Coins, ExternalLink, ReceiptText,
 } from 'lucide-react'
 import { WalletProvider, useWallet, type Page } from './lib/store'
 import { useT, LANGS, setLang } from './lib/i18n'
@@ -27,6 +27,7 @@ const AuditPage = lazy(() => import('./pages/Audit'))
 const InsightsPage = lazy(() => import('./pages/Insights'))
 const TasksPage = lazy(() => import('./pages/Tasks'))
 const FaucetPage = lazy(() => import('./pages/Faucet'))
+const PayRequestsPage = lazy(() => import('./pages/PayRequests'))
 const AboutPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.AboutPage })))
 const LegalPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.LegalPage })))
 const ChangelogPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.ChangelogPage })))
@@ -50,6 +51,7 @@ const NAV: { group: string; items: { id: SidebarDestination; icon: any; label: s
     { id: 'receive', icon: ArrowDownLeft, label: 'Receive' },
     { id: 'swap', icon: ArrowLeftRight, label: 'Swap' },
     { id: 'bridge', icon: Rainbow, label: 'Bridge' },
+    { id: 'pay', icon: ReceiptText, label: 'Payment requests' },
     { id: 'faucet', icon: Droplets, label: 'Get test tokens' },
   ] },
 ]
@@ -352,7 +354,7 @@ function PageSkeleton() {
   )
 }
 
-const TITLES: Partial<Record<Page, string>> = { agent: 'Agent', tasks: 'Tasks', dashboard: 'Portfolio', assets: 'Assets', activity: 'Activity', send: 'Send', swap: 'Swap', bridge: 'Bridge', settings: 'Settings', insights: 'Insights', faucet: 'Faucet', about: 'About', legal: 'Terms & Privacy', changelog: "What's new", status: 'System status', audit: 'UX audit' }
+const TITLES: Partial<Record<Page, string>> = { agent: 'Agent', tasks: 'Tasks', dashboard: 'Portfolio', assets: 'Assets', activity: 'Activity', send: 'Send', swap: 'Swap', bridge: 'Bridge', pay: 'Payment requests', settings: 'Settings', insights: 'Insights', faucet: 'Faucet', about: 'About', legal: 'Terms & Privacy', changelog: "What's new", status: 'System status', audit: 'UX audit' }
 
 /** Privacy screen preview only — App Lock is not implemented and is not a security feature. */
 function LockScreen({ onClose }: { onClose: () => void }) {
@@ -393,7 +395,7 @@ function Shell() {
   }, [w.page])
   const pages: Record<Page, React.ReactNode> = {
     home: <HomePage />, agent: <AgentPage />, tasks: <TasksPage />, dashboard: <Dashboard />, assets: <AssetsPage />, activity: <ActivityPage />,
-    send: <SendPage />, swap: <SwapPage />, bridge: <BridgePage />, settings: <SettingsPage />, insights: <InsightsPage />, audit: <AuditPage />, faucet: <FaucetPage />,
+    send: <SendPage />, swap: <SwapPage />, bridge: <BridgePage />, settings: <SettingsPage />, insights: <InsightsPage />, audit: <AuditPage />, faucet: <FaucetPage />, pay: <PayRequestsPage />,
     about: <AboutPage />, legal: <LegalPage />, changelog: <ChangelogPage />, status: <StatusPage />,
   }
 

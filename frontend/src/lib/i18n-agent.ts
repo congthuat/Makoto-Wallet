@@ -93,4 +93,6 @@ export const AGENT_I18N: Record<string, [string, string, string, string]> = {
   "Surf market data": ["Dữ liệu thị trường Surf", '', '', ''],
   "OpenAI · streaming": ["OpenAI · trả lời theo thời gian thực", '', '', ''],
   "ALL": ["Tất cả", '', '', ''],
+  // Payment requests — 2026-10-26
+  "Payment requests": ["Yêu cầu thanh toán", '', '', ''],
 }
