@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Rainbow, Eye, EyeOff, ChevronRight, History, Zap, Activity as ActivityIcon, Fuel, Boxes, Coins, ReceiptText } from 'lucide-react'
+import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Rainbow, Eye, EyeOff, ChevronRight, Zap, Activity as ActivityIcon, Fuel, Boxes, Coins, ReceiptText } from 'lucide-react'
 import { useWallet } from '../lib/store'
 import { ARC, fmtAmt, pct, usd, type Holding } from '../lib/wallet'
 import { PortfolioHistoryChart } from '../components/wallet/PortfolioHistoryChart'
@@ -217,8 +217,34 @@ export function NetworkCard() {
   )
 }
 
+/** Per-asset 24h move from the same verified holdings and price feed used for the total. */
+function AssetChanges() {
+  const { holdings, mask, pricesReady } = useWallet()
+  const [tr] = useT()
+  const rows = holdings.filter((h) => h.verified && h.value != null && h.change24h != null)
+    .map((h) => ({ ...h, delta: h.value! - h.value! / (1 + h.change24h! / 100) }))
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+  return (
+    <Card className="mk-in">
+      <CardHeader title="24h change by asset" />
+      <div className="px-5 pb-4 space-y-3">
+        {!pricesReady ? <Skeleton className="h-16 w-full" /> : rows.length ? rows.map((h) => (
+          <div key={h.symbol} className="flex items-center gap-3 text-[13px]">
+            <span className="font-semibold w-14 shrink-0">{h.symbol}</span>
+            <span className="flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+              <span className={`block h-full rounded-full ${h.change24h! >= 0 ? 'bg-live' : 'bg-rose-400'}`} style={{ width: `${Math.min(100, Math.max(4, Math.abs(h.change24h!) * 20))}%` }} />
+            </span>
+            <span className={`font-num w-16 text-right ${h.change24h! >= 0 ? 'text-live' : 'text-rose-300'}`}>{h.change24h! >= 0 ? '+' : ''}{h.change24h!.toFixed(2)}%</span>
+            <span className={`font-num w-20 text-right ${T.sub}`}>{mask(`${h.delta >= 0 ? '+' : '−'}${usd(Math.abs(h.delta), Math.abs(h.delta) < 0.01 && h.delta !== 0 ? 4 : 2)}`)}</span>
+          </div>
+        )) : <p className={`text-[12.5px] ${T.mute}`}>{tr('No price data yet.')}</p>}
+      </div>
+    </Card>
+  )
+}
+
 export default function Dashboard() {
-  const { activity, go, mode } = useWallet()
+  const { go, mode } = useWallet()
   const [tr] = useT()
   return (
     <>
@@ -233,12 +259,7 @@ export default function Dashboard() {
         </div>
         <div className="space-y-5 self-start">
           <Allocation />
-          <Card className="mk-in">
-            <CardHeader title="Recent activity" right={<button onClick={() => go('activity')} className={`text-[13px] font-medium ${T.sub} hover:text-white inline-flex items-center gap-1`}>{tr('All')} <ChevronRight size={14} /></button>} />
-            <div className="px-1.5 pb-2">
-              {activity.length ? activity.slice(0, 4).map((tx) => <TxRow key={tx.id} tx={tx} compact />) : <EmptyState icon={History} title={tr('No activity yet')} desc={tr('Your wallet activity will appear here.')} />}
-            </div>
-          </Card>
+          <AssetChanges />
         </div>
       </div>
     </>

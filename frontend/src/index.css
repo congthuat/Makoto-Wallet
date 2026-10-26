@@ -643,3 +643,6 @@ html:not([data-theme=light]) .mk-agent::before { opacity: .55; }
 
 /* Mobile bottom tab bar spacing. */
 @media (max-width: 1023px) { .mk-has-tabbar { padding-bottom: calc(68px + env(safe-area-inset-bottom)); } }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

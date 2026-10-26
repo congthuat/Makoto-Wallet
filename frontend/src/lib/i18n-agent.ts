@@ -144,4 +144,9 @@ export const AGENT_I18N: Record<string, [string, string, string, string]> = {
   "Makoto runs on Arc Testnet. Testnet tokens have no real value.": ["Makoto chạy trên Arc Testnet. Token testnet không có giá trị thật.", '', '', ''],
   "Live on Arc Testnet": ["Đang chạy trên Arc Testnet", '', '', ''],
   "Open the app": ["Mở ứng dụng", '', '', ''],
+  "Needs your attention": ["Cần bạn chú ý", '', '', ''],
+  "Makoto is watching {n} things": ["Makoto đang theo dõi {n} việc", '', '', ''],
+  "Continue in Agent": ["Tiếp tục với Trợ lý", '', '', ''],
+  "24h change by asset": ["Biến động 24h theo tài sản", '', '', ''],
+  "No price data yet.": ["Chưa có dữ liệu giá.", '', '', ''],
 }
