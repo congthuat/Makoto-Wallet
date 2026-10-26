@@ -149,4 +149,8 @@ export const AGENT_I18N: Record<string, [string, string, string, string]> = {
   "Continue in Agent": ["Tiếp tục với Trợ lý", '', '', ''],
   "24h change by asset": ["Biến động 24h theo tài sản", '', '', ''],
   "No price data yet.": ["Chưa có dữ liệu giá.", '', '', ''],
+  "Ask anything about your wallet or the market…": ["Hỏi bất cứ điều gì về ví hoặc thị trường…", '', '', ''],
+  "What should Makoto watch for you?": ["Makoto nên theo dõi điều gì cho bạn?", '', '', ''],
+  "What should Makoto do on a schedule?": ["Makoto nên làm gì theo lịch?", '', '', ''],
+  "{n} watching": ["{n} đang theo dõi", '', '', ''],
 }

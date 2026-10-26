@@ -22,9 +22,9 @@ import { WelcomeHero } from '../components/wallet/WelcomeHero'
 const TABS = ['Ask', 'Monitor', 'Automate'] as const
 type Tab = (typeof TABS)[number]
 const PLACEHOLDER: Record<Tab, string> = {
-  Ask: 'Ask anything… e.g. “What is my portfolio worth?”',
-  Monitor: 'e.g. “Alert me when USDC balance is below 500”',
-  Automate: 'e.g. “Send me a daily portfolio summary at 08:00”',
+  Ask: 'Ask anything about your wallet or the market…',
+  Monitor: 'What should Makoto watch for you?',
+  Automate: 'What should Makoto do on a schedule?',
 }
 
 
@@ -82,15 +82,16 @@ function AgentCommand() {
           <span className={`text-[12px] ${T.mute} hidden sm:inline`}>· {tr(greet)}</span>
           <span className="ml-auto flex items-center gap-3">
             {networkError && <span className="text-[11.5px] text-amber-300">{tr('Unavailable')}</span>}
-            {watching > 0 && <button onClick={() => go('tasks')} className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${T.sub} hover:text-white`}><span className="w-1.5 h-1.5 rounded-full bg-live" aria-hidden />{tr('Makoto is watching {n} things').replace('{n}', String(watching))}<ChevronRight size={13} /></button>}
+            {watching > 0 && <button onClick={() => go('tasks')} className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${T.sub} hover:text-white`}><span className="w-1.5 h-1.5 rounded-full bg-live" aria-hidden /><span className="hidden sm:inline">{tr('Makoto is watching {n} things').replace('{n}', String(watching))}</span><span className="sm:hidden">{tr('{n} watching').replace('{n}', String(watching))}</span><ChevronRight size={13} /></button>}
           </span>
         </div>
         <div className="mk-field-shell rounded-xl border border-white/[0.1] bg-[#0e0e13]/90 transition flex items-end gap-2 pr-2">
           <textarea
-            ref={ref} value={v} rows={1} onChange={(e) => setV(e.target.value)} aria-label={tr('Ask Makoto')}
+            ref={ref} value={v} rows={1} aria-label={tr('Ask Makoto')}
+            onChange={(e) => { setV(e.target.value); const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 128)}px` }}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submit() } }}
             placeholder={tr(PLACEHOLDER[tab])}
-            className="flex-1 min-w-0 resize-none bg-transparent outline-none px-3.5 py-3 text-[14.5px] leading-6 placeholder:text-[#6f6d7a] max-h-32"
+            className="flex-1 min-w-0 resize-none overflow-hidden bg-transparent outline-none px-3.5 py-3 text-[14.5px] leading-6 placeholder:text-[#6f6d7a] max-h-32 placeholder:truncate"
           />
           <button onClick={() => void submit()} disabled={!v.trim()} className="mb-2 h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg bg-neon-500 text-[#0b0b10] hover:bg-neon-400 disabled:bg-white/[0.06] disabled:text-white/30 transition active:scale-95" aria-label={tr('Submit')}><ArrowUp size={17} strokeWidth={2.4} /></button>
         </div>

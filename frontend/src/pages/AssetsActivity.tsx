@@ -91,7 +91,7 @@ export function ActivityPage() {
       <PageHeader title="Activity" desc={mode === 'demo' ? tr('Sample transactions. Connect or watch an address to load real history.') : tr('Latest token transfers from the {network} explorer.').replace('{network}', ARC.name)} right={<Button size="sm" onClick={exportCsv} disabled={!list.length}><Download size={14} /> {tr('Export CSV')}</Button>} />
       <Card>
         <div className="flex flex-wrap items-center gap-2 px-4 sm:px-5 pt-4 pb-3">
-          <div className="flex gap-1 overflow-x-auto max-w-full">
+          <div className="flex gap-1 overflow-x-auto no-scrollbar max-w-full [mask-image:linear-gradient(to_right,black_85%,transparent)] sm:[mask-image:none] pr-6 sm:pr-0">
             {FILTERS.map((f) => (
               <button key={f} onClick={() => setTab(f)} className={`h-8 px-3 rounded-lg text-[12.5px] font-semibold shrink-0 transition ${tab === f ? 'bg-white/[0.08] text-white' : `${T.mute} hover:text-white`}`}>{tr(f)}</button>
             ))}

@@ -925,8 +925,8 @@ export default function AgentPage() {
   useEffect(() => { if (msgs.length) end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [msgs, typing])
 
   return (
-    <div className="grid lg:grid-cols-[minmax(0,1fr)_280px] gap-5 items-start">
-      <Card className="flex flex-col min-h-[calc(100vh-200px)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_280px] gap-5 items-start">
+      <Card className="flex flex-col min-w-0 min-h-[calc(100vh-200px)]">
         <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 border-b border-white/[0.06]">
           <div className="flex items-center gap-3 min-w-0">
             <Orb size={32} />
