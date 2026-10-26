@@ -34,8 +34,10 @@ if [ -r /etc/os-release ]; then . /etc/os-release; else ID=unknown; fi
 
 say "1/8 System packages"
 export DEBIAN_FRONTEND=noninteractive
-run apt-get update -y
-run apt-get install -y ca-certificates curl gnupg git sqlite3 iptables-persistent debian-keyring debian-archive-keyring apt-transport-https
+# Fresh Oracle VMs often run unattended-upgrades at first boot; wait for the apt lock.
+apt_get() { run apt-get -o DPkg::Lock::Timeout=600 "$@"; }
+apt_get update -y
+apt_get install -y ca-certificates curl gnupg git sqlite3 iptables-persistent debian-keyring debian-archive-keyring apt-transport-https
 
 say "2/8 Node.js $NODE_MAJOR"
 current_major="$(node -v 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/' || true)"
@@ -45,8 +47,8 @@ if [ "${current_major:-0}" != "$NODE_MAJOR" ]; then
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
     echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
   fi
-  run apt-get update -y
-  run apt-get install -y nodejs
+  apt_get update -y
+  apt_get install -y nodejs
 fi
 [ "$DRY_RUN" = "1" ] || node -e "process.exit(Number(process.versions.node.split('.')[0]) >= $NODE_MAJOR ? 0 : 1)" || die "Node.js $NODE_MAJOR+ is required"
 
@@ -56,8 +58,8 @@ if ! command -v caddy >/dev/null 2>&1; then
     curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
     curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list
   fi
-  run apt-get update -y
-  run apt-get install -y caddy
+  apt_get update -y
+  apt_get install -y caddy
 fi
 
 say "4/8 User, directories and code"
@@ -77,7 +79,7 @@ run sudo -u makoto -H bash -c "cd '$APP_DIR/backend' && npm ci --omit=dev --no-a
 say "5/8 Configuration ($ENV_FILE)"
 if [ ! -f "$ENV_FILE" ]; then
   run install -o root -g root -m 0600 "$DEPLOY_DIR/backend.env.example" "$ENV_FILE"
-  warn "Created $ENV_FILE from the template — fill the CHANGE_ME values (see README step 6)."
+  warn "Created $ENV_FILE from the template — run: sudo makoto-configure"
 else
   run chmod 0600 "$ENV_FILE"
   echo "Keeping existing $ENV_FILE"
@@ -104,7 +106,7 @@ if [ "$DRY_RUN" = "1" ]; then echo "[dry-run] write /etc/caddy/Caddyfile for $AP
   install -d -o caddy -g caddy -m 0755 /var/log/caddy
   caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
 fi
-for tool in update backup import-data railway-export; do
+for tool in update backup import-data railway-export configure; do
   run ln -sf "$DEPLOY_DIR/$tool.sh" "/usr/local/bin/makoto-$tool"
 done
 if [ "$DRY_RUN" = "1" ]; then echo "[dry-run] install /etc/cron.d/makoto-backup"; else
@@ -120,7 +122,7 @@ say "8/8 Start"
 if [ "$DRY_RUN" = "1" ]; then echo "[dry-run] start makoto-backend when $ENV_FILE is complete"; exit 0; fi
 if grep -qE '^[A-Z0-9_]+=CHANGE_ME\s*$' "$ENV_FILE"; then
   warn "Not starting yet: $ENV_FILE still contains CHANGE_ME."
-  echo "Next: sudo nano $ENV_FILE   then   sudo systemctl restart makoto-backend && makoto-update --check"
+  echo "Next: sudo makoto-configure   (asks for each secret, then starts the backend)"
   exit 0
 fi
 systemctl restart makoto-backend

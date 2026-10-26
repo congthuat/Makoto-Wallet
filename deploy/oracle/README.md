@@ -10,6 +10,30 @@ Hướng dẫn này chuyển backend từ Railway sang một máy ảo **Oracle 
 
 ---
 
+## ⚡ Cách nhanh: 1 lệnh trong Oracle Cloud Shell (khuyên dùng)
+
+Sau khi đăng ký Oracle (bước 1 bên dưới), bạn **không cần bấm tạo máy ảo bằng tay**:
+
+1. Đăng nhập <https://cloud.oracle.com>, bấm biểu tượng **>_** (**Cloud Shell**) trên thanh trên cùng và chờ cửa sổ đen mở ra.
+2. Dán lệnh này rồi bấm Enter:
+
+   ```bash
+   bash <(curl -fsSL https://raw.githubusercontent.com/congthuat/Makoto-Wallet/makoto-wallet/deploy/oracle/provision-cloudshell.sh)
+   ```
+
+3. Script tự làm, và chỉ dừng lại khi cần bạn:
+   - Tạo mạng và mở cổng 22, 80, 443.
+   - Tạo máy ảo ARM miễn phí. Nếu Oracle báo **hết chỗ**, script tự thử lại mỗi phút, xen kẽ 2 OCPU/12 GB và 1 OCPU/6 GB.
+   - Tự cài backend (5–10 phút).
+   - **Hỏi từng khóa bí mật.** Mở Railway → **Variables** → **Raw Editor**, copy từng giá trị rồi dán vào khi được hỏi. Khi dán sẽ không thấy chữ hiện ra, đó là bình thường.
+   - **In ra IP máy ảo và hướng dẫn thêm DNS trong Vercel** (bước 5 bên dưới), rồi tự chờ DNS và HTTPS.
+   - Hỏi có chuyển dữ liệu từ Railway không. Trả lời `y`, rồi mở đường link Railway in ra và bấm **Approve**.
+4. Nếu Cloud Shell bị ngắt giữa chừng, **chỉ cần dán lại đúng lệnh trên**. Script tự nhận ra phần đã làm và chạy tiếp.
+
+Phần dưới đây là **cách làm tay**, dùng khi cần tự kiểm soát từng bước hoặc khi gỡ lỗi.
+
+---
+
 ## Bước 1: Đăng ký Oracle Cloud
 
 1. Mở <https://signup.cloud.oracle.com> → điền email, quốc gia **Vietnam**.
@@ -112,13 +136,16 @@ Tên miền mua ở Spaceship, nhưng **DNS đang do Vercel quản lý** (namese
 ## Bước 7: Điền cấu hình (các khóa bí mật)
 
 1. Lấy giá trị từ Railway: **makoto-backend** → **Variables** → bấm **Raw Editor** (góc phải). Railway hiện toàn bộ biến dạng `TEN=giatri`. Giữ cửa sổ này để copy từng giá trị.
-2. Trên máy ảo, mở file cấu hình:
+2. Trên máy ảo, chạy lệnh hỏi từng khóa (dán giá trị rồi Enter; khi dán sẽ không thấy chữ hiện ra):
 
    ```bash
-   sudo nano /etc/makoto/backend.env
+   sudo makoto-configure
    ```
 
-3. Thay **từng chữ `CHANGE_ME`** bằng giá trị lấy từ Railway:
+   Lệnh tự lưu, khởi động backend và báo `Backend is healthy ✔`. Đến đây có thể bỏ qua mục 3–5 bên dưới, sang thẳng mục 6.
+   Muốn tự sửa file thì dùng `sudo nano /etc/makoto/backend.env`.
+
+3. (Nếu tự sửa file) Thay **từng chữ `CHANGE_ME`** bằng giá trị lấy từ Railway:
 
    | Dòng trong file | Lấy từ Railway |
    | --- | --- |
@@ -186,7 +213,8 @@ Bước này chép Tasks, lịch sử số dư và phiên xác minh ví. Railway
 | Backup ngay | `sudo makoto-backup` |
 | Xem danh sách backup | `sudo makoto-backup --list` |
 | Khôi phục một bản backup | `sudo ALLOW_PARTIAL=1 makoto-import-data /var/backups/makoto/<THOI_GIAN>` |
-| Sửa cấu hình | `sudo nano /etc/makoto/backend.env` rồi `sudo systemctl restart makoto-backend` |
+| Đổi khóa bí mật | `sudo makoto-configure` |
+| Sửa cấu hình thủ công | `sudo nano /etc/makoto/backend.env` rồi `sudo systemctl restart makoto-backend` |
 | Khởi động lại máy ảo | `sudo reboot` (backend và HTTPS tự chạy lại) |
 
 - Backup tự chạy **3:17 sáng (UTC)** mỗi ngày, giữ **14 bản** gần nhất trong `/var/backups/makoto`.
