@@ -21,8 +21,9 @@ export function QuickActions({ className = '' }: { className?: string }) {
   return (
     <div className={`grid grid-cols-5 gap-1.5 sm:gap-2 ${className}`}>
       {items.map(({ icon: Icon, t, on }) => (
-        <button key={t} onClick={on} className="flex flex-col xl:flex-row items-center justify-center gap-1.5 xl:gap-2 h-[60px] xl:h-10 rounded-xl text-[11.5px] sm:text-[12.5px] font-semibold bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.1] active:scale-[0.98] transition">
-          <Icon size={16} className="text-neon-300" /> {tr(t)}
+        <button key={t} onClick={on} className="group flex flex-col items-center justify-start gap-1.5 pt-3 pb-2.5 px-1 rounded-xl border border-transparent hover:bg-white/[0.04] hover:border-white/[0.06] active:scale-[0.97] transition min-w-0">
+          <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-neon-500/[0.12] border border-neon-500/20 group-hover:bg-neon-500/20 flex items-center justify-center transition"><Icon size={18} className="text-neon-300" /></span>
+          <span className="text-[11px] sm:text-[12.5px] font-semibold leading-tight text-center sm:whitespace-nowrap">{tr(t)}</span>
         </button>
       ))}
     </div>

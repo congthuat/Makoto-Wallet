@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import {
-  ArrowUp, Radar, MessageSquare, Zap, ChevronRight, ListChecks, AlertTriangle, Fuel, RotateCcw, Network, BellRing, Eye, EyeOff,
+  ArrowUp, Radar, MessageSquare, Zap, ChevronRight, AlertTriangle, Fuel, RotateCcw, Network, BellRing, Eye, EyeOff,
 } from 'lucide-react'
 import { useWallet } from '../lib/store'
 import { usd } from '../lib/wallet'
@@ -69,6 +69,7 @@ function AgentCommand() {
   const suggestions = getAgentSuggestions(mode, locale)
   const answer = exchange?.answer ? renderHomeAnswer(exchange.answer, locale, w.mask, w) : undefined
   const TAB_ICON: Record<Tab, any> = { Ask: MessageSquare, Monitor: Radar, Automate: Zap }
+  const watching = taskItemsForAccount(w.tasks, w.mode, w.address).filter((task) => task.status === 'ACTIVE').length
   const h = new Date().getHours()
   const greet = h < 12 ? 'Good morning.' : h < 18 ? 'Good afternoon.' : 'Good evening.'
 
@@ -79,7 +80,10 @@ function AgentCommand() {
           <Orb size={26} glow={false} />
           <h2 className="text-[14px] font-semibold">{tr('Ask Makoto')}</h2>
           <span className={`text-[12px] ${T.mute} hidden sm:inline`}>· {tr(greet)}</span>
-          {networkError && <span className="ml-auto text-[11.5px] text-amber-300">{tr('Unavailable')}</span>}
+          <span className="ml-auto flex items-center gap-3">
+            {networkError && <span className="text-[11.5px] text-amber-300">{tr('Unavailable')}</span>}
+            {watching > 0 && <button onClick={() => go('tasks')} className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${T.sub} hover:text-white`}><span className="w-1.5 h-1.5 rounded-full bg-live" aria-hidden />{tr('Makoto is watching {n} things').replace('{n}', String(watching))}<ChevronRight size={13} /></button>}
+          </span>
         </div>
         <div className="mk-field-shell rounded-xl border border-white/[0.1] bg-[#0e0e13]/90 transition flex items-end gap-2 pr-2">
           <textarea
@@ -158,8 +162,8 @@ function BalanceHero() {
   const pnlPct = total - pnl ? (pnl / (total - pnl)) * 100 : 0
   return (
     <Card className="mk-hero p-5 sm:p-6 mk-in">
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-5 lg:gap-8 items-start">
-        <div className="min-w-0">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-5 lg:gap-8 items-stretch">
+        <div className="min-w-0 flex flex-col">
           <div className="flex items-center justify-between gap-2">
             <div className={`text-[13px] font-medium ${T.sub} flex items-center gap-2`}>
               {tr('Total balance')}
@@ -178,7 +182,7 @@ function BalanceHero() {
               <span className={pnl >= 0 ? 'text-live' : 'text-rose-300'}>{mask(`${pnl >= 0 ? '+' : '−'}${usd(Math.abs(pnl), Math.abs(pnl) < 0.01 && pnl !== 0 ? 4 : 2)}`)} ({pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(2)}%) <span className={T.mute}>24h</span></span>
             ) : <Skeleton className="h-4 w-28" />}
           </div>
-          <QuickActions className="mt-5" />
+          <QuickActions className="mt-5 lg:mt-auto lg:pt-6 -mx-1" />
         </div>
         <div className="min-w-0">
           <div className="hidden lg:flex items-center justify-end gap-1 mb-1">
@@ -233,7 +237,7 @@ function AttentionStrip() {
     pendingBridge: hasPendingStrategy(storage, 'cctp', w.mode === 'connected' ? w.address : undefined),
     pendingSwap: hasPendingStrategy(storage, 'swap', w.mode === 'connected' ? w.address : undefined),
   }, 8).filter((action) => action.priority >= 80 && action.target.type === 'go')
-  if (!urgent.length && !triggered.length && !active) return null
+  if (!urgent.length && !triggered.length) return null
   return (
     <section className="mk-in" aria-label={tr('Needs your attention')}>
       <div className="flex flex-wrap gap-2">
@@ -255,11 +259,6 @@ function AttentionStrip() {
             <span className="text-[11.5px] text-neon-300 shrink-0">{taskText('triggered', locale)}</span>
           </button>
         ))}
-        {active > 0 && (
-          <button onClick={() => w.go('tasks')} className={`flex items-center gap-2 h-11 px-3.5 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] text-[13px] ${T.sub} hover:text-white transition`}>
-            <ListChecks size={15} className="text-neon-300" /> {tr('Makoto is watching {n} things').replace('{n}', String(active))} <ChevronRight size={14} />
-          </button>
-        )}
       </div>
     </section>
   )
