@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, ArrowUpRight, ArrowLeftRight, Rainbow, PieChart, Radar, Check, Trash2, Wallet, Boxes, ListChecks, Pencil, Lock, Zap, Fuel, BellRing, TrendingUp, Newspaper, RefreshCw, Sparkles, Database } from 'lucide-react'
+import { ArrowUp, ArrowUpRight, ArrowLeftRight, Rainbow, PieChart, Radar, Check, Trash2, Wallet, Boxes, ListChecks, Pencil, Lock, Zap, Fuel, BellRing, TrendingUp, Newspaper, RefreshCw, Sparkles, Database, Brain, UserPlus, X, ListOrdered, Play, RotateCcw } from 'lucide-react'
 import { AgentSendCard, type AgentSendStage } from '../components/AgentSendCard'
 import { AgentSwapCard } from '../components/AgentSwapCard'
 import { AgentBridgeCard } from '../components/AgentBridgeCard'
@@ -21,7 +21,10 @@ import { withRpcTimeout, AGENT_EVIDENCE_TIMEOUT_MS } from '../lib/rpcTimeout'
 import { readHomeAnswer, renderHomeAnswer, routeHomeRequest, type QuickAnswer } from '../agent/homeRequest'
 import { createAgentSession, recoverLatestAgentSession, rememberAgentSession, transitionAgentSession, type AgentSession } from '../brain/agentSession'
 import { localChatReply, routeAgentMessage, type ChatTopic } from '../agent/chatRouter'
-import { proposalCommand, requestMakotoChat, type ChatDataSource, type ChatHistoryItem, type ChatProposal, type ChatSource } from '../agent/chatClient'
+import { requestMakotoChat, requestMakotoChatStream, type ChatChart, type ChatDataSource, type ChatHistoryItem, type ChatMemoryUpdate, type ChatSource } from '../agent/chatClient'
+import { addNote, contactInText, contactSaveCheck, loadAgentMemory, memoryForRequest, removeNote, saveAgentMemory, setBridgeSpeed, type AgentMemory, type AgentNote } from '../lib/agentMemory'
+import { describeStep, planStatuses, planStepsFromText, stepCommand, type PlanStep } from '../lib/agentPlan'
+import { AreaChart } from '../components/wallet/charts'
 import { AgentMarkdown } from '../components/AgentMarkdown'
 import { buildAgentActions, hasPendingStrategy, type AgentAction, type AgentActionIcon } from '../lib/agentActions'
 import { appendChatHistory, isWalletContextFollowUp } from '../agent/chatContext'
@@ -66,7 +69,21 @@ type Flow = {
   execSpeed?: CctpTransferSpeed
 } // stage = index of the CURRENT (not yet done) step
 type TaskReply = { kind: 'COPY'; key: TaskTextKey } | { kind: 'ERROR'; code: string } | { kind: 'REVIEW' }
-type Msg = { id: string; role: 'user' | 'agent'; text: string; rows?: [string, string][]; quick?: QuickAnswer; taskReply?: TaskReply; taskMissingFields?: readonly string[]; liveEvidence?: Pick<AgentEvidence, 'status' | 'reason' | 'quoteExpiresAt'>; strategyKinds?: readonly string[]; datetime?: CurrentDateTime; localChatTopic?: ChatTopic; flow?: Flow; task?: TaskCandidate; taskAdded?: boolean; link?: { label: string; page: any; taskTextKey?: TaskTextKey }; sample?: boolean; conversation?: boolean; source?: ChatSource; dataSources?: readonly ChatDataSource[]; aiProposal?: boolean }
+type Msg = { id: string; role: 'user' | 'agent'; text: string; rows?: [string, string][]; quick?: QuickAnswer; taskReply?: TaskReply; taskMissingFields?: readonly string[]; liveEvidence?: Pick<AgentEvidence, 'status' | 'reason' | 'quoteExpiresAt'>; strategyKinds?: readonly string[]; datetime?: CurrentDateTime; localChatTopic?: ChatTopic; flow?: Flow; task?: TaskCandidate; taskAdded?: boolean; link?: { label: string; page: any; taskTextKey?: TaskTextKey }; sample?: boolean; conversation?: boolean; source?: ChatSource; dataSources?: readonly ChatDataSource[]; aiProposal?: boolean
+  /** Streaming placeholder (text grows; replaced by the final reply). */
+  streaming?: boolean; toolStatus?: string
+  charts?: readonly ChatChart[]
+  /** Notes saved on this device from this reply (undo-able). */
+  memoryNotes?: readonly AgentNote[]
+  /** Contacts the Agent offered to save; saving needs a click. */
+  contactOffers?: readonly ContactOffer[]
+  /** A multi-step plan checklist. */
+  plan?: PlanState
+  /** This review card is step `index` of the plan in message `planId`. */
+  planRef?: Readonly<{ planId: string; index: number }>
+}
+type ContactOffer = Readonly<{ name: string; address: string; state: 'pending' | 'saved' | 'dismissed' | 'duplicate' }>
+type PlanState = Readonly<{ steps: readonly PlanStep[]; done: readonly boolean[]; activeIndex?: number; failedIndex?: number }>
 
 const SUGGEST = [
   { icon: ArrowUpRight, t: SAMPLE_PROMPTS.send },
@@ -115,6 +132,120 @@ function SourcesLine({ sources }: { sources: readonly ChatDataSource[] }) {
       {sources.map((item) => <span key={item.source} className={`px-1.5 py-0.5 rounded-md border ${item.ok ? 'border-white/[0.08] bg-white/[0.03]' : 'border-amber-400/20 text-amber-200/80'}`}>{tr(item.source)}</span>)}
       {time && <span>· {time}</span>}
     </p>
+  )
+}
+
+const L = (vi: boolean, en: string, viText: string) => (vi ? viText : en)
+
+function AgentPriceChart({ chart }: { chart: ChatChart }) {
+  const [, lang] = useT()
+  const vi = lang === 'vi'
+  const points = chart.points.map(([t, v]) => [t, v] as [number, number])
+  const first = points[0]?.[1] ?? 0
+  const last = points[points.length - 1]?.[1] ?? 0
+  const change = first ? ((last - first) / first) * 100 : 0
+  return (
+    <figure className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3" data-agent-chart={chart.symbol}>
+      <figcaption className="flex items-baseline justify-between gap-2 text-[12.5px]">
+        <span className="font-semibold text-white">{chart.symbol} · {chart.timeRange.toUpperCase()}</span>
+        <span className={`font-num ${T.sub}`}>{last.toLocaleString('en-US', { maximumFractionDigits: last >= 100 ? 2 : 6 })} {chart.currency} · {change >= 0 ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%</span>
+      </figcaption>
+      <div className="mt-2"><AreaChart points={points} height={140} label={L(vi, `${chart.symbol} price, ${chart.timeRange}`, `Giá ${chart.symbol}, ${chart.timeRange}`)} /></div>
+      <p className={`mt-1.5 text-[11px] ${T.mute}`}>{L(vi, 'Surf market data · use arrow keys on the chart to read values', 'Dữ liệu thị trường Surf · dùng phím mũi tên trên biểu đồ để đọc giá trị')}</p>
+    </figure>
+  )
+}
+
+function PlanCard({ msg, onStart, onReset }: { msg: Msg; onStart: (index: number) => void; onReset: (index: number) => void }) {
+  const [, lang] = useT()
+  const vi = lang === 'vi'
+  const plan = msg.plan!
+  const statuses = planStatuses(plan.done, plan.activeIndex, plan.failedIndex)
+  const allDone = plan.done.every(Boolean)
+  const label: Record<string, string> = vi
+    ? { waiting: 'Chờ bước trước', ready: 'Sẵn sàng', active: 'Đang thực hiện', done: 'Đã xác nhận', failed: 'Chưa hoàn tất' }
+    : { waiting: 'Waits for previous step', ready: 'Ready', active: 'In progress', done: 'Confirmed', failed: 'Not completed' }
+  return (
+    <div className="mt-2 rounded-xl border border-white/[0.08] bg-[#0e0e13] overflow-hidden" data-agent-plan>
+      <div className="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-2">
+        <ListOrdered size={13} className="text-neon-300" />
+        <span className={`text-[11px] font-bold tracking-[0.12em] ${T.mute}`}>{L(vi, 'MULTI-STEP PLAN', 'KẾ HOẠCH NHIỀU BƯỚC')}</span>
+      </div>
+      <ol className="divide-y divide-white/[0.05]">
+        {plan.steps.map((step, index) => {
+          const status = statuses[index]
+          return (
+            <li key={index} className="px-4 py-3 flex items-center gap-3 text-[13px]" data-plan-step={index} data-plan-status={status}>
+              <span className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold ${status === 'done' ? 'bg-neon-500 text-[#0b0b10]' : status === 'active' ? 'ring-1 ring-neon-400 text-neon-200' : 'ring-1 ring-white/10 text-[#8a8796]'}`}>{status === 'done' ? <Check size={12} strokeWidth={3} /> : index + 1}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">{describeStep(step, vi)}</span>
+                <span className={`block text-[11.5px] ${T.mute}`}>{label[status]}</span>
+              </span>
+              {(status === 'ready' || status === 'failed') && (
+                <Button size="sm" variant={status === 'ready' ? 'primary' : undefined} onClick={() => onStart(index)}>
+                  {status === 'ready' ? <Play size={12} /> : <RotateCcw size={12} />} {status === 'ready' ? L(vi, `Prepare step ${index + 1}`, `Chuẩn bị bước ${index + 1}`) : L(vi, 'Try again', 'Thử lại')}
+                </Button>
+              )}
+              {status === 'active' && <button type="button" onClick={() => onReset(index)} className={`text-[11.5px] underline ${T.mute} hover:text-white`}>{L(vi, 'Reset step', 'Đặt lại bước')}</button>}
+            </li>
+          )
+        })}
+      </ol>
+      <p className={`px-4 py-2.5 border-t border-white/[0.05] text-[11.5px] ${T.mute}`}>
+        {allDone ? L(vi, 'All steps confirmed on-chain.', 'Tất cả các bước đã được xác nhận trên chuỗi.') : L(vi, 'Each step gets its own review and wallet signature. The next step opens only after the previous one is confirmed on-chain in this chat.', 'Mỗi bước có thẻ duyệt và chữ ký ví riêng. Bước sau chỉ mở khi bước trước đã được xác nhận trên chuỗi ngay trong khung chat này.')}
+      </p>
+    </div>
+  )
+}
+
+function MemoryReplyLines({ msg, onUndoNote, onSaveContact, onDismissContact }: { msg: Msg; onUndoNote: (id: string) => void; onSaveContact: (offer: ContactOffer) => void; onDismissContact: (offer: ContactOffer) => void }) {
+  const [, lang] = useT()
+  const vi = lang === 'vi'
+  return (
+    <div className="mt-2 space-y-1.5">
+      {msg.memoryNotes?.map((note) => (
+        <p key={note.id} className={`flex items-center gap-2 text-[12px] ${T.sub}`} data-memory-note>
+          <Brain size={13} className="text-neon-300 shrink-0" /> <span className="min-w-0">{L(vi, 'Remembered on this device:', 'Đã ghi nhớ trên thiết bị này:')} “{note.text}”</span>
+          <button type="button" onClick={() => onUndoNote(note.id)} className={`shrink-0 underline ${T.mute} hover:text-white`}>{L(vi, 'Undo', 'Hoàn tác')}</button>
+        </p>
+      ))}
+      {msg.contactOffers?.map((offer) => (
+        <div key={offer.address} className="flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.07] px-3 py-2 text-[12.5px]" data-contact-offer={offer.state}>
+          <UserPlus size={14} className="text-neon-300 shrink-0" />
+          <span className="min-w-0 flex-1"><b>{offer.name}</b> · <span className="font-mono text-[11.5px]">{short(offer.address)}</span></span>
+          {offer.state === 'pending' && <>
+            <Button size="sm" variant="primary" onClick={() => onSaveContact(offer)}>{L(vi, 'Save contact', 'Lưu danh bạ')}</Button>
+            <button type="button" aria-label={L(vi, 'Dismiss', 'Bỏ qua')} onClick={() => onDismissContact(offer)} className={`p-1 rounded ${T.mute} hover:text-white`}><X size={14} /></button>
+          </>}
+          {offer.state === 'saved' && <span className="text-neon-300">{L(vi, 'Saved', 'Đã lưu')}</span>}
+          {offer.state === 'duplicate' && <span className={T.mute}>{L(vi, 'Already in your contacts', 'Đã có trong danh bạ')}</span>}
+          {offer.state === 'dismissed' && <span className={T.mute}>{L(vi, 'Not saved', 'Không lưu')}</span>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function MemoryPanel({ notes, contacts, onRemove, onOpenContacts }: { notes: readonly AgentNote[]; contacts: number; onRemove: (id: string) => void; onOpenContacts: () => void }) {
+  const [tr, lang] = useT()
+  const vi = lang === 'vi'
+  return (
+    <Card className="p-4"><div data-memory-panel>
+      <div className={`flex items-center justify-between text-[12px] font-semibold ${T.mute}`}>
+        <span className="flex items-center gap-2"><Brain size={13} /> {L(vi, 'MEMORY', 'TRÍ NHỚ')}</span>
+        <button onClick={onOpenContacts} className="text-[12px] text-neon-300 hover:text-neon-200">{tr('Contacts')} ({contacts})</button>
+      </div>
+      {notes.length ? (
+        <ul className="mt-2 space-y-1.5">
+          {notes.map((note) => (
+            <li key={note.id} className="flex items-start gap-2 text-[12.5px]">
+              <span className="min-w-0 flex-1 break-words">{note.text}</span>
+              <button type="button" aria-label={L(vi, 'Forget', 'Quên')} onClick={() => onRemove(note.id)} className={`shrink-0 p-0.5 rounded ${T.mute} hover:text-rose-300`}><X size={13} /></button>
+            </li>
+          ))}
+        </ul>
+      ) : <p className={`mt-2 text-[12.5px] ${T.mute}`}>{L(vi, 'Say “remember that…” and Makoto keeps it on this device.', 'Nói “hãy nhớ là…” để Makoto ghi nhớ trên thiết bị này.')}</p>}
+    </div></Card>
   )
 }
 
@@ -274,8 +405,8 @@ function ReviewCard({ msg, onChange, onSlipChange, onSpeedChange, onConfirm, onC
   )
 }
 
-function ContextPanel({ flow, actions = [], onAction = () => {} }: { flow?: Flow; actions?: readonly AgentAction[]; onAction?: (action: AgentAction) => void }) {
-  const { mode, address, displayAddress, total, pricesReady, mask, holdings, network, networkError, tasks, go } = useWallet()
+function ContextPanel({ flow, actions = [], onAction = () => {}, memoryNotes, onRemoveNote = () => {} }: { flow?: Flow; actions?: readonly AgentAction[]; onAction?: (action: AgentAction) => void; memoryNotes?: readonly AgentNote[]; onRemoveNote?: (id: string) => void }) {
+  const { mode, address, displayAddress, total, pricesReady, mask, holdings, network, networkError, tasks, go, contacts } = useWallet()
   const [tr, language] = useT()
   const locale = language === 'vi' ? 'vi' : 'en'
   const active = taskItemsForAccount(tasks, mode, address).filter((task) => task.status === 'ACTIVE')
@@ -309,6 +440,7 @@ function ContextPanel({ flow, actions = [], onAction = () => {} }: { flow?: Flow
           ))}
         </div>
       </Card>
+      {memoryNotes && <MemoryPanel notes={memoryNotes} contacts={contacts.length} onRemove={onRemoveNote} onOpenContacts={() => go('settings')} />}
       <Card className="p-4">
         <div className={`flex items-center gap-2 text-[12px] font-semibold ${T.mute}`}><Boxes size={13} /> {tr('NETWORK')}</div>
         <div className="mt-2 flex items-center gap-2 text-[13px]"><LiveDot off={networkError} /> {networkError ? tr('Network unavailable') : network ? `${ARC.name} · ${tr('Online')}` : tr('Checking network…')}</div>
@@ -341,6 +473,16 @@ export default function AgentPage() {
     pendingBridge: hasPendingStrategy(storage, 'cctp', w.mode === 'connected' ? w.address : undefined),
     pendingSwap: hasPendingStrategy(storage, 'swap', w.mode === 'connected' ? w.address : undefined),
   })
+  const [memory, setMemory] = useState<AgentMemory>(() => loadAgentMemory(storage))
+  const memoryRef = useRef(memory)
+  memoryRef.current = memory
+  const updateMemory = (fn: (current: AgentMemory) => AgentMemory) => {
+    const next = fn(memoryRef.current)
+    memoryRef.current = next
+    setMemory(next)
+    saveAgentMemory(typeof localStorage === 'undefined' ? undefined : localStorage, next)
+  }
+  const requestMemory = () => memoryForRequest(memoryRef.current, w.contacts)
   const messageText = (message: Msg) => {
     if (message.quick) return renderHomeAnswer(message.quick, locale, w.mask, w).text
     if (message.taskReply?.kind === 'COPY') return taskText(message.taskReply.key, locale)
@@ -388,7 +530,70 @@ export default function AgentPage() {
     ...(f.intent === 'swap' ? { outputAsset: f.params.toAsset || undefined } : {}),
     ...(f.intent === 'bridge' ? { sourceChain: ARC.name, destinationChain: f.params.dest || undefined } : {}),
   })
-  const plan = async (q: string, history: readonly ChatHistoryItem[], forcedTaskMode?: 'monitor' | 'automation' | null): Promise<Msg> => {
+  const BASE_PARAMS: Params = { asset: 'USDC', amount: '', recipient: '', toAsset: 'EURC', dest: 'Base Sepolia' }
+  const makeFlowMsg = (intent: Intent, params: Params, text: string, liveEvidence?: Msg['liveEvidence']): Msg => {
+    const requested = createAgentSession(nid())
+    const planned = transitionAgentSession(requested, { type: 'plan-ready', planId: nid(), now: Date.now() })
+    if (planned.accepted && w.mode === 'connected' && w.address && typeof sessionStorage !== 'undefined') rememberAgentSession(sessionStorage, planned.state, w.address)
+    const execSpeed = intent === 'bridge' ? memoryRef.current.preferences.bridgeSpeed : undefined
+    return { id: nid(), role: 'agent', text, liveEvidence, flow: { intent, params, stage: 2, session: planned.accepted ? planned.state : requested, ...(execSpeed ? { execSpeed } : {}) }, sample: false }
+  }
+  /**
+   * An untrusted step (model proposal or plan step) becomes a review card only after it is
+   * rebuilt as a canonical command (contacts resolved on this device) and re-parsed by the
+   * deterministic planner. Returns an explanatory message when that is not possible.
+   */
+  const actionMessageFromStep = async (step: PlanStep, text: string, extra: Partial<Msg> = {}): Promise<Msg> => {
+    const vi = lang === 'vi'
+    const built = stepCommand(step, w.contacts)
+    if (!built.ok) {
+      const note = built.reason === 'contact-ambiguous'
+        ? (vi ? `Có nhiều liên hệ tên “${built.name}”. Hãy dùng địa chỉ 0x đầy đủ.` : `Several contacts are named “${built.name}”. Use the full 0x address.`)
+        : (vi ? `Không tìm thấy “${built.name}” trong danh bạ trên thiết bị này. Hãy thêm liên hệ trong Cài đặt hoặc dùng địa chỉ 0x đầy đủ.` : `“${built.name}” is not in the contacts on this device. Add the contact in Settings or use the full 0x address.`)
+      return { id: nid(), role: 'agent', text: text ? `${text}\n\n${note}` : note, link: { label: 'Open Settings', page: 'settings' }, source: 'REAL_PROVIDER', conversation: true, ...extra }
+    }
+    const checked = planBrainRequest(built.command, 'en', brainContext())
+    const a = checked.action
+    if (!a || a.kind !== step.kind || checked.decision.blockers.length || checked.decision.missingFields.length) {
+      const rows: [string, string][] = [
+        ...checked.decision.missingFields.map((field) => ['Missing', agentFieldLabel(field)] as [string, string]),
+        ...checked.decision.blockers.map((reason) => ['Blocked', reason] as [string, string]),
+      ]
+      return { id: nid(), role: 'agent', text: `${text}\n\n${tr('Makoto could not prepare this action safely.')}`, rows, source: 'REAL_PROVIDER', conversation: true, ...extra }
+    }
+    let liveEvidence: Msg['liveEvidence']
+    if (w.mode === 'connected') {
+      const commandPlan = planAgentRequest(built.command, 'en')
+      if (commandPlan.status === 'ACTION') {
+        const observed = await withRpcTimeout(replanAgentFromEvidence(commandPlan, getProvider(), w.address), AGENT_EVIDENCE_TIMEOUT_MS, 'Agent evidence preflight')
+          .catch((e): AgentEvidence => ({ status: 'UNAVAILABLE', reason: e instanceof Error ? e.message : 'Live evidence unavailable', observedAt: Date.now(), executionEnabled: false }))
+        liveEvidence = { status: observed.status, reason: observed.reason, quoteExpiresAt: observed.quoteExpiresAt }
+      }
+    }
+    const params: Params = a.kind === 'send' ? { ...BASE_PARAMS, asset: a.asset ?? 'USDC', amount: a.amount ?? '', recipient: a.recipient ?? '' }
+      : a.kind === 'swap' ? { ...BASE_PARAMS, asset: a.asset ?? 'USDC', amount: a.amount ?? '', toAsset: a.outputAsset ?? 'EURC' }
+        : { ...BASE_PARAMS, asset: 'USDC', amount: a.amount ?? '', dest: a.destinationChain ?? 'Base Sepolia' }
+    const flowText = built.contactName ? `${text}${text ? '\n\n' : ''}${vi ? `Người nhận: ${built.contactName} (danh bạ trên thiết bị này).` : `Recipient: ${built.contactName} (contacts on this device).`}` : text
+    return { ...makeFlowMsg(a.kind, params, flowText, liveEvidence), source: 'REAL_PROVIDER', conversation: true, aiProposal: true, ...extra }
+  }
+  /** Applies memory changes from a reply: notes are saved on the device, contacts wait for a click. */
+  const applyMemoryUpdates = (updates: readonly ChatMemoryUpdate[] | undefined): Partial<Msg> => {
+    if (!updates?.length) return {}
+    const notes: AgentNote[] = []
+    const offers: ContactOffer[] = []
+    for (const update of updates) {
+      if (update.type === 'note') {
+        let saved: AgentNote | undefined
+        updateMemory((current) => { const result = addNote(current, update.note); saved = result.note; return result.memory })
+        if (saved) notes.push(saved)
+      } else {
+        const check = contactSaveCheck(update.name, update.address, w.contacts)
+        if (check !== 'invalid') offers.push({ name: update.name, address: update.address, state: check === 'ok' || check === 'duplicate-name' ? 'pending' : 'duplicate' })
+      }
+    }
+    return { ...(notes.length ? { memoryNotes: notes } : {}), ...(offers.length ? { contactOffers: offers } : {}) }
+  }
+  const plan = async (q: string, history: readonly ChatHistoryItem[], forcedTaskMode?: 'monitor' | 'automation' | null, onStream?: (partial: { text: string; toolStatus?: string }) => void): Promise<Msg> => {
     const locale = lang === 'vi' ? 'vi' : 'en'
     const taskMode = forcedTaskMode ?? taskIntentMode(q)
     if (taskMode) {
@@ -412,60 +617,47 @@ export default function AgentPage() {
     const structured = contextualWallet ? routed.plan : planAgentRequest(q, lang === 'vi' ? 'vi' : 'en')
     const brain = planBrainRequest(contextualWallet ? 'What is my balance?' : q, lang, brainContext())
     const base: Params = { asset: 'USDC', amount: '', recipient: '', toAsset: 'EURC', dest: 'Base Sepolia' }
-    let liveEvidence: Msg['liveEvidence']
-    const flow = (intent: Intent, params: Params, text: string): Msg => {
-      const requested = createAgentSession(nid())
-      const planned = transitionAgentSession(requested, { type: 'plan-ready', planId: nid(), now: Date.now() })
-      if (planned.accepted && w.mode === 'connected' && w.address && typeof sessionStorage !== 'undefined') rememberAgentSession(sessionStorage, planned.state, w.address)
-      return { id: nid(), role: 'agent', text, liveEvidence, flow: { intent, params, stage: 2, session: planned.accepted ? planned.state : requested }, sample: false }
-    }
-    /** A model proposal is untrusted: it is rebuilt as a canonical command and re-parsed by the deterministic planner. */
-    const proposalMessage = async (text: string, proposal: ChatProposal, dataSources?: readonly ChatDataSource[]): Promise<Msg> => {
-      const command = proposalCommand(proposal)
-      const checked = planBrainRequest(command, 'en', brainContext())
-      const ai = { source: 'REAL_PROVIDER' as const, conversation: true, dataSources }
-      const a = checked.action
-      if (!a || a.kind !== proposal.kind || checked.decision.blockers.length || checked.decision.missingFields.length) {
-        const rows: [string, string][] = [
-          ...checked.decision.missingFields.map((field) => ['Missing', agentFieldLabel(field)] as [string, string]),
-          ...checked.decision.blockers.map((reason) => ['Blocked', reason] as [string, string]),
-        ]
-        return { id: nid(), role: 'agent', text: `${text}\n\n${tr('Makoto could not prepare this action safely.')}`, rows, ...ai }
-      }
-      if (w.mode === 'connected') {
-        const commandPlan = planAgentRequest(command, 'en')
-        if (commandPlan.status === 'ACTION') {
-          const observed = await withRpcTimeout(replanAgentFromEvidence(commandPlan, getProvider(), w.address), AGENT_EVIDENCE_TIMEOUT_MS, 'Agent evidence preflight')
-            .catch((e): AgentEvidence => ({ status: 'UNAVAILABLE', reason: e instanceof Error ? e.message : 'Live evidence unavailable', observedAt: Date.now(), executionEnabled: false }))
-          liveEvidence = { status: observed.status, reason: observed.reason, quoteExpiresAt: observed.quoteExpiresAt }
-        }
-      }
-      const params: Params = a.kind === 'send' ? { ...base, asset: a.asset ?? 'USDC', amount: a.amount ?? '', recipient: a.recipient ?? '' }
-        : a.kind === 'swap' ? { ...base, asset: a.asset ?? 'USDC', amount: a.amount ?? '', toAsset: a.outputAsset ?? 'EURC' }
-          : { ...base, asset: 'USDC', amount: a.amount ?? '', dest: a.destinationChain ?? 'Base Sepolia' }
-      return { ...flow(a.kind, params, text), ...ai, aiProposal: true }
+    // Filled by the live-evidence preflight below; flows created afterwards carry it.
+    const evidence: { value?: Msg['liveEvidence'] } = {}
+    const flow = (intent: Intent, params: Params, text: string): Msg => makeFlowMsg(intent, params, text, evidence.value)
+    // "send 2 USDC to Nam": a saved contact named in the request is resolved on this device,
+    // deterministically, before any model call. The address never leaves the browser.
+    if (!contextualWallet && brain.action?.kind === 'send' && !brain.action.recipient && !brain.action.maxRequested && brain.action.amount && brain.action.asset
+      && brain.decision.missingFields.every((field) => field === 'recipient') && !brain.decision.blockers.length) {
+      const contact = contactInText(q, w.contacts)
+      if (contact) return actionMessageFromStep({ kind: 'send', asset: brain.action.asset as PlanStep['asset'], amount: brain.action.amount, recipientContact: contact.name }, lang === 'vi' ? 'Mình đã chuẩn bị lệnh gửi theo danh bạ của bạn.' : 'I prepared the transfer using your contacts.')
     }
     // Tool-using AI first for questions, analysis and loosely phrased requests. Complete
     // deterministic actions, strategies and the clock stay on the proven local path.
-    const deterministicAction = routed.category === 'STRATEGY'
+    const deterministicAction = structured.status === 'STRATEGY'
       || (structured.status === 'INFORMATION' && structured.topic === 'current-datetime')
       || (routed.category === 'ACTION' && Boolean(brain.action) && !brain.decision.blockers.length && !brain.decision.missingFields.length)
     let aiUnavailable = false
     if (!deterministicAction) {
-      const response = await requestMakotoChat({
+      let streamed = ''
+      let toolStatus: string | undefined
+      const response = await requestMakotoChatStream({
         message: q, topic: routed.topic, history,
         context: { locale: lang, mode: w.mode, ...(w.mode === 'connected' ? { chain: ARC.name as 'Arc Testnet' } : {}), intent: routed.category === 'CHAT' ? 'CHAT' : 'INFORMATION' },
         address: w.mode !== 'demo' ? w.address : undefined,
+        memory: requestMemory(),
+        onEvent: (event) => {
+          if (event.type === 'delta') streamed += event.text
+          else toolStatus = event.source ?? event.tool
+          onStream?.({ text: streamed, toolStatus })
+        },
       })
       if (response.ok) {
-        if (response.proposal) return proposalMessage(response.text, response.proposal, response.sources)
-        return { id: nid(), role: 'agent', text: response.text, sample: false, conversation: true, source: 'REAL_PROVIDER', dataSources: response.sources }
+        const extra: Partial<Msg> = { dataSources: response.sources, ...(response.charts ? { charts: response.charts } : {}), ...applyMemoryUpdates(response.memory) }
+        if (response.plan) return { id: nid(), role: 'agent', text: response.text, sample: false, conversation: true, source: 'REAL_PROVIDER', plan: { steps: response.plan, done: response.plan.map(() => false) }, ...extra }
+        if (response.proposal) return actionMessageFromStep(response.proposal, response.text, extra)
+        return { id: nid(), role: 'agent', text: response.text, sample: false, conversation: true, source: 'REAL_PROVIDER', ...extra }
       }
       aiUnavailable = true
     }
     const chat = async (topic: typeof routed.topic, intent: 'CHAT' | 'INFORMATION', toolResult?: unknown, fallback?: string) => {
       if (aiUnavailable) return { text: fallback || localChatReply(topic, locale, true), source: 'LOCAL_FALLBACK' as const }
-      const response = await requestMakotoChat({ message: q, topic, context: { locale: lang, mode: w.mode, ...(w.mode === 'connected' ? { chain: ARC.name as 'Arc Testnet' } : {}), intent, toolResult }, history, address: w.mode !== 'demo' ? w.address : undefined })
+      const response = await requestMakotoChat({ message: q, topic, context: { locale: lang, mode: w.mode, ...(w.mode === 'connected' ? { chain: ARC.name as 'Arc Testnet' } : {}), intent, toolResult }, history, address: w.mode !== 'demo' ? w.address : undefined, memory: requestMemory() })
       return response.ok ? { text: response.text, source: response.source } : { text: fallback || localChatReply(topic, locale, true), source: 'LOCAL_FALLBACK' as const }
     }
     if (routed.category === 'CHAT') {
@@ -480,13 +672,18 @@ export default function AgentPage() {
           (e): AgentEvidence => ({ status: 'UNAVAILABLE', reason: e instanceof Error ? e.message : 'Live evidence unavailable', observedAt: Date.now(), executionEnabled: false })
         )
       : undefined
-    liveEvidence = observed ? { status: observed.status, reason: observed.reason, quoteExpiresAt: observed.quoteExpiresAt } : undefined
+    evidence.value = observed ? { status: observed.status, reason: observed.reason, quoteExpiresAt: observed.quoteExpiresAt } : undefined
+    const liveEvidence = evidence.value
     if (structured.status === 'INFORMATION' && structured.topic === 'current-datetime') {
       const currentTime = getCurrentDateTime()
       const rendered = formatCurrentDateTime(currentTime, locale)
       return { id: nid(), role: 'agent', text: locale === 'vi' ? `Hi\u1ec7n t\u1ea1i l\u00e0 ${rendered}.` : `It is ${rendered}.`, datetime: currentTime, conversation: true, source: 'DETERMINISTIC_TOOL' }
     }
-    if (structured.status === 'STRATEGY') return { id: nid(), role: 'agent', text: 'This is a structured sequential plan for review only. Each action needs fresh reads, policy review, its own wallet confirmation and receipt before the next step.', strategyKinds: structured.intents.map((intent) => intent.kind), liveEvidence }
+    if (structured.status === 'STRATEGY') {
+      const steps = planStepsFromText(q, locale)
+      if (steps) return { id: nid(), role: 'agent', text: lang === 'vi' ? 'Mình đã chia yêu cầu thành các bước. Mỗi bước có thẻ duyệt và chữ ký ví riêng.' : 'I split your request into steps. Each step gets its own review and wallet signature.', source: 'REAL_PROVIDER', conversation: true, plan: { steps, done: steps.map(() => false) } }
+      return { id: nid(), role: 'agent', text: 'This is a structured sequential plan for review only. Each action needs fresh reads, policy review, its own wallet confirmation and receipt before the next step.', strategyKinds: structured.intents.map((intent) => intent.kind), liveEvidence }
+    }
     if (q.toLowerCase().match(/\b(?:and then|then|sau đó|rồi)\b/)) return { id: nid(), role: 'agent', text: 'I cannot safely prepare this sequence yet.', rows: 'reasons' in structured ? structured.reasons.map((reason) => ['Missing', reason]) : [] }
     if (brain.action) {
       const a = brain.action
@@ -530,23 +727,56 @@ export default function AgentPage() {
     setMsgs((m) => [...m, { id: nid(), role: 'user', text: q }])
     setInput('')
     setTyping(true)
+    const streamId = nid()
+    const onStream = ({ text, toolStatus }: { text: string; toolStatus?: string }) => setMsgs((m) => {
+      const placeholder: Msg = { id: streamId, role: 'agent', text, source: 'REAL_PROVIDER', streaming: true, toolStatus }
+      return m.some((x) => x.id === streamId) ? m.map((x) => x.id === streamId ? placeholder : x) : [...m, placeholder]
+    })
+    const finish = (answer: Msg) => {
+      setMsgs((m) => [...m.filter((x) => x.id !== streamId), answer])
+      setTyping(false)
+    }
     setTimeout(() => {
-      void plan(q, history, forcedTaskMode).then((answer) => {
+      void plan(q, history, forcedTaskMode, onStream).then((answer) => {
         if (answer.conversation) chatHistory.current = appendChatHistory(chatHistory.current, { role: 'assistant', content: answer.text })
-        setMsgs((m) => [...m, answer])
-        setTyping(false)
+        finish(answer)
       }).catch(() => {
         const answer: Msg = { id: nid(), role: 'agent', text: 'Live data is unavailable. Please try again.', conversation: true, source: 'LOCAL_FALLBACK' }
         chatHistory.current = appendChatHistory(chatHistory.current, { role: 'assistant', content: tr(answer.text) })
-        setMsgs((m) => [...m, answer])
-        setTyping(false)
+        finish(answer)
       })
-    }, 500)
+    }, 150)
   }
   const runAction = (action: AgentAction) => {
     if (typing) return
     if (action.target.type === 'go') w.go(action.target.page)
     else ask(tr(action.target.prompt))
+  }
+  const patchPlan = (planId: string, fn: (plan: PlanState) => PlanState) => setMsgs((m) => m.map((x) => x.id === planId && x.plan ? { ...x, plan: fn(x.plan) } : x))
+  const startPlanStep = async (planId: string, index: number) => {
+    const owner = msgs.find((x) => x.id === planId)
+    const step = owner?.plan?.steps[index]
+    if (!owner?.plan || !step || owner.plan.activeIndex !== undefined || owner.plan.done.slice(0, index).some((value) => !value)) return
+    patchPlan(planId, (plan) => ({ ...plan, activeIndex: index, failedIndex: undefined }))
+    const vi = lang === 'vi'
+    const answer = await actionMessageFromStep(step, vi ? `Bước ${index + 1}/${owner.plan.steps.length}: ${describeStep(step, true)}.` : `Step ${index + 1}/${owner.plan.steps.length}: ${describeStep(step, false)}.`, { planRef: { planId, index } })
+    if (!answer.flow) patchPlan(planId, (plan) => ({ ...plan, activeIndex: undefined, failedIndex: index }))
+    setMsgs((m) => [...m, answer])
+  }
+  const resetPlanStep = (planId: string, index: number) => patchPlan(planId, (plan) => plan.activeIndex === index ? { ...plan, activeIndex: undefined, failedIndex: index } : plan)
+  const setOffer = (msgId: string, address: string, state: ContactOffer['state']) => setMsgs((m) => m.map((x) => x.id === msgId && x.contactOffers ? { ...x, contactOffers: x.contactOffers.map((o) => o.address === address ? { ...o, state } : o) } : x))
+  const saveOffer = (msgId: string, offer: ContactOffer) => {
+    const check = contactSaveCheck(offer.name, offer.address, w.contacts)
+    if (check === 'invalid') return
+    if (check === 'duplicate-address') { setOffer(msgId, offer.address, 'duplicate'); return }
+    const name = check === 'duplicate-name' ? `${offer.name} (${offer.address.slice(2, 6)})` : offer.name
+    w.setContacts([...w.contacts, { name, address: offer.address }])
+    setOffer(msgId, offer.address, 'saved')
+    w.notify(tr('Contact saved'))
+  }
+  const undoNote = (msgId: string, id: string) => {
+    updateMemory((current) => removeNote(current, id))
+    setMsgs((m) => m.map((x) => x.id === msgId && x.memoryNotes ? { ...x, memoryNotes: x.memoryNotes.filter((note) => note.id !== id) } : x))
   }
   const patch = (id: string, fn: (f: Flow) => Flow) => setMsgs((m) => m.map((x) => x.id === id && x.flow ? { ...x, flow: fn(x.flow) } : x))
 
@@ -660,8 +890,12 @@ export default function AgentPage() {
             <div key={m.id} className="flex gap-2.5 mk-in">
               <span className="mt-0.5"><Orb size={26} /></span>
               <div className="flex-1 min-w-0 max-w-[560px]">
-                <div className="text-[14px] leading-relaxed">{m.source === 'REAL_PROVIDER' ? <AgentMarkdown text={m.text} /> : messageText(m)}</div>
+                {m.streaming && m.toolStatus && !m.text && <p className={`text-[13px] ${T.sub} animate-pulse`} data-tool-status>{lang === 'vi' ? 'Đang tra' : 'Checking'}: {tr(m.toolStatus)}…</p>}
+                {(!m.streaming || m.text) && <div className="text-[14px] leading-relaxed" aria-live={m.streaming ? 'polite' : undefined} aria-busy={m.streaming || undefined}>{m.source === 'REAL_PROVIDER' ? <AgentMarkdown text={m.text} /> : messageText(m)}{m.streaming && <span aria-hidden className="inline-block w-1.5 h-3.5 ml-0.5 align-[-2px] bg-neon-300/70 animate-pulse" />}</div>}
+                {m.charts?.map((chart) => <AgentPriceChart key={`${chart.symbol}-${chart.timeRange}`} chart={chart} />)}
                 {m.dataSources && m.dataSources.length > 0 && <SourcesLine sources={m.dataSources} />}
+                {(m.memoryNotes?.length || m.contactOffers?.length) ? <MemoryReplyLines msg={m} onUndoNote={(id) => undoNote(m.id, id)} onSaveContact={(offer) => saveOffer(m.id, offer)} onDismissContact={(offer) => setOffer(m.id, offer.address, 'dismissed')} /> : null}
+                {m.plan && <PlanCard msg={m} onStart={(index) => void startPlanStep(m.id, index)} onReset={(index) => resetPlanStep(m.id, index)} />}
                 {m.aiProposal && <p className="mt-2 text-[12px] text-neon-300/90">{tr('Makoto prepared a review card below. Nothing is sent until you confirm in your wallet.')}</p>}
                 {messageRows(m).length ? (
                   <dl className="mt-2 rounded-xl border border-white/[0.07] divide-y divide-white/[0.05] text-[13px]">
@@ -673,7 +907,7 @@ export default function AgentPage() {
                     msg={m}
                     onChange={(p) => patch(m.id, (f) => ({ ...f, params: { ...f.params, ...p } }))}
                     onSlipChange={(s) => patch(m.id, (f) => ({ ...f, execSlip: s }))}
-                    onSpeedChange={(s) => patch(m.id, (f) => ({ ...f, execSpeed: s }))}
+                    onSpeedChange={(s) => { patch(m.id, (f) => ({ ...f, execSpeed: s })); updateMemory((current) => setBridgeSpeed(current, s)) }}
                     onConfirm={() => confirm(m.id)}
                     onEdit={() => patch(m.id, (f) => { const requested = createAgentSession(nid()); const planned = transitionAgentSession(requested, { type: 'plan-ready', planId: nid(), now: Date.now() }); return { ...f, stage: 2, handedOff: false, brainReview: undefined, execCard: undefined, session: planned.accepted ? planned.state : requested } })}
                     onContinue={() => cont(m)}
@@ -695,6 +929,13 @@ export default function AgentPage() {
                     const succeeded = outcome === 'confirmed' || outcome === 'completed'
                     patch(m.id, (x) => ({ ...x, execCard: undefined, handedOff: succeeded, stage: succeeded ? STEPS.length : 3 }))
                     if (succeeded) w.notify(tr('Transaction complete'), 'ok')
+                    // A plan step counts as done only with this in-chat, receipt-confirmed outcome.
+                    if (m.planRef) {
+                      const { planId, index } = m.planRef
+                      patchPlan(planId, (plan) => plan.activeIndex !== index ? plan : succeeded
+                        ? { ...plan, activeIndex: undefined, failedIndex: undefined, done: plan.done.map((value, i) => i === index ? true : value) }
+                        : { ...plan, activeIndex: undefined, failedIndex: index })
+                    }
                     // failed / rejected / unknown: card closes silently — the card already showed the error
                   }
                   if (f.intent === 'send') {
@@ -731,7 +972,7 @@ export default function AgentPage() {
               </div>
             </div>
           ))}
-          {typing && <div className="flex gap-2.5 items-center"><Orb size={26} /><span className={`text-[13px] ${T.sub} animate-pulse`}>{tr('Checking live data…')}</span></div>}
+          {typing && !msgs.some((x) => x.streaming) && <div className="flex gap-2.5 items-center"><Orb size={26} /><span className={`text-[13px] ${T.sub} animate-pulse`}>{tr('Checking live data…')}</span></div>}
           <div ref={end} />
         </div>
 
@@ -742,7 +983,7 @@ export default function AgentPage() {
           </div>
         </form>
       </Card>
-      <aside className="hidden lg:block sticky top-[76px]"><ContextPanel flow={current} actions={msgs.length ? agentActions : []} onAction={runAction} /></aside>
+      <aside className="hidden lg:block sticky top-[76px]"><ContextPanel flow={current} actions={msgs.length ? agentActions : []} onAction={runAction} memoryNotes={memory.notes} onRemoveNote={(id) => updateMemory((current) => removeNote(current, id))} /></aside>
     </div>
   )
 }

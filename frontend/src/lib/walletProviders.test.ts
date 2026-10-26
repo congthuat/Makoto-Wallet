@@ -292,3 +292,45 @@ test('account changes during connection fail before provider commit', async () =
   await assert.rejects(connectWallet(getBrowserWallets()[0]), /account changed/)
   assert.equal(getProvider(), undefined)
 }))
+
+test('catalog wallets are recognised from their EIP-6963 rdns', async () => withBrowser(async ({ announce }) => {
+  const expected: [string, string, string][] = [
+    ['com.coinbase.wallet', 'Coinbase Wallet', 'coinbase'], ['com.trustwallet.app', 'Trust Wallet', 'trust'],
+    ['com.bitget.web3', 'Bitget Wallet', 'bitget'], ['app.phantom', 'Phantom', 'phantom'], ['me.rainbow', 'Rainbow', 'rainbow'],
+    ['io.zerion.wallet', 'Zerion', 'zerion'], ['com.brave.wallet', 'Brave Wallet', 'brave'], ['com.example.wallet', 'Example Wallet', 'other'],
+  ]
+  expected.forEach(([walletRdns, name], index) => announce('other', provider().value, 10 + index, { rdns: walletRdns, name }))
+  assert.deepEqual(getBrowserWallets().map((wallet) => [wallet.rdns, wallet.name, wallet.kind]), expected)
+}))
+
+test('legacy injected flags identify wallets that also claim isMetaMask', async () => {
+  const cases: [object, string][] = [
+    [{ isTrust: true, isMetaMask: true }, 'trust'], [{ isCoinbaseWallet: true }, 'coinbase'], [{ isBitKeep: true, isMetaMask: true }, 'bitget'],
+    [{ isPhantom: true, isMetaMask: true }, 'phantom'], [{ isRainbow: true, isMetaMask: true }, 'rainbow'], [{ isZerion: true, isMetaMask: true }, 'zerion'],
+    [{ isBraveWallet: true, isMetaMask: true }, 'brave'], [{ isMetaMask: true }, 'metamask'],
+  ]
+  for (const [flags, kind] of cases) {
+    const { host } = browser()
+    host.ethereum = provider(flags).value
+    const registry = createWalletProviderRegistry(host)
+    registry.start()
+    assert.deepEqual(registry.getWallets().map((wallet) => wallet.kind), [kind], JSON.stringify(flags))
+  }
+})
+
+test('wallet-specific globals are listed separately from a shared window.ethereum', async () => {
+  const { host } = browser()
+  const phantom = provider({ isPhantom: true }), metamask = provider({ isMetaMask: true })
+  host.phantom = { ethereum: phantom.value }
+  host.ethereum = metamask.value
+  const registry = createWalletProviderRegistry(host)
+  registry.start()
+  assert.deepEqual(registry.getWallets().map((wallet) => wallet.kind), ['phantom', 'metamask'])
+  // Discovery is read-only: no wallet was asked for accounts.
+  assert.deepEqual([...phantom.calls, ...metamask.calls], [])
+  // A legacy preference for a new wallet kind survives a reload.
+  registry.commit(phantom.value)
+  const reloaded = createWalletProviderRegistry(host)
+  reloaded.start()
+  assert.equal(reloaded.getProvider(), phantom.value)
+})

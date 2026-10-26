@@ -1,12 +1,20 @@
 /** Browser discovery stores provider references, never keys or signing authority. */
+import { WALLET_CATALOG, catalogKindForRdns, type CatalogWalletKind } from './walletCatalog.ts'
+
 export type Eip1193 = {
   request: (args: { method: string; params?: unknown[] }) => Promise<any>
   on?: (event: string, callback: (...args: any[]) => void) => void
   removeListener?: (event: string, callback: (...args: any[]) => void) => void
 }
 
-type InjectedProvider = Eip1193 & { isMetaMask?: boolean; isRabby?: boolean; isOkxWallet?: boolean; isOKExWallet?: boolean; providers?: InjectedProvider[] }
-export type WalletKind = 'okx' | 'metamask' | 'rabby' | 'other'
+type InjectedProvider = Eip1193 & {
+  isMetaMask?: boolean; isRabby?: boolean; isOkxWallet?: boolean; isOKExWallet?: boolean
+  isCoinbaseWallet?: boolean; isTrust?: boolean; isTrustWallet?: boolean; isBitKeep?: boolean; isBitgetWallet?: boolean
+  isPhantom?: boolean; isRainbow?: boolean; isZerion?: boolean; isBraveWallet?: boolean
+  providers?: InjectedProvider[]
+}
+export type WalletKind = CatalogWalletKind | 'other'
+const WALLET_KINDS: readonly WalletKind[] = [...WALLET_CATALOG.map((wallet) => wallet.kind), 'other']
 export type BrowserWallet = {
   id: string
   name: string
@@ -20,26 +28,37 @@ type Preference = { source: 'eip6963'; rdns: string; name: string } | { source: 
 export type WalletBrowserHost = {
   ethereum?: InjectedProvider
   okxwallet?: InjectedProvider
+  phantom?: { ethereum?: InjectedProvider }
+  bitkeep?: { ethereum?: InjectedProvider }
+  trustwallet?: InjectedProvider
+  coinbaseWalletExtension?: InjectedProvider
   localStorage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
   addEventListener?: (name: string, callback: EventListener) => void
   dispatchEvent?: (event: Event) => boolean
 }
 
 declare global {
-  interface Window { ethereum?: InjectedProvider; okxwallet?: InjectedProvider }
+  interface Window {
+    ethereum?: InjectedProvider; okxwallet?: InjectedProvider; phantom?: { ethereum?: InjectedProvider }
+    bitkeep?: { ethereum?: InjectedProvider }; trustwallet?: InjectedProvider; coinbaseWalletExtension?: InjectedProvider
+  }
 }
 
 const preferenceKey = 'mk.wallet.provider.v1'
-const names: Record<WalletKind, string> = { okx: 'OKX Wallet', metamask: 'MetaMask', rabby: 'Rabby', other: 'Other browser wallet' }
+const names = Object.fromEntries([...WALLET_CATALOG.map((wallet) => [wallet.kind, wallet.name]), ['other', 'Other browser wallet']]) as Record<WalletKind, string>
 const isProvider = (value: unknown): value is InjectedProvider => !!value && typeof value === 'object' && typeof (value as Eip1193).request === 'function'
 const walletKind = (provider: InjectedProvider, rdns?: string): WalletKind => {
-  if (rdns === 'com.okex.wallet' || rdns === 'com.okx.wallet') return 'okx'
-  if (rdns === 'io.rabby') return 'rabby'
-  if (rdns === 'io.metamask') return 'metamask'
-  if (rdns) return 'other'
-  // Rabby and other wallets may also advertise isMetaMask for compatibility.
+  if (rdns) return catalogKindForRdns(rdns) ?? 'other'
+  // Many wallets also advertise isMetaMask for compatibility, so it is checked last.
   if (provider.isRabby) return 'rabby'
   if (provider.isOkxWallet || provider.isOKExWallet) return 'okx'
+  if (provider.isCoinbaseWallet) return 'coinbase'
+  if (provider.isTrust || provider.isTrustWallet) return 'trust'
+  if (provider.isBitKeep || provider.isBitgetWallet) return 'bitget'
+  if (provider.isPhantom) return 'phantom'
+  if (provider.isRainbow) return 'rainbow'
+  if (provider.isZerion) return 'zerion'
+  if (provider.isBraveWallet) return 'brave'
   if (provider.isMetaMask) return 'metamask'
   return 'other'
 }
@@ -48,7 +67,7 @@ function readPreference(host: WalletBrowserHost): Preference | undefined {
   try {
     const value = JSON.parse(host.localStorage?.getItem(preferenceKey) ?? 'null')
     if (value?.source === 'eip6963' && typeof value.rdns === 'string' && typeof value.name === 'string') return value
-    if (value?.source === 'legacy' && ['okx', 'metamask', 'rabby', 'other'].includes(value.kind)) return value
+    if (value?.source === 'legacy' && WALLET_KINDS.includes(value.kind)) return value
   } catch { /* A damaged preference cannot authorize a different wallet. */ }
 }
 
@@ -65,12 +84,18 @@ export function createWalletProviderRegistry(host: WalletBrowserHost) {
   const publish = () => { revision++; listeners.forEach((listener) => listener()) }
   const refresh = () => {
     const next = [...announced.values()]
-    const legacy = [host.okxwallet, ...(Array.isArray(host.ethereum?.providers) ? host.ethereum.providers : []), host.ethereum]
+    // Wallet-specific globals first, so a shared window.ethereum alias does not hide them.
+    const namedGlobals: [InjectedProvider | undefined, WalletKind][] = [
+      [host.okxwallet, 'okx'], [host.phantom?.ethereum, 'phantom'], [host.bitkeep?.ethereum, 'bitget'],
+      [host.trustwallet, 'trust'], [host.coinbaseWalletExtension, 'coinbase'],
+    ]
+    const named = new Map(namedGlobals.filter(([provider]) => isProvider(provider)) as [InjectedProvider, WalletKind][])
+    const legacy = [...named.keys(), ...(Array.isArray(host.ethereum?.providers) ? host.ethereum.providers : []), host.ethereum]
     for (const provider of legacy) {
       if (!isProvider(provider) || next.some((entry) => entry.provider === provider)) continue
       // A multi-provider container is not itself an independently selectable wallet.
       if (provider === host.ethereum && Array.isArray(provider.providers) && provider.providers.length) continue
-      const kind = provider === host.okxwallet ? 'okx' : walletKind(provider)
+      const kind = named.get(provider) ?? walletKind(provider)
       // Prefer announced interfaces over mutable compatibility aliases. Unknown
       // global aliases cannot safely identify an additional wallet once discovery works.
       if (announced.size && (kind === 'other' || next.some((entry) => entry.source === 'eip6963' && entry.kind === kind))) continue

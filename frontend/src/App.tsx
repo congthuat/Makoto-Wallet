@@ -162,7 +162,7 @@ function Notifications({ open, onToggle, onClose }: { open: boolean; onToggle: (
   )
 }
 
-const FLAG: Record<string, string> = { en: 'EN', vi: 'VI', zh: '中', ja: '日', ko: '한' }
+const FLAG: Record<string, string> = { en: 'EN', vi: 'VI' }
 function LangSwitcher({ open, onToggle, onClose }: { open: boolean; onToggle: () => void; onClose: () => void }) {
   const [tr, lang] = useT()
   const triggerRef = useRef<HTMLButtonElement>(null)

@@ -181,13 +181,17 @@ const TOOLS = {
       required: ['symbol', 'time_range'],
       additionalProperties: false,
     },
-    async run(args) {
+    async run(args, ctx) {
       const symbol = String(args.symbol || '').trim().toUpperCase()
       if (!SYMBOL.test(symbol)) throw new ToolInputError('Invalid symbol')
       const timeRange = ['1d', '7d', '14d', '30d', '90d', '180d', '365d'].includes(args.time_range) ? args.time_range : '7d'
       const result = await dataApi.market.price({ symbol, time_range: timeRange })
       const summary = seriesSummary(result?.data)
-      return summary ? { status: 'OK', symbol, time_range: timeRange, currency: 'USD', ...summary } : { status: 'UNAVAILABLE', symbol, reason: 'No price data for this symbol' }
+      if (!summary) return { status: 'UNAVAILABLE', symbol, reason: 'No price data for this symbol' }
+      // The UI draws this series as a chart; the model only receives the summary.
+      const points = downsample(result.data, 60)
+      if (points.length >= 2 && ctx && Array.isArray(ctx.charts) && ctx.charts.length < 3) ctx.charts.push({ symbol, time_range: timeRange, currency: 'USD', points })
+      return { status: 'OK', symbol, time_range: timeRange, currency: 'USD', ...summary, chart: 'shown to the user' }
     },
   },
   get_crypto_news: {
@@ -245,18 +249,91 @@ const TOOLS = {
         asset: { type: 'string', enum: ['USDC', 'EURC', 'cirBTC'] },
         amount: { type: 'string', description: 'Exact positive decimal amount, e.g. "5" or "12.5".' },
         recipient: { type: ['string', 'null'], description: 'Full 0x recipient address for send, otherwise null.' },
+        recipient_contact: { type: ['string', 'null'], description: 'For send to a saved contact: the contact name exactly as listed in the user memory (Makoto resolves the address on the device). Otherwise null.' },
         output_asset: { type: ['string', 'null'], enum: ['USDC', 'EURC', null], description: 'Asset to receive for swap, otherwise null.' },
       },
-      required: ['kind', 'asset', 'amount', 'recipient', 'output_asset'],
+      required: ['kind', 'asset', 'amount', 'recipient', 'recipient_contact', 'output_asset'],
       additionalProperties: false,
     },
     async run(args, ctx) {
+      if (ctx.plan) return { status: 'REJECTED', reason: 'A multi-step plan was already proposed in this reply.' }
       const proposal = validateProposal(args)
       if (!proposal.ok) return { status: 'REJECTED', reason: proposal.reason }
       ctx.proposal = proposal.value
       return { status: 'PROPOSED_FOR_USER_REVIEW', proposal: proposal.value, note: 'Nothing was executed. The user will see a review card, Makoto re-checks balance and policy, and the user signs in their own wallet.' }
     },
   },
+  propose_plan: {
+    source: 'Makoto planner',
+    description: 'Propose a SEQUENCE of 2-3 wallet actions the user asked for in one message (e.g. "swap 10 USDC to EURC then send 5 EURC to Lan"). Executes NOTHING. Makoto shows a step list; each step is validated, reviewed and signed separately, and a step only starts after the previous one is confirmed on-chain. Every step needs an exact amount; do not chain an unknown output amount.',
+    parameters: {
+      type: 'object',
+      properties: {
+        steps: {
+          type: 'array',
+          description: '2 or 3 steps in order.',
+          items: {
+            type: 'object',
+            properties: {
+              kind: { type: 'string', enum: ['send', 'swap', 'bridge'] },
+              asset: { type: 'string', enum: ['USDC', 'EURC', 'cirBTC'] },
+              amount: { type: 'string' },
+              recipient: { type: ['string', 'null'] },
+              recipient_contact: { type: ['string', 'null'] },
+              output_asset: { type: ['string', 'null'], enum: ['USDC', 'EURC', null] },
+            },
+            required: ['kind', 'asset', 'amount', 'recipient', 'recipient_contact', 'output_asset'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['steps'],
+      additionalProperties: false,
+    },
+    async run(args, ctx) {
+      const steps = Array.isArray(args.steps) ? args.steps : []
+      if (steps.length < 2 || steps.length > 3) return { status: 'REJECTED', reason: 'A plan needs 2 or 3 steps; use propose_action for a single action.' }
+      const checked = steps.map(validateProposal)
+      const bad = checked.findIndex((item) => !item.ok)
+      if (bad >= 0) return { status: 'REJECTED', reason: `Step ${bad + 1}: ${checked[bad].reason}` }
+      if (ctx.proposal) return { status: 'REJECTED', reason: 'A single action was already proposed in this reply.' }
+      ctx.plan = checked.map((item) => item.value)
+      return { status: 'PLAN_PROPOSED_FOR_USER_REVIEW', steps: ctx.plan, note: 'Nothing was executed. Each step is reviewed and signed separately, in order.' }
+    },
+  },
+  remember_note: {
+    source: 'Makoto memory',
+    description: 'Save a short preference or fact the user explicitly asked Makoto to remember (e.g. "remember I prefer standard bridge speed", "nhớ là mình thích trả lời ngắn"). Stored only on the user\'s device. Never store secrets, seed phrases, private keys or addresses here.',
+    parameters: { type: 'object', properties: { note: { type: 'string', description: 'The preference in one short sentence (max 200 characters).' } }, required: ['note'], additionalProperties: false },
+    async run(args, ctx) {
+      const note = typeof args.note === 'string' ? args.note.replace(/\s+/g, ' ').trim().slice(0, 200) : ''
+      if (!note) return { status: 'REJECTED', reason: 'Empty note' }
+      if (/0x[0-9a-fA-F]{40}|seed|mnemonic|private key|khóa riêng|cụm từ khôi phục/i.test(note)) return { status: 'REJECTED', reason: 'Do not store addresses or secrets in memory; use save_contact for addresses.' }
+      if (ctx.memory.length >= 3) return { status: 'REJECTED', reason: 'Too many memory updates in one reply' }
+      ctx.memory.push({ type: 'note', note })
+      return { status: 'SAVED_ON_DEVICE', note }
+    },
+  },
+  save_contact: {
+    source: 'Makoto memory',
+    description: 'Offer to save a named address book contact when the user asks (e.g. "save 0xabc... as Nam"). The user confirms with a button before it is saved on their device.',
+    parameters: { type: 'object', properties: { name: { type: 'string' }, address: { type: 'string', description: 'Full 0x address.' } }, required: ['name', 'address'], additionalProperties: false },
+    async run(args, ctx) {
+      const name = typeof args.name === 'string' ? args.name.replace(/\s+/g, ' ').trim().slice(0, 40) : ''
+      if (!name) return { status: 'REJECTED', reason: 'A contact name is required' }
+      if (!isAddress(args.address)) return { status: 'REJECTED', reason: 'A full 0x address is required' }
+      if (ctx.memory.length >= 3) return { status: 'REJECTED', reason: 'Too many memory updates in one reply' }
+      ctx.memory.push({ type: 'contact', name, address: args.address })
+      return { status: 'AWAITING_USER_CONFIRMATION', name, note: 'The user must press a button to save this contact.' }
+    },
+  },
+}
+
+function downsample(rows, maxPoints) {
+  const points = (Array.isArray(rows) ? rows : []).filter((row) => typeof row?.value === 'number' && Number.isFinite(row.value) && typeof row?.timestamp === 'number').sort((a, b) => a.timestamp - b.timestamp)
+  if (points.length <= maxPoints) return points.map((row) => [row.timestamp, round(row.value, 6)])
+  const step = (points.length - 1) / (maxPoints - 1)
+  return Array.from({ length: maxPoints }, (_, index) => points[Math.round(index * step)]).map((row) => [row.timestamp, round(row.value, 6)])
 }
 
 function validateProposal(args) {
@@ -267,8 +344,10 @@ function validateProposal(args) {
   const asset = ['USDC', 'EURC', 'cirBTC'].includes(args.asset) ? args.asset : undefined
   if (!asset) return { ok: false, reason: 'Unsupported asset' }
   if (kind === 'send') {
-    if (!isAddress(args.recipient)) return { ok: false, reason: 'A full 0x recipient address is required for send.' }
-    return { ok: true, value: { kind, asset, amount, recipient: args.recipient } }
+    if (isAddress(args.recipient)) return { ok: true, value: { kind, asset, amount, recipient: args.recipient } }
+    const contact = typeof args.recipient_contact === 'string' ? args.recipient_contact.replace(/\s+/g, ' ').trim() : ''
+    if (contact && contact.length <= 40) return { ok: true, value: { kind, asset, amount, recipientContact: contact } }
+    return { ok: false, reason: 'A full 0x recipient address or a saved contact name is required for send.' }
   }
   if (kind === 'swap') {
     if (asset === 'cirBTC') return { ok: false, reason: 'Swap supports USDC <-> EURC only.' }
@@ -305,4 +384,4 @@ async function runTool(name, rawArguments, ctx) {
   }
 }
 
-module.exports = { TOOLS, toolDefinitions, runTool, validateProposal, seriesSummary, isAddress }
+module.exports = { TOOLS, toolDefinitions, runTool, validateProposal, seriesSummary, downsample, isAddress }

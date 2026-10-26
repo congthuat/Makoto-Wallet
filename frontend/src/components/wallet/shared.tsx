@@ -10,6 +10,7 @@ import { Badge, Button, Logo, Modal, StatusChip, T, TokenIcon, inputCls, Avatar 
 import { translate, useT } from '../../lib/i18n'
 import { browserWalletRevision, discoverBrowserWallets, getBrowserWallets, getProvider, subscribeBrowserWallets, type BrowserWallet, type WalletKind } from '../../lib/walletProviders'
 import { walletPickerCopy } from '../../lib/walletPickerCopy'
+import { WALLET_CATALOG } from '../../lib/walletCatalog'
 import { WalletProviderIcon } from './WalletProviderIcon'
 import { createReceiveShareData } from '../../lib/receiveShare'
 import { ReceiveSharePanel } from './ReceiveSharePanel'
@@ -267,13 +268,14 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   // Revision subscribes to late wallet announcements and successful selections.
   void revision
   const wallets = getBrowserWallets()
-  const kinds: WalletKind[] = ['okx', 'metamask', 'rabby']
-  const names = { okx: 'OKX Wallet', metamask: 'MetaMask', rabby: 'Rabby', other: copy.other }
-  const rows = kinds.flatMap<{ id: string; kind: WalletKind; name: string; wallet?: BrowserWallet }>((kind) => {
-    const detected = wallets.filter((wallet) => wallet.kind === kind)
-    return detected.length ? detected.map((wallet) => ({ id: wallet.id, kind, name: wallet.name, wallet })) : [{ id: kind, kind, name: names[kind] }]
-  })
-  rows.push(...wallets.filter((wallet) => wallet.kind === 'other').map((wallet) => ({ id: wallet.id, kind: wallet.kind, name: wallet.source === 'legacy' ? copy.other : wallet.name, wallet })))
+  // Detected wallets first (catalog order, then any other announced wallet); then the
+  // remaining catalog wallets as install links. Install rows never touch a provider.
+  type Row = { id: string; kind: WalletKind; name: string; wallet?: BrowserWallet; installUrl?: string }
+  const order = (kind: WalletKind) => { const index = WALLET_CATALOG.findIndex((entry) => entry.kind === kind); return index < 0 ? WALLET_CATALOG.length : index }
+  const rows: Row[] = [...wallets].sort((a, b) => order(a.kind) - order(b.kind))
+    .map((wallet) => ({ id: wallet.id, kind: wallet.kind, name: wallet.kind === 'other' && wallet.source === 'legacy' ? copy.other : wallet.name, wallet }))
+  const installRows: Row[] = WALLET_CATALOG.filter((entry) => !wallets.some((wallet) => wallet.kind === entry.kind))
+    .map((entry) => ({ id: `install:${entry.kind}`, kind: entry.kind, name: entry.name, installUrl: entry.installUrl }))
   const close = () => { connection.current?.abort(); connection.current = null; setPending(null); setFailed(false); onClose() }
   const choose = async (wallet: BrowserWallet) => {
     if (connection.current) return
@@ -294,7 +296,7 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <Modal open={open} onClose={close} title={tr('Connect a wallet')}>
       <p className={`text-[13px] ${T.sub}`}>{tr('Connect a browser wallet (transactions are authorized by your wallet), or watch a public address in read-only mode.')}</p>
-      <div className="mt-4 space-y-2" aria-label={tr('Browser wallet')}>
+      <div className="mt-4 space-y-2 max-h-[52vh] overflow-y-auto pr-1" aria-label={tr('Browser wallet')}>
         {rows.map((row) => {
           const connected = !!row.wallet && mode === 'connected' && getProvider() === row.wallet.provider
           return (
@@ -314,6 +316,18 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
             </button>
           )
         })}
+        {installRows.length > 0 && <p className={`pt-2 text-[11px] font-semibold tracking-[0.08em] uppercase ${T.mute}`}>{copy.more}</p>}
+        {installRows.map((row) => (
+          <a key={row.id} href={row.installUrl} target="_blank" rel="noopener noreferrer" data-wallet-kind={row.kind} data-wallet-install={row.kind}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl border border-white/[0.06] bg-transparent text-left transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/70">
+            <span className="opacity-80"><WalletProviderIcon kind={row.kind} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold text-[14px] break-words">{row.name}</span>
+              <span className={`block text-[12px] ${T.mute}`}>{copy.notInstalled}</span>
+            </span>
+            <span className="shrink-0 inline-flex items-center gap-1 text-[12px] font-semibold text-neon-300">{copy.install} <ExternalLink aria-hidden size={13} /></span>
+          </a>
+        ))}
       </div>
       <p className={`mt-3 text-[12px] leading-relaxed ${T.mute}`}>{wallets.length ? copy.choose : copy.none}</p>
       {failed && <p role="status" className="mt-2 text-[12px] text-rose-400">{copy.failed}</p>}

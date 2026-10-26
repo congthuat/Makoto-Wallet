@@ -14,7 +14,8 @@ const ADDRESS = '0x1111111111111111111111111111111111111111'
 
 test('model proposals are shape-checked; anything unexpected is dropped', () => {
   assert.deepEqual(parseProposal({ kind: 'send', asset: 'EURC', amount: '2.5', recipient: ADDRESS }), { kind: 'send', asset: 'EURC', amount: '2.5', recipient: ADDRESS })
-  assert.deepEqual(parseProposal({ kind: 'bridge', asset: 'USDC', amount: '25', destination: 'Base Sepolia', extra: 'ignored' }), { kind: 'bridge', asset: 'USDC', amount: '25', destination: 'Base Sepolia' })
+  assert.deepEqual(parseProposal({ kind: 'bridge', asset: 'USDC', amount: '25', destination: 'Base Sepolia', extra: 'ignored' }), { kind: 'bridge', asset: 'USDC', amount: '25' })
+  assert.deepEqual(parseProposal({ kind: 'send', asset: 'USDC', amount: '2', recipientContact: '  Lan  ' }), { kind: 'send', asset: 'USDC', amount: '2', recipientContact: 'Lan' })
   for (const bad of [
     undefined, null, 'send', {},
     { kind: 'send', asset: 'USDC', amount: 'MAX', recipient: ADDRESS },
@@ -40,7 +41,7 @@ test('proposals become canonical commands that the deterministic planner parses 
   assert.equal(swap.action?.outputAsset, 'USDC')
   assert.equal(swap.action?.amount, '4')
 
-  const bridge = planBrainRequest(proposalCommand({ kind: 'bridge', asset: 'USDC', amount: '25', destination: 'Base Sepolia' }), 'en')
+  const bridge = planBrainRequest(proposalCommand({ kind: 'bridge', asset: 'USDC', amount: '25' }), 'en')
   assert.equal(bridge.action?.kind, 'bridge')
   assert.equal(bridge.action?.amount, '25')
   assert.equal(bridge.action?.sourceChain, 'Arc Testnet')
@@ -51,14 +52,14 @@ test('proposals become canonical commands that the deterministic planner parses 
 test('chat client sends locale and public address, and returns validated proposal and sources', async () => {
   let body: Record<string, unknown> = {}
   const result = await requestMakotoChat({
-    message: 'こんにちは', topic: 'general', address: ADDRESS,
-    context: { locale: 'ja', mode: 'connected', chain: 'Arc Testnet', intent: 'CHAT' },
+    message: 'xin chào', topic: 'general', address: ADDRESS,
+    context: { locale: 'vi', mode: 'connected', chain: 'Arc Testnet', intent: 'CHAT' },
     fetcher: async (_url, init) => {
       body = JSON.parse(String(init?.body))
       return Response.json({ text: 'OK', sources: [{ source: 'Surf news', ok: true, observedAt: '2026-10-25T00:00:00.000Z' }, { bad: 1 }], proposal: { kind: 'send', asset: 'USDC', amount: 'MAX', recipient: ADDRESS } })
     },
   })
-  assert.equal(body.locale, 'ja')
+  assert.equal(body.locale, 'vi')
   assert.equal(body.address, ADDRESS)
   assert.deepEqual(result, { ok: true, text: 'OK', source: 'REAL_PROVIDER', sources: [{ source: 'Surf news', ok: true, observedAt: '2026-10-25T00:00:00.000Z' }] })
   await requestMakotoChat({ message: 'hi', topic: 'general', address: 'not-an-address', context: { locale: 'en', mode: 'demo', intent: 'CHAT' }, fetcher: async (_url, init) => { body = JSON.parse(String(init?.body)); return Response.json({ text: 'ok' }) } })

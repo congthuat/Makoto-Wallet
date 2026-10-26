@@ -30,8 +30,8 @@ Makoto is non-custodial: the connected wallet remains the final signer. The Agen
 
 | Area | Current capability |
 | --- | --- |
-| Agent | Natural-language chat; deterministic wallet, portfolio, and network reads; Send / Swap / Bridge planning and handoff. The LLM is used for conversation and explanation only. |
-| Wallet connection | EIP-6963 discovery and compatible injected providers, including detected OKX Wallet, MetaMask, Rabby, and other discovered wallets; public-address watch-only mode. |
+| Agent | Tool-using AI (OpenAI Responses) with streamed replies: read-only wallet, price, Arc network, Circle fee, market, news and project tools; price charts in chat; on-device memory and address book (names only reach the model); multi-step plans where each step is re-validated, reviewed and signed separately. Proposals always pass Makoto's deterministic planner and Policy/Risk; the model never signs. |
+| Wallet connection | EIP-6963 discovery and injected providers: MetaMask, OKX, Rabby, Coinbase Wallet, Trust Wallet, Bitget, Phantom, Rainbow, Zerion, Brave Wallet and any other announced wallet, with official install links for wallets that are not installed; public-address watch-only mode. |
 | Portfolio | Arc Testnet USDC, EURC, and cirBTC balances; CoinGecko pricing; server-authoritative recorded balance history with 1D / 1W / 1M / 1Y / ALL ranges. History starts with real observations, with no fake or backfilled points. |
 | Send | Reviewed connected-wallet ERC-20 transfers of USDC, EURC, and cirBTC. |
 | Swap | Connected Xylo USDC ↔ EURC flow, with exact finite approval and separate reviews where approval is required. |
@@ -40,7 +40,7 @@ Makoto is non-custodial: the connected wallet remains the final signer. The Agen
 | Receive | Address and QR receive flow. |
 | Activity | Evidence-based transaction and activity states, with pending, unknown, and confirmed outcomes kept distinct. |
 | Analytics | Read-only Arc network and onchain intelligence, with verified source labels and bounded transfer/holder samples. |
-| Localization / UI | Five-language UI: English, Vietnamese, Japanese, Korean, and Chinese; light/dark themes; responsive desktop and mobile layouts. |
+| Localization / UI | English and Vietnamese UI (earlier Chinese, Japanese and Korean choices fall back to English); light/dark themes; responsive desktop and mobile layouts. |
 | Get test tokens | Arc Testnet faucet surface linking to Circle's external faucet. Opening the faucet does not itself request or deliver tokens. |
 
 ## Agent safety model

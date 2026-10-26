@@ -6,13 +6,12 @@ import { AGENT_I18N } from './i18n-agent'
 export const LANGS = [
   { code: 'en', label: 'English' },
   { code: 'vi', label: 'Tiếng Việt' },
-  { code: 'zh', label: '中文' },
-  { code: 'ja', label: '日本語' },
-  { code: 'ko', label: '한국어' },
 ] as const
+/** Languages that were offered before; a saved choice of one of these now falls back to English. */
+const RETIRED_LANGS = ['zh', 'ja', 'ko']
 export type Lang = (typeof LANGS)[number]['code']
 
-/** English source string → [vi, zh, ja, ko]. Missing keys fall back to English. */
+/** English source string → [vi, zh, ja, ko]. Only the vi column is used now; missing keys fall back to English. */
 const DICT: Record<string, [string, string, string, string]> = {
   // Navigation
   DISCOVER: ['KHÁM PHÁ', '探索', '探索', '탐색'],
@@ -194,13 +193,14 @@ const DICT: Record<string, [string, string, string, string]> = {
   Explorer: ['Trình khám phá', '浏览器', 'エクスプローラー', '탐색기'],
 }
 
-const IDX: Record<Exclude<Lang, 'en'>, number> = { vi: 0, zh: 1, ja: 2, ko: 3 }
+const IDX: Record<Exclude<Lang, 'en'>, number> = { vi: 0 }
 const KEY = 'mk.lang'
 const listeners = new Set<() => void>()
 let current: Lang = (() => {
   try {
-    const v = localStorage.getItem(KEY) as Lang | null
-    if (v && LANGS.some((l) => l.code === v)) return v
+    const v = localStorage.getItem(KEY)
+    if (v && LANGS.some((l) => l.code === v)) return v as Lang
+    if (v && RETIRED_LANGS.includes(v)) { localStorage.setItem(KEY, 'en'); return 'en' }
     // First visit: follow the browser language when we support it
     const nav = (navigator.languages?.[0] ?? navigator.language ?? 'en').slice(0, 2).toLowerCase()
     return (LANGS.some((l) => l.code === nav) ? nav : 'en') as Lang

@@ -10,6 +10,9 @@ const en = {
   address: 'Public Arc address',
   watch: 'Watch address',
   other: 'Other browser wallet',
+  install: 'Install',
+  notInstalled: 'Not installed — opens the official download page',
+  more: 'More wallets',
 } as const
 const vi: Record<keyof typeof en, string> = {
   detected: 'Đã phát hiện',
@@ -23,5 +26,8 @@ const vi: Record<keyof typeof en, string> = {
   address: 'Địa chỉ Arc công khai',
   watch: 'Chỉ xem địa chỉ',
   other: 'Ví trình duyệt khác',
+  install: 'Cài đặt',
+  notInstalled: 'Chưa cài — mở trang tải chính thức',
+  more: 'Ví khác',
 }
 export const walletPickerCopy = (locale: string) => locale === 'vi' ? vi : en

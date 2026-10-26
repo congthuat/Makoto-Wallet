@@ -47,4 +47,8 @@ export const AGENT_I18N: Record<string, [string, string, string, string]> = {
   'Makoto separates preparation, review, wallet request, hash, and receipt evidence. Deterministic Policy/Risk remains authoritative; model text cannot bypass it.': ['Makoto luôn tách bước chuẩn bị, review, yêu cầu ví, hash và receipt. Policy/Risk quyết định tính hợp lệ; model không thể bỏ qua các bước đó.', 'Makoto 将准备、审核、钱包请求、哈希和回执证据分开处理。确定性的策略/风险检查始终具有最终决定权，模型文本无法绕过。', 'Makoto は準備・確認・ウォレット要求・ハッシュ・レシートを分けて扱います。決定論的なポリシー／リスク判定が常に優先され、モデルの文章では回避できません。', 'Makoto는 준비, 검토, 지갑 요청, 해시, 영수증 증거를 분리합니다. 결정론적 정책/리스크 판단이 항상 우선하며 모델 텍스트로 우회할 수 없습니다.'],
   'Chat service is temporarily unavailable, but wallet reads and local preparation flows are still available.': ['Dịch vụ chat đang tạm thời không khả dụng, nhưng đọc ví và các luồng chuẩn bị cục bộ vẫn hoạt động.', '聊天服务暂时不可用，但钱包读取和本地准备流程仍可使用。', 'チャットサービスは一時的に利用できませんが、ウォレットの読み取りとローカルの準備機能は使えます。', '채팅 서비스를 일시적으로 사용할 수 없지만, 지갑 조회와 로컬 준비 기능은 계속 사용할 수 있습니다.'],
   'How can I help? Ask about a balance or activity, or describe a Send, Swap, or Bridge request.': ['Mình có thể giúp gì cho bạn? Bạn có thể hỏi về số dư, hoạt động hoặc mô tả một Send, Swap hay Bridge.', '需要什么帮助？可以询问余额或活动，或描述发送、兑换、跨链请求。', '何をお手伝いしましょう？残高や履歴について聞くか、送金・スワップ・ブリッジの内容を伝えてください。', '무엇을 도와드릴까요? 잔액이나 활동을 묻거나 송금·스왑·브리지 요청을 설명해 주세요.'],
+  // Agent memory, plans and charts (vi column used; other columns kept for the tuple shape)
+  'Open Settings': ['Mở Cài đặt', '', '', ''],
+  Contacts: ['Danh bạ', '', '', ''],
+  'Use arrow keys to explore the chart.': ['Dùng phím mũi tên để xem các điểm trên biểu đồ.', '', '', ''],
 }

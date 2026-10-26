@@ -23,7 +23,7 @@ export function Sparkline({ points, up, width = 96, height = 32, color: c, fluid
   )
 }
 
-export function AreaChart({ points, height = 180, mask = (value) => value }: { points: Point[]; height?: number; mask?: (value: string) => string }) {
+export function AreaChart({ points, height = 180, mask = (value) => value, label }: { points: Point[]; height?: number; mask?: (value: string) => string; label?: string }) {
   const W = 800
   const [tr, language] = useT()
   const id = useId().replace(/:/g, '')
@@ -53,7 +53,7 @@ export function AreaChart({ points, height = 180, mask = (value) => value }: { p
   const valueText = hp ? `${formatDate(hp)}, ${mask(usd(hp[1]))}` : ''
 
   return (
-    <div ref={ref} role="slider" tabIndex={0} aria-label={tr('Recorded portfolio balance history')} aria-describedby={`${id}-help`}
+    <div ref={ref} role="slider" tabIndex={0} aria-label={label ?? tr('Recorded portfolio balance history')} aria-describedby={`${id}-help`}
       aria-valuemin={0} aria-valuemax={points.length - 1} aria-valuenow={selected ?? points.length - 1} aria-valuetext={valueText || `${formatDate(points[points.length - 1])}, ${mask(usd(points[points.length - 1][1]))}`}
       className="mk-portfolio-chart relative w-full select-none rounded-lg" style={{ height, touchAction: 'pan-y' }}
       onPointerMove={onMove} onPointerDown={(event) => { event.currentTarget.focus({ preventScroll: true }); onMove(event) }} onPointerLeave={(event) => { if (event.pointerType === 'mouse') setHover(null) }}
@@ -65,7 +65,7 @@ export function AreaChart({ points, height = 180, mask = (value) => value }: { p
         const current = selected ?? points.length - 1
         setHover(event.key === 'Home' ? 0 : event.key === 'End' ? points.length - 1 : Math.max(0, Math.min(points.length - 1, current + (event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? -1 : 1))))
       }}>
-      <span id={`${id}-help`} className="sr-only">{tr('Use arrow keys to explore recorded snapshots.')}</span>
+      <span id={`${id}-help`} className="sr-only">{tr(label ? 'Use arrow keys to explore the chart.' : 'Use arrow keys to explore recorded snapshots.')}</span>
       <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="absolute inset-0 w-full h-full" aria-hidden="true">
         <defs>
           <linearGradient id={`${id}-area`} x1="0" y1="0" x2="0" y2="1">

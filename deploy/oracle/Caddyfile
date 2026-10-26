@@ -10,7 +10,7 @@
 }
 
 {$MAKOTO_API_DOMAIN} {
-	encode zstd gzip
+	# No response compression: it would buffer the Agent's streamed (SSE) replies.
 	reverse_proxy 127.0.0.1:3001 {
 		header_up X-Forwarded-Proto https
 	}
