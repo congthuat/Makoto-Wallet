@@ -100,7 +100,8 @@ export type Contact = { name: string; address: string }
 // DEMO wallet — sample data for design preview, used until a wallet is connected / watched
 export const DEMO_ADDRESS = '0x1629…586B'
 export const DEMO_BALANCES: Record<string, number> = { USDC: 94.506457, EURC: 82.8626, cirBTC: 0.0004 }
-const demoTs = new Date('2026-09-24T18:21:00').getTime()
+// Sample data stays recent so it never looks like a stuck transaction.
+const demoTs = Date.now() - 6 * 3600_000
 export const DEMO_ACTIVITY: Tx[] = [
   { id: 'd6', timestamp: demoTs + 5 * 3600_000, direction: 'out', counterparty: '0x3600…Bridge', counterpartyName: 'Circle CCTP', symbol: 'USDC', amount: 10, verified: true, kind: 'bridge', status: 'pending', route: 'Arc Testnet → Base Sepolia' },
   { id: 'd5', timestamp: demoTs + 3 * 3600_000, direction: 'out', counterparty: '0x9aE1…44c0', symbol: 'USDC', amount: 5, verified: true, kind: 'send', status: 'failed', fee: 0.0021 },

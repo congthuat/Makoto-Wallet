@@ -38,8 +38,15 @@ function replyPayload(result) {
     ...(result.plan ? { plan: result.plan } : {}),
     ...(result.memory ? { memory: result.memory } : {}),
     ...(result.charts ? { charts: result.charts } : {}),
+    ...(result.followups ? { followups: result.followups } : {}),
   }
 }
+
+/** Public, secret-free status for the Status page. */
+router.get('/status', (_req, res) => {
+  const configured = Boolean(process.env.LLM_API_KEY && process.env.LLM_MODEL && process.env.LLM_BASE_URL)
+  res.set('Cache-Control', 'no-store').json({ status: configured ? 'ok' : 'unconfigured', streaming: true })
+})
 
 router.post('/chat', chatLimiter, async (req, res) => {
   const parsed = parseRequest(req.body)

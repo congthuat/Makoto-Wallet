@@ -1,16 +1,20 @@
 import { Fragment, type ReactNode } from 'react'
 
+const T_MUTE = 'text-[#8a8796]'
+
 /**
  * Minimal, safe Markdown subset for Agent replies: paragraphs, "-"/"*"/"1." lists,
  * **bold**, `code`, and [label](https://…) links. Model text is untrusted, so it is
  * rendered only as React text nodes — never as HTML. Links must be https and open
  * in a new tab with noopener/noreferrer.
  */
-type Block = { kind: 'p'; lines: string[] } | { kind: 'ul' | 'ol'; items: string[] } | { kind: 'h'; text: string }
+type Block = { kind: 'p'; lines: string[] } | { kind: 'ul' | 'ol'; items: string[] } | { kind: 'h'; text: string } | { kind: 'table'; rows: string[][] }
 
 const BULLET = /^\s*[-*•]\s+(.*)$/
 const NUMBERED = /^\s*\d{1,2}[.)]\s+(.*)$/
 const HEADING = /^\s{0,3}#{1,4}\s+(.*)$/
+const TABLE_ROW = /^\s*\|(.+)\|\s*$/
+const TABLE_RULE = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/
 
 export function parseAgentMarkdown(text: string): Block[] {
   const blocks: Block[] = []
@@ -18,6 +22,13 @@ export function parseAgentMarkdown(text: string): Block[] {
     const line = raw.trimEnd()
     const last = blocks[blocks.length - 1]
     if (!line.trim()) { blocks.push({ kind: 'p', lines: [] }); continue }
+    const row = line.match(TABLE_ROW)
+    if (row) {
+      if (TABLE_RULE.test(line)) continue
+      const cells = row[1].split('|').map((cell) => cell.trim())
+      if (last?.kind === 'table') last.rows.push(cells); else blocks.push({ kind: 'table', rows: [cells] })
+      continue
+    }
     const heading = line.match(HEADING)
     if (heading) { blocks.push({ kind: 'h', text: heading[1] }); continue }
     const bullet = line.match(BULLET)
@@ -58,6 +69,17 @@ export function AgentMarkdown({ text }: { text: string }) {
   return (
     <div className="space-y-2 [overflow-wrap:anywhere]">
       {blocks.map((block, blockIndex) => {
+        if (block.kind === 'table') {
+          const [head, ...body] = block.rows
+          return (
+            <div key={blockIndex} className="overflow-x-auto rounded-lg border border-white/[0.07]">
+              <table className="w-full text-[12.5px]">
+                <thead><tr>{head.map((cell, i) => <th key={i} className={`px-2.5 py-1.5 text-left font-semibold ${T_MUTE}`}>{renderInline(cell, `th${blockIndex}-${i}`)}</th>)}</tr></thead>
+                <tbody className="divide-y divide-white/[0.05]">{body.map((cells, r) => <tr key={r}>{cells.map((cell, i) => <td key={i} className="px-2.5 py-1.5 font-num">{renderInline(cell, `td${blockIndex}-${r}-${i}`)}</td>)}</tr>)}</tbody>
+              </table>
+            </div>
+          )
+        }
         if (block.kind === 'h') return <p key={blockIndex} className="font-semibold text-white">{renderInline(block.text, `h${blockIndex}`)}</p>
         if (block.kind === 'p') return <p key={blockIndex}>{block.lines.map((line, lineIndex) => <Fragment key={lineIndex}>{lineIndex > 0 && <br />}{renderInline(line, `p${blockIndex}-${lineIndex}`)}</Fragment>)}</p>
         const List = block.kind === 'ul' ? 'ul' : 'ol'

@@ -65,7 +65,7 @@ export default function SettingsPage() {
             {mode === 'demo' ? <Button size="sm" variant="primary" onClick={() => setConnectOpen(true)}><Wallet size={13} /> {tr('Connect')}</Button> : <Button size="sm" variant="danger" onClick={disconnect}><LogOut size={13} /> <span className="hidden sm:inline">{tr('Disconnect')}</span></Button>}
           </div>
           <Row icon={KeyRound} title="Signing & keys" desc="Transactions are authorized by your wallet. Makoto does not store private keys." right={<span className={`text-[12px] ${T.mute}`}>{tr('Wallet signing')}</span>} />
-          <Row icon={Gauge} title="Confirm large transfers" desc="Ask again before sending ≥ $100" right={<Toggle on={settings.confirmLarge} onChange={() => set({ confirmLarge: !settings.confirmLarge })} />} />
+          <Row icon={Gauge} title="Confirm large transfers" desc="Ask again before sending ≥ $100" right={<Toggle label={tr('Confirm large transfers')} on={settings.confirmLarge} onChange={() => set({ confirmLarge: !settings.confirmLarge })} />} />
         </Section>
 
         <Section title="Display">
@@ -73,15 +73,15 @@ export default function SettingsPage() {
           <Row icon={Palette} title="Appearance" right={<Segmented size="sm" value={theme === 'light' ? tr('Light') : tr('Dark')} options={[tr('Dark'), tr('Light')] as const} onChange={(v) => setTheme(v === tr('Light') ? 'light' : 'dark')} />} />
           <Row icon={Palette} title="Theme" desc={settings.vivid !== false ? 'Neon — lime glow and purple accents' : 'Calm — minimal colour, no glow'}
             right={<Segmented size="sm" value={tr(settings.vivid !== false ? 'Vivid' : 'Calm')} options={[tr('Calm'), tr('Vivid')] as const} onChange={(v) => set({ vivid: v === tr('Vivid') })} />} />
-          <Row icon={Eye} title="Hide balances" desc="Mask amounts across the app" right={<Toggle on={hidden} onChange={() => setHidden(!hidden)} />} />
-          <Row icon={Eye} title="Hide balances under $1" right={<Toggle on={settings.hideSmall} onChange={() => set({ hideSmall: !settings.hideSmall })} />} />
-          <Row icon={Filter} title="Hide unverified tokens" desc="Filter unknown airdropped tokens" right={<Toggle on={settings.hideSpam} onChange={() => set({ hideSpam: !settings.hideSpam })} />} />
+          <Row icon={Eye} title="Hide balances" desc="Mask amounts across the app" right={<Toggle label={tr('Hide balances')} on={hidden} onChange={() => setHidden(!hidden)} />} />
+          <Row icon={Eye} title="Hide balances under $1" right={<Toggle label={tr('Hide balances under $1')} on={settings.hideSmall} onChange={() => set({ hideSmall: !settings.hideSmall })} />} />
+          <Row icon={Filter} title="Hide unverified tokens" desc="Filter unknown airdropped tokens" right={<Toggle label={tr('Hide unverified tokens')} on={settings.hideSpam} onChange={() => set({ hideSpam: !settings.hideSpam })} />} />
         </Section>
 
         <Section title="App">
           <Row icon={Lock} title="App Lock · coming soon" desc="You can preview the privacy screen design — it is not a security feature."
             right={<span className="flex items-center gap-2"><span className="hidden sm:inline-flex"><Badge>{tr('Coming soon')}</Badge></span><Button size="sm" onClick={() => setLockPreview(true)}>{tr('Preview')}</Button></span>} />
-          <Row icon={Bell} title="Transaction alerts" desc="Show incoming transfers in the in-app notification list" right={<Toggle on={settings.txAlerts} onChange={() => set({ txAlerts: !settings.txAlerts })} />} />
+          <Row icon={Bell} title="Transaction alerts" desc="Show incoming transfers in the in-app notification list" right={<Toggle label={tr('Transaction alerts')} on={settings.txAlerts} onChange={() => set({ txAlerts: !settings.txAlerts })} />} />
         </Section>
 
         <Section title="Network">

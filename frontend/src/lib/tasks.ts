@@ -4,8 +4,9 @@ export type TaskType = 'CONDITION_MONITOR' | 'SCHEDULED_AUTOMATION'
 export type TaskStatus = 'ACTIVE' | 'PAUSED' | 'TRIGGERED' | 'COMPLETED' | 'FAILED' | 'BLOCKED'
 export type TaskAuthority = 'READ_ONLY' | 'NOTIFY_ONLY' | 'PREPARE_ONLY' | 'WRITE_REQUIRES_USER'
 export type TaskCondition = {
-  metric: 'TOKEN_BALANCE'
-  asset: 'USDC' | 'EURC' | 'cirBTC'
+  /** TOKEN_BALANCE: wallet balance on Arc; TOKEN_PRICE: USD market price alert (notify only). */
+  metric: 'TOKEN_BALANCE' | 'TOKEN_PRICE'
+  asset: 'USDC' | 'EURC' | 'cirBTC' | 'BTC' | 'ETH' | 'SOL'
   operator: 'LT' | 'LTE' | 'GT' | 'GTE'
   threshold: string
   checkIntervalMinutes: number
@@ -128,6 +129,7 @@ export const taskApi = {
 export function taskDefinition(task: Pick<TaskCandidate, 'type' | 'condition' | 'schedule'>, locale: 'en' | 'vi'): string {
   if (task.type === 'CONDITION_MONITOR' && task.condition) {
     const sign = { LT: '<', LTE: '\u2264', GT: '>', GTE: '\u2265' }[task.condition.operator]
+    if (task.condition.metric === 'TOKEN_PRICE') return `${locale === 'vi' ? 'Giá' : 'Price'} ${task.condition.asset} ${sign} $${task.condition.threshold}`
     return `${task.condition.asset} ${sign} ${task.condition.threshold}`
   }
   if (task.type === 'SCHEDULED_AUTOMATION' && task.schedule) {
@@ -142,6 +144,7 @@ export function taskDefinition(task: Pick<TaskCandidate, 'type' | 'condition' | 
 }
 
 export function taskDisplayTitle(task: Pick<TaskCandidate, 'type' | 'condition' | 'schedule' | 'title'>, locale: 'en' | 'vi'): string {
+  if (task.type === 'CONDITION_MONITOR' && task.condition?.metric === 'TOKEN_PRICE') return locale === 'vi' ? `Cảnh báo giá ${task.condition.asset}` : `${task.condition.asset} price alert`
   if (task.type === 'CONDITION_MONITOR' && task.condition) return locale === 'vi' ? `Theo dõi số dư ${task.condition.asset}` : `${task.condition.asset} balance alert`
   if (task.schedule) {
     const titles = {
@@ -200,6 +203,16 @@ function taskActivityCount(result: Record<string, unknown>): number | null {
 export function taskResultSummary(_task: Pick<TaskCandidate, 'type' | 'condition' | 'schedule'>, value: unknown, locale: 'en' | 'vi'): string {
   if (value == null || typeof value !== 'object' || Array.isArray(value)) return locale === 'vi' ? 'Chưa có kết quả' : 'No result yet'
   const result = value as Record<string, unknown>
+  if (result.kind === 'TOKEN_PRICE') {
+    const asset = typeof result.asset === 'string' && /^[A-Za-z]{2,6}$/.test(result.asset) ? result.asset : null
+    const price = taskDecimal(result.price)
+    const threshold = taskDecimal(result.threshold)
+    const sign = ({ LT: '<', LTE: '≤', GT: '>', GTE: '≥' } as Record<string, string>)[String(result.operator)]
+    if (!asset || price === null) return locale === 'vi' ? 'Chưa lấy được giá lúc này.' : 'Price data is unavailable right now.'
+    const observed = locale === 'vi' ? `Giá ${asset} hiện là $${price}` : `${asset} is at $${price}`
+    if (threshold === null || !sign || typeof result.conditionMet !== 'boolean') return `${observed}.`
+    return locale === 'vi' ? `${observed} · điều kiện ${sign} $${threshold} ${result.conditionMet ? 'đã đạt' : 'chưa đạt'}.` : `${observed} · condition ${sign} $${threshold} ${result.conditionMet ? 'met' : 'not met'}.`
+  }
   if (result.kind === 'TOKEN_BALANCE') {
     const { asset, balance, threshold, sign, conditionMet } = taskMonitorObservation(result)
     if (!asset || balance === null) return locale === 'vi' ? 'Số dư chưa khả dụng.' : 'Balance unavailable.'
@@ -228,6 +241,16 @@ export function taskResultSummary(_task: Pick<TaskCandidate, 'type' | 'condition
 export function taskDisplaySummary(value: unknown, locale: 'en' | 'vi'): string | null {
   if (value == null || typeof value !== 'object' || Array.isArray(value)) return null
   const result = value as Record<string, unknown>
+  if (result.kind === 'TOKEN_PRICE') {
+    const asset = typeof result.asset === 'string' && /^[A-Za-z]{2,6}$/.test(result.asset) ? result.asset : null
+    const price = taskDecimal(result.price)
+    const threshold = taskDecimal(result.threshold)
+    const sign = ({ LT: '<', LTE: '≤', GT: '>', GTE: '≥' } as Record<string, string>)[String(result.operator)]
+    if (!asset || price === null) return locale === 'vi' ? 'Chưa lấy được giá lúc này.' : 'Price data is unavailable right now.'
+    const observed = locale === 'vi' ? `Giá ${asset} hiện là $${price}` : `${asset} is at $${price}`
+    if (threshold === null || !sign || typeof result.conditionMet !== 'boolean') return `${observed}.`
+    return locale === 'vi' ? `${observed} · điều kiện ${sign} $${threshold} ${result.conditionMet ? 'đã đạt' : 'chưa đạt'}.` : `${observed} · condition ${sign} $${threshold} ${result.conditionMet ? 'met' : 'not met'}.`
+  }
   if (result.kind === 'TOKEN_BALANCE') {
     const { asset, balance, threshold, operator, conditionMet } = taskMonitorObservation(result)
     if (!asset || balance === null) return locale === 'vi' ? 'Chưa thể lấy dữ liệu số dư lúc này.' : 'Balance data is unavailable right now.'
@@ -300,6 +323,6 @@ export function taskError(error: unknown, locale: 'en' | 'vi'): string {
 export function taskIntentMode(text: string): 'monitor' | 'automation' | null {
   const value = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase()
   if (/\b(daily|every day|every morning|every evening|schedule)\b|hang ngay|moi ngay|moi sang|moi toi|luc\s*\d{1,2}/.test(value)) return 'automation'
-  if (/\b(alert|notify|monitor|watch)\b|\bwhen\b.*\b(usdc|eurc|cirbtc|balance)\b.*(?:\b(below|above|under|over|less|more)\b|[<>]=?)|bao toi khi|thong bao khi|theo doi|\bkhi\b.{0,120}\b(usdc|eurc|cirbtc|so du)\b.{0,120}(?:\b(duoi|tren|thap hon|cao hon|nho hon|lon hon)\b|[<>]=?)/.test(value)) return 'monitor'
+  if (/\b(alert|notify|monitor|watch)\b|\bwhen\b.*\b(usdc|eurc|cirbtc|balance)\b.*(?:\b(below|above|under|over|less|more)\b|[<>]=?)|bao toi khi|bao khi|thong bao khi|theo doi|\b(gia|price)\b.{0,60}\b(btc|bitcoin|eth|ethereum|sol|solana|usdc|eurc)\b.{0,80}(?:\b(duoi|tren|vuot|giam|tang|below|above|over|under)\b|[<>]=?)|\bkhi\b.{0,120}\b(usdc|eurc|cirbtc|so du)\b.{0,120}(?:\b(duoi|tren|thap hon|cao hon|nho hon|lon hon)\b|[<>]=?)/.test(value)) return 'monitor'
   return null
 }

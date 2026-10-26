@@ -11,7 +11,7 @@ const call = (name, args, id = `call_${name}`) => ({ type: 'function_call', id: 
 test('tool definitions are strict read-only functions plus a non-executing proposal', () => {
   const tools = toolDefinitions()
   const names = tools.map((tool) => tool.name)
-  assert.deepEqual(names.sort(), ['get_arc_network', 'get_bridge_fees', 'get_crypto_news', 'get_market_overview', 'get_project_info', 'get_token_market_data', 'get_token_prices', 'get_wallet_overview', 'propose_action', 'propose_plan', 'remember_note', 'save_contact'].sort())
+  assert.deepEqual(names.sort(), ['get_arc_network', 'get_bridge_fees', 'get_crypto_news', 'get_market_overview', 'get_project_info', 'get_token_market_data', 'get_token_prices', 'get_wallet_overview', 'propose_action', 'propose_plan', 'remember_note', 'save_contact', 'explain_transaction', 'inspect_address'].sort())
   for (const tool of tools) {
     assert.equal(tool.type, 'function')
     assert.equal(tool.strict, true)
@@ -242,4 +242,26 @@ test('streaming endpoint emits status, deltas and an authoritative done event', 
     for (const key of Object.keys(env)) { if (saved[key] === undefined) delete process.env[key]; else process.env[key] = saved[key] }
     await new Promise((resolve) => server.close(resolve))
   }
+})
+
+test('followup marker is stripped from answers; tx/address tools validate input', async () => {
+  const { splitFollowups } = require('../lib/llm')
+  assert.deepEqual(splitFollowups('Answer.\n[[followups: A one? | B two? | C three?]]'), { text: 'Answer.\n', followups: ['A one?', 'B two?', 'C three?'] })
+  assert.deepEqual(splitFollowups('Plain answer').followups, [])
+  assert.match((await runTool('explain_transaction', JSON.stringify({ hash: '0x123' }), {})).output, /Invalid transaction hash/)
+  assert.match((await runTool('inspect_address', JSON.stringify({ address: '0x12' }), {})).output, /Invalid address/)
+})
+
+test('price alerts parse VI/EN thresholds and stay notify-only', () => {
+  const { parseIntent } = require('../lib/taskDefinitions')
+  const base = { mode: 'monitor', account: ADDRESS, chainId: 5042002, timezone: 'Asia/Ho_Chi_Minh', locale: 'vi' }
+  const cond = (text) => parseIntent({ ...base, text }).candidate?.condition
+  assert.deepEqual(cond('báo khi giá BTC dưới 75.000'), { metric: 'TOKEN_PRICE', asset: 'BTC', operator: 'LT', threshold: '75000', checkIntervalMinutes: 5 })
+  assert.equal(cond('alert me when ETH price goes above $3,000').threshold, '3000')
+  assert.equal(cond('báo khi giá USDC dưới 0.995').threshold, '0.995')
+  assert.equal(cond('báo khi giá EURC trên 1.005').threshold, '1.005')
+  assert.equal(cond('báo khi giá SOL vượt 200k').threshold, '200000')
+  assert.equal(cond('Báo tôi khi số dư USDC dưới 10').metric, 'TOKEN_BALANCE')
+  assert.deepEqual(parseIntent({ ...base, text: 'báo khi giá BTC' }).missingFields, ['operator', 'threshold'])
+  assert.equal(parseIntent({ ...base, text: 'báo khi giá BTC dưới 75000' }).candidate.authority, 'NOTIFY_ONLY')
 })

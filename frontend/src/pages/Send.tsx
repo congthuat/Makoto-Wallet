@@ -1,3 +1,4 @@
+import { checkRecipient, knownAddresses, shortAddress } from '../lib/addressSafety'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, BookUser, Check, CheckCircle2, Circle, Clock, FileCheck2, Fuel, Loader2, PenLine, Send as SendIcon, XCircle, Zap } from 'lucide-react'
 import { useWallet } from '../lib/store'
@@ -338,6 +339,8 @@ export default function SendPage() {
                 )}
               </Field>
 
+              <RecipientSafety recipient={to} contacts={contacts} activity={activity} />
+
               <Field label={tr('Asset')}>
                 <div className="grid grid-cols-3 gap-2">
                   {TOKENS.map((t) => {
@@ -363,7 +366,7 @@ export default function SendPage() {
 
               <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 text-[13px] space-y-2">
                 <div className="flex justify-between gap-3"><span className={`${T.mute} inline-flex items-center gap-1.5`}><Fuel size={13} /> {s(mode === 'connected' ? 'Maximum fee' : 'Estimated fee')}</span><span className="tabular-nums">{feeLabel ?? s('Unavailable')}</span></div>
-                <div className="flex justify-between gap-3"><span className={`${T.mute} inline-flex items-center gap-1.5`}><Zap size={13} /> {s('Estimated time')}</span><span>{s(mode === 'connected' ? 'After wallet approval' : '< 1 second (est.)')}</span></div>
+                <div className="flex justify-between gap-3"><span className={`${T.mute} inline-flex items-center gap-1.5`}><Zap size={13} /> {s('Estimated time')}</span><span>{s(mode === 'connected' ? 'After wallet approval' : '< 1 second')}</span></div>
               </div>
 
               <Button variant="primary" size="lg" className="w-full" disabled={!canReview || busy} onClick={startReview}>
@@ -433,7 +436,7 @@ export default function SendPage() {
           <Card className="p-5">
             <div className="text-[14px] font-semibold">{tr('Recent recipients')}</div>
             <div className="mt-2 space-y-1">
-              {Array.from(new Map(activity.filter((a) => a.direction === 'out' && a.verified).map((a) => [a.counterparty, a])).values()).slice(0, 4).map((a) => (
+              {Array.from(new Map(activity.filter((a) => a.direction === 'out' && a.verified && a.kind !== 'swap' && a.kind !== 'bridge' && !a.counterpartyName).map((a) => [a.counterparty, a])).values()).slice(0, 4).map((a) => (
                 <button key={a.counterparty} onClick={() => { setTo(a.counterparty); setPrepared(null) }} className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.05] text-left">
                   <Avatar size={26} seed={a.counterparty} /><span className="font-mono text-[12px]">{a.counterpartyName ?? short(a.counterparty)}</span>
                 </button>
@@ -447,4 +450,22 @@ export default function SendPage() {
       </div>
     </>
   )
+}
+
+/** Look-alike (address-poisoning) and first-time recipient warnings, computed locally. */
+export function RecipientSafety({ recipient, contacts, activity }: { recipient: string; contacts: readonly { name: string; address: string }[]; activity: readonly { direction?: string; counterparty?: string; counterpartyName?: string | null }[] }) {
+  const [, lang] = useT()
+  const vi = lang === 'vi'
+  const check = checkRecipient(recipient, knownAddresses(contacts, activity))
+  if (check.kind === 'lookalike') {
+    const who = check.similarTo.label ? `${check.similarTo.label} (${shortAddress(check.similarTo.address)})` : shortAddress(check.similarTo.address)
+    return (
+      <div role="alert" data-recipient-check="lookalike" className="rounded-2xl border border-rose-400/50 bg-rose-500/10 p-3.5 text-[13px] text-rose-100">
+        <b>{vi ? '⚠️ Cảnh báo địa chỉ giả mạo' : '⚠️ Look-alike address warning'}</b>
+        <p className="mt-1">{vi ? `Địa chỉ này trùng ký tự đầu và cuối với ${who} nhưng KHÁC ở giữa. Đây là chiêu lừa đảo phổ biến (address poisoning). Hãy dán lại địa chỉ từ nguồn tin cậy, đừng sao chép từ lịch sử giao dịch.` : `This address matches the first and last characters of ${who} but DIFFERS in the middle. This is a common scam (address poisoning). Paste the address again from a trusted source; do not copy it from transaction history.`}</p>
+      </div>
+    )
+  }
+  if (check.kind === 'first-time') return <p data-recipient-check="first-time" className="text-[12px] text-amber-200/90">{vi ? 'Người nhận lần đầu — hãy so khớp toàn bộ địa chỉ trước khi gửi.' : 'First-time recipient — compare the full address before sending.'}</p>
+  return null
 }

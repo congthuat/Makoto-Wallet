@@ -31,7 +31,7 @@ export function Waitlist({ compact = false }: { compact?: boolean }) {
   return (
     <div className={compact ? '' : 'mk-hero rounded-2xl border border-white/[0.08] p-5 sm:p-6'}>
       {!compact && <h3 className="text-[18px] font-bold">{tr('Join the waitlist')}</h3>}
-      {!compact && <p className={`mt-1 text-[13.5px] ${T.sub}`}>{tr('Be the first to know when Makoto launches beyond the design preview.')}</p>}
+      {!compact && <p className={`mt-1 text-[13.5px] ${T.sub}`}>{tr('Be the first to know when Makoto launches on mainnet.')}</p>}
       {state === 'done' ? (
         <div className="mt-4 flex items-center gap-2 text-[14px] font-semibold text-live"><Check size={16} /> {tr("You're on the list. We'll email you at launch.")}</div>
       ) : (
@@ -52,11 +52,11 @@ export function Waitlist({ compact = false }: { compact?: boolean }) {
 /* ---------------- About ---------------- */
 const FAQ = [
   ['What is Makoto?', 'Makoto is an agent wallet for Arc. You describe what you want in plain language; Makoto prepares the details, and you review every step before your wallet authorizes anything.'],
-  ['Is it safe? Does Makoto hold my funds?', 'Makoto never stores private keys and cannot move funds by itself. Transactions are authorized by your wallet. This version is a design preview on Arc Testnet and does not submit transactions.'],
+  ['Is it safe? Does Makoto hold my funds?', 'Makoto never stores private keys and cannot move funds by itself. The AI only reads data and proposes actions; every transaction passes deterministic safety checks and a review screen, and is signed in your own wallet. Makoto runs on Arc Testnet and has not had an independent security audit.'],
   ['Does it cost money?', 'No. The preview runs on Arc Testnet. Test tokens are free from the Circle faucet and have no real value.'],
-  ['Which wallets are supported?', 'Browser wallets such as OKX Wallet, Rabby and MetaMask. You can also watch any public address in read-only mode.'],
+  ['Which wallets are supported?', 'Browser wallets: MetaMask, OKX Wallet, Rabby, Coinbase Wallet, Trust Wallet, Bitget Wallet, Phantom, Rainbow, Zerion, Brave Wallet and other EIP-6963 wallets. You can also watch any public address in read-only mode.'],
   ['How is Makoto different from other wallets?', 'Instead of hunting through menus, you ask. Makoto turns requests into clear, reviewable steps, and separates sample data from live data so nothing is misleading.'],
-  ['What does "design preview" mean?', 'The UI includes previews. Monitors and daily read-only tasks are saved on the local backend and run while it is on. Financial actions still require your review and wallet signature.'],
+  ['What can the Agent do?', 'It answers with live data (wallet, prices, Arc network, Circle fees, market news), explains transactions and addresses, remembers your preferences on this device, and prepares Send, Swap, Bridge or multi-step plans for your review. It never signs.'],
 ]
 
 export function AboutPage() {
@@ -68,7 +68,7 @@ export function AboutPage() {
     { icon: ShieldCheck, t: 'You stay in control', d: 'Review parameters, then the transaction, then sign in your own wallet — three separate steps.' },
     { icon: Eye, t: 'Honest data', d: 'Sample and live data are always labelled. No fake numbers.' },
     { icon: Droplets, t: 'Built for Arc', d: 'USDC as gas, fast finality, and direct access to the Circle testnet faucet.' },
-    { icon: Languages, t: '5 languages', d: 'English, Vietnamese, Chinese, Japanese and Korean — light and dark mode.' },
+    { icon: Languages, t: 'Vietnamese & English', d: 'Fully translated, with light and dark mode.' },
   ]
   return (
     <div className="space-y-6">
@@ -129,7 +129,7 @@ export function AboutPage() {
 
 /* ---------------- Legal ---------------- */
 const TERMS = [
-  ['Preview software', 'Makoto is provided as a design preview on Arc Testnet, "as is", without warranties. Features may change or be removed.'],
+  ['Testnet software', 'Makoto runs on Arc Testnet and is provided "as is", without warranties or an independent security audit. Features may change or be removed.'],
   ['No financial advice', 'Nothing in Makoto is financial, investment or legal advice. Prices and estimates are for reference only.'],
   ['Testnet only', 'Test tokens have no monetary value. Do not send mainnet assets to testnet addresses.'],
   ['Your wallet, your responsibility', 'You are responsible for your wallet, keys and any transaction you authorize. Makoto cannot reverse transactions.'],
@@ -167,6 +167,8 @@ export function LegalPage() {
 
 /* ---------------- Changelog ---------------- */
 const CHANGES: { v: string; date: string; tag: string; items: string[] }[] = [
+  { v: '2.0', date: '2026-10-26', tag: 'New', items: ['Agent streams answers with live data, sources and price charts', 'Agent memory and address book on this device', 'Multi-step plans: each step reviewed and signed separately', 'Explain a transaction hash or inspect an address', 'Price alerts for BTC, ETH, SOL, USDC and EURC', 'Look-alike address warning and plain-language summary before signing', '10 browser wallets; Vietnamese and English'] },
+  { v: '1.6', date: '2026-10-25', tag: 'Improved', items: ['Arc Testnet → Base Sepolia bridge fixed (Circle CCTP v2)', 'Clearer bridge error messages'] },
   { v: 'Preview 1.4', date: '2026-09-26', tag: 'New', items: ['About page with FAQ and waitlist', 'Command palette (Ctrl + K)', 'Share portfolio as image', 'Terms, Privacy, Changelog and Status pages', 'Full translation in 5 languages'] },
   { v: 'Preview 1.3', date: '2026-09-25', tag: 'New', items: ['Light and dark mode', 'Language switcher in the header', 'New Makoto logo'] },
   { v: 'Preview 1.2', date: '2026-09-24', tag: 'New', items: ['Arc Testnet faucet page', 'Vietnamese, Chinese, Japanese and Korean', 'Redesigned Agent hero'] },
@@ -199,11 +201,13 @@ export function ChangelogPage() {
 export function StatusPage() {
   const { network, networkStatus, prices } = useWallet()
   const [tr] = useT()
+  const agent = useQuery({ queryKey: ['status-agent'], queryFn: () => fetch(api('agent/status')).then((r) => { if (!r.ok) throw new Error(); return r.json() as Promise<{ status?: string }> }), staleTime: 60_000, retry: 1 })
   const feed = useQuery({ queryKey: ['status-sentiment'], queryFn: () => fetch(api('sentiment')).then((r) => { if (!r.ok) throw new Error(); return r.json() }), staleTime: 60_000, retry: 1 })
   const rows = [
     { name: 'Arc Testnet network', ok: networkStatus === 'online' || networkStatus === 'stale', loading: networkStatus === 'loading', detail: network ? `${tr('Block')} #${network.blockNumber.toLocaleString()} · ${network.rpcLatencyMs} ms` : networkStatus === 'stale' ? tr('Stale') : '' },
     { name: 'Market prices', ok: !!prices, loading: !prices, detail: prices ? 'USDC · EURC · BTC' : '' },
-    { name: 'Market sentiment', ok: feed.isSuccess, loading: feed.isLoading, detail: '' },
+    { name: 'Market sentiment', ok: feed.isSuccess, loading: feed.isLoading, detail: 'Surf market data' },
+    { name: 'Makoto Agent (AI)', ok: agent.isSuccess && agent.data?.status === 'ok', loading: agent.isLoading, detail: 'OpenAI · streaming' },
     { name: 'Circle faucet', ok: true, loading: false, detail: tr('External · faucet.circle.com') },
   ]
   const allOk = rows.every((r) => r.ok)

@@ -123,4 +123,13 @@ async function readPrices() {
   return { prices, unavailable }
 }
 
-module.exports = { rpc, verifyChain, readBalance, readBalances, readActivity, readPrices }
+/** Latest USD market price for a price alert (Surf market data, last point of the 1-day series). */
+async function readPrice(asset) {
+  const result = await dataApi.market.price({ symbol: asset, time_range: '1d' })
+  const rows = (result?.data ?? []).filter((row) => Number.isFinite(row?.value) && row.value > 0 && Number.isFinite(row?.timestamp)).sort((a, b) => a.timestamp - b.timestamp)
+  if (!rows.length) throw new Error('Price unavailable')
+  const last = rows.at(-1)
+  return { usd: last.value, observedAt: new Date(last.timestamp * 1000).toISOString(), source: 'surf-market' }
+}
+
+module.exports = { rpc, verifyChain, readBalance, readBalances, readActivity, readPrices, readPrice }

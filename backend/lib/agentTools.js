@@ -239,6 +239,57 @@ const TOOLS = {
       }
     },
   },
+  explain_transaction: {
+    source: 'Arc explorer',
+    description: 'Look up one Arc Testnet transaction by its 0x hash and return what happened: status, method, sender, receiver, token transfers, fee and time. Use it when the user pastes a transaction hash or asks what a transaction did.',
+    parameters: { type: 'object', properties: { hash: { type: 'string', description: '0x + 64 hex characters.' } }, required: ['hash'], additionalProperties: false },
+    async run(args) {
+      const hash = String(args.hash || '').trim()
+      if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new ToolInputError('Invalid transaction hash')
+      const response = await fetch(`${ARC_EXPLORER_API}/transactions/${hash}`, { signal: AbortSignal.timeout(8000), headers: { accept: 'application/json' } })
+      if (response.status === 404 || response.status === 422) return { status: 'NOT_FOUND', hash, note: 'This hash was not found on Arc Testnet (it may be on another chain or still pending).' }
+      if (!response.ok) throw new Error(`Arc explorer HTTP ${response.status}`)
+      const tx = await response.json()
+      const party = (item) => item ? { address: item.hash ?? null, name: item.name ?? null, contract: Boolean(item.is_contract), verified: Boolean(item.is_verified), flaggedScam: Boolean(item.is_scam) } : null
+      const transfers = (Array.isArray(tx.token_transfers) ? tx.token_transfers : []).slice(0, 10).map((item) => ({
+        token: item?.token?.symbol ?? '?', verifiedAsset: ['0x3600000000000000000000000000000000000000', '0x89b50855aa3be2f677cd6303cec089b5f319d72a', '0xf0c4a4ce82a5746abaad9425360ab04fbba432bf'].includes(String(item?.token?.address_hash ?? '').toLowerCase()),
+        from: item?.from?.hash ?? null, to: item?.to?.hash ?? null,
+        amount: item?.total?.value != null ? round(Number(BigInt(item.total.value)) / 10 ** Number(item.total.decimals ?? item.token?.decimals ?? 18), 6) : null,
+      }))
+      const native = (value) => { try { return round(Number(BigInt(value ?? '0')) / 1e18, 8) } catch { return null } }
+      return {
+        status: 'OK', chain: 'Arc Testnet', hash,
+        result: tx.result ?? tx.status ?? null, method: tx.method ?? null, time: tx.timestamp ?? null, block: tx.block_number ?? null, confirmations: tx.confirmations ?? null,
+        from: party(tx.from), to: party(tx.to), nativeUsdcValue: native(tx.value), feeUsdc: native(tx.fee?.value), types: Array.isArray(tx.tx_types) ? tx.tx_types.slice(0, 5) : null,
+        tokenTransfers: transfers, explorerUrl: `https://testnet.arcscan.app/tx/${hash}`,
+        note: 'Explain in plain language. Unverified tokens may be spam; never present them as real value.',
+      }
+    },
+  },
+  inspect_address: {
+    source: 'Arc explorer',
+    description: 'Inspect an Arc Testnet address: whether it is a contract or a normal wallet, its name/verification, scam flag, token info, balance and activity counts. Use it when the user asks who/what an address is or whether it is safe to send to it.',
+    parameters: { type: 'object', properties: { address: { type: 'string', description: 'Full 0x address.' } }, required: ['address'], additionalProperties: false },
+    async run(args) {
+      const address = String(args.address || '').trim()
+      if (!isAddress(address)) throw new ToolInputError('Invalid address')
+      const [info, counters] = await Promise.all([
+        fetch(`${ARC_EXPLORER_API}/addresses/${address}`, { signal: AbortSignal.timeout(8000), headers: { accept: 'application/json' } }).then(async (r) => r.status === 404 ? null : r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))),
+        explorer(`/addresses/${address}/counters`).catch(() => null),
+      ])
+      if (!info) return { status: 'OK', address, seenOnChain: false, note: 'No on-chain history for this address on Arc Testnet. A brand-new address is not necessarily unsafe, but double-check it before sending.' }
+      const txCount = Number(counters?.transactions_count ?? 0)
+      return {
+        status: 'OK', address, seenOnChain: true,
+        type: info.is_contract ? 'contract' : 'wallet', name: info.name ?? null, verifiedContract: info.is_contract ? Boolean(info.is_verified) : null, flaggedScam: Boolean(info.is_scam),
+        token: info.token ? { symbol: info.token.symbol ?? null, name: info.token.name ?? null, holders: Number(info.token.holders_count ?? 0) || null } : null,
+        nativeUsdcBalance: (() => { try { return round(Number(BigInt(info.coin_balance ?? '0')) / 1e18, 6) } catch { return null } })(),
+        transactions: Number.isFinite(txCount) ? txCount : null, tokenTransfers: Number(counters?.token_transfers_count ?? 0) || 0,
+        explorerUrl: `https://testnet.arcscan.app/address/${address}`,
+        note: 'Facts only. Remind the user to compare the FULL address (not just the first/last characters) before sending.',
+      }
+    },
+  },
   propose_action: {
     source: 'Makoto planner',
     description: 'Propose ONE wallet action for the user to review in Makoto: send (ERC-20 transfer on Arc), swap (USDC <-> EURC on Arc) or bridge (USDC Arc Testnet -> Base Sepolia). This executes NOTHING; Makoto validates it deterministically and the user must review and sign in their own wallet. Only call when the user clearly asked to do the action. Never use MAX/all — ask for an exact amount instead.',

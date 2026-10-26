@@ -133,14 +133,8 @@ function SwapForm() {
           <ul className={`mt-3 space-y-3 text-[13px] ${T.sub}`}>
             <li className="flex gap-2.5"><Zap size={16} className="text-neon-300 shrink-0" /> {tr('Arc is designed for fast, deterministic finality.')}</li>
             <li className="flex gap-2.5"><Coins size={16} className="text-neon-300 shrink-0" /> {tr('Fees paid in USDC, so you never need a separate gas token.')}</li>
-            <li className="flex gap-2.5"><BadgeCheck size={16} className="text-neon-300 shrink-0" /> {tr('Native USDC ⇄ EURC FX — ideal for payments and treasury.')}</li>
+            <li className="flex gap-2.5"><BadgeCheck size={16} className="text-neon-300 shrink-0" /> {tr('Swap between native USDC and EURC — useful for payments and treasury.')}</li>
           </ul>
-          {rate && from !== 'cirBTC' && to !== 'cirBTC' && (
-            <div className="mt-5 rounded-xl bg-white/[0.03] p-3 text-[12px]">
-              <div className={T.mute}>{tr('FX reference (estimate)')}</div>
-              <div className="mt-1 text-[18px] font-bold tabular-nums">1 {from} = {fmtAmt(rate, 4)} {to}</div>
-            </div>
-          )}
         </Card>
       </div>
     </>
@@ -192,7 +186,7 @@ function BridgeForm() {
       <div className="flex-1 rounded-2xl bg-black/30 border border-white/[0.08] p-3.5 min-w-0">
         <div className={`text-[12px] ${T.mute}`}>{label}</div>
         <div className="mt-1 font-semibold text-[14px] flex items-center gap-2">
-          <span aria-hidden="true" className="w-5 h-5 rounded-full text-[9px] font-black flex items-center justify-center shrink-0" style={{ background: name === src ? '#8efe7e' : '#0052FF' }}>{name === src ? 'A' : 'B'}</span> {name}
+          <span aria-hidden="true" className="h-5 px-1.5 rounded-md text-[8.5px] font-black flex items-center justify-center shrink-0 text-[#0b0b10]" style={{ background: name === src ? '#8efe7e' : '#7aa7ff' }}>{name === src ? 'ARC' : 'BASE'}</span> {name}
         </div>
       </div>
     )
@@ -241,7 +235,7 @@ function BridgeForm() {
           <ol className="mt-4 space-y-4">
             {[
               { icon: Info, t: say('Review / approval if required', 'Xem lại / phê duyệt nếu cần'), d: say('Review the quote and any exact USDC approval separately before confirming in your wallet.', 'Xem lại báo giá và phê duyệt USDC chính xác riêng trước khi xác nhận trong ví.') },
-              { icon: Flame, t: tr('Burn on {chain}').replace('{chain}', src), d: tr('USDC is burned by the CCTP contract — you authorize it in your wallet.') },
+              { icon: Flame, t: tr('Burn on {chain}').replace('{chain}', src), d: tr('USDC is burned (removed) on the source chain by the CCTP contract and re-minted on the destination — you authorize it in your wallet.') },
               { icon: BadgeCheck, t: say('Circle attestation / forwarding', 'Chứng thực / chuyển tiếp Circle'), d: say('Circle attests to the burn and forwards the mint to Base Sepolia.', 'Circle chứng thực lệnh đốt và chuyển tiếp lệnh tạo USDC tới Base Sepolia.') },
               { icon: Coins, t: say('Destination confirmation on Base Sepolia', 'Xác nhận đích trên Base Sepolia'), d: say('Completion requires a verified Base receipt and matching USDC transfer to your address.', 'Chỉ hoàn tất khi có biên nhận Base được xác minh và giao dịch chuyển USDC phù hợp tới địa chỉ của bạn.') },
             ].map(({ icon: Icon, t, d }, i) => (
@@ -251,7 +245,7 @@ function BridgeForm() {
               </li>
             ))}
           </ol>
-          <div className="mt-5 p-3 rounded-xl bg-white/[0.03] text-[12px] flex gap-2"><Info size={14} className="text-neon-300 shrink-0 mt-0.5" /><span className={T.sub}>{tr('When bridging is connected, pending transfers will appear in Activity so you can close the tab safely.')}</span></div>
+          <div className="mt-5 p-3 rounded-xl bg-white/[0.03] text-[12px] flex gap-2"><Info size={14} className="text-neon-300 shrink-0 mt-0.5" /><span className={T.sub}>{tr('Pending transfers appear in Activity, so you can safely close this tab and check later.')}</span></div>
         </Card>
       </div>
     </>

@@ -2,7 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { randomUUID } = require('node:crypto')
 const { DatabaseSync } = require('node:sqlite')
-const { TOKENS, OPERATORS, TaskError, decimalUnits, dailyNext, localDayStart, validateDefinition } = require('./taskDefinitions')
+const { TOKENS, OPERATORS, TaskError, decimalUnits, dailyNext, localDayStart, validateDefinition, PRICE_DECIMALS } = require('./taskDefinitions')
 const defaultReads = require('./taskReads')
 const { generateAgentResponse } = require('./llm')
 
@@ -24,6 +24,10 @@ function claimedTask() { return new TaskError('TASK_ALREADY_CLAIMED', 'Task is a
 function runningTask() { return new TaskError('TASK_RUNNING', 'Task is running', 409) }
 function hasColumn(db, table, column) { return db.prepare(`PRAGMA table_info(${table})`).all().some((entry) => entry.name === column) }
 function messageFor(task, result, locale = task.locale) {
+  if (result.kind === 'TOKEN_PRICE') {
+    const comparison = { LT: locale === 'vi' ? 'dưới' : 'below', LTE: locale === 'vi' ? 'không quá' : 'at or below', GT: locale === 'vi' ? 'trên' : 'above', GTE: locale === 'vi' ? 'ít nhất' : 'at or above' }[task.condition.operator]
+    return locale === 'vi' ? `Giá ${result.asset} hiện tại: $${result.price}. Ngưỡng: ${comparison} $${result.threshold}.` : `${result.asset} price: $${result.price}. Threshold: ${comparison} $${result.threshold}.`
+  }
   if (result.kind === 'TOKEN_BALANCE') {
     const comparison = { LT: locale === 'vi' ? 'dưới' : 'below', LTE: locale === 'vi' ? 'không quá' : 'at or below', GT: locale === 'vi' ? 'trên' : 'above', GTE: locale === 'vi' ? 'ít nhất' : 'at or above' }[task.condition.operator]
     return locale === 'vi' ? `Số dư ${result.asset} hiện tại: ${result.balance}. Ngưỡng: ${comparison} ${result.threshold}.` : `${result.asset} balance: ${result.balance}. Threshold: ${comparison} ${result.threshold}.`
@@ -40,6 +44,7 @@ function messageFor(task, result, locale = task.locale) {
 }
 
 function titleFor(task, locale) {
+  if (task.type === 'CONDITION_MONITOR' && task.condition?.metric === 'TOKEN_PRICE') return locale === 'vi' ? `Cảnh báo giá ${task.condition.asset}` : `${task.condition.asset} price alert`
   if (task.type === 'CONDITION_MONITOR') return locale === 'vi' ? `Cảnh báo số dư ${task.condition.asset}` : `${task.condition.asset} balance alert`
   const names = locale === 'vi' ? { PORTFOLIO_SUMMARY: 'Tóm tắt danh mục hằng ngày', ACTIVITY_SUMMARY: 'Tóm tắt hoạt động hằng ngày', BALANCE_CHECK: 'Kiểm tra số dư hằng ngày' } : { PORTFOLIO_SUMMARY: 'Daily portfolio summary', ACTIVITY_SUMMARY: 'Daily activity summary', BALANCE_CHECK: 'Daily balance check' }
   return names[task.schedule.action]
@@ -311,6 +316,14 @@ class TaskEngine {
   }
 
   async evaluateMonitor(task) {
+    if (task.condition?.metric === 'TOKEN_PRICE') {
+      if (typeof this.reads.readPrice !== 'function') throw new TaskError('TASK_DATA_UNAVAILABLE')
+      const observation = await this.reads.readPrice(task.condition.asset).catch(() => null)
+      if (!observation || !Number.isFinite(observation.usd) || observation.usd <= 0) throw new TaskError('TASK_DATA_UNAVAILABLE')
+      const price = observation.usd.toFixed(PRICE_DECIMALS).replace(/\.?0+$/, '')
+      const conditionMet = OPERATORS[task.condition.operator](decimalUnits(observation.usd.toFixed(PRICE_DECIMALS), PRICE_DECIMALS), decimalUnits(task.condition.threshold, PRICE_DECIMALS))
+      return { kind: 'TOKEN_PRICE', asset: task.condition.asset, price, threshold: task.condition.threshold, operator: task.condition.operator, conditionMet, triggered: conditionMet && task.previousConditionState !== true, previousConditionState: task.previousConditionState, source: observation.source || 'surf-market', observedAt: observation.observedAt || iso(this.now()) }
+    }
     if (task.chainId !== 5042002) throw new TaskError('TASK_NETWORK_UNAVAILABLE')
     await this.reads.verifyChain()
     const observation = await this.reads.readBalance(task.account, task.condition.asset)

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, ArrowUpRight, ArrowLeftRight, Rainbow, PieChart, Radar, Check, Trash2, Wallet, Boxes, ListChecks, Pencil, Lock, Zap, Fuel, BellRing, TrendingUp, Newspaper, RefreshCw, Sparkles, Database, Brain, UserPlus, X, ListOrdered, Play, RotateCcw } from 'lucide-react'
+import { ArrowUp, ArrowUpRight, ArrowLeftRight, Rainbow, PieChart, Radar, Check, Trash2, Wallet, Boxes, ListChecks, Pencil, Lock, Zap, Fuel, BellRing, TrendingUp, Newspaper, RefreshCw, Sparkles, Database, Brain, UserPlus, X, ListOrdered, Play, RotateCcw, Square, Copy, Mic, MicOff, CornerDownRight } from 'lucide-react'
+import { RecipientSafety } from './Send'
 import { AgentSendCard, type AgentSendStage } from '../components/AgentSendCard'
 import { AgentSwapCard } from '../components/AgentSwapCard'
 import { AgentBridgeCard } from '../components/AgentBridgeCard'
@@ -21,7 +22,7 @@ import { withRpcTimeout, AGENT_EVIDENCE_TIMEOUT_MS } from '../lib/rpcTimeout'
 import { readHomeAnswer, renderHomeAnswer, routeHomeRequest, type QuickAnswer } from '../agent/homeRequest'
 import { createAgentSession, recoverLatestAgentSession, rememberAgentSession, transitionAgentSession, type AgentSession } from '../brain/agentSession'
 import { localChatReply, routeAgentMessage, type ChatTopic } from '../agent/chatRouter'
-import { requestMakotoChat, requestMakotoChatStream, type ChatChart, type ChatDataSource, type ChatHistoryItem, type ChatMemoryUpdate, type ChatSource } from '../agent/chatClient'
+import { requestMakotoChat, requestMakotoChatStream, visibleStreamText, type ChatChart, type ChatDataSource, type ChatHistoryItem, type ChatMemoryUpdate, type ChatSource } from '../agent/chatClient'
 import { addNote, contactInText, contactSaveCheck, loadAgentMemory, memoryForRequest, removeNote, saveAgentMemory, setBridgeSpeed, type AgentMemory, type AgentNote } from '../lib/agentMemory'
 import { describeStep, planStatuses, planStepsFromText, stepCommand, type PlanStep } from '../lib/agentPlan'
 import { AreaChart } from '../components/wallet/charts'
@@ -81,6 +82,11 @@ type Msg = { id: string; role: 'user' | 'agent'; text: string; rows?: [string, s
   plan?: PlanState
   /** This review card is step `index` of the plan in message `planId`. */
   planRef?: Readonly<{ planId: string; index: number }>
+  /** Suggested next questions (AI replies). */
+  followups?: readonly string[]
+  /** The user question that produced this AI reply (for "Ask again"). */
+  question?: string
+  stopped?: boolean
 }
 type ContactOffer = Readonly<{ name: string; address: string; state: 'pending' | 'saved' | 'dismissed' | 'duplicate' }>
 type PlanState = Readonly<{ steps: readonly PlanStep[]; done: readonly boolean[]; activeIndex?: number; failedIndex?: number }>
@@ -276,12 +282,28 @@ function Stepper({ stage, compact = false }: { stage: number; compact?: boolean 
   )
 }
 
+function PreSignSummary({ flow }: { flow: Flow }) {
+  const { contacts, network } = useWallet()
+  const [, lang] = useT()
+  const vi = lang === 'vi'
+  const p = flow.params
+  const contact = contacts.find((c) => c.address.toLowerCase() === p.recipient.toLowerCase())
+  const who = contact ? `${contact.name} (${short(p.recipient)})` : short(p.recipient)
+  const fee = network?.tokenTransferFeeUsdc ? ` ${vi ? 'Phí mạng khoảng' : 'Network fee about'} ${fmtAmt(network.tokenTransferFeeUsdc, 6)} USDC.` : ''
+  const text = flow.intent === 'send'
+    ? (vi ? `Bạn sắp gửi ${p.amount} ${p.asset} cho ${who} trên Arc Testnet.${fee} Giao dịch blockchain không thể hoàn tác.` : `You are about to send ${p.amount} ${p.asset} to ${who} on Arc Testnet.${fee} Blockchain transfers cannot be reversed.`)
+    : flow.intent === 'swap'
+      ? (vi ? `Bạn sắp đổi ${p.amount} ${p.asset} sang ${p.toAsset} trên Arc. Số nhận cuối cùng theo báo giá trực tiếp và mức trượt giá bạn chọn.` : `You are about to swap ${p.amount} ${p.asset} to ${p.toAsset} on Arc. The final amount follows the live quote and your slippage.`)
+      : (vi ? `Bạn sắp chuyển ${p.amount} USDC từ Arc Testnet sang Base Sepolia qua Circle CCTP. Có thể cần 2 lần ký (phê duyệt và chuyển); tiền tới đích sau khi Circle xác nhận.` : `You are about to bridge ${p.amount} USDC from Arc Testnet to Base Sepolia via Circle CCTP. It may need 2 signatures (approval and transfer); funds arrive after Circle confirms.`)
+  return <p data-presign-summary className="rounded-lg border border-neon-500/20 bg-neon-500/[0.05] px-3 py-2 text-[12.5px] leading-relaxed">{text}</p>
+}
+
 function ReviewCard({ msg, onChange, onSlipChange, onSpeedChange, onConfirm, onContinue, onHandoff, onEdit }: {
   msg: Msg; onChange: (p: Partial<Params>) => void
   onSlipChange: (s: SlipOption) => void; onSpeedChange: (s: CctpTransferSpeed) => void
   onConfirm: () => void; onContinue: () => void; onHandoff: () => void; onEdit: () => void
 }) {
-  const { holdings } = useWallet()
+  const { holdings, contacts, activity } = useWallet()
   const [tr] = useT()
   const f = msg.flow!
   const p = f.params
@@ -334,6 +356,7 @@ function ReviewCard({ msg, onChange, onSlipChange, onSpeedChange, onConfirm, onC
           <span className="h-9 flex items-center">Arc</span>
         </>}
       </div>
+      {f.intent === 'send' && isAddress(p.recipient) && <div className="px-4 pb-3"><RecipientSafety recipient={p.recipient} contacts={contacts} activity={activity} /></div>}
       {!locked && (
         <div className="px-4 pb-4">
           {errs.length > 0 ? <p className={`mb-2.5 text-[12px] ${T.mute}`}>{tr(errs[0])}.</p>
@@ -344,6 +367,7 @@ function ReviewCard({ msg, onChange, onSlipChange, onSpeedChange, onConfirm, onC
       )}
       {locked && (
         <div className="border-t border-white/[0.06] p-4 space-y-3">
+          <PreSignSummary flow={f} />
           {/* Native execution — only available in connected mode */}
           {!f.execCard && f.session.stage !== 'HANDED_OFF' && (
             <div className="rounded-xl border border-neon-500/20 bg-neon-500/[0.05] p-3 space-y-2">
@@ -483,6 +507,46 @@ export default function AgentPage() {
     saveAgentMemory(typeof localStorage === 'undefined' ? undefined : localStorage, next)
   }
   const requestMemory = () => memoryForRequest(memoryRef.current, w.contacts)
+  // Conversation history is kept on this device per wallet. Only text is restored:
+  // review cards, plans and tasks are never restored, so nothing old can be executed.
+  const chatKey = `mk.agent.chat.v1:${w.mode === 'demo' || !w.address ? 'demo' : w.address.toLowerCase()}`
+  const loadedChatKey = useRef('')
+  useEffect(() => {
+    if (loadedChatKey.current === chatKey || typeof localStorage === 'undefined') return
+    loadedChatKey.current = chatKey
+    try {
+      const saved = JSON.parse(localStorage.getItem(chatKey) ?? '[]') as Msg[]
+      if (!Array.isArray(saved) || !saved.length) return
+      const restored = saved.filter((m) => m && (m.role === 'user' || m.role === 'agent') && typeof m.text === 'string' && m.text.trim()).slice(-30)
+        .map((m) => ({ id: nid(), role: m.role, text: m.text, ...(m.role === 'agent' ? { source: 'REAL_PROVIDER' as const, conversation: true } : {}), ...(m.dataSources ? { dataSources: m.dataSources } : {}), ...(m.charts ? { charts: m.charts } : {}) }) as Msg)
+      setMsgs((current) => current.length ? current : restored)
+      chatHistory.current = restored.slice(-12).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text.slice(0, 600) }))
+    } catch { /* A damaged history is ignored. */ }
+  }, [chatKey])
+  useEffect(() => {
+    if (typeof localStorage === 'undefined' || loadedChatKey.current !== chatKey) return
+    const keep = msgs.filter((m) => !m.streaming && m.text?.trim() && !m.task && !m.taskReply && !m.quick)
+      .map((m) => ({ role: m.role, text: m.role === 'agent' && m.source !== 'REAL_PROVIDER' ? tr(m.text) : m.text, ...(m.dataSources ? { dataSources: m.dataSources } : {}), ...(m.charts ? { charts: m.charts } : {}) }))
+      .slice(-30)
+    try { if (keep.length) localStorage.setItem(chatKey, JSON.stringify(keep)); else localStorage.removeItem(chatKey) } catch { /* Storage full or blocked. */ }
+  }, [msgs, chatKey, tr])
+  // Voice input (browser speech recognition, where available).
+  const [listening, setListening] = useState(false)
+  const recognitionRef = useRef<{ stop: () => void } | null>(null)
+  const speechCtor = typeof window !== 'undefined' ? ((window as unknown as { SpeechRecognition?: new () => unknown; webkitSpeechRecognition?: new () => unknown }).SpeechRecognition ?? (window as unknown as { webkitSpeechRecognition?: new () => unknown }).webkitSpeechRecognition) : undefined
+  const toggleVoice = () => {
+    if (listening) { recognitionRef.current?.stop(); return }
+    if (!speechCtor) return
+    const recognition = new speechCtor() as { lang: string; interimResults: boolean; onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void; onend: () => void; onerror: () => void; start: () => void; stop: () => void }
+    recognition.lang = lang === 'vi' ? 'vi-VN' : 'en-US'
+    recognition.interimResults = true
+    recognition.onresult = (event) => setInput(Array.from(event.results).map((result) => result[0]?.transcript ?? '').join(' ').trim())
+    recognition.onend = () => { setListening(false); recognitionRef.current = null }
+    recognition.onerror = () => { setListening(false); recognitionRef.current = null }
+    recognitionRef.current = recognition
+    setListening(true)
+    recognition.start()
+  }
   const messageText = (message: Msg) => {
     if (message.quick) return renderHomeAnswer(message.quick, locale, w.mask, w).text
     if (message.taskReply?.kind === 'COPY') return taskText(message.taskReply.key, locale)
@@ -593,7 +657,7 @@ export default function AgentPage() {
     }
     return { ...(notes.length ? { memoryNotes: notes } : {}), ...(offers.length ? { contactOffers: offers } : {}) }
   }
-  const plan = async (q: string, history: readonly ChatHistoryItem[], forcedTaskMode?: 'monitor' | 'automation' | null, onStream?: (partial: { text: string; toolStatus?: string }) => void): Promise<Msg> => {
+  const plan = async (q: string, history: readonly ChatHistoryItem[], forcedTaskMode?: 'monitor' | 'automation' | null, onStream?: (partial: { text: string; toolStatus?: string }) => void, signal?: AbortSignal): Promise<Msg> => {
     const locale = lang === 'vi' ? 'vi' : 'en'
     const taskMode = forcedTaskMode ?? taskIntentMode(q)
     if (taskMode) {
@@ -641,14 +705,19 @@ export default function AgentPage() {
         context: { locale: lang, mode: w.mode, ...(w.mode === 'connected' ? { chain: ARC.name as 'Arc Testnet' } : {}), intent: routed.category === 'CHAT' ? 'CHAT' : 'INFORMATION' },
         address: w.mode !== 'demo' ? w.address : undefined,
         memory: requestMemory(),
+        signal,
         onEvent: (event) => {
           if (event.type === 'delta') streamed += event.text
           else toolStatus = event.source ?? event.tool
-          onStream?.({ text: streamed, toolStatus })
+          onStream?.({ text: visibleStreamText(streamed), toolStatus })
         },
       })
+      if (!response.ok && response.aborted) {
+        const partial = visibleStreamText(streamed)
+        return { id: nid(), role: 'agent', text: partial ? `${partial}\n\n_${lang === 'vi' ? 'Đã dừng.' : 'Stopped.'}_` : (lang === 'vi' ? 'Đã dừng.' : 'Stopped.'), source: 'REAL_PROVIDER', conversation: Boolean(partial), stopped: true, question: q }
+      }
       if (response.ok) {
-        const extra: Partial<Msg> = { dataSources: response.sources, ...(response.charts ? { charts: response.charts } : {}), ...applyMemoryUpdates(response.memory) }
+        const extra: Partial<Msg> = { dataSources: response.sources, question: q, ...(response.followups ? { followups: response.followups } : {}), ...(response.charts ? { charts: response.charts } : {}), ...applyMemoryUpdates(response.memory) }
         if (response.plan) return { id: nid(), role: 'agent', text: response.text, sample: false, conversation: true, source: 'REAL_PROVIDER', plan: { steps: response.plan, done: response.plan.map(() => false) }, ...extra }
         if (response.proposal) return actionMessageFromStep(response.proposal, response.text, extra)
         return { id: nid(), role: 'agent', text: response.text, sample: false, conversation: true, source: 'REAL_PROVIDER', ...extra }
@@ -720,8 +789,12 @@ export default function AgentPage() {
     }
   }
 
+  const abortRef = useRef<AbortController | null>(null)
+  const stop = () => abortRef.current?.abort()
   const ask = (q: string, forcedTaskMode?: 'monitor' | 'automation' | null) => {
-    if (!q.trim()) return
+    if (!q.trim() || abortRef.current) return
+    const controller = new AbortController()
+    abortRef.current = controller
     const history = chatHistory.current
     chatHistory.current = appendChatHistory(history, { role: 'user', content: q })
     setMsgs((m) => [...m, { id: nid(), role: 'user', text: q }])
@@ -733,11 +806,12 @@ export default function AgentPage() {
       return m.some((x) => x.id === streamId) ? m.map((x) => x.id === streamId ? placeholder : x) : [...m, placeholder]
     })
     const finish = (answer: Msg) => {
+      if (abortRef.current === controller) abortRef.current = null
       setMsgs((m) => [...m.filter((x) => x.id !== streamId), answer])
       setTyping(false)
     }
     setTimeout(() => {
-      void plan(q, history, forcedTaskMode, onStream).then((answer) => {
+      void plan(q, history, forcedTaskMode, onStream, controller.signal).then((answer) => {
         if (answer.conversation) chatHistory.current = appendChatHistory(chatHistory.current, { role: 'assistant', content: answer.text })
         finish(answer)
       }).catch(() => {
@@ -861,7 +935,7 @@ export default function AgentPage() {
               <div className={`text-[12px] flex items-center gap-1.5 ${T.mute}`}><span className="w-2 h-2 rounded-full bg-neon-400/70 shrink-0" /> {tr('Your wallet assistant')}</div>
             </div>
           </div>
-          {msgs.length > 0 && <Button variant="ghost" size="sm" onClick={() => { setMsgs([]); chatHistory.current = [] }}><Trash2 size={13} /> {tr('Clear')}</Button>}
+          {msgs.length > 0 && <Button variant="ghost" size="sm" onClick={() => { stop(); setMsgs([]); chatHistory.current = []; try { localStorage.removeItem(chatKey) } catch { /* ignore */ } }}><Trash2 size={13} /> {tr('Clear')}</Button>}
         </div>
         {current && <div className="lg:hidden px-4 py-2.5 border-b border-white/[0.05]"><Stepper stage={current.stage} compact /></div>}
 
@@ -896,6 +970,19 @@ export default function AgentPage() {
                 {m.dataSources && m.dataSources.length > 0 && <SourcesLine sources={m.dataSources} />}
                 {(m.memoryNotes?.length || m.contactOffers?.length) ? <MemoryReplyLines msg={m} onUndoNote={(id) => undoNote(m.id, id)} onSaveContact={(offer) => saveOffer(m.id, offer)} onDismissContact={(offer) => setOffer(m.id, offer.address, 'dismissed')} /> : null}
                 {m.plan && <PlanCard msg={m} onStart={(index) => void startPlanStep(m.id, index)} onReset={(index) => resetPlanStep(m.id, index)} />}
+                {m.source === 'REAL_PROVIDER' && !m.streaming && m.question && (
+                  <div className={`mt-2 flex items-center gap-3 text-[11.5px] ${T.mute}`}>
+                    <button type="button" onClick={() => { void navigator.clipboard?.writeText(m.text).then(() => w.notify(lang === 'vi' ? 'Đã sao chép' : 'Copied')).catch(() => {}) }} className="inline-flex items-center gap-1 hover:text-white"><Copy size={12} /> {lang === 'vi' ? 'Sao chép' : 'Copy'}</button>
+                    <button type="button" disabled={typing} onClick={() => ask(m.question!)} className="inline-flex items-center gap-1 hover:text-white disabled:opacity-40"><RotateCcw size={12} /> {lang === 'vi' ? 'Hỏi lại' : 'Ask again'}</button>
+                  </div>
+                )}
+                {m.followups?.length && m.id === msgs[msgs.length - 1]?.id && !typing ? (
+                  <div className="mt-2.5 flex flex-wrap gap-1.5" data-followups>
+                    {m.followups.map((question) => (
+                      <button key={question} type="button" onClick={() => ask(question)} className={`inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] px-2.5 py-1.5 text-[12.5px] ${T.sub} hover:text-white hover:border-neon-500/30`}><CornerDownRight size={12} className="text-neon-300" /> {question}</button>
+                    ))}
+                  </div>
+                ) : null}
                 {m.aiProposal && <p className="mt-2 text-[12px] text-neon-300/90">{tr('Makoto prepared a review card below. Nothing is sent until you confirm in your wallet.')}</p>}
                 {messageRows(m).length ? (
                   <dl className="mt-2 rounded-xl border border-white/[0.07] divide-y divide-white/[0.05] text-[13px]">
@@ -979,7 +1066,10 @@ export default function AgentPage() {
         <form onSubmit={(e) => { e.preventDefault(); ask(input) }} className="p-3 sm:p-4 border-t border-white/[0.06]">
           <div className="mk-field-shell flex items-center gap-2 rounded-xl border border-white/[0.08] bg-black/25 p-1.5 transition">
             <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={tr(SAMPLE_PROMPTS.send)} aria-label={tr('Message Makoto')} className="flex-1 min-w-0 bg-transparent px-2.5 py-2 text-[14px] outline-none placeholder:text-[#6f6d7a]" />
-            <button disabled={!input.trim() || typing} className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg bg-neon-500 text-[#0b0b10] hover:bg-neon-400 disabled:bg-white/[0.06] disabled:text-white/30" aria-label={tr('Send message')}><ArrowUp size={17} /></button>
+            {speechCtor && !typing && <button type="button" onClick={toggleVoice} aria-pressed={listening} aria-label={lang === 'vi' ? (listening ? 'Dừng nghe' : 'Nói để nhập') : (listening ? 'Stop listening' : 'Voice input')} className={`h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg ${listening ? 'bg-rose-500/20 text-rose-200 animate-pulse' : `${T.sub} hover:text-white hover:bg-white/[0.06]`}`}>{listening ? <MicOff size={16} /> : <Mic size={16} />}</button>}
+            {typing
+              ? <button type="button" onClick={stop} className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg bg-white/[0.1] text-white hover:bg-white/[0.16]" aria-label={lang === 'vi' ? 'Dừng trả lời' : 'Stop answering'} title={lang === 'vi' ? 'Dừng' : 'Stop'}><Square size={14} fill="currentColor" /></button>
+              : <button disabled={!input.trim()} className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg bg-neon-500 text-[#0b0b10] hover:bg-neon-400 disabled:bg-white/[0.06] disabled:text-white/30" aria-label={tr('Send message')}><ArrowUp size={17} /></button>}
           </div>
         </form>
       </Card>

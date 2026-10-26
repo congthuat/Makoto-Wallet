@@ -14,7 +14,7 @@ export type ChatMemoryUpdate = Readonly<{ type: 'note'; note: string } | { type:
 export type ChatChart = Readonly<{ symbol: string; timeRange: string; currency: string; points: readonly (readonly [number, number])[] }>
 export type { ChatHistoryItem } from './chatContext.ts'
 export type ChatSource = 'REAL_PROVIDER' | 'LOCAL_FALLBACK' | 'DETERMINISTIC_TOOL'
-export type ChatResponse = Readonly<{ ok: true; text: string; source: 'REAL_PROVIDER'; sources?: readonly ChatDataSource[]; proposal?: ChatProposal; plan?: readonly PlanStep[]; memory?: readonly ChatMemoryUpdate[]; charts?: readonly ChatChart[] } | { ok: false; reason: string; source: 'LOCAL_FALLBACK' }>
+export type ChatResponse = Readonly<{ ok: true; text: string; source: 'REAL_PROVIDER'; sources?: readonly ChatDataSource[]; proposal?: ChatProposal; plan?: readonly PlanStep[]; memory?: readonly ChatMemoryUpdate[]; charts?: readonly ChatChart[]; followups?: readonly string[] } | { ok: false; reason: string; source: 'LOCAL_FALLBACK'; aborted?: boolean }>
 export type ChatStreamEvent = Readonly<{ type: 'status'; tool: string; source: string | null } | { type: 'delta'; text: string }>
 /** What the Agent may know about the user: notes, contact NAMES and preferences (no addresses). */
 export type ChatMemoryContext = Readonly<{ notes: readonly string[]; contacts: readonly string[]; preferences: Readonly<{ bridgeSpeed?: 'FAST' | 'SLOW' }> }>
@@ -88,10 +88,11 @@ export function parseChatReply(payload: unknown, status = 200): ChatResponse {
   const plan = parsePlan(value.plan)
   const memory = parseMemory(value.memory)
   const charts = parseCharts(value.charts)
+  const followups = Array.isArray(value.followups) ? value.followups.filter((item): item is string => typeof item === 'string' && item.trim().length >= 3).map((item) => item.trim().slice(0, 90)).slice(0, 3) : []
   return {
     ok: true, text: (value.text as string).trim().slice(0, 6000), source: 'REAL_PROVIDER',
     ...(sources.length ? { sources } : {}), ...(proposal ? { proposal } : {}), ...(plan ? { plan } : {}),
-    ...(memory.length ? { memory } : {}), ...(charts.length ? { charts } : {}),
+    ...(memory.length ? { memory } : {}), ...(charts.length ? { charts } : {}), ...(followups.length ? { followups } : {}),
   }
 }
 
@@ -150,7 +151,8 @@ export async function requestMakotoChatStream(input: ChatRequestInput & { onEven
       return shown ? { ok: false, reason: 'Chat stream ended early', source: 'LOCAL_FALLBACK' } as ChatResponse : requestMakotoChat(input)
     }, CHAT_TIMEOUT_MS, controller)
   } catch (error) {
-    if (!shown && !(input.signal?.aborted) && !(error instanceof Error && error.name === 'AbortError')) return requestMakotoChat(input)
+    if (input.signal?.aborted) return { ok: false, reason: 'Stopped', source: 'LOCAL_FALLBACK', aborted: true }
+    if (!shown && !(error instanceof Error && error.name === 'AbortError')) return requestMakotoChat(input)
     return { ok: false, reason: error instanceof Error && error.name === 'AbortError' ? 'Chat service timed out' : 'Chat service unavailable', source: 'LOCAL_FALLBACK' }
   }
 }
@@ -226,4 +228,10 @@ function parseCharts(value: unknown): ChatChart[] {
     const points = v.points.slice(0, 200).filter((point): point is [number, number] => Array.isArray(point) && point.length === 2 && point.every((n) => typeof n === 'number' && Number.isFinite(n)))
     return points.length >= 2 ? [{ symbol: v.symbol.toUpperCase(), timeRange: typeof v.time_range === 'string' ? v.time_range.slice(0, 6) : '', currency: typeof v.currency === 'string' ? v.currency.slice(0, 6) : 'USD', points }] : []
   })
+}
+
+/** Streaming text without the trailing "[[followups: …]]" marker the backend strips from the final reply. */
+export function visibleStreamText(text: string): string {
+  const index = text.indexOf('[[')
+  return index >= 0 ? text.slice(0, index).trimEnd() : text
 }

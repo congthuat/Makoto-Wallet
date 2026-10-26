@@ -61,7 +61,7 @@ function useWalletState() {
   const queryClient = useQueryClient()
   const providerRevision = useSyncExternalStore(subscribeBrowserWallets, browserWalletRevision, () => 0)
   useEffect(() => { discoverBrowserWallets() }, [])
-  const [page, setPage] = useState<Page>(() => { if (typeof window === 'undefined') return 'home'; const h = window.location.hash.slice(1); return (['audit', 'about', 'legal', 'changelog', 'status', 'faucet'] as string[]).includes(h) ? (h as Page) : 'home' })
+  const [page, setPage] = useState<Page>(() => { if (typeof window === 'undefined') return 'home'; const h = window.location.hash.slice(1); return (['about', 'legal', 'changelog', 'status', 'faucet'] as string[]).includes(h) ? (h as Page) : 'home' })
   const [hidden, setHidden] = useLocal('mk.hidden', false)
   const [mode, setMode] = useLocal<Mode>('mk.mode', 'demo')
   const [address, setAddress] = useLocal<string>('mk.address', '')

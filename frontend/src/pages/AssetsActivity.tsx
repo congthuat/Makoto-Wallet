@@ -38,8 +38,8 @@ export function AssetsPage() {
           <div className="text-[14px] font-semibold">{tr('Display')}</div>
           <p className={`text-[13px] mt-1 ${T.sub}`}>{tr(spam.length === 1 ? '{n} unverified token found.' : '{n} unverified tokens found.').replace('{n}', String(spam.length))} {tr('Unknown airdrops can impersonate real assets.')}</p>
           <div className="mt-4 space-y-3 text-[13px]">
-            <label className="flex items-center justify-between gap-3"><span>{tr('Hide unverified tokens')}</span><Toggle on={settings.hideSpam} onChange={() => setSettings({ ...settings, hideSpam: !settings.hideSpam })} /></label>
-            <label className="flex items-center justify-between gap-3"><span>{tr('Hide balances under $1')}</span><Toggle on={settings.hideSmall} onChange={() => setSettings({ ...settings, hideSmall: !settings.hideSmall })} /></label>
+            <label className="flex items-center justify-between gap-3"><span>{tr('Hide unverified tokens')}</span><Toggle label={tr('Hide unverified tokens')} on={settings.hideSpam} onChange={() => setSettings({ ...settings, hideSpam: !settings.hideSpam })} /></label>
+            <label className="flex items-center justify-between gap-3"><span>{tr('Hide balances under $1')}</span><Toggle label={tr('Hide balances under $1')} on={settings.hideSmall} onChange={() => setSettings({ ...settings, hideSmall: !settings.hideSmall })} /></label>
           </div>
         </Card>
       </div>

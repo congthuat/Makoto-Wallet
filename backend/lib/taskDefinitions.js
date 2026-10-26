@@ -8,6 +8,9 @@ const TOKENS = Object.freeze({
 })
 const OPERATORS = Object.freeze({ LT: (a, b) => a < b, LTE: (a, b) => a <= b, GT: (a, b) => a > b, GTE: (a, b) => a >= b })
 const ACTIONS = Object.freeze(['PORTFOLIO_SUMMARY', 'ACTIVITY_SUMMARY', 'BALANCE_CHECK'])
+// Market price alerts (USD). Read-only: a triggered alert only notifies.
+const PRICE_ASSETS = Object.freeze(['BTC', 'ETH', 'SOL', 'USDC', 'EURC'])
+const PRICE_DECIMALS = 8
 
 class TaskError extends Error {
   constructor(code, message = code, status = 400) { super(message); this.code = code; this.status = status }
@@ -75,6 +78,18 @@ function validateDefinition(input) {
   let condition = null, schedule = null, authority = 'NOTIFY_ONLY', title, description, sourceIntent
   if (type === 'CONDITION_MONITOR') {
     const raw = input.condition
+    if (raw?.metric === 'TOKEN_PRICE') {
+      if (!PRICE_ASSETS.includes(raw.asset) || !OPERATORS[raw.operator]) throw new TaskError('TASK_INVALID', 'Unsupported price alert')
+      const threshold = formatUnits(decimalUnits(raw.threshold, PRICE_DECIMALS), PRICE_DECIMALS)
+      if (decimalUnits(threshold, PRICE_DECIMALS) <= 0n) throw new TaskError('TASK_INVALID', 'Invalid threshold')
+      const checkIntervalMinutes = raw.checkIntervalMinutes === undefined ? 5 : Number(raw.checkIntervalMinutes)
+      if (!Number.isInteger(checkIntervalMinutes) || checkIntervalMinutes < 2 || checkIntervalMinutes > 60) throw new TaskError('TASK_INVALID', 'Invalid monitor cadence')
+      condition = { metric: 'TOKEN_PRICE', asset: raw.asset, operator: raw.operator, threshold, checkIntervalMinutes }
+      title = `${raw.asset} price alert`
+      description = `${raw.asset} price ${raw.operator} ${threshold} USD`
+      sourceIntent = description
+      return { type, title, description, status: 'ACTIVE', authority, account: boundAccount, chainId: CHAIN_ID, timezone: zone, sourceIntent, locale, condition, schedule, createdBy }
+    }
     if (!raw || raw.metric !== 'TOKEN_BALANCE' || !TOKENS[raw.asset] || !OPERATORS[raw.operator]) throw new TaskError('TASK_INVALID', 'Unsupported monitor condition')
     const threshold = formatUnits(decimalUnits(raw.threshold, TOKENS[raw.asset].decimals), TOKENS[raw.asset].decimals)
     const checkIntervalMinutes = raw.checkIntervalMinutes === undefined ? 2 : Number(raw.checkIntervalMinutes)
@@ -94,6 +109,24 @@ function validateDefinition(input) {
   return { type, title, description, status: 'ACTIVE', authority, account: boundAccount, chainId: CHAIN_ID, timezone: zone, sourceIntent, locale, condition, schedule, createdBy }
 }
 
+/** "90,000" / "90.000" / "90k" / "1.0005" → decimal string. */
+function priceThreshold(raw, asset) {
+  if (typeof raw !== 'string') return null
+  let value = raw.replace(/\s+/g, '').replace(/[.,]+$/, '').toLowerCase()
+  const thousand = value.endsWith('k')
+  if (thousand) value = value.slice(0, -1)
+  // Stablecoin thresholds sit near 1: a separator there is always a decimal point.
+  const stable = asset === 'USDC' || asset === 'EURC'
+  if (!stable && /^[1-9]\d{0,2}(?:[.,]\d{3})+$/.test(value)) value = value.replace(/[.,]/g, '')
+  else if ((value.match(/[.,]/g) || []).length > 1) return null
+  else value = value.replace(',', '.')
+  if (!/^\d+(?:\.\d+)?$/.test(value)) return null
+  if (thousand) value = String(Number(value) * 1000)
+  const [rawWhole, fraction = ''] = value.split('.')
+  const whole = String(Number(rawWhole))
+  return fraction ? `${whole}.${fraction.slice(0, PRICE_DECIMALS)}` : whole
+}
+
 function normalized(text) { return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase() }
 
 function parseIntent(input) {
@@ -108,6 +141,15 @@ function parseIntent(input) {
   // Financial writes never become executable background tasks; "send me a summary" remains a read-only request.
   if (/\b(swap|bridge|approve|approval|buy|sell|pay|withdraw|stake|unstake|deposit|mint|burn|redeem|lend|borrow|repay|mua|ban|rut|nap|vay|tra no|doi token|hoan doi)\b/.test(s) || /\b(send|transfer|gui|chuyen)\s+(?:\d+|them|more|usdc|eurc|cirbtc)\b/.test(s)) {
     return { candidate: null, missingFields: [], blocked: { code: 'TASK_WRITE_REQUIRES_USER', authority: 'PREPARE_ONLY' } }
+  }
+  if (mode === 'monitor' && /\b(gia|price|priced)\b/.test(s)) {
+    const asset = /\b(btc|bitcoin|cirbtc)\b/.test(s) ? 'BTC' : /\b(eth|ethereum|ether)\b/.test(s) ? 'ETH' : /\b(sol|solana)\b/.test(s) ? 'SOL' : /\beurc\b/.test(s) ? 'EURC' : /\busdc\b/.test(s) ? 'USDC' : null
+    const op = /(<=|at or below|no more than|duoi hoac bang|thap hon hoac bang)/.test(s) ? 'LTE' : /(>=|at or above|no less than|tren hoac bang|cao hon hoac bang)/.test(s) ? 'GTE' : /(<|below|under|less than|drops? (?:below|under)|duoi|thap hon|nho hon|giam (?:duoi|xuong))/.test(s) ? 'LT' : /(>|above|over|greater than|rises? above|tren|cao hon|lon hon|vuot|tang (?:len|tren))/.test(s) ? 'GT' : null
+    const rawAmount = s.match(/(?:<=|>=|<|>|at or below|at or above|no more than|no less than|below|under|less than|above|over|greater than|duoi(?: hoac bang)?|thap hon(?: hoac bang)?|nho hon|tren(?: hoac bang)?|cao hon(?: hoac bang)?|lon hon|vuot(?: qua)?|xuong|len)\s*\$?\s*(\d[\d.,]*\s*k?)/)?.[1]
+    const threshold = priceThreshold(rawAmount, asset)
+    const missingFields = [!asset && 'asset', !op && 'operator', !threshold && 'threshold'].filter(Boolean)
+    if (missingFields.length) return { candidate: null, missingFields }
+    return { candidate: validateDefinition({ ...base, type: 'CONDITION_MONITOR', condition: { metric: 'TOKEN_PRICE', asset, operator: op, threshold, checkIntervalMinutes: 5 } }), missingFields: [] }
   }
   if (mode === 'monitor') {
     const asset = /\bcirbtc\b/i.test(s) ? 'cirBTC' : /\beurc\b/i.test(s) ? 'EURC' : /\busdc\b/i.test(s) ? 'USDC' : null
@@ -127,4 +169,4 @@ function parseIntent(input) {
   return { candidate: validateDefinition({ ...base, type: 'SCHEDULED_AUTOMATION', schedule: { kind: 'DAILY', time, action } }), missingFields: [] }
 }
 
-module.exports = { CHAIN_ID, TOKENS, OPERATORS, ACTIONS, TaskError, decimalUnits, formatUnits, dailyNext, localDayStart, validateDefinition, parseIntent }
+module.exports = { PRICE_ASSETS, PRICE_DECIMALS, priceThreshold, CHAIN_ID, TOKENS, OPERATORS, ACTIONS, TaskError, decimalUnits, formatUnits, dailyNext, localDayStart, validateDefinition, parseIntent }
