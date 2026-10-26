@@ -92,6 +92,13 @@ EOF
       INSTANCE="$(printf '%s\n' "$out" | grep -o 'ocid1\.instance[^" ]*' | tail -1)"
       break
     fi
+    if printf '%s' "$out" | grep -qiE 'TooManyRequests|"status": 429'; then
+      # New accounts are throttled on launch_instance; back off and retry.
+      [ "$attempt" -lt "$MAX_ATTEMPTS" ] || die "Oracle is still throttling requests (429). Wait 15-30 minutes and run the same command again."
+      wait_s=$(( attempt < 5 ? 90 * attempt : 300 ))
+      info "Oracle says 'too many requests' (429, common for new accounts); waiting ${wait_s}s then retrying"
+      attempt=$((attempt + 1)); sleep "$wait_s"; continue
+    fi
     if printf '%s' "$out" | grep -qiE 'out of (host )?capacity|OutOfCapacity|InternalError'; then
       [ "$attempt" -lt "$MAX_ATTEMPTS" ] || die "Oracle has no free ARM capacity right now. Run the same command again later (or upgrade to Pay As You Go, still \$0)."
       info "Tokyo ARM capacity is full; retrying in 60s (Ctrl+C to stop; re-running later is safe)"
