@@ -511,25 +511,32 @@ export default function AgentPage() {
   // review cards, plans and tasks are never restored, so nothing old can be executed.
   const chatKey = `mk.agent.chat.v1:${w.mode === 'demo' || !w.address ? 'demo' : w.address.toLowerCase()}`
   const loadedChatKey = useRef('')
+  const [savedChat, setSavedChat] = useState<Msg[]>([])
+  // Saved history is offered, never auto-shown: the welcome screen and suggestions stay first.
   useEffect(() => {
     if (loadedChatKey.current === chatKey || typeof localStorage === 'undefined') return
     loadedChatKey.current = chatKey
     try {
       const saved = JSON.parse(localStorage.getItem(chatKey) ?? '[]') as Msg[]
-      if (!Array.isArray(saved) || !saved.length) return
-      const restored = saved.filter((m) => m && (m.role === 'user' || m.role === 'agent') && typeof m.text === 'string' && m.text.trim()).slice(-30)
-        .map((m) => ({ id: nid(), role: m.role, text: m.text, ...(m.role === 'agent' ? { source: 'REAL_PROVIDER' as const, conversation: true } : {}), ...(m.dataSources ? { dataSources: m.dataSources } : {}), ...(m.charts ? { charts: m.charts } : {}) }) as Msg)
-      setMsgs((current) => current.length ? current : restored)
-      chatHistory.current = restored.slice(-12).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text.slice(0, 600) }))
-    } catch { /* A damaged history is ignored. */ }
+      const restored = Array.isArray(saved) ? saved.filter((m) => m && (m.role === 'user' || m.role === 'agent') && typeof m.text === 'string' && m.text.trim()).slice(-30)
+        .map((m) => ({ id: nid(), role: m.role, text: m.text, ...(m.role === 'agent' ? { source: 'REAL_PROVIDER' as const, conversation: true } : {}), ...(m.dataSources ? { dataSources: m.dataSources } : {}), ...(m.charts ? { charts: m.charts } : {}) }) as Msg) : []
+      setSavedChat(restored)
+    } catch { setSavedChat([]) }
   }, [chatKey])
+  const restoreChat = () => {
+    if (!savedChat.length) return
+    setMsgs(savedChat)
+    chatHistory.current = savedChat.slice(-12).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text.slice(0, 600) }))
+    setSavedChat([])
+  }
   useEffect(() => {
-    if (typeof localStorage === 'undefined' || loadedChatKey.current !== chatKey) return
+    // Nothing new to save until the user chats (or restores); never overwrite an offered history with an empty view.
+    if (typeof localStorage === 'undefined' || loadedChatKey.current !== chatKey || (!msgs.length && savedChat.length)) return
     const keep = msgs.filter((m) => !m.streaming && m.text?.trim() && !m.task && !m.taskReply && !m.quick)
       .map((m) => ({ role: m.role, text: m.role === 'agent' && m.source !== 'REAL_PROVIDER' ? tr(m.text) : m.text, ...(m.dataSources ? { dataSources: m.dataSources } : {}), ...(m.charts ? { charts: m.charts } : {}) }))
       .slice(-30)
     try { if (keep.length) localStorage.setItem(chatKey, JSON.stringify(keep)); else localStorage.removeItem(chatKey) } catch { /* Storage full or blocked. */ }
-  }, [msgs, chatKey, tr])
+  }, [msgs, chatKey, tr, savedChat.length])
   // Voice input (browser speech recognition, where available).
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef<{ stop: () => void } | null>(null)
@@ -935,7 +942,7 @@ export default function AgentPage() {
               <div className={`text-[12px] flex items-center gap-1.5 ${T.mute}`}><span className="w-2 h-2 rounded-full bg-neon-400/70 shrink-0" /> {tr('Your wallet assistant')}</div>
             </div>
           </div>
-          {msgs.length > 0 && <Button variant="ghost" size="sm" onClick={() => { stop(); setMsgs([]); chatHistory.current = []; try { localStorage.removeItem(chatKey) } catch { /* ignore */ } }}><Trash2 size={13} /> {tr('Clear')}</Button>}
+          {msgs.length > 0 && <Button variant="ghost" size="sm" onClick={() => { stop(); setMsgs([]); setSavedChat([]); chatHistory.current = []; try { localStorage.removeItem(chatKey) } catch { /* ignore */ } }}><Trash2 size={13} /> {tr('Clear')}</Button>}
         </div>
         {current && <div className="lg:hidden px-4 py-2.5 border-b border-white/[0.05]"><Stepper stage={current.stage} compact /></div>}
 
@@ -945,6 +952,11 @@ export default function AgentPage() {
               <div className="mx-auto w-fit"><Orb size={64} /></div>
               <h2 className="mt-5 text-[20px] font-bold tracking-tight">{tr('What should Makoto do for you?')}</h2>
               <p className={`mt-1.5 text-[13.5px] max-w-[460px] mx-auto ${T.sub}`}>{tr('Ask Makoto anything about your wallet or the market. It checks live data and proposes actions for your review.')}</p>
+              {savedChat.length > 0 && (
+                <button type="button" onClick={restoreChat} data-restore-chat className={`mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 py-1.5 text-[12.5px] ${T.sub} hover:text-white`}>
+                  <RotateCcw size={13} /> {lang === 'vi' ? `Xem lại cuộc trò chuyện trước (${savedChat.length} tin)` : `Continue previous chat (${savedChat.length} messages)`}
+                </button>
+              )}
               {agentActions.length > 0 && (
                 <div className="mt-6 max-w-[620px] mx-auto">
                   <div className={`mb-2 flex items-center gap-1.5 text-[11.5px] font-semibold tracking-[0.08em] ${T.mute}`}><Sparkles size={12} /> {tr('Suggested for you').toUpperCase()}</div>
