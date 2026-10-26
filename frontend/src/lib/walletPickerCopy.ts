@@ -13,6 +13,9 @@ const en = {
   install: 'Install',
   notInstalled: 'Not installed — opens the official download page',
   more: 'More wallets',
+  inBrowser: 'Installed in this browser',
+  connect: 'Connect',
+  safety: 'Makoto never asks for your seed phrase. Every transaction is approved in your wallet.',
 } as const
 const vi: Record<keyof typeof en, string> = {
   detected: 'Đã phát hiện',
@@ -29,5 +32,8 @@ const vi: Record<keyof typeof en, string> = {
   install: 'Cài đặt',
   notInstalled: 'Chưa cài — mở trang tải chính thức',
   more: 'Ví khác',
+  inBrowser: 'Đã cài trong trình duyệt',
+  connect: 'Kết nối',
+  safety: 'Makoto không bao giờ hỏi cụm từ khôi phục. Mọi giao dịch đều do bạn duyệt trong ví.',
 }
 export const walletPickerCopy = (locale: string) => locale === 'vi' ? vi : en

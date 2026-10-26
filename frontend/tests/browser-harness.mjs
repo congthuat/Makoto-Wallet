@@ -69,7 +69,7 @@ export function createBrowserHarness({ frontendRoot, name, plugins, ready }) {
       server = await createServer({
         root: frontendRoot, configFile: false, appType: 'custom',
         cacheDir: path.join(profile, 'vite-cache'),
-        optimizeDeps: { noDiscovery: true, include: ['react', 'react-dom/client', 'react/jsx-dev-runtime', 'lucide-react', 'viem', 'viem/chains', '@circle-fin/provider-cctp-v2', '@circle-fin/adapter-viem-v2/next'] },
+        optimizeDeps: { noDiscovery: true, include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-dev-runtime', 'lucide-react', 'viem', 'viem/chains', '@circle-fin/provider-cctp-v2', '@circle-fin/adapter-viem-v2/next'] },
         esbuild: { jsx: 'automatic' }, server: { host: '127.0.0.1', port: 0, hmr: false },
         plugins,
       })

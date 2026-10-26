@@ -417,6 +417,16 @@ function useWalletState() {
   const displayAddress = live ? address : DEMO_ADDRESS
   const mask = (s: string) => (hidden ? '••••••' : s)
   const go = (p: Page) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  // Keep the address bar in sync so a refresh reopens the page you are on (never a stale #pay-<id>).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const current = window.location.hash.slice(1)
+    const linkable = ['about', 'legal', 'changelog', 'status', 'faucet', 'trust'] as string[]
+    const next = page === 'pay' ? (/^pay(?:-\d{1,20})?$/.test(current) ? current : 'pay') : linkable.includes(page) ? page : ''
+    if (next === current) return
+    const url = `${window.location.pathname}${window.location.search}${next ? `#${next}` : ''}`
+    window.history.replaceState(window.history.state, '', url)
+  }, [page])
 
   return {
     page, go, hidden, setHidden, mask, mode, address, walletChainId, displayAddress, live, connect, watch, disconnect,

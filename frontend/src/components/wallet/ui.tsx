@@ -1,4 +1,5 @@
 import { useEffect, useId } from 'react'
+import { createPortal } from 'react-dom'
 import { FlaskConical, X } from 'lucide-react'
 import { useT } from '../../lib/i18n'
 
@@ -181,7 +182,8 @@ export function Modal({ open, onClose, title, children, width = 440 }: { open: b
     return () => window.removeEventListener('keydown', k)
   }, [open, onClose])
   if (!open) return null
-  return (
+  // Portal to <body> so a modal opened from inside a card is never clipped or offset by it.
+  const dialog = (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <button className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} aria-label={tr('Close')} />
       <div role="dialog" aria-modal className="relative w-full mk-in rounded-t-[24px] sm:rounded-[24px] border border-white/10 bg-[#18181e] shadow-2xl max-h-[92vh] overflow-y-auto" style={{ maxWidth: width }}>
@@ -193,6 +195,7 @@ export function Modal({ open, onClose, title, children, width = 440 }: { open: b
       </div>
     </div>
   )
+  return typeof document === 'undefined' ? dialog : createPortal(dialog, document.body)
 }
 
 export function EmptyState({ icon: Icon, title, desc, action }: { icon: any; title: string; desc?: string; action?: React.ReactNode }) {

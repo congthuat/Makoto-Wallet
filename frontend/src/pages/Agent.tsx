@@ -20,7 +20,7 @@ import type { BrainPreparation, BrainReviewSnapshot } from '../brain/types'
 import { planAgentRequest, replanAgentFromEvidence, type AgentEvidence } from '../migrated/planner'
 import { withRpcTimeout, AGENT_EVIDENCE_TIMEOUT_MS } from '../lib/rpcTimeout'
 import { readHomeAnswer, renderHomeAnswer, routeHomeRequest, type QuickAnswer } from '../agent/homeRequest'
-import { createAgentSession, recoverLatestAgentSession, rememberAgentSession, transitionAgentSession, type AgentSession } from '../brain/agentSession'
+import { createAgentSession, rememberAgentSession, transitionAgentSession, type AgentSession } from '../brain/agentSession'
 import { localChatReply, routeAgentMessage, type ChatTopic } from '../agent/chatRouter'
 import { requestMakotoChat, requestMakotoChatStream, visibleStreamText, type ChatChart, type ChatDataSource, type ChatHistoryItem, type ChatMemoryUpdate, type ChatSource } from '../agent/chatClient'
 import { addNote, contactInText, contactSaveCheck, loadAgentMemory, memoryForRequest, removeNote, saveAgentMemory, setBridgeSpeed, type AgentMemory, type AgentNote } from '../lib/agentMemory'
@@ -485,7 +485,6 @@ export default function AgentPage() {
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
   const end = useRef<HTMLDivElement>(null)
-  const restoredAccount = useRef('')
   const chatHistory = useRef<ChatHistoryItem[]>([])
   const current = [...msgs].reverse().find((m) => m.flow)?.flow
   const locale = lang === 'vi' ? 'vi' : 'en'
@@ -923,12 +922,6 @@ export default function AgentPage() {
     if (w.agentSeed) { ask(w.agentSeed, w.agentSeedMode); w.setAgentSeed(null); w.setAgentSeedMode(null) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w.agentSeed])
-  useEffect(() => {
-    if (w.mode !== 'connected' || !w.address || restoredAccount.current === w.address.toLowerCase() || typeof sessionStorage === 'undefined') return
-    restoredAccount.current = w.address.toLowerCase()
-    const historical = recoverLatestAgentSession(sessionStorage, w.address)
-    if (historical.status === 'HISTORICAL') setMsgs((current) => [...current, { id: nid(), role: 'agent', text: 'The previous session has ended. Create a new plan to continue.' }])
-  }, [w.mode, w.address, tr])
   useEffect(() => { if (msgs.length) end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [msgs, typing])
 
   return (

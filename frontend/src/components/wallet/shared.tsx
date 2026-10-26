@@ -294,49 +294,58 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   }
   const valid = isAddress(addr)
   return (
-    <Modal open={open} onClose={close} title={tr('Connect a wallet')}>
-      <p className={`text-[13px] ${T.sub}`}>{tr('Connect a browser wallet (transactions are authorized by your wallet), or watch a public address in read-only mode.')}</p>
-      <div className="mt-4 space-y-2 max-h-[52vh] overflow-y-auto pr-1" aria-label={tr('Browser wallet')}>
-        {rows.map((row) => {
-          const connected = !!row.wallet && mode === 'connected' && getProvider() === row.wallet.provider
-          return (
-            <button key={row.id} type="button" data-wallet-kind={row.kind} data-wallet-id={row.id}
-              disabled={!row.wallet || !!pending}
-              onClick={() => { if (row.wallet) void choose(row.wallet) }}
-              className={`w-full flex items-center gap-3 p-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/70 disabled:cursor-default ${row.wallet ? 'hover:bg-white/[0.06] disabled:hover:bg-white/[0.03]' : ''}`}
-            >
-              <WalletProviderIcon kind={row.kind} wallet={row.wallet} />
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-[14px] break-words">{row.name}</span>
-                <span className={`block text-[12px] ${row.wallet ? T.sub : T.mute}`}>
-                  {pending === row.id ? copy.connecting : connected ? copy.connected : row.wallet ? copy.detected : copy.absent}
+    <Modal open={open} onClose={close} title={tr('Connect a wallet')} width={480}>
+      <p className={`text-[13px] leading-5 ${T.sub}`}>{wallets.length ? copy.choose : copy.none}</p>
+      <div className="mt-4 max-h-[58vh] overflow-y-auto pr-1 -mr-1" aria-label={tr('Browser wallet')}>
+        {rows.length > 0 && <p className={`mb-2 text-[11px] font-semibold tracking-[0.08em] uppercase ${T.mute}`}>{copy.inBrowser}</p>}
+        <div className="space-y-2">
+          {rows.map((row) => {
+            const connected = !!row.wallet && mode === 'connected' && getProvider() === row.wallet.provider
+            return (
+              <button key={row.id} type="button" data-wallet-kind={row.kind} data-wallet-id={row.id}
+                disabled={!row.wallet || !!pending}
+                onClick={() => { if (row.wallet) void choose(row.wallet) }}
+                className={`group w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/70 disabled:cursor-default ${pending === row.id ? 'border-neon-500/50 bg-neon-500/[0.06]' : 'border-white/[0.09] bg-white/[0.03] hover:border-neon-500/40 hover:bg-white/[0.05] disabled:hover:border-white/[0.09] disabled:hover:bg-white/[0.03]'}`}
+              >
+                <WalletProviderIcon kind={row.kind} wallet={row.wallet} />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-[14.5px] break-words">{row.name}</span>
+                  <span className={`block text-[12px] ${pending === row.id ? 'text-neon-300' : T.mute}`}>
+                    {pending === row.id ? copy.connecting : connected ? copy.connected : copy.detected}
+                  </span>
                 </span>
+                {pending === row.id ? <Loader2 aria-hidden size={16} className="animate-spin shrink-0 text-neon-300" />
+                  : connected ? <Check aria-hidden size={16} className="text-live shrink-0" />
+                  : <span className="shrink-0 h-8 px-3 rounded-lg bg-white/[0.06] group-hover:bg-neon-500 group-hover:text-[#0b0b10] text-[12.5px] font-semibold inline-flex items-center gap-1 transition">{copy.connect} <ChevronRight aria-hidden size={14} /></span>}
+              </button>
+            )
+          })}
+        </div>
+        {installRows.length > 0 && <p className={`mt-5 mb-2 text-[11px] font-semibold tracking-[0.08em] uppercase ${T.mute}`}>{copy.more}</p>}
+        <div className="grid grid-cols-2 gap-2">
+          {installRows.map((row) => (
+            <a key={row.id} href={row.installUrl} target="_blank" rel="noopener noreferrer" data-wallet-kind={row.kind} data-wallet-install={row.kind} title={copy.notInstalled}
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] text-left transition hover:bg-white/[0.04] hover:border-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/70">
+              <span className="opacity-90 scale-[0.8] -m-1 origin-center"><WalletProviderIcon kind={row.kind} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-[13px] truncate">{row.name}</span>
+                <span className={`flex items-center gap-1 text-[11.5px] ${T.mute}`}>{copy.install} <ExternalLink aria-hidden size={11} /></span>
               </span>
-              {pending === row.id ? <Loader2 aria-hidden size={16} className="animate-spin shrink-0" /> : connected ? <Check aria-hidden size={16} className="text-live shrink-0" /> : row.wallet ? <ChevronRight aria-hidden size={16} className={`${T.mute} shrink-0`} /> : null}
-            </button>
-          )
-        })}
-        {installRows.length > 0 && <p className={`pt-2 text-[11px] font-semibold tracking-[0.08em] uppercase ${T.mute}`}>{copy.more}</p>}
-        {installRows.map((row) => (
-          <a key={row.id} href={row.installUrl} target="_blank" rel="noopener noreferrer" data-wallet-kind={row.kind} data-wallet-install={row.kind}
-            className="w-full flex items-center gap-3 p-3 rounded-2xl border border-white/[0.06] bg-transparent text-left transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/70">
-            <span className="opacity-80"><WalletProviderIcon kind={row.kind} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold text-[14px] break-words">{row.name}</span>
-              <span className={`block text-[12px] ${T.mute}`}>{copy.notInstalled}</span>
-            </span>
-            <span className="shrink-0 inline-flex items-center gap-1 text-[12px] font-semibold text-neon-300">{copy.install} <ExternalLink aria-hidden size={13} /></span>
-          </a>
-        ))}
+            </a>
+          ))}
+        </div>
       </div>
-      <p className={`mt-3 text-[12px] leading-relaxed ${T.mute}`}>{wallets.length ? copy.choose : copy.none}</p>
-      {failed && <p role="status" className="mt-2 text-[12px] text-rose-400">{copy.failed}</p>}
-      <div className={`my-4 flex items-center gap-3 text-[12px] ${T.mute}`}><span className="flex-1 h-px bg-white/10" /> {tr('or watch an address')} <span className="flex-1 h-px bg-white/10" /></div>
-      <label htmlFor="wallet-watch-address" className={`mb-1.5 block text-[12px] ${T.sub}`}>{copy.address}</label>
-      <input id="wallet-watch-address" value={addr} onChange={(e) => setAddr(e.target.value)} placeholder={tr('0x… Arc address')} className={`${inputCls} font-mono text-[13px]`} />
-      {addr && !valid && <p className="mt-1.5 text-[12px] text-rose-400">{tr('Enter a valid 0x address (42 characters)')}</p>}
-      <Button className="mt-3 w-full" disabled={!valid || !!pending} onClick={() => { watch(addr); close() }}><Eye size={15} /> {copy.watch}</Button>
-      <p className={`mt-3 text-[11px] ${T.mute}`}>{tr("Tip: if the wallet popup doesn't appear inside the preview, open the app in a new tab.")}</p>
+      {failed && <p role="status" className="mt-3 text-[12px] text-rose-400">{copy.failed}</p>}
+      <details className="mt-4 rounded-xl border border-white/[0.06] px-3 py-2.5 group/watch">
+        <summary className={`cursor-pointer list-none flex items-center gap-2 text-[13px] font-medium ${T.sub} hover:text-white`}><Eye size={14} /> {tr('or watch an address')} <ChevronRight size={14} className="ml-auto transition group-open/watch:rotate-90" aria-hidden /></summary>
+        <div className="pt-3">
+          <label htmlFor="wallet-watch-address" className={`mb-1.5 block text-[12px] ${T.sub}`}>{copy.address}</label>
+          <input id="wallet-watch-address" value={addr} onChange={(e) => setAddr(e.target.value)} placeholder={tr('0x… Arc address')} className={`${inputCls} font-mono text-[13px]`} />
+          {addr && !valid && <p className="mt-1.5 text-[12px] text-rose-400">{tr('Enter a valid 0x address (42 characters)')}</p>}
+          <Button className="mt-3 w-full" disabled={!valid || !!pending} onClick={() => { watch(addr); close() }}><Eye size={15} /> {copy.watch}</Button>
+        </div>
+      </details>
+      <p className={`mt-3 text-[11.5px] leading-5 ${T.mute}`}>{copy.safety}</p>
     </Modal>
   )
 }
