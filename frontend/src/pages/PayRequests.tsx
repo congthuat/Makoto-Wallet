@@ -193,7 +193,7 @@ function RequestCard({ contract, id, vi, onChanged }: { contract: Address; id: b
       if (allowance < request.amount) {
         // Exact, separate approval; the payment is reviewed on its own afterwards.
         const tx = await prepareTx(p, account, request.tokenAddress, approveData(contract, request.amount))
-        write.review({ label: L(vi, `Step 1/2 · Approve exactly ${amountText} for this request (not unlimited).`, `Bước 1/2 · Cho phép đúng ${amountText} cho yêu cầu này (không phải không giới hạn).`), tx, onConfirmed: async () => (await readAllowanceUnits(request.token, account, contract)) >= request.amount })
+        write.review({ label: L(vi, `Step 1/2 · Approve exactly ${amountText} for this request (not unlimited). Some wallets show this as ${request.amount.toLocaleString('en-US')} "Unknown" — that is the same amount in raw token units, because the wallet does not recognise ${request.token} on Arc yet.`, `Bước 1/2 · Cho phép đúng ${amountText} cho yêu cầu này (không phải không giới hạn). Một số ví hiển thị là ${request.amount.toLocaleString('en-US')} "Unknown" — đó chính là số tiền này tính theo đơn vị gốc của token, do ví chưa nhận diện ${request.token} trên Arc.`), tx, onConfirmed: async () => (await readAllowanceUnits(request.token, account, contract)) >= request.amount })
         return
       }
       const tx = await prepareTx(p, account, contract, payData(id))
