@@ -1,0 +1,38 @@
+[Unit]
+Description=Makoto Wallet backend (Express + SQLite)
+Documentation=https://github.com/congthuat/Makoto-Wallet/tree/makoto-wallet/deploy/oracle
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=makoto
+Group=makoto
+WorkingDirectory=/opt/makoto/app/backend
+# Secrets and configuration live only on the server (root-owned, mode 600).
+EnvironmentFile=/etc/makoto/backend.env
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+
+# Hardening: the app only needs to write its SQLite data directory.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/makoto
+UMask=0077
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

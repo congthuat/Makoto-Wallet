@@ -1,0 +1,28 @@
+# Installed to /etc/caddy/Caddyfile by setup.sh. {$MAKOTO_API_DOMAIN} is replaced at install time.
+{
+	servers {
+		# makotowallet.xyz reaches this server through the Vercel /api rewrite, so the
+		# real client IP is in Vercel's X-Forwarded-For. Vercel has no fixed IP list,
+		# so incoming X-Forwarded-* headers are accepted and the app trusts exactly
+		# two hops (Vercel, then Caddy): TASK_TRUST_PROXY_HOPS=2.
+		trusted_proxies static 0.0.0.0/0 ::/0
+	}
+}
+
+{$MAKOTO_API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3001 {
+		header_up X-Forwarded-Proto https
+	}
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+	}
+	log {
+		output file /var/log/caddy/makoto-access.log {
+			roll_size 20MiB
+			roll_keep 5
+		}
+	}
+}
