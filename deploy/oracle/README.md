@@ -58,10 +58,10 @@ Cloud Shell là cửa sổ dòng lệnh chạy ngay trên trình duyệt, không
 2. Dán lệnh sau rồi bấm Enter:
 
    ```bash
-   [ -f ~/.ssh/id_ed25519 ] || ssh-keygen -q -t ed25519 -N '' -f ~/.ssh/id_ed25519; cat ~/.ssh/id_ed25519.pub
+   [ -f ~/.ssh/id_rsa ] || ssh-keygen -q -t rsa -b 4096 -N '' -f ~/.ssh/id_rsa; cat ~/.ssh/id_rsa.pub
    ```
 
-3. Lệnh sẽ in ra một dòng bắt đầu bằng `ssh-ed25519 ...`. **Copy cả dòng đó**, dùng ở bước 3.
+3. Lệnh sẽ in ra một dòng bắt đầu bằng `ssh-rsa ...`. **Copy cả dòng đó**, dùng ở bước 3. (Cloud Shell chạy chế độ FIPS nên không dùng khóa ED25519.)
 
 ---
 
@@ -73,7 +73,7 @@ Cloud Shell là cửa sổ dòng lệnh chạy ngay trên trình duyệt, không
    - **Image** → **Change image** → **Canonical Ubuntu** → **24.04** (bản thường, không phải Minimal) → **Select image**.
    - **Shape** → **Change shape** → **Ampere** → **VM.Standard.A1.Flex** → **OCPU = 2**, **Memory = 12 GB** → **Select shape**. Thẻ "Always Free-eligible" phải hiện.
 4. **Networking**: để mặc định (**Create new virtual cloud network** + **public subnet**), bật **Assign a public IPv4 address**.
-5. **Add SSH keys** → chọn **Paste public keys** → dán dòng `ssh-ed25519 ...` từ bước 2.
+5. **Add SSH keys** → chọn **Paste public keys** → dán dòng `ssh-rsa ...` từ bước 2.
 6. **Boot volume**: để mặc định.
 7. Bấm **Create** và chờ trạng thái **RUNNING** màu xanh (1–3 phút).
 8. Ghi lại **Public IP address** (ví dụ `140.238.x.x`).

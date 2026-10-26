@@ -14,7 +14,8 @@ RAW_BASE="${RAW_BASE:-https://raw.githubusercontent.com/congthuat/Makoto-Wallet/
 OCPUS="${OCPUS:-2}"
 MEMORY_GB="${MEMORY_GB:-12}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-90}"     # capacity retries, about one per minute
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+# RSA: Oracle Cloud Shell runs in FIPS mode, where ED25519 keys are not allowed.
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_rsa}"
 STATE_DIR="$HOME/.makoto-oracle"
 
 say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
@@ -38,7 +39,8 @@ AD="$(oci iam availability-domain list --compartment-id "$TENANCY" --query 'data
 info "Availability domain: $AD"
 
 say "1/8 SSH key"
-if [ ! -f "$SSH_KEY" ]; then mkdir -p "$(dirname "$SSH_KEY")"; ssh-keygen -q -t ed25519 -N '' -f "$SSH_KEY"; fi
+if [ ! -f "$SSH_KEY" ]; then mkdir -p "$(dirname "$SSH_KEY")"; chmod 700 "$(dirname "$SSH_KEY")"; ssh-keygen -q -t rsa -b 4096 -N '' -f "$SSH_KEY"; fi
+[ -f "$SSH_KEY.pub" ] || ssh-keygen -y -f "$SSH_KEY" > "$SSH_KEY.pub"
 info "Using $SSH_KEY.pub"
 
 say "2/8 Network (VCN, internet gateway, ports 22/80/443)"
