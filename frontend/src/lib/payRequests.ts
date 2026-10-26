@@ -15,7 +15,8 @@ import type { SendProvider } from './sendExecution.ts'
 import { MAKOTO_PAY_REQUESTS_ABI, MAKOTO_PAY_REQUESTS_BYTECODE } from '../contracts/makotoPayRequests.ts'
 
 /** Official deployment on Arc Testnet; set after the owner deploys and the source is verified. */
-export const DEPLOYED_PAY_REQUESTS_ADDRESS: Address | null = null
+// Deployed 2026-10-26 by 0x16299B74c616994EAEcb9b20E37d369D5d62586B; runtime bytecode matches contracts/ build (immutables: Arc USDC, EURC).
+export const DEPLOYED_PAY_REQUESTS_ADDRESS: Address | null = '0x190132A7C8D218845c2769471C625E6da5eE4dFE'
 const LOCAL_ADDRESS_KEY = 'mk.payRequests.address.v1'
 const MINE_KEY = 'mk.payRequests.mine.v1'
 

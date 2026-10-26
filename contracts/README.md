@@ -1,5 +1,7 @@
 # MakotoPayRequests
 
+**Arc Testnet deployment:** [`0x190132A7C8D218845c2769471C625E6da5eE4dFE`](https://testnet.arcscan.app/address/0x190132A7C8D218845c2769471C625E6da5eE4dFE) (constructor: USDC `0x3600…0000`, EURC `0x89B5…D72a`). Runtime bytecode verified byte-for-byte against this source.
+
 Payment requests and bill splitting on Arc Testnet.
 
 - **Non-custodial:** each payment goes straight from payer to payee (`transferFrom(payer → payee)`); the contract never holds tokens.
