@@ -75,15 +75,15 @@ export function AboutPage() {
       <section className="mk-agent relative overflow-hidden rounded-2xl border border-white/[0.08] px-5 py-12 sm:px-10 sm:py-16 text-center mk-in">
         <div className="relative z-10 mx-auto max-w-[720px] flex flex-col items-center">
           <LogoLockup size={44} />
-          <h1 className="mt-6 text-[30px] sm:text-[44px] leading-[1.1] font-extrabold tracking-[-0.025em]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 className="mt-6 text-[30px] sm:text-[44px] leading-[1.1] font-extrabold tracking-[-0.025em]" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.035em' }}>
             {tr('The wallet you can')} <span className="mk-headline bg-gradient-to-r from-[#b6ff9f] via-neon-500 to-[#4fbf4a] bg-clip-text text-transparent">{tr('just ask.')}</span>
           </h1>
           <p className={`mt-4 text-[15px] ${T.sub}`}>{tr('Makoto is an agent wallet for Arc — ask in plain language, review every step, and authorize with your own wallet.')}</p>
           <div className="mt-7 flex flex-wrap justify-center gap-2">
-            <Button variant="primary" size="lg" onClick={() => go('home')}>{tr('Try the preview')} <ArrowRight size={16} /></Button>
+            <Button variant="primary" size="lg" onClick={() => go('home')}>{tr('Open the app')} <ArrowRight size={16} /></Button>
             <Button size="lg" onClick={() => go('faucet')}><Droplets size={16} /> {tr('Get test tokens')}</Button>
           </div>
-          <div className="mt-5"><Badge>{tr('Design preview · Arc Testnet')}</Badge></div>
+          <div className="mt-5"><Badge tone="live">{tr('Live on Arc Testnet')}</Badge></div>
         </div>
       </section>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Rainbow, Eye, EyeOff, ChevronRight, History, Zap, Activity as ActivityIcon, Fuel, Boxes, Coins } from 'lucide-react'
+import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Rainbow, Eye, EyeOff, ChevronRight, History, Zap, Activity as ActivityIcon, Fuel, Boxes, Coins, ReceiptText } from 'lucide-react'
 import { useWallet } from '../lib/store'
 import { ARC, fmtAmt, pct, usd, type Holding } from '../lib/wallet'
 import { PortfolioHistoryChart } from '../components/wallet/PortfolioHistoryChart'
@@ -14,13 +14,14 @@ export function QuickActions({ className = '' }: { className?: string }) {
   const items = [
     { icon: ArrowUpRight, t: 'Send', on: () => go('send') },
     { icon: ArrowDownLeft, t: 'Receive', on: () => setReceiveOpen(true) },
+    { icon: ReceiptText, t: 'Request', on: () => go('pay') },
     { icon: ArrowLeftRight, t: 'Swap', on: () => go('swap') },
     { icon: Rainbow, t: 'Bridge', on: () => go('bridge') },
   ]
   return (
-    <div className={`grid grid-cols-4 gap-2 ${className}`}>
+    <div className={`grid grid-cols-5 gap-1.5 sm:gap-2 ${className}`}>
       {items.map(({ icon: Icon, t, on }) => (
-        <button key={t} onClick={on} className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 h-[60px] sm:h-10 rounded-xl text-[12px] sm:text-[13px] font-semibold bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.1] active:scale-[0.98] transition">
+        <button key={t} onClick={on} className="flex flex-col xl:flex-row items-center justify-center gap-1.5 xl:gap-2 h-[60px] xl:h-10 rounded-xl text-[11.5px] sm:text-[12.5px] font-semibold bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.07] hover:border-white/[0.1] active:scale-[0.98] transition">
           <Icon size={16} className="text-neon-300" /> {tr(t)}
         </button>
       ))}

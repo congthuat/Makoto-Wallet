@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Montserrat:wght@300;400;500;600;700;800&family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Lato:wght@400;600;700;900&family=Roboto+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Montserrat:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -348,8 +348,8 @@
 }
 
 /* ===== Alphio-style "cyber" layer: black base, neon lime primary, electric purple glow ===== */
-body { background: #0b0b10; font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif; }
-h1, h2, h3, .mk-title, .mk-display { font-family: 'Syne', 'Montserrat', sans-serif; letter-spacing: -0.01em; }
+body { background: #0b0b10; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+h1, h2, h3, .mk-title, .mk-display { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.02em; }
 .mk-card { background: rgba(18,18,25,.72); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 .mk-primary { color: #0b0b10 !important; }
 [data-vivid] {
@@ -577,3 +577,69 @@ html:not([data-input-method=pointer]) .mk-field-shell[class*="border-rose"]:has(
 html[data-theme=light]:not([data-input-method=pointer]) .mk-field-shell[class*="border-rose"]:has(:is(input, select, textarea):focus-visible) { outline-color: #be123c; }
 .mk-skip { position: fixed; left: 12px; top: -48px; z-index: 100; padding: 8px 14px; border-radius: 10px; background: #8efe7e; color: #0b0b10; font-weight: 600; font-size: 13px; transition: top .15s; }
 .mk-skip:focus { top: 12px; }
+
+
+/* =====================================================================
+   Makoto Pro design layer (2026-10-26) — calm fintech surfaces.
+   Neon lime stays the brand accent (primary actions, focus, live state);
+   surfaces are deep neutrals, glows are minimal, text contrast is higher.
+   Light theme keeps its own mappings (html[data-theme=light] rules above).
+   ===================================================================== */
+:root {
+  --mk-bg: #09090b;
+  --mk-surface: #111114;
+  --mk-surface-2: #17171b;
+  --mk-border: rgba(255,255,255,.07);
+  --mk-border-strong: rgba(255,255,255,.13);
+  --mk-text: #f4f4f5;
+  --mk-sub: #a1a1aa;
+  --mk-mute: #8b8b96;
+  --mk-radius: 14px;
+}
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-feature-settings: 'cv11', 'ss01'; }
+.font-num { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif !important; font-feature-settings: 'tnum' 1, 'cv11' 1; letter-spacing: -0.01em; }
+.font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.mk-title { font-weight: 700; letter-spacing: -0.03em; }
+
+html:not([data-theme=light]) body,
+html:not([data-theme=light]) .mk-shell { background: var(--mk-bg) !important; }
+html:not([data-theme=light]) .bg-\[\#0b0b10\] { background-color: var(--mk-bg); }
+html:not([data-theme=light]) .bg-\[\#121219\],
+html:not([data-theme=light]) .bg-\[\#0e0e13\] { background-color: var(--mk-surface); }
+html:not([data-theme=light]) .text-\[\#A3A3AD\] { color: var(--mk-sub); }
+html:not([data-theme=light]) .bg-\[\#131317\] { background-color: #0d0d10; }
+html:not([data-theme=light]) .bg-\[\#131317\]\/95 { background-color: rgba(13,13,16,.94); }
+html:not([data-theme=light]) .text-\[\#83838E\],
+html:not([data-theme=light]) .text-\[\#6f6d7a\],
+html:not([data-theme=light]) .text-\[\#8a8796\] { color: var(--mk-mute); }
+
+/* Cards: flat, crisp, no blur or purple glow. */
+html:not([data-theme=light]) .mk-card {
+  background: var(--mk-surface) !important;
+  border-color: var(--mk-border) !important;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 16px 40px -32px rgba(0,0,0,.8);
+}
+html:not([data-theme=light]) [data-vivid] .mk-card:hover { border-color: var(--mk-border-strong) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 16px 40px -28px rgba(0,0,0,.9); }
+html:not([data-theme=light]) [data-vivid] .mk-hero { background: var(--mk-surface) !important; box-shadow: 0 24px 60px -40px rgba(0,0,0,.9); }
+html:not([data-theme=light]) [data-vivid] .mk-hero::before { background: radial-gradient(520px 220px at 100% 0%, rgba(142,254,126,.06), transparent 70%); }
+html:not([data-theme=light]) [data-vivid] .mk-bg { background: radial-gradient(1000px 460px at 50% -300px, rgba(142,254,126,.045), transparent 70%); }
+[data-vivid] .mk-title { text-shadow: none; }
+[data-vivid] .mk-ind { box-shadow: none; }
+html:not([data-theme=light]) .mk-agent {
+  background: radial-gradient(640px 260px at 50% -80px, rgba(142,254,126,.08), transparent 70%), var(--mk-surface);
+}
+html:not([data-theme=light]) .mk-agent::before { opacity: .55; }
+
+/* Primary action: brand lime, confident weight, subtle lift. */
+.mk-primary { font-weight: 650; letter-spacing: -0.005em; }
+[data-vivid] .mk-primary:not(:disabled):hover { filter: brightness(1.05); }
+
+/* Focus rings visible on every control (keyboard users). */
+:where(button, a, input, select, textarea, [role="switch"]):focus-visible { outline: 2px solid color-mix(in oklab, var(--nb) 70%, white); outline-offset: 2px; }
+
+/* Calm motion; respect reduced-motion. */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* Mobile bottom tab bar spacing. */
+@media (max-width: 1023px) { .mk-has-tabbar { padding-bottom: calc(68px + env(safe-area-inset-bottom)); } }

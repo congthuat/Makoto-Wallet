@@ -2,7 +2,7 @@ import { useEffect, useId } from 'react'
 import { FlaskConical, X } from 'lucide-react'
 import { useT } from '../../lib/i18n'
 
-export const T = { text: 'text-[#F5F5F5]', sub: 'text-[#A3A3AD]', mute: 'text-[#83838E]' }
+export const T = { text: 'text-[#F5F5F5]', sub: 'text-[#A3A3AD]', mute: 'text-[#83838E]' } // dark values refined in index.css (Makoto Pro layer)
 
 export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
@@ -51,7 +51,12 @@ export function Change({ v, className = '' }: { v?: number; className?: string }
   )
 }
 
+/** Official token logos (bundled locally; no remote image requests). */
+const TOKEN_LOGOS: Record<string, string> = { '$': 'USDC', '€': 'EURC', '₿': 'cirBTC' }
+
 export function TokenIcon({ color, glyph, size = 36 }: { color: string; glyph: string; size?: number }) {
+  const logo = TOKEN_LOGOS[glyph]
+  if (logo) return <img src={`${import.meta.env.BASE_URL}tokens/${logo}.svg`} alt="" aria-hidden="true" width={size} height={size} className="rounded-full shrink-0" style={{ width: size, height: size }} />
   return (
     <span
       className="rounded-full flex items-center justify-center font-bold text-[#fff] shrink-0 ring-1 ring-white/15"

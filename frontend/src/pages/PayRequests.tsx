@@ -4,6 +4,7 @@ import { CheckCircle2, Copy, ExternalLink, FileSignature, Loader2, ReceiptText, 
 import type { Address, Hex } from 'viem'
 import { useWallet } from '../lib/store'
 import { useT } from '../lib/i18n'
+import { TxSteps } from '../components/wallet/TxSteps'
 import { ARC, getProvider, short } from '../lib/wallet'
 import { isWalletRejection } from '../lib/sendExecution'
 import { Badge, Button, Card, Field, PageHeader, T, inputCls } from '../components/wallet/ui'
@@ -43,7 +44,8 @@ function TxPanel({ phase, onConfirm, onCancel, vi }: { phase: Phase; onConfirm: 
   if (phase.kind === 'idle') return null
   const link = (hash: Hex) => <a className="inline-flex items-center gap-1 text-neon-300 break-all" href={`${ARC.explorer}/tx/${hash}`} target="_blank" rel="noreferrer">{short(hash)} <ExternalLink size={12} /></a>
   return (
-    <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-[13px] space-y-2" aria-live="polite">
+    <div className={`mt-4 rounded-2xl border p-4 text-[13px] space-y-2.5 ${phase.kind === 'done' ? 'border-neon-500/30 bg-neon-500/[0.05]' : phase.kind === 'error' ? 'border-rose-400/25 bg-rose-500/[0.04]' : 'border-white/[0.08] bg-white/[0.03]'}`} aria-live="polite">
+      <TxSteps stage={phase.kind} vi={vi} failedAt={phase.kind === 'error' && !phase.hash ? 'wallet' : 'pending'} />
       {phase.kind === 'review' && <>
         <div className="font-semibold">{L(vi, 'Review before signing', 'Xem lại trước khi ký')}</div>
         <p>{phase.step.label}</p>

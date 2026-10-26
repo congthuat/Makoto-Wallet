@@ -18,6 +18,7 @@ import { AssetRows, QuickActions } from './Dashboard'
 import { getJson, type Stats } from './Insights'
 import { History } from 'lucide-react'
 import ShareButton from '../components/ShareCard'
+import { WelcomeHero } from '../components/wallet/WelcomeHero'
 
 const TABS = ['Ask', 'Monitor', 'Automate'] as const
 type Tab = (typeof TABS)[number]
@@ -80,7 +81,7 @@ function AgentCommand() {
           <span className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-neon-500/40 bg-neon-500/10 text-[12px] font-semibold text-neon-300">
             <span className="w-1.5 h-1.5 rounded-full bg-neon-500" aria-hidden /> {tr('Makoto Agent · Arc Testnet')}{networkError ? ` · ${tr('Unavailable')}` : ''}
           </span>
-          <h1 className="mt-4 text-[26px] sm:text-[34px] leading-[1.1] font-extrabold tracking-[-0.025em]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 className="mt-4 text-[26px] sm:text-[34px] leading-[1.1] font-extrabold tracking-[-0.025em]" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.035em' }}>
             {tr(greet)}{' '}
             <span className="mk-headline bg-gradient-to-r from-[#b6ff9f] via-neon-500 to-[#4fbf4a] bg-clip-text text-transparent">{tr('What should Makoto do')}</span> {tr('for you?')}
           </h1>
@@ -239,10 +240,11 @@ function ChainPulse() {
 }
 
 export default function Home() {
-  const { activity, go } = useWallet()
+  const { activity, go, mode } = useWallet()
   const [tr] = useT()
   return (
     <div className="space-y-5">
+      {mode === 'demo' && <WelcomeHero />}
       <AgentCommand />
       <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-5">
         <PortfolioSummary />

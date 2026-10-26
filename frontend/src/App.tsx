@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import {
   Wallet, History, Sparkles, ArrowLeftRight, Rainbow, Settings, HelpCircle, MessageSquareText,
-  Search, Copy, ListChecks, PieChart, Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Menu, X, Bell, Check, Home, LogOut, Droplets, Globe, ChevronDown, Sun, Moon, EyeOff as EyeOffIcon, Info, Command, AlertTriangle, Plus, Coins, ExternalLink, ReceiptText,
+  Search, Copy, ListChecks, PieChart, Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Menu, X, Bell, Check, Home, LogOut, Droplets, Globe, ChevronDown, Sun, Moon, EyeOff as EyeOffIcon, Info, Command, AlertTriangle, Plus, Coins, ExternalLink, ReceiptText, ShieldCheck,
 } from 'lucide-react'
 import { WalletProvider, useWallet, type Page } from './lib/store'
 import { useT, LANGS, setLang } from './lib/i18n'
@@ -28,6 +28,7 @@ const InsightsPage = lazy(() => import('./pages/Insights'))
 const TasksPage = lazy(() => import('./pages/Tasks'))
 const FaucetPage = lazy(() => import('./pages/Faucet'))
 const PayRequestsPage = lazy(() => import('./pages/PayRequests'))
+const TrustPage = lazy(() => import('./pages/Trust'))
 const AboutPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.AboutPage })))
 const LegalPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.LegalPage })))
 const ChangelogPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.ChangelogPage })))
@@ -41,17 +42,19 @@ const NAV: { group: string; items: { id: SidebarDestination; icon: any; label: s
     { id: 'agent', icon: Sparkles, label: 'Agent' },
     { id: 'tasks', icon: ListChecks, label: 'Tasks' },
   ] },
+  { group: 'TRANSACTIONS', items: [
+    { id: 'send', icon: ArrowUpRight, label: 'Send' },
+    { id: 'receive', icon: ArrowDownLeft, label: 'Receive' },
+    { id: 'pay', icon: ReceiptText, label: 'Payment requests' },
+    { id: 'swap', icon: ArrowLeftRight, label: 'Swap' },
+    { id: 'bridge', icon: Rainbow, label: 'Bridge' },
+  ] },
   { group: 'WALLET', items: [
     { id: 'dashboard', icon: PieChart, label: 'Portfolio' },
     { id: 'assets', icon: Coins, label: 'Assets' },
     { id: 'activity', icon: History, label: 'Activity' },
   ] },
-  { group: 'TRANSACTIONS', items: [
-    { id: 'send', icon: ArrowUpRight, label: 'Send' },
-    { id: 'receive', icon: ArrowDownLeft, label: 'Receive' },
-    { id: 'swap', icon: ArrowLeftRight, label: 'Swap' },
-    { id: 'bridge', icon: Rainbow, label: 'Bridge' },
-    { id: 'pay', icon: ReceiptText, label: 'Payment requests' },
+  { group: 'TESTNET', items: [
     { id: 'faucet', icon: Droplets, label: 'Get test tokens' },
   ] },
 ]
@@ -109,6 +112,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <nav className="space-y-0.5 border-t border-white/[0.05] pt-2">
           <FeedbackLink onClick={onNavigate} className={cls(false)}><MessageSquareText size={17} className="opacity-70" aria-hidden /> {tr('Feedback')}<ExternalLink size={13} className="ml-auto opacity-50" aria-hidden /></FeedbackLink>
+          <Item id="trust" icon={ShieldCheck} label="Trust Center" />
           <Item id="settings" icon={Settings} label="Settings" />
           <button onClick={() => { go('about'); onNavigate?.() }} className={cls(false)}><HelpCircle size={17} className="opacity-70" /> {tr('Help & FAQ')}</button>
         </nav>
@@ -305,7 +309,9 @@ function MobileTabBar() {
     { icon: ArrowDownLeft, label: 'Receive', on: () => setReceiveOpen(true) },
     { icon: ArrowLeftRight, label: 'Swap', on: () => go('swap') },
     { icon: Rainbow, label: 'Bridge', on: () => go('bridge') },
+    { icon: ReceiptText, label: 'Payment requests', on: () => go('pay') },
     { icon: ListChecks, label: 'Tasks', on: () => go('tasks') },
+    { icon: ShieldCheck, label: 'Trust Center', on: () => go('trust') },
     { icon: Droplets, label: 'Get test tokens', on: () => go('faucet') },
     { icon: Settings, label: 'Settings', on: () => go('settings') },
     { icon: theme === 'dark' ? Sun : Moon, label: theme === 'dark' ? 'Light mode' : 'Dark mode', on: () => setTheme(theme === 'dark' ? 'light' : 'dark') },
@@ -354,7 +360,7 @@ function PageSkeleton() {
   )
 }
 
-const TITLES: Partial<Record<Page, string>> = { agent: 'Agent', tasks: 'Tasks', dashboard: 'Portfolio', assets: 'Assets', activity: 'Activity', send: 'Send', swap: 'Swap', bridge: 'Bridge', pay: 'Payment requests', settings: 'Settings', insights: 'Insights', faucet: 'Faucet', about: 'About', legal: 'Terms & Privacy', changelog: "What's new", status: 'System status', audit: 'UX audit' }
+const TITLES: Partial<Record<Page, string>> = { agent: 'Agent', tasks: 'Tasks', dashboard: 'Portfolio', assets: 'Assets', activity: 'Activity', send: 'Send', swap: 'Swap', bridge: 'Bridge', pay: 'Payment requests', settings: 'Settings', insights: 'Insights', faucet: 'Faucet', about: 'About', legal: 'Terms & Privacy', changelog: "What's new", status: 'System status', audit: 'UX audit', trust: 'Trust Center' }
 
 /** Privacy screen preview only — App Lock is not implemented and is not a security feature. */
 function LockScreen({ onClose }: { onClose: () => void }) {
@@ -396,13 +402,13 @@ function Shell() {
   const pages: Record<Page, React.ReactNode> = {
     home: <HomePage />, agent: <AgentPage />, tasks: <TasksPage />, dashboard: <Dashboard />, assets: <AssetsPage />, activity: <ActivityPage />,
     send: <SendPage />, swap: <SwapPage />, bridge: <BridgePage />, settings: <SettingsPage />, insights: <InsightsPage />, audit: <AuditPage />, faucet: <FaucetPage />, pay: <PayRequestsPage />,
-    about: <AboutPage />, legal: <LegalPage />, changelog: <ChangelogPage />, status: <StatusPage />,
+    about: <AboutPage />, legal: <LegalPage />, changelog: <ChangelogPage />, status: <StatusPage />, trust: <TrustPage />,
   }
 
   return (
-    <div data-vivid={w.settings.vivid !== false ? 'on' : undefined} className={`mk-shell min-h-screen ${T.text} flex antialiased`} style={{ fontFamily: 'Montserrat, system-ui, sans-serif', background: '#0b0b10' }}>
+    <div data-vivid={w.settings.vivid !== false ? 'on' : undefined} className={`mk-shell min-h-screen ${T.text} flex antialiased`} style={{ fontFamily: 'Inter, system-ui, sans-serif', background: '#0b0b10' }}>
       <style>{`
-        .mk-bg{background:radial-gradient(900px 420px at 70% -160px, rgba(168,85,247,.10), transparent 70%)}
+        .mk-bg{background:radial-gradient(1000px 460px at 50% -300px, rgba(142,254,126,.045), transparent 70%)}
         .mk-grid{background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:36px 36px;mask-image:radial-gradient(ellipse at 50% 0%,black 30%,transparent 75%)}
         @keyframes mk-breathe{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:.7;transform:scale(1.05)}}
         .mk-breathe{animation:mk-breathe 4s ease-in-out infinite}
@@ -452,6 +458,7 @@ function Shell() {
               <button onClick={() => w.go('about')} className="hover:text-white">{tr('About')}</button>
               <button onClick={() => w.go('changelog')} className="hover:text-white">{tr("What's new")}</button>
               <button onClick={() => w.go('status')} className="hover:text-white inline-flex items-center gap-1.5"><LiveDot off={w.networkStatus === 'unavailable' || w.networkStatus === 'stale'} /> {tr('System status')}</button>
+              <button onClick={() => w.go('trust')} className="hover:text-white">{tr('Trust Center')}</button>
               <button onClick={() => w.go('legal')} className="hover:text-white">{tr('Terms & Privacy')}</button>
               <button onClick={() => w.go('insights')} className="hover:text-white">{tr('Insights')}</button>
               <a href={ARC.explorer} target="_blank" rel="noreferrer" className="hover:text-white">{tr('Explorer')}</a>
