@@ -19,7 +19,7 @@ export function CardHeader({ title, sub, right }: { title: React.ReactNode; sub?
   return (
     <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
       <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold tracking-[-0.01em]">{title}</h2>
+        <h2 className="mk-h text-[15px] font-semibold tracking-[-0.01em]">{title}</h2>
         {sub && <p className={`text-[13px] mt-0.5 ${T.mute}`}>{sub}</p>}
       </div>
       {right}
@@ -33,7 +33,7 @@ export function PageHeader({ eyebrow, title, desc, right }: { eyebrow?: string; 
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3 mk-in">
       <div>
-        {eyebrow && <p className={`text-[13px] ${T.mute}`}>{eyebrow}</p>}
+        {eyebrow && <p className={`mk-eyebrow text-[13px] ${T.mute}`}>{eyebrow}</p>}
         <h1 className="mk-title text-[26px] font-bold tracking-[-0.02em] mt-0.5">{title}</h1>
         {desc && <p className={`text-[14px] mt-1 max-w-[640px] ${T.sub}`}>{desc}</p>}
       </div>

@@ -48,7 +48,7 @@ export function PortfolioCard() {
               {hidden ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
-          <div className="mt-2 text-[36px] sm:text-[42px] leading-none font-bold tracking-[-0.03em] tabular-nums">
+          <div className="mk-display-num mt-2 text-[36px] sm:text-[42px] leading-none font-bold tracking-[-0.03em] tabular-nums">
             {balanceError ? '—' : loading || !pricesReady ? <Skeleton className="w-56 h-11 align-middle" /> : hidden ? '••••••' : <>{whole}<span className="text-[#83838E]">.{cents}</span></>}
           </div>
           <div className="mt-3 flex items-center gap-2 text-[13px] min-h-[22px]">

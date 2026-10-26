@@ -78,7 +78,7 @@ function AgentCommand() {
       <div className="mk-card rounded-2xl border border-white/[0.08] bg-[#121219] p-3 sm:p-4">
         <div className="flex items-center gap-2 mb-2.5 px-1">
           <Orb size={26} glow={false} />
-          <h2 className="text-[14px] font-semibold">{tr('Ask Makoto')}</h2>
+          <h2 className="mk-h text-[14px] font-semibold">{tr('Ask Makoto')}</h2>
           <span className={`text-[12px] ${T.mute} hidden sm:inline`}>· {tr(greet)}</span>
           <span className="ml-auto flex items-center gap-3">
             {networkError && <span className="text-[11.5px] text-amber-300">{tr('Unavailable')}</span>}
@@ -175,7 +175,7 @@ function BalanceHero() {
               <ShareButton />
             </div>
           </div>
-          <div className="mt-2 text-[38px] sm:text-[46px] leading-none font-bold tracking-[-0.035em] font-num">{balanceError ? '—' : pricesReady ? mask(usd(total)) : <Skeleton className="h-11 w-52" />}</div>
+          <div className="mk-display-num mt-2 text-[38px] sm:text-[46px] leading-none font-bold tracking-[-0.035em] font-num">{balanceError ? '—' : pricesReady ? mask(usd(total)) : <Skeleton className="h-11 w-52" />}</div>
           <div className="mt-2.5 text-[13.5px] font-num min-h-5">
             {balanceError ? (
               <span className="text-amber-300" role="alert">{tr(balanceError)} <button onClick={refetchBalance} className="font-semibold text-neon-300 underline">{tr('Retry')}</button></span>

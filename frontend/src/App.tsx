@@ -63,7 +63,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { page, go, network, networkStatus, retryNetwork, tasks, mode, address, receiveOpen, setReceiveOpen } = useWallet()
   const running = taskItemsForAccount(tasks, mode, address).filter((task) => task.status === 'ACTIVE').length
   const [tr] = useT()
-  const cls = (active: boolean) => `group relative w-full flex items-center gap-3 h-9 px-3 rounded-lg text-[13.5px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/70 ${active ? 'bg-white/[0.06] text-white' : `${T.sub} hover:bg-white/[0.03] hover:text-white`}`
+  const cls = (active: boolean) => `mk-nav ${active ? 'mk-nav-active' : ''} group relative w-full flex items-center gap-3 h-9 px-3 rounded-lg text-[13.5px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-400/70 ${active ? 'bg-white/[0.06] text-white' : `${T.sub} hover:bg-white/[0.03] hover:text-white`}`
   const Item = ({ id, icon: Icon, label }: { id: SidebarDestination; icon: any; label: string }) => {
     const active = id === 'receive' ? receiveOpen : !receiveOpen && page === id
     return (
@@ -83,7 +83,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </button>
       {NAV.map((g) => (
         <div key={g.group}>
-          <div className={`mt-6 mb-1.5 px-3 text-[10.5px] font-semibold tracking-[0.14em] ${T.mute}`}>{tr(g.group)}</div>
+          <div className={`mk-nav-group mt-6 mb-1.5 px-3 text-[10.5px] font-semibold tracking-[0.14em] ${T.mute}`}>{tr(g.group)}</div>
           <nav className="space-y-0.5">{g.items.map((i) => <Item key={i.id} {...i} />)}</nav>
         </div>
       ))}
