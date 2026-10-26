@@ -2,13 +2,22 @@ import { api } from '../lib/api.ts'
 import type { ChatTopic } from './chatRouter.ts'
 import { boundChatHistory, type ChatHistoryItem } from './chatContext.ts'
 
-export type ChatContext = Readonly<{ locale: 'en' | 'vi'; mode: 'connected' | 'demo' | 'watch'; chain?: 'Arc Testnet'; intent: 'CHAT' | 'INFORMATION'; toolResult?: unknown }>
+export type ChatLocale = 'en' | 'vi' | 'zh' | 'ja' | 'ko'
+export type ChatContext = Readonly<{ locale: ChatLocale; mode: 'connected' | 'demo' | 'watch'; chain?: 'Arc Testnet'; intent: 'CHAT' | 'INFORMATION'; toolResult?: unknown }>
+/** Data sources the backend Agent actually read for this answer (labels only, no raw data). */
+export type ChatDataSource = Readonly<{ source: string; ok: boolean; observedAt?: string }>
+/** Untrusted model proposal. It must be re-parsed by Makoto's deterministic planner before any review card. */
+export type ChatProposal = Readonly<
+  | { kind: 'send'; asset: 'USDC' | 'EURC' | 'cirBTC'; amount: string; recipient: string }
+  | { kind: 'swap'; asset: 'USDC' | 'EURC'; amount: string; outputAsset: 'USDC' | 'EURC' }
+  | { kind: 'bridge'; asset: 'USDC'; amount: string; destination: 'Base Sepolia' }
+>
 export type { ChatHistoryItem } from './chatContext.ts'
 export type ChatSource = 'REAL_PROVIDER' | 'LOCAL_FALLBACK' | 'DETERMINISTIC_TOOL'
-export type ChatResponse = Readonly<{ ok: true; text: string; source: 'REAL_PROVIDER' } | { ok: false; reason: string; source: 'LOCAL_FALLBACK' }>
+export type ChatResponse = Readonly<{ ok: true; text: string; source: 'REAL_PROVIDER'; sources?: readonly ChatDataSource[]; proposal?: ChatProposal } | { ok: false; reason: string; source: 'LOCAL_FALLBACK' }>
 
 /** Maximum time to wait for the full chat HTTP response (fetch + response.json). */
-export const CHAT_TIMEOUT_MS = 25_000
+export const CHAT_TIMEOUT_MS = 60_000
 
 /**
  * Race the async callback `fn` against a hard deadline of `ms` milliseconds.
@@ -55,7 +64,7 @@ export function withChatDeadline<T>(
   })
 }
 
-export async function requestMakotoChat(input: { message: string; topic: ChatTopic; context: ChatContext; history?: readonly ChatHistoryItem[]; fetcher?: typeof fetch; signal?: AbortSignal }): Promise<ChatResponse> {
+export async function requestMakotoChat(input: { message: string; topic: ChatTopic; context: ChatContext; history?: readonly ChatHistoryItem[]; address?: string; fetcher?: typeof fetch; signal?: AbortSignal }): Promise<ChatResponse> {
   const fetcher = input.fetcher || fetch
   // One AbortController for both the deadline and any external signal.
   const controller = new AbortController()
@@ -71,18 +80,48 @@ export async function requestMakotoChat(input: { message: string; topic: ChatTop
       const response = await fetcher(api('agent/chat'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ message: input.message.slice(0, 2000), locale: input.context.locale, context: input.context, history: boundChatHistory(input.history) }),
+        body: JSON.stringify({ message: input.message.slice(0, 2000), locale: input.context.locale, context: input.context, history: boundChatHistory(input.history), ...(input.address && /^0x[0-9a-fA-F]{40}$/.test(input.address) ? { address: input.address } : {}) }),
         signal,
       })
       // response.json() is inside the deadline: if it hangs, the outer race
       // fires the timeout rejection before the await can return.
       const payload: unknown = await response.json().catch(() => undefined)
       if (!response.ok || !payload || typeof payload !== 'object' || typeof (payload as { text?: unknown }).text !== 'string' || !(payload as { text: string }).text.trim()) return { ok: false, reason: typeof (payload as { error?: unknown })?.error === 'string' ? (payload as { error: string }).error : `Chat request failed (${response.status})`, source: 'LOCAL_FALLBACK' } as ChatResponse
-      return { ok: true, text: (payload as { text: string }).text.trim().slice(0, 4000), source: 'REAL_PROVIDER' } as ChatResponse
+      const sources = parseSources((payload as { sources?: unknown }).sources)
+      const proposal = parseProposal((payload as { proposal?: unknown }).proposal)
+      return { ok: true, text: (payload as { text: string }).text.trim().slice(0, 6000), source: 'REAL_PROVIDER', ...(sources.length ? { sources } : {}), ...(proposal ? { proposal } : {}) } as ChatResponse
     }, CHAT_TIMEOUT_MS, controller)
   } catch (error) {
     // AbortError fires on timeout or external cancellation.
     const reason = error instanceof Error && error.name === 'AbortError' ? 'Chat service timed out' : 'Chat service unavailable'
     return { ok: false, reason, source: 'LOCAL_FALLBACK' }
   }
+}
+
+function parseSources(value: unknown): ChatDataSource[] {
+  if (!Array.isArray(value)) return []
+  return value.slice(0, 8).flatMap((item) => item && typeof item === 'object' && typeof (item as { source?: unknown }).source === 'string'
+    ? [{ source: (item as { source: string }).source.slice(0, 40), ok: (item as { ok?: unknown }).ok === true, ...(typeof (item as { observedAt?: unknown }).observedAt === 'string' ? { observedAt: (item as { observedAt: string }).observedAt } : {}) }]
+    : [])
+}
+
+const AMOUNT = /^(?:0|[1-9]\d{0,11})(?:\.\d{1,8})?$/
+const ADDRESS = /^0x[0-9a-fA-F]{40}$/
+
+/** Shape-check only. Authority stays with the deterministic planner and Policy/Risk review. */
+export function parseProposal(value: unknown): ChatProposal | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const v = value as Record<string, unknown>
+  if (typeof v.amount !== 'string' || !AMOUNT.test(v.amount) || !(Number(v.amount) > 0)) return undefined
+  if (v.kind === 'send' && (v.asset === 'USDC' || v.asset === 'EURC' || v.asset === 'cirBTC') && typeof v.recipient === 'string' && ADDRESS.test(v.recipient)) return { kind: 'send', asset: v.asset, amount: v.amount, recipient: v.recipient }
+  if (v.kind === 'swap' && (v.asset === 'USDC' || v.asset === 'EURC') && (v.outputAsset === 'USDC' || v.outputAsset === 'EURC') && v.asset !== v.outputAsset) return { kind: 'swap', asset: v.asset, amount: v.amount, outputAsset: v.outputAsset }
+  if (v.kind === 'bridge' && v.asset === 'USDC') return { kind: 'bridge', asset: 'USDC', amount: v.amount, destination: 'Base Sepolia' }
+  return undefined
+}
+
+/** Canonical English command for Makoto's deterministic parser (planBrainRequest). */
+export function proposalCommand(proposal: ChatProposal): string {
+  if (proposal.kind === 'send') return `send ${proposal.amount} ${proposal.asset} to ${proposal.recipient}`
+  if (proposal.kind === 'swap') return `swap ${proposal.amount} ${proposal.asset} to ${proposal.outputAsset}`
+  return `bridge ${proposal.amount} USDC from Arc Testnet to Base Sepolia`
 }

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { EXTRA } from './i18n-extra'
 import { PAGES_I18N } from './i18n-pages'
+import { AGENT_I18N } from './i18n-agent'
 
 export const LANGS = [
   { code: 'en', label: 'English' },
@@ -216,7 +217,7 @@ export function setLang(l: Lang) {
 
 export function translate(s: string, lang: Lang = current): string {
   if (lang === 'en') return s
-  return (DICT[s] ?? PAGES_I18N[s] ?? EXTRA[s])?.[IDX[lang]] || s
+  return (DICT[s] ?? PAGES_I18N[s] ?? EXTRA[s] ?? AGENT_I18N[s])?.[IDX[lang]] || s
 }
 
 /** Returns [t, lang]. `t` translates English source strings; unknown strings stay in English. */

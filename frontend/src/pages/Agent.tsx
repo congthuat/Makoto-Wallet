@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, ArrowUpRight, ArrowLeftRight, Rainbow, PieChart, Radar, Check, Trash2, Wallet, Boxes, ListChecks, Pencil, Lock, Zap } from 'lucide-react'
+import { ArrowUp, ArrowUpRight, ArrowLeftRight, Rainbow, PieChart, Radar, Check, Trash2, Wallet, Boxes, ListChecks, Pencil, Lock, Zap, Fuel, BellRing, TrendingUp, Newspaper, RefreshCw, Sparkles, Database } from 'lucide-react'
 import { AgentSendCard, type AgentSendStage } from '../components/AgentSendCard'
 import { AgentSwapCard } from '../components/AgentSwapCard'
 import { AgentBridgeCard } from '../components/AgentBridgeCard'
@@ -21,7 +21,9 @@ import { withRpcTimeout, AGENT_EVIDENCE_TIMEOUT_MS } from '../lib/rpcTimeout'
 import { readHomeAnswer, renderHomeAnswer, routeHomeRequest, type QuickAnswer } from '../agent/homeRequest'
 import { createAgentSession, recoverLatestAgentSession, rememberAgentSession, transitionAgentSession, type AgentSession } from '../brain/agentSession'
 import { localChatReply, routeAgentMessage, type ChatTopic } from '../agent/chatRouter'
-import { requestMakotoChat, type ChatHistoryItem, type ChatSource } from '../agent/chatClient'
+import { proposalCommand, requestMakotoChat, type ChatDataSource, type ChatHistoryItem, type ChatProposal, type ChatSource } from '../agent/chatClient'
+import { AgentMarkdown } from '../components/AgentMarkdown'
+import { buildAgentActions, hasPendingStrategy, type AgentAction, type AgentActionIcon } from '../lib/agentActions'
 import { appendChatHistory, isWalletContextFollowUp } from '../agent/chatContext'
 import { formatCurrentDateTime, getCurrentDateTime, type CurrentDateTime } from '../agent/time'
 import { agentFieldLabel, agentStatusLabel } from '../lib/agentPresentation'
@@ -64,7 +66,7 @@ type Flow = {
   execSpeed?: CctpTransferSpeed
 } // stage = index of the CURRENT (not yet done) step
 type TaskReply = { kind: 'COPY'; key: TaskTextKey } | { kind: 'ERROR'; code: string } | { kind: 'REVIEW' }
-type Msg = { id: string; role: 'user' | 'agent'; text: string; rows?: [string, string][]; quick?: QuickAnswer; taskReply?: TaskReply; taskMissingFields?: readonly string[]; liveEvidence?: Pick<AgentEvidence, 'status' | 'reason' | 'quoteExpiresAt'>; strategyKinds?: readonly string[]; datetime?: CurrentDateTime; localChatTopic?: ChatTopic; flow?: Flow; task?: TaskCandidate; taskAdded?: boolean; link?: { label: string; page: any; taskTextKey?: TaskTextKey }; sample?: boolean; conversation?: boolean; source?: ChatSource }
+type Msg = { id: string; role: 'user' | 'agent'; text: string; rows?: [string, string][]; quick?: QuickAnswer; taskReply?: TaskReply; taskMissingFields?: readonly string[]; liveEvidence?: Pick<AgentEvidence, 'status' | 'reason' | 'quoteExpiresAt'>; strategyKinds?: readonly string[]; datetime?: CurrentDateTime; localChatTopic?: ChatTopic; flow?: Flow; task?: TaskCandidate; taskAdded?: boolean; link?: { label: string; page: any; taskTextKey?: TaskTextKey }; sample?: boolean; conversation?: boolean; source?: ChatSource; dataSources?: readonly ChatDataSource[]; aiProposal?: boolean }
 
 const SUGGEST = [
   { icon: ArrowUpRight, t: SAMPLE_PROMPTS.send },
@@ -76,6 +78,45 @@ const SUGGEST = [
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 let uid = 0
 const nid = () => `m${Date.now()}${uid++}`
+/** Analysis-style questions go to the tool-using AI instead of the single deterministic quick read. */
+const ANALYSIS_WORDS = ['analy', 'insight', 'explain', 'compare', 'should i', 'phân tích', 'đánh giá', 'nhận xét', 'so sánh', 'giải thích', 'nên ', '分析', '解释', '比较', '分析して', '説明', '比較', '분석', '설명', '비교']
+const wantsAnalysis = (text: string) => { const lower = text.toLocaleLowerCase(); return ANALYSIS_WORDS.some((word) => lower.includes(word)) }
+const ACTION_ICONS: Record<AgentActionIcon, typeof Rainbow> = { bridge: Rainbow, gas: Fuel, swap: ArrowLeftRight, alert: BellRing, market: TrendingUp, portfolio: PieChart, wallet: Wallet, news: Newspaper, recover: RefreshCw }
+
+function ActionButtons({ actions, onRun, compact = false }: { actions: readonly AgentAction[]; onRun: (action: AgentAction) => void; compact?: boolean }) {
+  const [tr] = useT()
+  if (!actions.length) return null
+  return (
+    <div className={compact ? 'space-y-2' : 'grid sm:grid-cols-2 gap-2 text-left'}>
+      {actions.map((action) => {
+        const Icon = ACTION_ICONS[action.icon]
+        return (
+          <button key={action.id} type="button" onClick={() => onRun(action)} data-action={action.id}
+            className="group w-full min-w-0 flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3.5 py-3 text-left hover:bg-white/[0.05] hover:border-neon-500/30 transition">
+            <span className="mt-0.5 h-7 w-7 shrink-0 rounded-lg bg-neon-500/10 text-neon-300 inline-flex items-center justify-center"><Icon size={14} /></span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-semibold text-white group-hover:text-neon-200">{tr(action.title)}</span>
+              {!compact && <span className={`block mt-0.5 text-[12px] leading-snug ${T.mute}`}>{tr(action.detail).replace('{n}', action.value ?? '')}</span>}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function SourcesLine({ sources }: { sources: readonly ChatDataSource[] }) {
+  const [tr, lang] = useT()
+  const latest = sources.map((item) => item.observedAt).filter(Boolean).sort().pop()
+  const time = latest ? new Date(latest).toLocaleTimeString(lang === 'en' ? 'en-US' : lang, { hour: '2-digit', minute: '2-digit' }) : ''
+  return (
+    <p className={`mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11.5px] ${T.mute}`}>
+      <Database size={11} className="shrink-0" /> {tr('Sources')}:
+      {sources.map((item) => <span key={item.source} className={`px-1.5 py-0.5 rounded-md border ${item.ok ? 'border-white/[0.08] bg-white/[0.03]' : 'border-amber-400/20 text-amber-200/80'}`}>{tr(item.source)}</span>)}
+      {time && <span>· {time}</span>}
+    </p>
+  )
+}
 
 function Stepper({ stage, compact = false }: { stage: number; compact?: boolean }) {
   const [tr] = useT()
@@ -233,7 +274,7 @@ function ReviewCard({ msg, onChange, onSlipChange, onSpeedChange, onConfirm, onC
   )
 }
 
-function ContextPanel({ flow }: { flow?: Flow }) {
+function ContextPanel({ flow, actions = [], onAction = () => {} }: { flow?: Flow; actions?: readonly AgentAction[]; onAction?: (action: AgentAction) => void }) {
   const { mode, address, displayAddress, total, pricesReady, mask, holdings, network, networkError, tasks, go } = useWallet()
   const [tr, language] = useT()
   const locale = language === 'vi' ? 'vi' : 'en'
@@ -249,6 +290,12 @@ function ContextPanel({ flow }: { flow?: Flow }) {
           ) : !flow.execCard ? (
             <p className={`mt-3 text-[11.5px] ${T.mute}`}>{tr(flow.stage >= 3 ? 'The preview stops at Parameters confirmed. Later steps are shown for reference only.' : 'Waiting for you to review the parameters.')}</p>
           ) : null}
+        </Card>
+      )}
+      {actions.length > 0 && (
+        <Card className="p-4">
+          <div className={`flex items-center gap-2 text-[12px] font-semibold ${T.mute} mb-2.5`}><Sparkles size={13} /> {tr('Suggested for you').toUpperCase()}</div>
+          <ActionButtons actions={actions.slice(0, 3)} onRun={onAction} compact />
         </Card>
       )}
       <Card className="p-4">
@@ -286,13 +333,21 @@ export default function AgentPage() {
   const chatHistory = useRef<ChatHistoryItem[]>([])
   const current = [...msgs].reverse().find((m) => m.flow)?.flow
   const locale = lang === 'vi' ? 'vi' : 'en'
+  const storage = typeof localStorage === 'undefined' ? undefined : localStorage
+  const agentActions = buildAgentActions({
+    mode: w.mode, walletChainId: w.walletChainId, balancesReady: !w.loading && !w.walletError,
+    balances: Object.fromEntries(w.holdings.filter((h) => h.verified).map((h) => [h.symbol, h.balance])),
+    activeTasks: taskItemsForAccount(w.tasks, w.mode, w.address).filter((task) => task.status === 'ACTIVE').length,
+    pendingBridge: hasPendingStrategy(storage, 'cctp', w.mode === 'connected' ? w.address : undefined),
+    pendingSwap: hasPendingStrategy(storage, 'swap', w.mode === 'connected' ? w.address : undefined),
+  })
   const messageText = (message: Msg) => {
     if (message.quick) return renderHomeAnswer(message.quick, locale, w.mask, w).text
     if (message.taskReply?.kind === 'COPY') return taskText(message.taskReply.key, locale)
     if (message.taskReply?.kind === 'ERROR') return taskError(message.taskReply.code, locale)
     if (message.taskReply?.kind === 'REVIEW') return locale === 'vi' ? 'Hãy xem lại định nghĩa trước khi tạo nhiệm vụ nền.' : 'Review the definition before creating a background task.'
     if (message.datetime) return `${locale === 'vi' ? 'Hiện tại là' : 'It is'} ${formatCurrentDateTime(message.datetime, locale)}.`
-    if (message.localChatTopic) return localChatReply(message.localChatTopic, locale, true)
+    if (message.localChatTopic) return lang === 'vi' ? localChatReply(message.localChatTopic, 'vi', true) : tr(localChatReply(message.localChatTopic, 'en', true))
     if (message.source === 'REAL_PROVIDER') return message.text
     return tr(message.text)
   }
@@ -349,14 +404,68 @@ export default function AgentPage() {
     }
     const contextualWallet = isWalletContextFollowUp(q, history, locale)
     const quickRequest = routeHomeRequest(contextualWallet ? 'What is my balance?' : q, locale)
-    if (quickRequest.route === 'INLINE') {
+    if (quickRequest.route === 'INLINE' && !wantsAnalysis(q)) {
       const quick = await readHomeAnswer(quickRequest, w)
       return { id: nid(), role: 'agent', text: renderHomeAnswer(quick, locale, w.mask).text, quick, conversation: true, source: 'DETERMINISTIC_TOOL' }
     }
     const routed = contextualWallet ? routeAgentMessage('What is my balance?', locale) : routeAgentMessage(q, locale)
     const structured = contextualWallet ? routed.plan : planAgentRequest(q, lang === 'vi' ? 'vi' : 'en')
+    const brain = planBrainRequest(contextualWallet ? 'What is my balance?' : q, lang, brainContext())
+    const base: Params = { asset: 'USDC', amount: '', recipient: '', toAsset: 'EURC', dest: 'Base Sepolia' }
+    let liveEvidence: Msg['liveEvidence']
+    const flow = (intent: Intent, params: Params, text: string): Msg => {
+      const requested = createAgentSession(nid())
+      const planned = transitionAgentSession(requested, { type: 'plan-ready', planId: nid(), now: Date.now() })
+      if (planned.accepted && w.mode === 'connected' && w.address && typeof sessionStorage !== 'undefined') rememberAgentSession(sessionStorage, planned.state, w.address)
+      return { id: nid(), role: 'agent', text, liveEvidence, flow: { intent, params, stage: 2, session: planned.accepted ? planned.state : requested }, sample: false }
+    }
+    /** A model proposal is untrusted: it is rebuilt as a canonical command and re-parsed by the deterministic planner. */
+    const proposalMessage = async (text: string, proposal: ChatProposal, dataSources?: readonly ChatDataSource[]): Promise<Msg> => {
+      const command = proposalCommand(proposal)
+      const checked = planBrainRequest(command, 'en', brainContext())
+      const ai = { source: 'REAL_PROVIDER' as const, conversation: true, dataSources }
+      const a = checked.action
+      if (!a || a.kind !== proposal.kind || checked.decision.blockers.length || checked.decision.missingFields.length) {
+        const rows: [string, string][] = [
+          ...checked.decision.missingFields.map((field) => ['Missing', agentFieldLabel(field)] as [string, string]),
+          ...checked.decision.blockers.map((reason) => ['Blocked', reason] as [string, string]),
+        ]
+        return { id: nid(), role: 'agent', text: `${text}\n\n${tr('Makoto could not prepare this action safely.')}`, rows, ...ai }
+      }
+      if (w.mode === 'connected') {
+        const commandPlan = planAgentRequest(command, 'en')
+        if (commandPlan.status === 'ACTION') {
+          const observed = await withRpcTimeout(replanAgentFromEvidence(commandPlan, getProvider(), w.address), AGENT_EVIDENCE_TIMEOUT_MS, 'Agent evidence preflight')
+            .catch((e): AgentEvidence => ({ status: 'UNAVAILABLE', reason: e instanceof Error ? e.message : 'Live evidence unavailable', observedAt: Date.now(), executionEnabled: false }))
+          liveEvidence = { status: observed.status, reason: observed.reason, quoteExpiresAt: observed.quoteExpiresAt }
+        }
+      }
+      const params: Params = a.kind === 'send' ? { ...base, asset: a.asset ?? 'USDC', amount: a.amount ?? '', recipient: a.recipient ?? '' }
+        : a.kind === 'swap' ? { ...base, asset: a.asset ?? 'USDC', amount: a.amount ?? '', toAsset: a.outputAsset ?? 'EURC' }
+          : { ...base, asset: 'USDC', amount: a.amount ?? '', dest: a.destinationChain ?? 'Base Sepolia' }
+      return { ...flow(a.kind, params, text), ...ai, aiProposal: true }
+    }
+    // Tool-using AI first for questions, analysis and loosely phrased requests. Complete
+    // deterministic actions, strategies and the clock stay on the proven local path.
+    const deterministicAction = routed.category === 'STRATEGY'
+      || (structured.status === 'INFORMATION' && structured.topic === 'current-datetime')
+      || (routed.category === 'ACTION' && Boolean(brain.action) && !brain.decision.blockers.length && !brain.decision.missingFields.length)
+    let aiUnavailable = false
+    if (!deterministicAction) {
+      const response = await requestMakotoChat({
+        message: q, topic: routed.topic, history,
+        context: { locale: lang, mode: w.mode, ...(w.mode === 'connected' ? { chain: ARC.name as 'Arc Testnet' } : {}), intent: routed.category === 'CHAT' ? 'CHAT' : 'INFORMATION' },
+        address: w.mode !== 'demo' ? w.address : undefined,
+      })
+      if (response.ok) {
+        if (response.proposal) return proposalMessage(response.text, response.proposal, response.sources)
+        return { id: nid(), role: 'agent', text: response.text, sample: false, conversation: true, source: 'REAL_PROVIDER', dataSources: response.sources }
+      }
+      aiUnavailable = true
+    }
     const chat = async (topic: typeof routed.topic, intent: 'CHAT' | 'INFORMATION', toolResult?: unknown, fallback?: string) => {
-      const response = await requestMakotoChat({ message: q, topic, context: { locale, mode: w.mode, ...(w.mode === 'connected' ? { chain: ARC.name as 'Arc Testnet' } : {}), intent, toolResult }, history })
+      if (aiUnavailable) return { text: fallback || localChatReply(topic, locale, true), source: 'LOCAL_FALLBACK' as const }
+      const response = await requestMakotoChat({ message: q, topic, context: { locale: lang, mode: w.mode, ...(w.mode === 'connected' ? { chain: ARC.name as 'Arc Testnet' } : {}), intent, toolResult }, history, address: w.mode !== 'demo' ? w.address : undefined })
       return response.ok ? { text: response.text, source: response.source } : { text: fallback || localChatReply(topic, locale, true), source: 'LOCAL_FALLBACK' as const }
     }
     if (routed.category === 'CHAT') {
@@ -371,7 +480,7 @@ export default function AgentPage() {
           (e): AgentEvidence => ({ status: 'UNAVAILABLE', reason: e instanceof Error ? e.message : 'Live evidence unavailable', observedAt: Date.now(), executionEnabled: false })
         )
       : undefined
-    const liveEvidence = observed ? { status: observed.status, reason: observed.reason, quoteExpiresAt: observed.quoteExpiresAt } : undefined
+    liveEvidence = observed ? { status: observed.status, reason: observed.reason, quoteExpiresAt: observed.quoteExpiresAt } : undefined
     if (structured.status === 'INFORMATION' && structured.topic === 'current-datetime') {
       const currentTime = getCurrentDateTime()
       const rendered = formatCurrentDateTime(currentTime, locale)
@@ -379,14 +488,6 @@ export default function AgentPage() {
     }
     if (structured.status === 'STRATEGY') return { id: nid(), role: 'agent', text: 'This is a structured sequential plan for review only. Each action needs fresh reads, policy review, its own wallet confirmation and receipt before the next step.', strategyKinds: structured.intents.map((intent) => intent.kind), liveEvidence }
     if (q.toLowerCase().match(/\b(?:and then|then|sau đó|rồi)\b/)) return { id: nid(), role: 'agent', text: 'I cannot safely prepare this sequence yet.', rows: 'reasons' in structured ? structured.reasons.map((reason) => ['Missing', reason]) : [] }
-    const brain = planBrainRequest(contextualWallet ? 'What is my balance?' : q, lang, brainContext())
-    const flow = (intent: Intent, params: Params, text: string): Msg => {
-      const requested = createAgentSession(nid())
-      const planned = transitionAgentSession(requested, { type: 'plan-ready', planId: nid(), now: Date.now() })
-      if (planned.accepted && w.mode === 'connected' && w.address && typeof sessionStorage !== 'undefined') rememberAgentSession(sessionStorage, planned.state, w.address)
-      return { id: nid(), role: 'agent', text, liveEvidence, flow: { intent, params, stage: 2, session: planned.accepted ? planned.state : requested }, sample: false }
-    }
-    const base: Params = { asset: 'USDC', amount: '', recipient: '', toAsset: 'EURC', dest: 'Base Sepolia' }
     if (brain.action) {
       const a = brain.action
       if (brain.decision.blockers.length || brain.decision.missingFields.length) {
@@ -441,6 +542,11 @@ export default function AgentPage() {
         setTyping(false)
       })
     }, 500)
+  }
+  const runAction = (action: AgentAction) => {
+    if (typing) return
+    if (action.target.type === 'go') w.go(action.target.page)
+    else ask(tr(action.target.prompt))
   }
   const patch = (id: string, fn: (f: Flow) => Flow) => setMsgs((m) => m.map((x) => x.id === id && x.flow ? { ...x, flow: fn(x.flow) } : x))
 
@@ -534,8 +640,14 @@ export default function AgentPage() {
             <div className="text-center pt-8 sm:pt-14">
               <div className="mx-auto w-fit"><Orb size={64} /></div>
               <h2 className="mt-5 text-[20px] font-bold tracking-tight">{tr('What should Makoto do for you?')}</h2>
-              <p className={`mt-1.5 text-[13.5px] max-w-[420px] mx-auto ${T.sub}`}>{tr('Describe it in plain language. Makoto proposes the parameters, you review them.')}</p>
-              <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <p className={`mt-1.5 text-[13.5px] max-w-[460px] mx-auto ${T.sub}`}>{tr('Ask Makoto anything about your wallet or the market. It checks live data and proposes actions for your review.')}</p>
+              {agentActions.length > 0 && (
+                <div className="mt-6 max-w-[620px] mx-auto">
+                  <div className={`mb-2 flex items-center gap-1.5 text-[11.5px] font-semibold tracking-[0.08em] ${T.mute}`}><Sparkles size={12} /> {tr('Suggested for you').toUpperCase()}</div>
+                  <ActionButtons actions={agentActions} onRun={runAction} />
+                </div>
+              )}
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {SUGGEST.map(({ icon: Icon, t }) => (
                   <button key={t} onClick={() => ask(tr(t))} title={tr(t)} className={`h-9 max-w-full min-w-0 px-3 rounded-lg border border-white/[0.07] bg-white/[0.02] text-[12.5px] ${T.sub} hover:text-white hover:bg-white/[0.05] inline-flex items-center gap-2`}><Icon size={14} className="text-neon-300 shrink-0" /><span className="truncate">{tr(t)}</span></button>
                 ))}
@@ -548,7 +660,9 @@ export default function AgentPage() {
             <div key={m.id} className="flex gap-2.5 mk-in">
               <span className="mt-0.5"><Orb size={26} /></span>
               <div className="flex-1 min-w-0 max-w-[560px]">
-                <div className="text-[14px] leading-relaxed">{messageText(m)}</div>
+                <div className="text-[14px] leading-relaxed">{m.source === 'REAL_PROVIDER' ? <AgentMarkdown text={m.text} /> : messageText(m)}</div>
+                {m.dataSources && m.dataSources.length > 0 && <SourcesLine sources={m.dataSources} />}
+                {m.aiProposal && <p className="mt-2 text-[12px] text-neon-300/90">{tr('Makoto prepared a review card below. Nothing is sent until you confirm in your wallet.')}</p>}
                 {messageRows(m).length ? (
                   <dl className="mt-2 rounded-xl border border-white/[0.07] divide-y divide-white/[0.05] text-[13px]">
                     {messageRows(m).map(([k, v], index) => <div key={`${k}-${index}`} className="flex justify-between gap-3 px-3.5 py-2"><dt className={`capitalize ${T.mute}`}>{k}</dt><dd className="font-num text-right">{v}</dd></div>)}
@@ -617,7 +731,7 @@ export default function AgentPage() {
               </div>
             </div>
           ))}
-          {typing && <div className="flex gap-2.5 items-center"><Orb size={26} /><span className={`text-[13px] ${T.sub}`}>{tr('Preparing response…')}</span></div>}
+          {typing && <div className="flex gap-2.5 items-center"><Orb size={26} /><span className={`text-[13px] ${T.sub} animate-pulse`}>{tr('Checking live data…')}</span></div>}
           <div ref={end} />
         </div>
 
@@ -628,7 +742,7 @@ export default function AgentPage() {
           </div>
         </form>
       </Card>
-      <aside className="hidden lg:block sticky top-[76px]"><ContextPanel flow={current} /></aside>
+      <aside className="hidden lg:block sticky top-[76px]"><ContextPanel flow={current} actions={msgs.length ? agentActions : []} onAction={runAction} /></aside>
     </div>
   )
 }
