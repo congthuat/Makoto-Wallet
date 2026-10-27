@@ -3,8 +3,8 @@
  * the wallet app approves the session and every request; Makoto only relays
  * JSON-RPC through the encrypted WalletConnect relay.
  */
-import type { BrowserWallet, Eip1193, WalletKind } from './walletProviders'
-import { setExternalWallet, preferredWalletSource } from './walletProviders'
+import type { BrowserWallet, Eip1193, WalletKind } from './walletProviders.ts'
+import { setExternalWallet, preferredWalletSource } from './walletProviders.ts'
 
 /** Public project id from cloud.reown.com (safe in client code; restricted by domain allowlist). */
 export const WALLETCONNECT_PROJECT_ID: string = (import.meta.env?.VITE_WALLETCONNECT_PROJECT_ID as string | undefined) || 'ac840b47c8005425a4b4f2cf7e14b63a'
@@ -13,18 +13,31 @@ export const walletConnectReady = () => /^[0-9a-f]{32}$/i.test(WALLETCONNECT_PRO
 const ARC_CHAIN_ID = 5042002
 const ARC_RPC = 'https://rpc.testnet.arc.io'
 
-export type WcWallet = { kind: WalletKind; name: string; ios: (uri: string) => string; android: (uri: string) => string; open: string }
+export type WcWallet = { kind: WalletKind; name: string; note?: string; native: string }
 
-/** Deep-link formats as used by RainbowKit's official connectors. Android uses the raw wc: URI (system wallet chooser). */
+/**
+ * Native deep links from the official WalletConnect wallet registry (explorer-api.walletconnect.com),
+ * formatted like Reown AppKit: `${native}wc?uri=…`. Each button targets one specific app on both
+ * Android and iOS, so the phone never hands the pairing to a different default wallet.
+ */
 export const WC_WALLETS: WcWallet[] = [
-  { kind: 'okx', name: 'OKX Wallet', ios: (uri) => `okex://main/wc?uri=${encodeURIComponent(uri)}`, android: (uri) => uri, open: 'okex://main' },
-  { kind: 'binance', name: 'Binance Wallet', ios: (uri) => `bnc://app.binance.com/cedefi/wc?uri=${encodeURIComponent(uri)}`, android: (uri) => uri, open: 'bnc://app.binance.com/cedefi' },
-  { kind: 'metamask', name: 'MetaMask', ios: (uri) => `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`, android: (uri) => `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`, open: 'metamask://' },
-  { kind: 'trust', name: 'Trust Wallet', ios: (uri) => `trust://wc?uri=${encodeURIComponent(uri)}`, android: (uri) => `trust://wc?uri=${encodeURIComponent(uri)}`, open: 'trust://' },
-  { kind: 'bitget', name: 'Bitget Wallet', ios: (uri) => `bitkeep://wc?uri=${encodeURIComponent(uri)}`, android: (uri) => uri, open: 'bitkeep://' },
+  { kind: 'okx', name: 'OKX', note: 'App sàn OKX', native: 'okex://main' },
+  { kind: 'okx', name: 'OKX Wallet', note: 'App ví OKX riêng', native: 'okxwallet://main' },
+  { kind: 'binance', name: 'Binance Wallet', native: 'bnc://app.binance.com/cedefi/' },
+  { kind: 'metamask', name: 'MetaMask', native: 'metamask://' },
+  { kind: 'trust', name: 'Trust Wallet', native: 'trust://' },
+  { kind: 'bitget', name: 'Bitget Wallet', native: 'bitkeep://' },
 ]
 
-const isAndroid = () => typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+/** AppKit's formatNativeUrl: ensure the scheme ends in "://" or "/", then append wc?uri=. */
+export function wcNativeLink(native: string, uri: string): string {
+  let base = native
+  if (!base.includes('://')) base = `${base.replace(/[/:]/g, '')}://`
+  if (!base.endsWith('/')) base = `${base}/`
+  return `${base}wc?uri=${encodeURIComponent(uri)}`
+}
+export const wcWalletId = (wallet: WcWallet) => `${wallet.kind}:${wallet.native}`
+
 const isMobile = () => typeof navigator !== 'undefined' && (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)))
 const LAST_WALLET_KEY = 'mk.wc.wallet.v1'
 
@@ -68,7 +81,7 @@ const approvedChains = (provider: WcProvider) => provider.session?.namespaces?.e
 const preferArc = (provider: WcProvider) => { if (approvedChains(provider).includes(`eip155:${ARC_CHAIN_ID}`)) provider.setDefaultChain(`eip155:${ARC_CHAIN_ID}`) }
 
 function lastWallet(): WcWallet | undefined {
-  try { const kind = localStorage.getItem(LAST_WALLET_KEY); return WC_WALLETS.find((wallet) => wallet.kind === kind) } catch { return undefined }
+  try { const id = localStorage.getItem(LAST_WALLET_KEY); return WC_WALLETS.find((wallet) => wcWalletId(wallet) === id) } catch { return undefined }
 }
 
 /** Wrap the WalletConnect provider so signing requests reopen the paired wallet app on phones. */
@@ -80,7 +93,7 @@ function wrap(provider: WcProvider, wallet?: WcWallet): Eip1193 {
       const approved = approvedChains(provider)
       const localSwitch = args.method === 'wallet_switchEthereumChain' && approved.includes(`eip155:${parseInt(String((args.params?.[0] as { chainId?: string } | undefined)?.chainId ?? '0'), 16)}`)
       if (USER_METHODS.has(args.method) && !localSwitch && isMobile() && typeof window !== 'undefined') {
-        const target = wallet?.open ?? (isAndroid() && provider.session ? `wc:${provider.session.topic}@2` : undefined)
+        const target = wallet?.native
         if (target) setTimeout(() => { window.location.href = target }, 400)
       }
       return pending
@@ -104,7 +117,7 @@ export async function pairWalletConnect(opts: { wallet?: WcWallet; onUri?: (uri:
   if (provider.session) { try { await provider.disconnect() } catch { /* stale session */ } }
   const onDisplayUri = (uri: string) => {
     if (opts.onUri) opts.onUri(uri)
-    else if (opts.wallet && typeof window !== 'undefined') window.location.href = isAndroid() ? opts.wallet.android(uri) : opts.wallet.ios(uri)
+    else if (opts.wallet && typeof window !== 'undefined') window.location.href = wcNativeLink(opts.wallet.native, uri)
   }
   provider.on('display_uri', onDisplayUri)
   try {
@@ -116,7 +129,7 @@ export async function pairWalletConnect(opts: { wallet?: WcWallet; onUri?: (uri:
   } finally {
     provider.removeListener('display_uri', onDisplayUri)
   }
-  try { if (opts.wallet) localStorage.setItem(LAST_WALLET_KEY, opts.wallet.kind); else localStorage.removeItem(LAST_WALLET_KEY) } catch { /* optional */ }
+  try { if (opts.wallet) localStorage.setItem(LAST_WALLET_KEY, wcWalletId(opts.wallet)); else localStorage.removeItem(LAST_WALLET_KEY) } catch { /* optional */ }
   const entry = entryFor(provider, opts.wallet)
   setExternalWallet(entry)
   provider.on('disconnect', () => setExternalWallet(null))

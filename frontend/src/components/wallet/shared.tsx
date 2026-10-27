@@ -11,7 +11,7 @@ import { translate, useT } from '../../lib/i18n'
 import { browserWalletRevision, discoverBrowserWallets, getBrowserWallets, getProvider, subscribeBrowserWallets, type BrowserWallet, type WalletKind } from '../../lib/walletProviders'
 import { walletPickerCopy } from '../../lib/walletPickerCopy'
 import { MobileWalletLinks } from './MobileWalletLinks'
-import { WC_WALLETS, pairWalletConnect, walletConnectReady, type WcWallet } from '../../lib/walletConnect'
+import { WC_WALLETS, pairWalletConnect, walletConnectReady, wcWalletId, type WcWallet } from '../../lib/walletConnect'
 import { isMobileBrowser } from '../../lib/walletAppLinks'
 import { WALLET_CATALOG } from '../../lib/walletCatalog'
 import { WalletProviderIcon } from './WalletProviderIcon'
@@ -306,7 +306,7 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
     if (connection.current) return
     const controller = new AbortController()
     connection.current = controller
-    setPending(`wc:${wallet?.kind ?? 'qr'}`)
+    setPending(wallet ? `wc:${wcWalletId(wallet)}` : 'wc:qr')
     setFailed(false)
     try {
       const entry = await pairWalletConnect({ wallet, onUri: wallet ? undefined : setQrUri, signal: controller.signal })
@@ -369,18 +369,36 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
         <div className="mt-1" data-wc-mobile>
           <p className={`mb-2 text-[11px] font-semibold tracking-[0.08em] uppercase ${T.mute}`}>{copy.wcTitle}</p>
           <div className="space-y-2">
-            {WC_WALLETS.map((wallet) => (
-              <button key={wallet.kind} type="button" disabled={!!pending} onClick={() => void chooseWc(wallet)} data-wc-wallet={wallet.kind}
-                className="group w-full flex items-center gap-3 p-3 rounded-2xl border border-white/[0.09] bg-white/[0.03] text-left transition hover:border-neon-500/40 disabled:cursor-default">
-                <WalletProviderIcon kind={wallet.kind} />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold text-[14.5px]">{wallet.name}</span>
-                  <span className={`block text-[12px] ${pending === `wc:${wallet.kind}` ? 'text-neon-300' : T.mute}`}>{pending === `wc:${wallet.kind}` ? copy.wcWaiting : copy.wcHint}</span>
-                </span>
-                {pending === `wc:${wallet.kind}` ? <Loader2 aria-hidden size={16} className="animate-spin shrink-0 text-neon-300" /> : <ChevronRight aria-hidden size={16} className={`${T.mute} shrink-0`} />}
-              </button>
-            ))}
+            {WC_WALLETS.map((wallet) => {
+              const id = `wc:${wcWalletId(wallet)}`
+              return (
+                <button key={id} type="button" disabled={!!pending} onClick={() => void chooseWc(wallet)} data-wc-wallet={wallet.native}
+                  className="group w-full flex items-center gap-3 p-3 rounded-2xl border border-white/[0.09] bg-white/[0.03] text-left transition hover:border-neon-500/40 disabled:cursor-default">
+                  <WalletProviderIcon kind={wallet.kind} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-[14.5px]">{wallet.name}{wallet.note && <span className={`ml-1.5 text-[11.5px] font-medium ${T.mute}`}>· {lang === 'vi' ? wallet.note : wallet.note === 'App sàn OKX' ? 'OKX exchange app' : 'Standalone OKX Wallet app'}</span>}</span>
+                    <span className={`block text-[12px] ${pending === id ? 'text-neon-300' : T.mute}`}>{pending === id ? copy.wcWaiting : copy.wcHint}</span>
+                  </span>
+                  {pending === id ? <Loader2 aria-hidden size={16} className="animate-spin shrink-0 text-neon-300" /> : <ChevronRight aria-hidden size={16} className={`${T.mute} shrink-0`} />}
+                </button>
+              )
+            })}
+            <button type="button" disabled={!!pending} onClick={() => void chooseWc()} data-wc-wallet="qr"
+              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-dashed border-white/[0.12] text-left transition hover:border-neon-500/40 disabled:cursor-default">
+              <WalletProviderIcon kind="walletconnect" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-[14px]">{copy.wcOther}</span>
+                <span className={`block text-[12px] ${T.mute}`}>{pending === 'wc:qr' ? copy.wcWaiting : copy.wcOtherHint}</span>
+              </span>
+            </button>
           </div>
+          {qrUri && (
+            <div className="mt-3 rounded-xl border border-white/[0.08] p-3 flex flex-col items-center gap-2 text-center" data-wc-mobile-qr>
+              <div className="rounded-xl bg-white p-2"><QRCodeSVG value={qrUri} size={168} level="M" /></div>
+              <p className={`text-[12px] ${T.sub}`}>{copy.wcCopyHint}</p>
+              <Button size="sm" onClick={() => copyText(qrUri, notify, 'Copied')}><Copy size={13} /> {copy.wcCopy}</Button>
+            </div>
+          )}
           <p className={`mt-2 text-[11.5px] leading-5 ${T.mute}`}>{copy.wcReturn}</p>
         </div>
       )}

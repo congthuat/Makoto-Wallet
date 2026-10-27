@@ -36,6 +36,10 @@ const en = {
   wcPhone: 'Phone wallet (scan QR)',
   wcPhoneHint: 'WalletConnect · OKX, Binance, MetaMask, Trust…',
   wcScan: 'Scan with your wallet app (WalletConnect), then approve.',
+  wcOther: 'Other wallet (WalletConnect)',
+  wcOtherHint: 'Show a QR / link to paste into any wallet app',
+  wcCopyHint: 'In your wallet app open WalletConnect / Scan, then scan this QR from another screen or paste the link.',
+  wcCopy: 'Copy connection link',
 } as const
 const vi: Record<keyof typeof en, string> = {
   detected: 'Đã phát hiện',
@@ -75,5 +79,9 @@ const vi: Record<keyof typeof en, string> = {
   wcPhone: 'Ví trên điện thoại (quét QR)',
   wcPhoneHint: 'WalletConnect · OKX, Binance, MetaMask, Trust…',
   wcScan: 'Quét bằng app ví (WalletConnect), rồi bấm duyệt.',
+  wcOther: 'Ví khác (WalletConnect)',
+  wcOtherHint: 'Hiện mã QR / link để dán vào app ví bất kỳ',
+  wcCopyHint: 'Trong app ví, mở mục WalletConnect / Quét, rồi quét mã này từ màn hình khác hoặc dán link.',
+  wcCopy: 'Sao chép link kết nối',
 }
 export const walletPickerCopy = (locale: string) => locale === 'vi' ? vi : en

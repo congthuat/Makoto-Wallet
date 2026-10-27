@@ -17,7 +17,7 @@
     "test:completion": "node --test tests/protocol-completion.test.mjs",
     "test:tasks": "node --experimental-strip-types --test src/lib/tasks.test.ts src/lib/taskAuth.test.ts",
     "test:portfolio": "node --experimental-strip-types --test src/lib/portfolioHistory.test.ts",
-    "test:ux": "node --experimental-strip-types --test src/lib/agentSuggestions.test.ts src/lib/walletProviders.test.ts src/lib/agentActions.test.ts src/lib/agentMemory.test.ts src/lib/payRequests.test.ts src/lib/walletAppLinks.test.ts",
+    "test:ux": "node --experimental-strip-types --test src/lib/agentSuggestions.test.ts src/lib/walletProviders.test.ts src/lib/agentActions.test.ts src/lib/agentMemory.test.ts src/lib/payRequests.test.ts src/lib/walletAppLinks.test.ts src/lib/walletConnect.test.ts",
     "test:migration": "node --experimental-strip-types --test src/migrated/*.test.ts src/brain/agentSession.test.ts src/lib/protocolActivity.test.ts src/protocols/circle/cctpAdapter.test.ts",
     "test:ui": "node --test tests/product-ui.test.mjs",
     "test:agent-native": "node --test tests/agent-native-exec.test.mjs",
