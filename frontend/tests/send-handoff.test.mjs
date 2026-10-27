@@ -313,7 +313,7 @@ for (const lang of ['en', 'vi']) for (const theme of ['dark', 'light']) for (con
       await wait('document.querySelectorAll("button[aria-pressed]")[1].getAttribute("aria-pressed") === "true"', 'Standard mode must be selectable before live quote')
       await wait(`!![...document.querySelectorAll('button')].find((b) => b.textContent.trim() === ${JSON.stringify(lang === 'vi' ? 'Lấy báo giá Circle và xem lại' : 'Get live Circle quote and review')} && !b.disabled)`, 'Supported handoff must allow an explicit live quote request')
       assert.equal(await evaluate('document.documentElement.dataset.theme'), theme)
-      assert.equal(await evaluate('getComputedStyle(document.querySelector("section")).backgroundColor'), theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(10, 13, 10)')
+      assert.equal(await evaluate('getComputedStyle(document.querySelector("section")).backgroundColor'), theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(18, 20, 24)')
       assert.equal(await evaluate('window.innerWidth'), width)
       assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true, 'Production Bridge layout must not overflow horizontally')
       assert.deepEqual(await evaluate('window.__sendHarness.calls'), [], 'Route display, mode selection and supported handoff are read-only')

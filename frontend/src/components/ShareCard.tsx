@@ -14,13 +14,13 @@ function draw(opts: { total: string; pnl: string; up: boolean; rows: Row[]; tag:
   g.fillStyle = '#0b0b10'; g.fillRect(0, 0, W, H)
   const rg = g.createRadialGradient(W * 0.8, -60, 20, W * 0.8, -60, 700); rg.addColorStop(0, 'rgba(168,85,247,.35)'); rg.addColorStop(1, 'rgba(168,85,247,0)')
   g.fillStyle = rg; g.fillRect(0, 0, W, H)
-  const lg = g.createRadialGradient(80, H + 40, 10, 80, H + 40, 520); lg.addColorStop(0, 'rgba(142,254,126,.22)'); lg.addColorStop(1, 'rgba(142,254,126,0)')
+  const lg = g.createRadialGradient(80, H + 40, 10, 80, H + 40, 520); lg.addColorStop(0, 'rgba(212,255,58,.22)'); lg.addColorStop(1, 'rgba(212,255,58,0)')
   g.fillStyle = lg; g.fillRect(0, 0, W, H)
   g.strokeStyle = 'rgba(255,255,255,.04)'; g.lineWidth = 1
   for (let x = 0; x < W; x += 40) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke() }
   for (let y = 0; y < H; y += 40) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke() }
   // logo mark
-  const mg = g.createLinearGradient(72, 64, 128, 120); mg.addColorStop(0, '#B8FF9F'); mg.addColorStop(.45, '#8EFE7E'); mg.addColorStop(1, '#7E47FF')
+  const mg = g.createLinearGradient(72, 64, 128, 120); mg.addColorStop(0, '#ECFF9E'); mg.addColorStop(.45, '#D4FF3A'); mg.addColorStop(1, '#7E47FF')
   g.fillStyle = mg; g.beginPath(); g.roundRect(72, 64, 56, 56, 16); g.fill()
   g.save(); g.translate(72, 64); g.scale(56 / 48, 56 / 48); g.translate(9, 14.1); g.scale(0.0411, 0.0411); g.translate(-260, -308)
   g.fillStyle = '#0b0b10'; for (const d of [MK_TOP, MK_LEFT, MK_RIGHT]) g.fill(new Path2D(d))
@@ -30,11 +30,11 @@ function draw(opts: { total: string; pnl: string; up: boolean; rows: Row[]; tag:
   // tag
   g.font = '600 18px Montserrat, sans-serif'; const tw = g.measureText(opts.tag).width + 32
   g.fillStyle = 'rgba(255,255,255,.07)'; g.beginPath(); g.roundRect(W - 72 - tw, 70, tw, 40, 20); g.fill()
-  g.fillStyle = '#c8ffbe'; g.fillText(opts.tag, W - 72 - tw + 16, 97)
+  g.fillStyle = '#ecffb0'; g.fillText(opts.tag, W - 72 - tw + 16, 97)
   // total
   g.fillStyle = '#9d9aa8'; g.font = '500 24px Montserrat, sans-serif'; g.fillText('Total balance', 72, 230)
   g.fillStyle = '#fff'; g.font = '700 96px "JetBrains Mono", monospace'; g.fillText(opts.total, 66, 330)
-  g.fillStyle = opts.up ? '#8efe7e' : '#fda4af'; g.font = '600 28px "JetBrains Mono", monospace'; g.fillText(opts.pnl, 72, 380)
+  g.fillStyle = opts.up ? '#D4FF3A' : '#fda4af'; g.font = '600 28px "JetBrains Mono", monospace'; g.fillText(opts.pnl, 72, 380)
   // sparkline
   const pts = opts.points
   if (pts.length > 1) {
@@ -42,7 +42,7 @@ function draw(opts: { total: string; pnl: string; up: boolean; rows: Row[]; tag:
     const coordinates = chartCoordinates(pts, x1 - x0, y1 - y0)
     g.beginPath()
     coordinates.forEach(([cx, cy], i) => { const x = x0 + cx, y = y0 + cy; i ? g.lineTo(x, y) : g.moveTo(x, y) })
-    g.strokeStyle = '#8efe7e'; g.lineWidth = 4; g.lineJoin = 'round'; g.stroke()
+    g.strokeStyle = '#D4FF3A'; g.lineWidth = 4; g.lineJoin = 'round'; g.stroke()
   }
   // holdings
   opts.rows.slice(0, 3).forEach((r, i) => {

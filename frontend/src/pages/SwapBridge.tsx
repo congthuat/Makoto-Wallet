@@ -186,7 +186,7 @@ function BridgeForm() {
       <div className="flex-1 rounded-2xl bg-black/30 border border-white/[0.08] p-3.5 min-w-0">
         <div className={`text-[12px] ${T.mute}`}>{label}</div>
         <div className="mt-1 font-semibold text-[14px] flex items-center gap-2">
-          <span aria-hidden="true" className="h-5 px-1.5 rounded-md text-[8.5px] font-black flex items-center justify-center shrink-0 text-[#0b0b10]" style={{ background: name === src ? '#8efe7e' : '#7aa7ff' }}>{name === src ? 'ARC' : 'BASE'}</span> {name}
+          <span aria-hidden="true" className="h-5 px-1.5 rounded-md text-[8.5px] font-black flex items-center justify-center shrink-0 text-[#0b0b10]" style={{ background: name === src ? '#D4FF3A' : '#7aa7ff' }}>{name === src ? 'ARC' : 'BASE'}</span> {name}
         </div>
       </div>
     )

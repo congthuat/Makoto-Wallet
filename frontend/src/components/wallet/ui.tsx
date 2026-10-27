@@ -85,21 +85,21 @@ export function Orb({ size = 56, glow = true }: { size?: number; glow?: boolean 
   const id = useId().replace(/:/g, '')
   return (
     <div className="relative shrink-0" style={{ width: size, height: size * 0.84 }}>
-      {glow && <div className="absolute -inset-[18%] rounded-full bg-[#7e47ff]/35 blur-xl mk-breathe" aria-hidden />}
+      {glow && <div className="absolute -inset-[18%] rounded-full bg-[#D4FF3A]/15 blur-xl mk-breathe" aria-hidden />}
       <svg viewBox="0 0 120 100" width={size} height={size * 0.84} className="relative" role="img" aria-label="Makoto Agent">
         <defs>
           <linearGradient id={`sh-${id}`} x1="20" y1="6" x2="100" y2="96" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#a78bfa" />
-            <stop offset=".45" stopColor="#7e47ff" />
-            <stop offset="1" stopColor="#2e1a78" />
+            <stop offset="0" stopColor="#5b616b" />
+            <stop offset=".45" stopColor="#30353d" />
+            <stop offset="1" stopColor="#14171b" />
           </linearGradient>
           <linearGradient id={`ear-${id}`} x1="0" y1="30" x2="0" y2="70" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#8b6cff" />
-            <stop offset="1" stopColor="#3b1c9c" />
+            <stop offset="0" stopColor="#4a5059" />
+            <stop offset="1" stopColor="#1d2025" />
           </linearGradient>
           <radialGradient id={`vi-${id}`} cx="60" cy="40" r="46" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#1c1530" />
-            <stop offset="1" stopColor="#06050b" />
+            <stop offset="0" stopColor="#1a1d16" />
+            <stop offset="1" stopColor="#050605" />
           </radialGradient>
           <filter id={`gl-${id}`} x="-100%" y="-50%" width="300%" height="200%">
             <feGaussianBlur stdDeviation="3.2" result="b" />
@@ -109,18 +109,18 @@ export function Orb({ size = 56, glow = true }: { size?: number; glow?: boolean 
         {/* ear pods */}
         <rect x="3" y="33" width="17" height="34" rx="7" fill={`url(#ear-${id})`} />
         <rect x="100" y="33" width="17" height="34" rx="7" fill={`url(#ear-${id})`} />
-        <rect x="5.5" y="39" width="3.2" height="22" rx="1.6" fill="#8efe7e" filter={`url(#gl-${id})`} />
-        <rect x="111.3" y="39" width="3.2" height="22" rx="1.6" fill="#8efe7e" filter={`url(#gl-${id})`} />
+        <rect x="5.5" y="39" width="3.2" height="22" rx="1.6" fill="#D4FF3A" filter={`url(#gl-${id})`} />
+        <rect x="111.3" y="39" width="3.2" height="22" rx="1.6" fill="#D4FF3A" filter={`url(#gl-${id})`} />
         {/* helmet */}
         <rect x="14" y="6" width="92" height="88" rx="38" fill={`url(#sh-${id})`} />
         <path d="M30 16 Q60 4 90 16" stroke="#fff" strokeOpacity=".45" strokeWidth="3" strokeLinecap="round" fill="none" />
         {/* visor */}
-        <rect x="23" y="17" width="74" height="64" rx="27" fill={`url(#vi-${id})`} stroke="#c4b5fd" strokeOpacity=".35" strokeWidth="1.5" />
+        <rect x="23" y="17" width="74" height="64" rx="27" fill={`url(#vi-${id})`} stroke="#D4FF3A" strokeOpacity=".3" strokeWidth="1.5" />
         <path d="M34 24 Q46 20 58 21" stroke="#fff" strokeOpacity=".18" strokeWidth="3" strokeLinecap="round" fill="none" />
         {/* eyes */}
         <g filter={`url(#gl-${id})`} className="mk-blink" style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
-          <rect x="43" y="34" width="9.5" height="27" rx="4.75" fill="#8efe7e" />
-          <rect x="67.5" y="34" width="9.5" height="27" rx="4.75" fill="#8efe7e" />
+          <rect x="43" y="34" width="9.5" height="27" rx="4.75" fill="#D4FF3A" />
+          <rect x="67.5" y="34" width="9.5" height="27" rx="4.75" fill="#D4FF3A" />
         </g>
         <rect x="45" y="37" width="3" height="9" rx="1.5" fill="#fff" opacity=".7" />
         <rect x="69.5" y="37" width="3" height="9" rx="1.5" fill="#fff" opacity=".7" />
@@ -293,9 +293,9 @@ export function LogoMark({ size = 32, mono = false }: { size?: number; mono?: bo
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" role="img" aria-label="Makoto" className="shrink-0">
       <defs>
         <linearGradient id={`mk-g-${id}`} x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#B8FF9F" />
-          <stop offset=".45" stopColor="#8EFE7E" />
-          <stop offset="1" stopColor="#7E47FF" />
+          <stop offset="0" stopColor="#ECFF9E" />
+          <stop offset=".45" stopColor="#D4FF3A" />
+          <stop offset="1" stopColor="#8DB800" />
         </linearGradient>
         <radialGradient id={`mk-h-${id}`} cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(14 8) rotate(50) scale(34)">
           <stop offset="0" stopColor="#fff" stopOpacity=".45" />
@@ -304,8 +304,8 @@ export function LogoMark({ size = 32, mono = false }: { size?: number; mono?: bo
       </defs>
       <rect x="2" y="2" width="44" height="44" rx="13" fill={mono ? '#0b0b10' : `url(#mk-g-${id})`} />
       {!mono && <rect x="2" y="2" width="44" height="44" rx="13" fill={`url(#mk-h-${id})`} />}
-      <rect x="2.5" y="2.5" width="43" height="43" rx="12.5" stroke={mono ? '#8EFE7E' : '#fff'} strokeOpacity={mono ? 0.6 : 0.25} />
-      <g transform="translate(9 14.1) scale(0.0411) translate(-260 -308)" fill={mono ? '#8EFE7E' : '#0B0B10'}>
+      <rect x="2.5" y="2.5" width="43" height="43" rx="12.5" stroke={mono ? '#D4FF3A' : '#fff'} strokeOpacity={mono ? 0.6 : 0.25} />
+      <g transform="translate(9 14.1) scale(0.0411) translate(-260 -308)" fill={mono ? '#D4FF3A' : '#0B0B10'}>
         <path d={MK_TOP} />
         <path d={MK_LEFT} />
         <path d={MK_RIGHT} />
@@ -325,7 +325,7 @@ export function LogoLockup({ size = 30, sub = true }: { size?: number; sub?: boo
       <LogoMark size={size} />
       <span className="leading-none text-left">
         <span className="block font-semibold tracking-[0.22em] text-[#F5F5F5]" style={{ fontFamily: 'Montserrat, sans-serif', fontSize: size * 0.52 }}>MAKOTO</span>
-        {sub && <span className="block mt-1 text-[9px] font-semibold tracking-[0.28em] text-[#8EFE7E]/80">AGENT WALLET</span>}
+        {sub && <span className="block mt-1 text-[9px] font-semibold tracking-[0.28em] text-[#D4FF3A]/80">AGENT WALLET</span>}
       </span>
     </span>
   )

@@ -19,7 +19,7 @@ export function WelcomeHero() {
     <section className="mk-hero mk-in relative overflow-hidden rounded-2xl border border-white/[0.08] px-5 py-7 sm:px-8 sm:py-9" data-welcome-hero>
       <div className="relative z-10 grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-6 items-center">
         <div>
-          <span className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.1] bg-white/[0.03] text-[12px] font-medium text-[#c8ffbe]">
+          <span className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-white/[0.1] bg-white/[0.03] text-[12px] font-medium text-[#ecffb0]">
             <span className="w-1.5 h-1.5 rounded-full bg-neon-500" aria-hidden /> {tr('Stablecoin wallet for Arc')}
           </span>
           <h2 className="mt-4 text-[28px] sm:text-[38px] leading-[1.08] font-bold">

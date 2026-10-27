@@ -72,7 +72,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         {active && <span className="mk-ind absolute left-0 top-2 bottom-2 w-[2px] rounded-full bg-neon-400" />}
         <Icon size={17} className={active ? 'text-neon-300' : 'opacity-70 group-hover:opacity-100'} />
         {tr(label)}
-        {id === 'tasks' && running > 0 && <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold bg-white/[0.06] text-[#c8ffbe] flex items-center justify-center">{running}</span>}
+        {id === 'tasks' && running > 0 && <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold bg-white/[0.06] text-[#ecffb0] flex items-center justify-center">{running}</span>}
       </button>
     )
   }
@@ -408,7 +408,7 @@ function Shell() {
   return (
     <div data-vivid={w.settings.vivid !== false ? 'on' : undefined} className={`mk-shell min-h-screen ${T.text} flex antialiased`} style={{ fontFamily: 'Inter, system-ui, sans-serif', background: '#0b0b10' }}>
       <style>{`
-        .mk-bg{background:radial-gradient(1000px 460px at 50% -300px, rgba(142,254,126,.045), transparent 70%)}
+        .mk-bg{background:radial-gradient(1000px 460px at 50% -300px, rgba(212,255,58,.045), transparent 70%)}
         .mk-grid{background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:36px 36px;mask-image:radial-gradient(ellipse at 50% 0%,black 30%,transparent 75%)}
         @keyframes mk-breathe{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:.7;transform:scale(1.05)}}
         .mk-breathe{animation:mk-breathe 4s ease-in-out infinite}

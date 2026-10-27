@@ -76,7 +76,7 @@ export function AboutPage() {
         <div className="relative z-10 mx-auto max-w-[720px] flex flex-col items-center">
           <LogoLockup size={44} />
           <h1 className="mt-6 text-[30px] sm:text-[44px] leading-[1.1] font-extrabold tracking-[-0.025em]" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.035em' }}>
-            {tr('The wallet you can')} <span className="mk-headline bg-gradient-to-r from-[#b6ff9f] via-neon-500 to-[#4fbf4a] bg-clip-text text-transparent">{tr('just ask.')}</span>
+            {tr('The wallet you can')} <span className="mk-headline bg-gradient-to-r from-[#ecff9e] via-neon-500 to-[#a8d400] bg-clip-text text-transparent">{tr('just ask.')}</span>
           </h1>
           <p className={`mt-4 text-[15px] ${T.sub}`}>{tr('Makoto is an agent wallet for Arc — ask in plain language, review every step, and authorize with your own wallet.')}</p>
           <div className="mt-7 flex flex-wrap justify-center gap-2">
