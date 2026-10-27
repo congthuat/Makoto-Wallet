@@ -252,7 +252,8 @@ export function ReceiveModal() {
 }
 
 export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { connect, watch, mode } = useWallet()
+  const { connect, connectError, watch, mode } = useWallet()
+  const isCocCoc = typeof navigator !== 'undefined' && /coc_coc_browser/i.test(navigator.userAgent)
   const [addr, setAddr] = useState('')
   const [tr, lang] = useT()
   const copy = walletPickerCopy(lang)
@@ -335,7 +336,27 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
           ))}
         </div>
       </div>
-      {failed && <p role="status" className="mt-3 text-[12px] text-rose-400">{copy.failed}</p>}
+      {(failed || !wallets.length) && (
+        <div role="status" className={`mt-4 rounded-xl border p-3.5 text-[12.5px] leading-5 ${failed ? 'border-amber-300/25 bg-amber-300/[0.06]' : 'border-white/[0.08] bg-white/[0.02]'}`} data-connect-help>
+          <p className="font-semibold text-[13px]">{failed ? copy.helpTitle : copy.noWalletTitle}</p>
+          {failed && connectError && <p className={`mt-1 break-words ${T.mute}`}>{copy.details}: “{connectError}”</p>}
+          {isCocCoc && <p className="mt-2 text-amber-300">{copy.coccoc}</p>}
+          <ul className={`mt-2 space-y-1.5 list-disc pl-4 ${T.sub}`}>
+            {failed && <><li>{copy.tipUnlock}</li><li>{copy.tipPopup}</li>{wallets.length > 1 && <li>{copy.tipConflict}</li>}<li>{copy.tipNetwork}</li></>}
+            {!isCocCoc && <li>{copy.tipBrowser}</li>}
+          </ul>
+          {!wallets.length && (
+            <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
+              <a className="inline-flex items-center gap-1 font-semibold text-neon-300" href="https://chromewebstore.google.com/detail/okx-wallet/mcohilncbfahbmgdjkbpemcciiolgcge" target="_blank" rel="noopener noreferrer">OKX Wallet · {copy.store} <ExternalLink size={11} aria-hidden /></a>
+              <a className="inline-flex items-center gap-1 font-semibold text-neon-300" href="https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn" target="_blank" rel="noopener noreferrer">MetaMask · {copy.store} <ExternalLink size={11} aria-hidden /></a>
+            </div>
+          )}
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" onClick={() => { setFailed(false); discoverBrowserWallets() }}>{copy.rescan}</Button>
+            <Button size="sm" variant="ghost" onClick={() => window.location.reload()}>{copy.reload}</Button>
+          </div>
+        </div>
+      )}
       <details className="mt-4 rounded-xl border border-white/[0.06] px-3 py-2.5 group/watch">
         <summary className={`cursor-pointer list-none flex items-center gap-2 text-[13px] font-medium ${T.sub} hover:text-white`}><Eye size={14} /> {tr('or watch an address')} <ChevronRight size={14} className="ml-auto transition group-open/watch:rotate-90" aria-hidden /></summary>
         <div className="pt-3">

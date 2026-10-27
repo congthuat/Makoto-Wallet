@@ -259,7 +259,9 @@ function useWalletState() {
     return () => { active = false; p.removeListener?.('chainChanged', updateChain) }
   }, [mode, address, providerRevision])
 
+  const [connectError, setConnectError] = useState<string | null>(null)
   const connect = async (wallet?: BrowserWallet, signal?: AbortSignal): Promise<boolean> => {
+    setConnectError(null)
     try {
       const a = await connectWallet(wallet, signal)
       setWalletAccountConfirmed(true)
@@ -275,6 +277,8 @@ function useWalletState() {
       ]
       const message = (error.code === 4001 || error.code === 4100) ? 'Wallet connection rejected.' : knownErrors.includes(error.message ?? '') ? error.message! : 'Connection failed'
       notify(translate(message), 'err')
+      // Keep the wallet's own words (trimmed) so the picker can show what actually went wrong.
+      setConnectError(message === 'Connection failed' && error.message ? String(error.message).slice(0, 160) : translate(message))
       return false
     }
   }
@@ -429,7 +433,7 @@ function useWalletState() {
   }, [page])
 
   return {
-    page, go, hidden, setHidden, mask, mode, address, walletChainId, displayAddress, live, connect, watch, disconnect,
+    page, go, hidden, setHidden, mask, mode, address, walletChainId, displayAddress, live, connect, connectError, watch, disconnect,
     contacts, setContacts, settings, setSettings, toast, notify,
     receiveOpen, setReceiveOpen, txDetail, setTxDetail, sendDraft, setSendDraft, swapDraft, setSwapDraft, agentSeed, setAgentSeed, agentSeedMode, setAgentSeedMode, lockPreview, setLockPreview,
     sendRecords, upsertSend, swapRecords, upsertSwap, bridgeRecords, upsertBridge,
