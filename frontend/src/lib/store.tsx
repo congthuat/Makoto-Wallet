@@ -10,6 +10,7 @@ import { valuePortfolio } from '../../../shared/portfolioValuation.mjs'
 import { captureEligible, historyAccessEnabled, historyPoints, historyQueryKey, historyScope, portfolioHistoryApi } from './portfolioHistory'
 import { browserWalletRevision, clearBrowserProvider, discoverBrowserWallets, subscribeBrowserWallets, type BrowserWallet } from './walletProviders'
 import { disconnectWalletConnect, restoreWalletConnect } from './walletConnect'
+import { lockEmbedded } from './embeddedWallet'
 import { translate } from './i18n'
 import { rpcRead } from './arcRpc'
 import {
@@ -283,8 +284,8 @@ function useWalletState() {
       return false
     }
   }
-  const watch = (a: string) => { void disconnectWalletConnect(); clearBrowserProvider(); setAddress(a.trim()); setMode('watch'); notify(translate('Watch-only · displaying a public address')) }
-  const disconnect = () => { void disconnectWalletConnect(); clearBrowserProvider(); setMode('demo'); setAddress(''); notify(translate('Disconnected — showing demo data')) }
+  const watch = (a: string) => { void disconnectWalletConnect(); lockEmbedded({ forget: true }); clearBrowserProvider(); setAddress(a.trim()); setMode('watch'); notify(translate('Watch-only · displaying a public address')) }
+  const disconnect = () => { void disconnectWalletConnect(); lockEmbedded({ forget: true }); clearBrowserProvider(); setMode('demo'); setAddress(''); notify(translate('Disconnected — showing demo data')) }
 
   const holdings: Holding[] = useMemo(() => {
     const p = prices.data

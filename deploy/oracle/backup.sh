@@ -8,7 +8,7 @@ set -Eeuo pipefail
 DATA_DIR="${DATA_DIR:-/var/lib/makoto}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/makoto}"
 KEEP="${KEEP:-14}"
-DATABASES=(task-auth tasks portfolio-history)
+DATABASES=(task-auth tasks portfolio-history embedded-vaults)
 
 die() { printf '[x] %s\n' "$*" >&2; exit 1; }
 

@@ -13,19 +13,19 @@ type InjectedProvider = Eip1193 & {
   isPhantom?: boolean; isRainbow?: boolean; isZerion?: boolean; isBraveWallet?: boolean
   providers?: InjectedProvider[]
 }
-export type WalletKind = CatalogWalletKind | 'binance' | 'walletconnect' | 'other'
-const WALLET_KINDS: readonly WalletKind[] = [...WALLET_CATALOG.map((wallet) => wallet.kind), 'binance', 'walletconnect', 'other']
+export type WalletKind = CatalogWalletKind | 'binance' | 'walletconnect' | 'embedded' | 'other'
+const WALLET_KINDS: readonly WalletKind[] = [...WALLET_CATALOG.map((wallet) => wallet.kind), 'binance', 'walletconnect', 'embedded', 'other']
 export type BrowserWallet = {
   id: string
   name: string
   kind: WalletKind
   /** walletconnect = a phone wallet app paired over the WalletConnect relay (no extension). */
-  source: 'eip6963' | 'legacy' | 'walletconnect'
+  source: 'eip6963' | 'legacy' | 'walletconnect' | 'embedded'
   provider: Eip1193
   rdns?: string
   icon?: string
 }
-type Preference = { source: 'eip6963'; rdns: string; name: string } | { source: 'legacy'; kind: WalletKind } | { source: 'walletconnect' }
+type Preference = { source: 'eip6963'; rdns: string; name: string } | { source: 'legacy'; kind: WalletKind } | { source: 'walletconnect' } | { source: 'embedded' }
 export type WalletBrowserHost = {
   ethereum?: InjectedProvider
   okxwallet?: InjectedProvider
@@ -46,7 +46,7 @@ declare global {
 }
 
 const preferenceKey = 'mk.wallet.provider.v1'
-const names = Object.fromEntries([...WALLET_CATALOG.map((wallet) => [wallet.kind, wallet.name]), ['binance', 'Binance Wallet'], ['walletconnect', 'WalletConnect'], ['other', 'Other browser wallet']]) as Record<WalletKind, string>
+const names = Object.fromEntries([...WALLET_CATALOG.map((wallet) => [wallet.kind, wallet.name]), ['binance', 'Binance Wallet'], ['walletconnect', 'WalletConnect'], ['embedded', 'Makoto Wallet'], ['other', 'Other browser wallet']]) as Record<WalletKind, string>
 const isProvider = (value: unknown): value is InjectedProvider => !!value && typeof value === 'object' && typeof (value as Eip1193).request === 'function'
 const walletKind = (provider: InjectedProvider, rdns?: string): WalletKind => {
   if (rdns) return catalogKindForRdns(rdns) ?? 'other'
@@ -70,6 +70,7 @@ function readPreference(host: WalletBrowserHost): Preference | undefined {
     if (value?.source === 'eip6963' && typeof value.rdns === 'string' && typeof value.name === 'string') return value
     if (value?.source === 'legacy' && WALLET_KINDS.includes(value.kind)) return value
     if (value?.source === 'walletconnect') return { source: 'walletconnect' }
+    if (value?.source === 'embedded') return { source: 'embedded' }
   } catch { /* A damaged preference cannot authorize a different wallet. */ }
 }
 
@@ -140,7 +141,7 @@ export function createWalletProviderRegistry(host: WalletBrowserHost) {
     if (preference) {
       const matches = options.filter((entry) => preference?.source === 'eip6963'
         ? entry.source === 'eip6963' && entry.rdns === preference.rdns && entry.name === preference.name
-        : preference?.source === 'walletconnect' ? entry.source === 'walletconnect'
+        : preference?.source === 'walletconnect' || preference?.source === 'embedded' ? entry.source === preference.source
         : entry.source === 'legacy' && entry.kind === preference?.kind)
       return matches.length === 1 ? matches[0].provider : undefined
     }
@@ -154,7 +155,7 @@ export function createWalletProviderRegistry(host: WalletBrowserHost) {
     if (!entry) throw new Error('Wallet provider is no longer available.')
     selected = provider
     cleared = false
-    preference = entry.source === 'eip6963' ? { source: 'eip6963', rdns: entry.rdns!, name: entry.name } : entry.source === 'walletconnect' ? { source: 'walletconnect' } : { source: 'legacy', kind: entry.kind }
+    preference = entry.source === 'eip6963' ? { source: 'eip6963', rdns: entry.rdns!, name: entry.name } : entry.source === 'walletconnect' ? { source: 'walletconnect' } : entry.source === 'embedded' ? { source: 'embedded' } : { source: 'legacy', kind: entry.kind }
     try { host.localStorage?.setItem(preferenceKey, JSON.stringify(preference)) } catch { /* Session selection still works without storage. */ }
     publish()
   }
@@ -169,7 +170,7 @@ export function createWalletProviderRegistry(host: WalletBrowserHost) {
   const setExternal = (entry: BrowserWallet | null) => {
     external.clear()
     if (entry) external.set(entry.id, entry)
-    else if (selected && !options.some((wallet) => wallet.provider === selected && wallet.source !== 'walletconnect')) selected = undefined
+    else if (selected && !options.some((wallet) => wallet.provider === selected && wallet.source !== 'walletconnect' && wallet.source !== 'embedded')) selected = undefined
     refresh()
     publish()
   }

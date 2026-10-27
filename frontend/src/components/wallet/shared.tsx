@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
+import { Suspense, lazy, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Rainbow, Copy, ExternalLink, AlertTriangle, Eye, Wallet, Info, Share2, ChevronRight, Check, Loader2,
@@ -17,6 +17,7 @@ import { WALLET_CATALOG } from '../../lib/walletCatalog'
 import { WalletProviderIcon } from './WalletProviderIcon'
 import { createReceiveShareData } from '../../lib/receiveShare'
 import { ReceiveSharePanel } from './ReceiveSharePanel'
+const GoogleWallet = lazy(() => import('./GoogleWallet').then((m) => ({ default: m.GoogleWallet })))
 
 export async function copyText(text: string, notify: (m: string, kind?: 'ok' | 'err') => void, label = 'Copied') {
   try {
@@ -273,7 +274,7 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   // Revision subscribes to late wallet announcements and successful selections.
   void revision
   // Browser (extension / in-app) wallets only; a WalletConnect pairing is shown in its own section.
-  const wallets = getBrowserWallets().filter((wallet) => wallet.source !== 'walletconnect')
+  const wallets = getBrowserWallets().filter((wallet) => wallet.source !== 'walletconnect' && wallet.source !== 'embedded')
   const wcReady = walletConnectReady()
   const recentWc = open ? lastWcWalletId() : null
   const [qrUri, setQrUri] = useState<string | null>(null)
@@ -326,6 +327,7 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   const valid = isAddress(addr)
   return (
     <Modal open={open} onClose={close} title={tr('Connect a wallet')} width={480}>
+      <Suspense fallback={null}><GoogleWallet vi={lang === 'vi'} disabled={!!pending} onReady={(wallet) => void choose(wallet)} /></Suspense>
       <div className="mt-4 max-h-[58vh] overflow-y-auto pr-1 -mr-1" aria-label={tr('Browser wallet')}>
         {rows.length > 0 && <p className={`mb-2 text-[11px] font-semibold tracking-[0.08em] uppercase ${T.mute}`}>{copy.inBrowser}</p>}
         <div className="space-y-2">

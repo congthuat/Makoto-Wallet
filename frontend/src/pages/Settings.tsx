@@ -7,6 +7,7 @@ import { ARC, ensureArcNetwork, getProvider, isAddress, short } from '../lib/wal
 import { Avatar, Badge, Button, Card, LiveDot, PageHeader, Segmented, T, Toggle, inputCls } from '../components/wallet/ui'
 import { ConnectModal, copyText } from '../components/wallet/shared'
 import { FeedbackLink } from '../components/wallet/FeedbackLink'
+import { EmbeddedWalletSettings } from '../components/wallet/EmbeddedWalletUI'
 
 function Row({ icon: Icon, title, desc, right }: { icon: any; title: string; desc?: React.ReactNode; right: React.ReactNode }) {
   const [t] = useT()
@@ -55,6 +56,7 @@ export default function SettingsPage() {
       <PageHeader eyebrow="Preferences" title="Settings" />
       <div className="max-w-[760px] space-y-7">
         <Section title="Wallet">
+          <EmbeddedWalletSettings />
           <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4">
             <Avatar size={40} seed={displayAddress} />
             <div className="flex-1 min-w-0">

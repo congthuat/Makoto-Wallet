@@ -2,6 +2,7 @@ import { Wallet } from 'lucide-react'
 import { useState } from 'react'
 import type { BrowserWallet, WalletKind } from '../../lib/walletProviders'
 import { catalogWallet } from '../../lib/walletCatalog'
+import { LogoMark } from './ui'
 
 /**
  * Official wallet logos, checked into public/wallets. MetaMask and Rabby come from their brand
@@ -20,6 +21,7 @@ export function WalletProviderIcon({ kind, wallet, logo }: { kind: WalletKind; w
   const [brokenLogo, setBrokenLogo] = useState(false)
   const cls = 'w-10 h-10 rounded-xl object-contain shrink-0 ring-1 ring-white/[0.08]'
   if (wallet?.icon && !brokenAnnouncement) return <img src={wallet.icon} onError={() => setBrokenAnnouncement(true)} width={40} height={40} alt="" className={cls} />
+  if (kind === 'embedded') return <LogoMark size={40} />
   const file = LOGO_FILES[logo ?? kind]
   if (file && !brokenLogo) return <img src={`${import.meta.env.BASE_URL}wallets/${file}`} onError={() => setBrokenLogo(true)} width={40} height={40} alt="" className={cls} />
   const mono = catalogWallet(kind)?.mono

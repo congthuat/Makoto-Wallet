@@ -34,6 +34,8 @@ const LegalPage = lazy(() => import('./pages/Product').then((m) => ({ default: m
 const ChangelogPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.ChangelogPage })))
 const StatusPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.StatusPage })))
 import CommandPalette from './components/CommandPalette'
+import { EmbeddedApproval } from './components/wallet/EmbeddedApproval'
+import { EmbeddedUnlockGate } from './components/wallet/EmbeddedWalletUI'
 
 type SidebarDestination = Page | 'receive'
 const NAV: { group: string; items: { id: SidebarDestination; icon: any; label: string }[] }[] = [
@@ -472,6 +474,8 @@ function Shell() {
       <CommandPalette onConnect={openConnect} />
       <ReceiveModal />
       <TxDetailModal />
+      <EmbeddedApproval />
+      <EmbeddedUnlockGate />
 
       {w.toast && (
         <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[90] mk-in max-w-[calc(100vw-2rem)]">
