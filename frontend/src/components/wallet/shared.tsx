@@ -10,6 +10,8 @@ import { Badge, Button, Logo, Modal, StatusChip, T, TokenIcon, inputCls, Avatar 
 import { translate, useT } from '../../lib/i18n'
 import { browserWalletRevision, discoverBrowserWallets, getBrowserWallets, getProvider, subscribeBrowserWallets, type BrowserWallet, type WalletKind } from '../../lib/walletProviders'
 import { walletPickerCopy } from '../../lib/walletPickerCopy'
+import { MobileWalletLinks } from './MobileWalletLinks'
+import { isMobileBrowser } from '../../lib/walletAppLinks'
 import { WALLET_CATALOG } from '../../lib/walletCatalog'
 import { WalletProviderIcon } from './WalletProviderIcon'
 import { createReceiveShareData } from '../../lib/receiveShare'
@@ -254,6 +256,7 @@ export function ReceiveModal() {
 export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { connect, connectError, watch, mode } = useWallet()
   const isCocCoc = typeof navigator !== 'undefined' && /coc_coc_browser/i.test(navigator.userAgent)
+  const mobile = isMobileBrowser()
   const [addr, setAddr] = useState('')
   const [tr, lang] = useT()
   const copy = walletPickerCopy(lang)
@@ -275,7 +278,8 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   const order = (kind: WalletKind) => { const index = WALLET_CATALOG.findIndex((entry) => entry.kind === kind); return index < 0 ? WALLET_CATALOG.length : index }
   const rows: Row[] = [...wallets].sort((a, b) => order(a.kind) - order(b.kind))
     .map((wallet) => ({ id: wallet.id, kind: wallet.kind, name: wallet.kind === 'other' && wallet.source === 'legacy' ? copy.other : wallet.name, wallet }))
-  const installRows: Row[] = WALLET_CATALOG.filter((entry) => !wallets.some((wallet) => wallet.kind === entry.kind))
+  // On phones without an injected wallet, extension install links are useless; wallet-app links are shown instead.
+  const installRows: Row[] = (mobile && !wallets.length ? [] : WALLET_CATALOG).filter((entry) => !wallets.some((wallet) => wallet.kind === entry.kind))
     .map((entry) => ({ id: `install:${entry.kind}`, kind: entry.kind, name: entry.name, installUrl: entry.installUrl }))
   const close = () => { connection.current?.abort(); connection.current = null; setPending(null); setFailed(false); onClose() }
   const choose = async (wallet: BrowserWallet) => {
@@ -336,7 +340,8 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
           ))}
         </div>
       </div>
-      {(failed || !wallets.length) && (
+      {mobile && !wallets.length && <div className="mt-4"><MobileWalletLinks vi={lang === 'vi'} /></div>}
+      {(failed || (!wallets.length && !mobile)) && (
         <div role="status" className={`mt-4 rounded-xl border p-3.5 text-[12.5px] leading-5 ${failed ? 'border-amber-300/25 bg-amber-300/[0.06]' : 'border-white/[0.08] bg-white/[0.02]'}`} data-connect-help>
           <p className="font-semibold text-[13px]">{failed ? copy.helpTitle : copy.noWalletTitle}</p>
           {failed && connectError && <p className={`mt-1 break-words ${T.mute}`}>{copy.details}: “{connectError}”</p>}
