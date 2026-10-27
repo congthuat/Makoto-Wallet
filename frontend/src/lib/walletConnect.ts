@@ -13,7 +13,7 @@ export const walletConnectReady = () => /^[0-9a-f]{32}$/i.test(WALLETCONNECT_PRO
 const ARC_CHAIN_ID = 5042002
 const ARC_RPC = 'https://rpc.testnet.arc.io'
 
-export type WcWallet = { kind: WalletKind; name: string; note?: string; native: string }
+export type WcWallet = { kind: WalletKind; name: string; note?: string; native: string; logo?: 'okxwallet' }
 
 /**
  * Native deep links from the official WalletConnect wallet registry (explorer-api.walletconnect.com),
@@ -22,7 +22,7 @@ export type WcWallet = { kind: WalletKind; name: string; note?: string; native: 
  */
 export const WC_WALLETS: WcWallet[] = [
   { kind: 'okx', name: 'OKX', note: 'App sàn OKX', native: 'okex://main' },
-  { kind: 'okx', name: 'OKX Wallet', note: 'App ví OKX riêng', native: 'okxwallet://main' },
+  { kind: 'okx', name: 'OKX Wallet', note: 'App ví OKX riêng', native: 'okxwallet://main', logo: 'okxwallet' },
   { kind: 'binance', name: 'Binance Wallet', native: 'bnc://app.binance.com/cedefi/' },
   { kind: 'metamask', name: 'MetaMask', native: 'metamask://' },
   { kind: 'trust', name: 'Trust Wallet', native: 'trust://' },
@@ -79,6 +79,11 @@ function loadProvider(): Promise<WcProvider> {
 const approvedChains = (provider: WcProvider) => provider.session?.namespaces?.eip155?.chains ?? []
 /** Prefer Arc as the default chain when the wallet approved it. */
 const preferArc = (provider: WcProvider) => { if (approvedChains(provider).includes(`eip155:${ARC_CHAIN_ID}`)) provider.setDefaultChain(`eip155:${ARC_CHAIN_ID}`) }
+
+/** Id of the wallet app used for the last WalletConnect pairing (shown as "Recent"). */
+export function lastWcWalletId(): string | null {
+  try { return localStorage.getItem(LAST_WALLET_KEY) } catch { return null }
+}
 
 function lastWallet(): WcWallet | undefined {
   try { const id = localStorage.getItem(LAST_WALLET_KEY); return WC_WALLETS.find((wallet) => wcWalletId(wallet) === id) } catch { return undefined }

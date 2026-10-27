@@ -40,6 +40,7 @@ const en = {
   wcOtherHint: 'Show a QR / link to paste into any wallet app',
   wcCopyHint: 'In your wallet app open WalletConnect / Scan, then scan this QR from another screen or paste the link.',
   wcCopy: 'Copy connection link',
+  recent: 'Recent',
 } as const
 const vi: Record<keyof typeof en, string> = {
   detected: 'Đã phát hiện',
@@ -83,5 +84,6 @@ const vi: Record<keyof typeof en, string> = {
   wcOtherHint: 'Hiện mã QR / link để dán vào app ví bất kỳ',
   wcCopyHint: 'Trong app ví, mở mục WalletConnect / Quét, rồi quét mã này từ màn hình khác hoặc dán link.',
   wcCopy: 'Sao chép link kết nối',
+  recent: 'Gần đây',
 }
 export const walletPickerCopy = (locale: string) => locale === 'vi' ? vi : en

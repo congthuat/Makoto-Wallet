@@ -11,7 +11,7 @@ import { translate, useT } from '../../lib/i18n'
 import { browserWalletRevision, discoverBrowserWallets, getBrowserWallets, getProvider, subscribeBrowserWallets, type BrowserWallet, type WalletKind } from '../../lib/walletProviders'
 import { walletPickerCopy } from '../../lib/walletPickerCopy'
 import { MobileWalletLinks } from './MobileWalletLinks'
-import { WC_WALLETS, pairWalletConnect, walletConnectReady, wcWalletId, type WcWallet } from '../../lib/walletConnect'
+import { WC_WALLETS, lastWcWalletId, pairWalletConnect, walletConnectReady, wcWalletId, type WcWallet } from '../../lib/walletConnect'
 import { isMobileBrowser } from '../../lib/walletAppLinks'
 import { WALLET_CATALOG } from '../../lib/walletCatalog'
 import { WalletProviderIcon } from './WalletProviderIcon'
@@ -275,6 +275,7 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   // Browser (extension / in-app) wallets only; a WalletConnect pairing is shown in its own section.
   const wallets = getBrowserWallets().filter((wallet) => wallet.source !== 'walletconnect')
   const wcReady = walletConnectReady()
+  const recentWc = open ? lastWcWalletId() : null
   const [qrUri, setQrUri] = useState<string | null>(null)
   // Detected wallets first (catalog order, then any other announced wallet); then the
   // remaining catalog wallets as install links. Install rows never touch a provider.
@@ -374,9 +375,9 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
               return (
                 <button key={id} type="button" disabled={!!pending} onClick={() => void chooseWc(wallet)} data-wc-wallet={wallet.native}
                   className="group w-full flex items-center gap-3 p-3 rounded-2xl border border-white/[0.09] bg-white/[0.03] text-left transition hover:border-neon-500/40 disabled:cursor-default">
-                  <WalletProviderIcon kind={wallet.kind} />
+                  <WalletProviderIcon kind={wallet.kind} logo={wallet.logo} />
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-[14.5px]">{wallet.name}{wallet.note && <span className={`ml-1.5 text-[11.5px] font-medium ${T.mute}`}>· {lang === 'vi' ? wallet.note : wallet.note === 'App sàn OKX' ? 'OKX exchange app' : 'Standalone OKX Wallet app'}</span>}</span>
+                    <span className="block font-semibold text-[14.5px]">{wallet.name}{wallet.note && <span className={`ml-1.5 text-[11.5px] font-medium ${T.mute}`}>· {lang === 'vi' ? wallet.note : wallet.note === 'App sàn OKX' ? 'OKX exchange app' : 'Standalone OKX Wallet app'}</span>}{recentWc === wcWalletId(wallet) && <span className="ml-2 align-middle px-1.5 py-0.5 rounded-md bg-neon-500/15 text-neon-300 text-[10.5px] font-semibold">{copy.recent}</span>}</span>
                     <span className={`block text-[12px] ${pending === id ? 'text-neon-300' : T.mute}`}>{pending === id ? copy.wcWaiting : copy.wcHint}</span>
                   </span>
                   {pending === id ? <Loader2 aria-hidden size={16} className="animate-spin shrink-0 text-neon-300" /> : <ChevronRight aria-hidden size={16} className={`${T.mute} shrink-0`} />}
