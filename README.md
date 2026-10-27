@@ -1,176 +1,168 @@
-# Makoto Wallet
-
-Makoto Wallet is a non-custodial agent wallet for Arc Testnet that combines natural-language wallet interaction with deterministic policy, review, and user-controlled transaction signing.
-
-**Live app:** [makotowallet.xyz](https://makotowallet.xyz)
-
-**Network:** Arc Testnet — Chain ID `5042002`
-
 <p align="center">
   <a href="https://makotowallet.xyz">
-    <img
-      src="docs/assets/hero/makoto-wallet-production-home-2026-10-02.png"
-      alt="Makoto Wallet production interface on Arc Testnet"
-      width="1200"
-    />
+    <img src="docs/assets/hero/makoto-banner.png" alt="Makoto Wallet: the AI agent wallet for stablecoins on Arc" width="100%" />
   </a>
 </p>
 
+<h1 align="center">Makoto Wallet</h1>
+
 <p align="center">
-  <sub>Makoto Wallet production interface · Arc Testnet</sub>
+  <b>The AI agent wallet for stablecoins on Arc.</b><br/>
+  Ask in plain language · review every step · approve in your own wallet.
 </p>
 
-## What is Makoto?
+<p align="center">
+  <a href="https://makotowallet.xyz"><img alt="Live app" src="https://img.shields.io/badge/live-makotowallet.xyz-D4FF3A?style=flat-square&labelColor=0A0B0D" /></a>
+  <a href="https://github.com/congthuat/Makoto-Wallet/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/congthuat/Makoto-Wallet/ci.yml?branch=makoto-wallet&style=flat-square&label=CI&labelColor=0A0B0D" /></a>
+  <img alt="Network" src="https://img.shields.io/badge/Arc%20Testnet-5042002-3DDC97?style=flat-square&labelColor=0A0B0D" />
+  <img alt="Non-custodial" src="https://img.shields.io/badge/non--custodial-yes-3DDC97?style=flat-square&labelColor=0A0B0D" />
+  <img alt="Stack" src="https://img.shields.io/badge/React%2019%20·%20TypeScript%20·%20viem-121418?style=flat-square" />
+</p>
 
-Makoto Agent is the conversational interface to the wallet. It answers questions from observed wallet, portfolio, and network data, and helps prepare Send, Swap, and Bridge requests. The deterministic planner, tool layer, and Policy/Risk checks remain authoritative for financial actions and transaction state.
+<p align="center">
+  <a href="https://makotowallet.xyz"><b>Open the app</b></a> ·
+  <a href="https://makotowallet.xyz/#trust">Trust Center</a> ·
+  <a href="docs/README.md">Documentation</a> ·
+  <a href="https://github.com/congthuat/Makoto-Wallet/issues">Report an issue</a>
+</p>
 
-Makoto is non-custodial: the connected wallet remains the final signer. The Agent never receives or stores private keys or seed phrases, and cannot authorize a transaction on the user's behalf.
+---
 
-## What works today
+## Why Makoto
 
-| Area | Current capability |
+Stablecoin wallets are powerful but unforgiving: long addresses, unfamiliar networks, approvals nobody reads. **Makoto turns intent into a clear, reviewable transaction**, so you can just say *"send 20 USDC to Linh"*, *"bridge 50 USDC to Base"* or *"alert me if BTC drops below 75k"*.
+
+The AI **prepares**. **You approve.** Makoto never holds your keys, and the Agent can never sign.
+
+## Highlights
+
+| | |
 | --- | --- |
-| Agent | Tool-using AI (OpenAI Responses) with streamed replies: read-only wallet, price, Arc network, Circle fee, market, news and project tools; price charts in chat; on-device memory and address book (names only reach the model); multi-step plans where each step is re-validated, reviewed and signed separately. Proposals always pass Makoto's deterministic planner and Policy/Risk; the model never signs. |
-| Wallet connection | EIP-6963 discovery and injected providers: MetaMask, OKX, Rabby, Coinbase Wallet, Trust Wallet, Bitget, Phantom, Rainbow, Zerion, Brave Wallet and any other announced wallet, with official install links for wallets that are not installed; public-address watch-only mode. |
-| Portfolio | Arc Testnet USDC, EURC, and cirBTC balances; CoinGecko pricing; server-authoritative recorded balance history with 1D / 1W / 1M / 1Y / ALL ranges. History starts with real observations, with no fake or backfilled points. |
-| Send | Reviewed connected-wallet ERC-20 transfers of USDC, EURC, and cirBTC. |
-| Swap | Connected Xylo USDC ↔ EURC flow, with exact finite approval and separate reviews where approval is required. |
-| Bridge | Official Circle CCTP v2 integration for USDC from Arc Testnet to Base Sepolia, with explicit review and user wallet signing. Live destination completion has not been verified at the current checkpoint. |
-| Tasks | Balance threshold monitoring and daily scheduled summaries through a persistent backend scheduler. Financial automation is `PREPARE_ONLY`; there is no unattended wallet signing. |
-| Receive | Address and QR receive flow. |
-| Activity | Evidence-based transaction and activity states, with pending, unknown, and confirmed outcomes kept distinct. |
-| Analytics | Read-only Arc network and onchain intelligence, with verified source labels and bounded transfer/holder samples. |
-| Localization / UI | English and Vietnamese UI (earlier Chinese, Japanese and Korean choices fall back to English); light/dark themes; responsive desktop and mobile layouts. |
-| Payment requests | `MakotoPayRequests` contract (no owner, no admin, never holds funds): invoices and split bills in USDC/EURC with shareable links and QR codes; exact approvals and receipt + event evidence. Deployed from the owner's wallet inside the app. |
-| Get test tokens | Arc Testnet faucet surface linking to Circle's external faucet. Opening the faucet does not itself request or deliver tokens. |
+| 🤖 **AI Agent** | Streams answers from live wallet, price, Arc network, Circle fee, market and news data. Draws price charts, remembers your contacts on-device, and builds multi-step plans where every step is reviewed and signed separately. |
+| 🔑 **Sign in with Google** | One tap creates your own Makoto wallet with a standard **12 or 24-word** recovery phrase that also works in OKX and MetaMask. The phrase is generated and encrypted **on your device**; the server only stores ciphertext it cannot read. |
+| 📱 **Connect any wallet** | Browser extensions via EIP-6963 (MetaMask, OKX, Rabby, Coinbase, Trust, Bitget, Phantom, Rainbow, Zerion, Brave). On phones, **WalletConnect** opens OKX, Binance, MetaMask, Trust or Bitget and returns you connected. QR pairing on desktop. |
+| 💸 **Send · Swap · Bridge** | USDC, EURC and cirBTC transfers with address-poisoning checks; USDC ↔ EURC swaps with exact approvals; USDC bridging to Base Sepolia through **Circle CCTP v2**. |
+| 🧾 **Payment requests** | Invoices and bill splitting in USDC/EURC with shareable links and QR codes, powered by `MakotoPayRequests`: no owner, no admin, no fees, never holds funds. |
+| ⏰ **Tasks & alerts** | Balance thresholds, BTC/ETH/SOL price alerts and daily summaries run on a persistent scheduler. Notify-only: no unattended signing, ever. |
+| 🛡️ **Trust Center** | A plain-language page listing what Makoto can and cannot do, which contracts it touches, and how to verify everything yourself. |
 
-## Agent safety model
+## Screenshots
+
+<p align="center">
+  <img src="docs/assets/screens/agent.png" alt="Makoto Agent" width="49%" />
+  <img src="docs/assets/screens/connect.png" alt="Connect: Google, browser wallets and WalletConnect" width="49%" />
+</p>
+<p align="center">
+  <img src="docs/assets/screens/pay.png" alt="Payment requests" width="49%" />
+  <img src="docs/assets/screens/trust.png" alt="Trust Center" width="49%" />
+</p>
+<p align="center">
+  <img src="docs/assets/screens/mobile-home.png" alt="Mobile home" width="24%" />
+  <img src="docs/assets/screens/mobile-connect.png" alt="Mobile WalletConnect" width="24%" />
+</p>
+
+## How Makoto keeps you in control
 
 ```mermaid
-flowchart TD
-    U[User] --> A[Makoto Agent / natural language]
-    A --> T[Deterministic Planner + Tool Layer]
-    T --> P[Policy / Risk]
-    P --> R[Review + fresh revalidation]
-    R --> W[Connected wallet]
-    W --> C[Arc / destination chain]
-    C --> E[Receipt / evidence reconciliation]
+flowchart LR
+    U[You] -->|plain language| A[Makoto Agent]
+    A --> P[Deterministic planner + tools]
+    P --> R[Policy / Risk checks]
+    R --> V[Review screen]
+    V -->|you approve| W[Your wallet signs]
+    W --> C[Arc]
+    C --> E[Receipt + event evidence]
 ```
 
-The LLM cannot:
+**The AI can never:** sign or broadcast a transaction · see a private key or recovery phrase · approve unlimited allowances · bypass Policy/Risk or your review · fabricate balances or quotes · mark a transaction confirmed.
 
-- Sign transactions or access private keys.
-- Create authoritative balances or fabricate quotes.
-- Bypass Policy/Risk or user review.
-- Mark transactions confirmed.
+**Transactions are evidence-based.** `PREPARE ≠ EXECUTE`: preparing a request is separate from handing it to your wallet. `USER_REJECTED`, `PENDING`, `UNKNOWN` and `CONFIRMED` stay distinct, and success is only shown after a receipt *and* the matching on-chain event.
 
-## Transaction model
+### Google wallet security model
 
-`PREPARE != EXECUTE`. Preparing a request is separate from handing it to the wallet. A wallet request is not confirmation; writes require explicit user wallet confirmation, followed by receipt and matching transaction evidence.
-
-`USER_REJECTED`, `UNKNOWN`, `PENDING`, and `CONFIRMED` are distinct states. Rejection does not imply submission, a missing result does not imply failure or success, and a source-chain confirmation does not establish bridge destination completion.
-
-## Circle CCTP v2
-
-The current write scope is **USDC only: Arc Testnet (`5042002`) → Base Sepolia (`84532`)**. The integration uses the repository's pinned official Circle adapter and CCTP provider packages.
-
-The flow obtains a quote, prepares an exact finite approval when needed, simulates the prepared call, and presents approval and burn reviews separately. Fresh account, chain, quote, request, and Policy/Risk checks precede wallet handoff. A successful source receipt and matching CCTP evidence establish the source step; destination completion requires a confirmed destination receipt and matching USDC transfer evidence. Attestation or a forwarder hash alone is insufficient.
-
-Implementation tests and read-only live quote verification exist. The current verification checkpoint does **not** claim a real live burn plus destination transaction has completed. EURC/cirBTC CCTP writes and Universal Bridge execution remain unavailable. See [the integration scope and evidence](docs/CIRCLE_CCTP_V2_INTEGRATION.md).
-
-## Portfolio history
-
-History is persisted in backend SQLite. The server reads Arc balances and CoinGecko prices itself; callers cannot submit arbitrary historical totals, balances, prices, or timestamps. Captures require complete observations and fresh prices. Provider failures produce unavailable or stale pricing states, and do not create synthetic history points.
-
-Production history access requires explicit SIWE wallet verification through **Verify wallet**. Signing this ownership message costs no gas and is not a blockchain transaction. Connecting a wallet alone does not request that signature.
-
-Captures are real observations collected during active visible app use, at least five minutes apart. At least two observations in the selected range are needed for a chart. Recording begins when authorized observations are available, with no historical reconstruction or backfill; ALL covers retained recorded history. See [portfolio history](docs/PORTFOLIO_HISTORY.md).
-
-## Tasks
-
-The persistent backend scheduler can keep running after the browser closes, provided the backend and its storage remain available. Balance monitors and daily scheduled summaries are owner scoped; task management requires verified wallet ownership.
-
-Financial actions remain `PREPARE_ONLY`. The scheduler has no wallet signer and cannot submit unattended Send, Swap, Bridge, or approval transactions. Its SQLite claim model coordinates processes on **one host sharing the same SQLite file**; it is not a multi-host distributed lock. See [task execution claims](docs/TASK_EXECUTION_CLAIMS.md).
-
-## Architecture
-
-| Layer | Implementation |
+| What | Where it lives |
 | --- | --- |
-| Frontend | Vite + React 19 + TypeScript + Tailwind CSS |
-| Backend | Node.js + Express |
-| Persistence | SQLite / WAL |
-| Wallet | EIP-1193 / EIP-6963 |
-| Blockchain | Arc Testnet |
-| Bridge | Circle CCTP v2 |
-| Pricing | CoinGecko |
-| Agent | Backend-only Responses-compatible LLM provider + deterministic local tool/planner architecture |
-| Deployment | Frontend on Vercel; backend on Railway; `/api/*` same-origin proxy |
+| Recovery phrase (BIP39, 12/24 words) | Generated in your browser; never sent anywhere in plain text |
+| Wallet password | Only in your head; never sent to Makoto |
+| Encrypted backup | PBKDF2-SHA256 (600k) → AES-256-GCM, bound to your Google account; stored as ciphertext only |
+| Google sign-in | Identity only, verified server-side (audience, issuer, expiry, verified email) |
+| Signing | Unlocked key stays in tab memory; **every** signature opens Makoto's Approve / Reject screen |
+
+Forgetting the password **and** losing the recovery phrase means the wallet cannot be recovered. That is by design: nobody, including Makoto, can recover it for you.
+
+## Contracts (Arc Testnet)
+
+| Contract | Address |
+| --- | --- |
+| MakotoPayRequests | [`0x190132A7C8D218845c2769471C625E6da5eE4dFE`](https://testnet.arcscan.app/address/0x190132A7C8D218845c2769471C625E6da5eE4dFE) |
+| USDC (Circle) | [`0x3600000000000000000000000000000000000000`](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000) |
+| EURC (Circle) | [`0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a`](https://testnet.arcscan.app/address/0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a) |
+| cirBTC | [`0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF`](https://testnet.arcscan.app/address/0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF) |
+
+Source: [`contracts/src/MakotoPayRequests.sol`](contracts/src) (Foundry, Solidity 0.8.24).
+
+## Tech stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19 · TypeScript · Vite · Tailwind CSS 4 · viem |
+| Wallets | EIP-1193 / EIP-6963 · WalletConnect v2 · embedded BIP39 wallet |
+| Backend | Node.js · Express · SQLite (WAL) |
+| AI | OpenAI Responses API (tool calling, streaming) behind a deterministic planner |
+| Chain & bridge | Arc Testnet · Circle CCTP v2 |
+| Data | CoinGecko · ArcScan · Surf market data |
+| Hosting | Vercel (frontend) · Railway / Oracle Cloud (backend) · same-origin `/api` proxy |
 
 ## Repository structure
 
 ```text
-frontend/               Wallet UI and connected-wallet integration
-backend/                API, authentication, persistence, and scheduler
-shared/                 Shared portfolio valuation
-docs/                   Current documentation and engineering notes
-validation-qa/          Recorded QA and verification evidence
-contracts/              MakotoPayRequests.sol (Foundry): payment requests and bill splitting
-brain-donor-reference/  Archived reference only (not part of the app; PenguJar/Vault is retired)
-AGENTS.md               Repository working rules
+frontend/    Wallet UI, Agent, wallet connections, embedded wallet
+backend/     API, Google/SIWE auth, encrypted vault store, scheduler, Agent tools
+contracts/   MakotoPayRequests (Foundry)
+deploy/      Oracle Cloud deployment kit (setup, backups, updates)
+docs/        Architecture notes, integration scopes, QA evidence
+shared/      Shared portfolio valuation
 ```
 
 ## Run locally
 
-Use **Node.js >=24**. From the repository root, install the backend and frontend dependencies:
+Requires **Node.js ≥ 24**.
 
 ```sh
 npm install --prefix backend
 npm install --prefix frontend
-```
-
-Copy `backend/.env.example` to `backend/.env` and `frontend/.env.example` to `frontend/.env` using your platform's file tools. Fill in your own server-only credentials. The local runner requires the backend's `SURF_API_KEY`; portfolio pricing requires CoinGecko configuration. The conversational LLM provider is optional. Keep credentials in the backend environment.
-
-Start both services:
-
-```sh
+cp backend/.env.example backend/.env     # add your own server-side keys
+cp frontend/.env.example frontend/.env
 npm run dev
 ```
 
-- Frontend: [http://localhost:5173](http://localhost:5173)
-- Backend health: [http://localhost:3001/api/health](http://localhost:3001/api/health)
+- App: http://localhost:5173
+- API health: http://localhost:3001/api/health
 
-Ports are strict: the runner requires 5173 and 3001 and exits if either is unavailable. Ctrl+C stops both services.
+Keys stay server-side. `SURF_API_KEY` is required; CoinGecko enables pricing; the LLM provider is optional. Google sign-in uses the public OAuth client id (`GOOGLE_CLIENT_ID`).
 
-For a production build, the frontend must have a nonempty `BACKEND_PORT` and a defined `BASE_PATH` (which may be empty), supplied through `frontend/.env` or the build environment:
+Production build:
 
 ```sh
-npm run build --prefix frontend
+npm run build --prefix frontend   # needs BACKEND_PORT and BASE_PATH (may be empty)
 ```
 
-This produces `frontend/dist/client` and `frontend/dist/server`. A hosted frontend also needs the same-origin `/api/*` proxy to the backend; the repository's Vercel configuration supplies that proxy.
+Quality gates run on every push: type-check, lint, unit tests, browser regressions (mock wallet) and backend tests. See [`ci.yml`](.github/workflows/ci.yml).
 
 ## Documentation
 
-- [Project state](docs/PROJECT_STATE.md)
-- [LLM Agent integration](docs/LLM_AGENT_INTEGRATION.md)
-- [Home Agent and wallet UX](docs/AGENT_HOME_UX.md)
-- [Portfolio history](docs/PORTFOLIO_HISTORY.md)
-- [Circle CCTP v2 integration](docs/CIRCLE_CCTP_V2_INTEGRATION.md)
-- [Task execution claims](docs/TASK_EXECUTION_CLAIMS.md)
-- [Pricing provider](docs/PRICING_PROVIDER.md)
-- [Analytics product scope](docs/ANALYTICS_PRODUCT_SCOPE.md)
-- [Full documentation index](docs/README.md)
-- [2026-10-02 release candidate notes](docs/releases/2026-10-02-production-preview.md)
+[Project state](docs/PROJECT_STATE.md) · [LLM Agent](docs/LLM_AGENT_INTEGRATION.md) · [Home & wallet UX](docs/AGENT_HOME_UX.md) · [Circle CCTP v2](docs/CIRCLE_CCTP_V2_INTEGRATION.md) · [Portfolio history](docs/PORTFOLIO_HISTORY.md) · [Task claims](docs/TASK_EXECUTION_CLAIMS.md) · [Pricing](docs/PRICING_PROVIDER.md) · [All docs](docs/README.md)
 
-## Current limitations
+## Status & limitations
 
-- Arc Testnet only for wallet operations; Base Sepolia is the supported CCTP destination.
-- Testnet assets have no intended real-world monetary value.
-- No independent professional security audit is claimed; Makoto is not mainnet-ready financial software.
-- Circle CCTP's current write scope is USDC from Arc Testnet to Base Sepolia. No real live CCTP destination completion is claimed by current evidence.
-- Portfolio history starts when actual recording begins, with no backfill. Fresh pricing and verified production history access are required for new captures.
-- The scheduler's SQLite coordination is not a multi-host distributed lock. Scheduling requires a running backend and persistent storage.
+- **Testnet only.** Arc Testnet assets have no real-world value. Base Sepolia is the supported CCTP destination.
+- **No independent security audit yet.** Makoto is not mainnet-ready financial software.
+- CCTP writes are USDC-only (Arc Testnet → Base Sepolia); live destination completion is not yet claimed by recorded evidence.
+- Portfolio history starts at the first verified observation, with no backfill.
+- The scheduler's SQLite coordination is single-host, not a distributed lock.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for the security boundary and private vulnerability reporting guidance.
+Found a vulnerability? Please follow [SECURITY.md](SECURITY.md) for private reporting. Makoto will **never** ask for your recovery phrase.
+
+<p align="center"><sub>Built on <a href="https://arc.network">Arc</a> · Powered by Circle stablecoins</sub></p>
