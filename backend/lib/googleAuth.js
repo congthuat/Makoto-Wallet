@@ -3,7 +3,8 @@
  * tokeninfo endpoint; we then enforce audience (our client id), issuer, expiry and a
  * verified email. Results are cached briefly per token to limit outbound calls.
  */
-const DEFAULT_CLIENT_ID = ''
+/** Public OAuth web client id (not a secret; restricted to makotowallet.xyz). GOOGLE_CLIENT_ID overrides it. */
+const DEFAULT_CLIENT_ID = '844135683553-4pqovocaeaidkcilgt04muv4rul7hjti.apps.googleusercontent.com'
 const ISSUERS = new Set(['accounts.google.com', 'https://accounts.google.com'])
 const cache = new Map()
 
