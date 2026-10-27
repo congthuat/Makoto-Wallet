@@ -113,7 +113,6 @@ function AgentCommand() {
             ))}
           </div>
         </div>
-        {tab !== 'Ask' && <p className={`mt-2 px-1 text-[11.5px] ${T.mute}`}>{tr('Makoto will propose a task for you to review.')}</p>}
         {exchange && <div className="mt-3 w-full rounded-xl border border-white/[0.08] bg-black/20 p-4 text-left" data-home-agent-answer>
           <p className={`text-[12.5px] leading-5 whitespace-pre-wrap break-words ${T.sub}`} data-home-user-message>{exchange.request.originalText}</p>
           <div className="mt-2 text-[14px] leading-6" role="status" aria-live="polite">

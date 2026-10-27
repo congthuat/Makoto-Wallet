@@ -153,4 +153,7 @@ export const AGENT_I18N: Record<string, [string, string, string, string]> = {
   "What should Makoto watch for you?": ["Makoto nên theo dõi điều gì cho bạn?", '', '', ''],
   "What should Makoto do on a schedule?": ["Makoto nên làm gì theo lịch?", '', '', ''],
   "{n} watching": ["{n} đang theo dõi", '', '', ''],
+  // Mainnet copy trim — 2026-10-27
+  "Ask about your wallet or the market.": ["Hỏi về ví của bạn hoặc thị trường.", '', '', ''],
+  "Test tokens have no real value.": ["Token thử nghiệm không có giá trị thật.", '', '', ''],
 }

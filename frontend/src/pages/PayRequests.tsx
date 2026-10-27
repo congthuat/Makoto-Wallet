@@ -156,7 +156,7 @@ function CreateCard({ contract, vi, onCreated }: { contract: Address; vi: boolea
         {payers === '1' && <Field label={L(vi, 'Only this payer (optional)', 'Chỉ người trả này (không bắt buộc)')}><input aria-label={L(vi, 'Only this payer', 'Chỉ người trả này')} value={payer} onChange={(e) => setPayer(e.target.value.trim())} placeholder="0x…" spellCheck={false} className={`${inputCls} h-10 font-mono text-[12px]`} /></Field>}
         <Field label={L(vi, 'Note', 'Ghi chú')}><input aria-label={L(vi, 'Note', 'Ghi chú')} value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={140} placeholder={L(vi, 'Dinner on Friday', 'Ăn tối thứ Sáu')} className={`${inputCls} h-10`} /></Field>
       </div>
-      <p className={`mt-3 text-[12px] ${T.mute}`}>{L(vi, 'Payments go straight to your wallet. The contract never holds funds and nobody else can cancel your request.', 'Tiền được chuyển thẳng vào ví bạn. Hợp đồng không bao giờ giữ tiền và không ai khác có thể hủy yêu cầu của bạn.')}</p>
+      <p className={`mt-3 text-[12px] ${T.mute}`}>{L(vi, 'Paid directly to your wallet.', 'Tiền vào thẳng ví bạn.')}</p>
       <Button className="mt-3" variant="primary" disabled={busy || w.mode !== 'connected'} onClick={() => void start()}>{L(vi, 'Review request', 'Xem lại yêu cầu')}</Button>
       {w.mode !== 'connected' && <p className={`mt-2 text-[12.5px] ${T.mute}`}>{L(vi, 'Connect a wallet to create requests.', 'Kết nối ví để tạo yêu cầu.')}</p>}
       {error && <p className="mt-2 text-[12.5px] text-rose-300">{error}</p>}
@@ -273,7 +273,7 @@ export default function PayRequestsPage() {
   const mine = useMemo(() => myRequestIds(w.mode === 'connected' ? w.address : undefined), [w.mode, w.address, refresh])
   return (
     <>
-      <PageHeader eyebrow={L(vi, 'Transactions', 'Giao dịch')} title={L(vi, 'Payment requests', 'Yêu cầu thanh toán')} desc={L(vi, 'Create an invoice or split a bill in USDC/EURC on Arc and share a link. Payers pay you directly.', 'Tạo hóa đơn hoặc chia tiền bằng USDC/EURC trên Arc rồi gửi link. Người trả chuyển thẳng cho bạn.')} />
+      <PageHeader eyebrow={L(vi, 'Transactions', 'Giao dịch')} title={L(vi, 'Payment requests', 'Yêu cầu thanh toán')} />
       <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">
         <div className="space-y-4">
           {!contract && <DeployCard vi={vi} onDeployed={(address) => { setContract(address); setVerified(true) }} />}
@@ -295,13 +295,7 @@ export default function PayRequestsPage() {
               <Button disabled={!lookup} onClick={() => { window.location.hash = `pay-${lookup}`; setLookup('') }}>{L(vi, 'Open', 'Mở')}</Button>
             </div>
           </Card>
-          <Card className="p-5 text-[12.5px] space-y-2">
-            <div className="font-semibold text-[13px]">{L(vi, 'How it works', 'Cách hoạt động')}</div>
-            <p className={T.sub}>{L(vi, '1. Create a request: one payer (invoice) or several (split bill).', '1. Tạo yêu cầu: một người trả (hóa đơn) hoặc nhiều người (chia tiền).')}</p>
-            <p className={T.sub}>{L(vi, '2. Share the link or QR code.', '2. Gửi link hoặc mã QR.')}</p>
-            <p className={T.sub}>{L(vi, '3. Each payer approves the exact amount, then pays — two separate wallet confirmations. Money goes straight to you.', '3. Mỗi người trả cho phép đúng số tiền, rồi thanh toán — hai lần xác nhận ví riêng. Tiền vào thẳng ví bạn.')}</p>
-            {contract && <a className="inline-flex items-center gap-1 text-neon-300" href={`${ARC.explorer}/address/${contract}`} target="_blank" rel="noreferrer">{L(vi, 'Contract on ArcScan', 'Hợp đồng trên ArcScan')} <ExternalLink size={12} /></a>}
-          </Card>
+          {contract && <a className={`inline-flex items-center gap-1 px-1 text-[12.5px] ${T.sub} hover:text-white`} href={`${ARC.explorer}/address/${contract}`} target="_blank" rel="noreferrer">{L(vi, 'Contract on ArcScan', 'Hợp đồng trên ArcScan')} <ExternalLink size={12} /></a>}
         </aside>
       </div>
     </>

@@ -52,7 +52,7 @@ export default function SettingsPage() {
   return (
     <>
       <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
-      <PageHeader eyebrow="Preferences" title="Settings" desc="Settings are stored on this device only." />
+      <PageHeader eyebrow="Preferences" title="Settings" />
       <div className="max-w-[760px] space-y-7">
         <Section title="Wallet">
           <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4">

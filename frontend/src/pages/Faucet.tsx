@@ -40,7 +40,7 @@ export default function FaucetPage() {
   return (
     <>
       <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
-      <PageHeader eyebrow="Arc Testnet" title="Testnet faucet" desc="Get test USDC, EURC and cirBTC from Circle's Arc Testnet faucet. Test tokens have no real value." />
+      <PageHeader eyebrow="Arc Testnet" title="Testnet faucet" desc="Test tokens have no real value." />
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-5 items-start">
         <Card className="mk-hero p-5 sm:p-6 mk-in min-w-0">
           <div className="flex items-center gap-3">
@@ -90,7 +90,6 @@ export default function FaucetPage() {
           {!hasAddr && <p className={`mt-2 text-[12px] ${T.mute}`}>{tr('Connect or watch an address to see live balances.')}</p>}
           {walletError && <p className="mt-2 text-[12px] text-rose-300">{tr('Balances unavailable. Try refreshing.')}</p>}
           {hasAddr && <Button size="lg" className="mt-4 w-full" disabled={refreshing || walletRefreshing} onClick={refresh}><RefreshCw size={15} className={refreshing || walletRefreshing ? 'animate-spin' : ''} /> {tr(refreshing || walletRefreshing ? 'Refreshing balances…' : 'Refresh balances')}</Button>}
-          <p className={`mt-3 text-[12px] ${T.mute}`}>{tr('The Circle faucet opens in a new tab. Opening it does not request or deliver tokens.')}</p>
         </Card>
 
         <div className="space-y-5 min-w-0">

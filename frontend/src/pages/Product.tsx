@@ -178,7 +178,7 @@ export function ChangelogPage() {
   const [tr] = useT()
   return (
     <>
-      <PageHeader eyebrow="Product" title="Changelog" desc="What's new in Makoto." />
+      <PageHeader eyebrow="Product" title="Changelog" />
       <div className="max-w-[820px] space-y-4">
         {CHANGES.map((c) => (
           <Card key={c.v} className="p-5 mk-in">
@@ -213,7 +213,7 @@ export function StatusPage() {
   const allOk = rows.every((r) => r.ok)
   return (
     <>
-      <PageHeader eyebrow="System" title="Status" desc="Live health of the services Makoto depends on." />
+      <PageHeader eyebrow="System" title="Status" />
       <div className="max-w-[820px] space-y-4">
         <Card className={`p-5 mk-in flex items-center gap-3 ${allOk ? '' : ''}`}>
           {allOk ? <span className="w-10 h-10 rounded-full bg-live/15 text-live flex items-center justify-center"><Check size={20} /></span> : <span className="w-10 h-10 rounded-full bg-amber-400/15 text-amber-300 flex items-center justify-center"><AlertTriangle size={19} /></span>}

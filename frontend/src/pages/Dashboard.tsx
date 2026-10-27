@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Rainbow, Eye, EyeOff, ChevronRight, Zap, Activity as ActivityIcon, Fuel, Boxes, Coins, ReceiptText } from 'lucide-react'
 import { useWallet } from '../lib/store'
-import { ARC, fmtAmt, pct, usd, type Holding } from '../lib/wallet'
+import { fmtAmt, pct, usd, type Holding } from '../lib/wallet'
 import { PortfolioHistoryChart } from '../components/wallet/PortfolioHistoryChart'
 import { PriceAttribution } from '../components/wallet/PriceAttribution'
 import { Badge, Button, Card, CardHeader, Change, EmptyState, Modal, PageHeader, Skeleton, T, TokenIcon } from '../components/wallet/ui'
@@ -249,7 +249,7 @@ export default function Dashboard() {
   const [tr] = useT()
   return (
     <>
-      <PageHeader title="Portfolio" desc={mode === 'demo' ? tr('Sample wallet on Arc Testnet') : tr('Your balances on {network}').replace('{network}', ARC.name)} />
+      <PageHeader title="Portfolio" desc={mode === 'demo' ? tr('Sample data') : undefined} />
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-5">
         <div className="space-y-5 min-w-0">
           <PortfolioCard />

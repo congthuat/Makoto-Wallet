@@ -326,7 +326,6 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   const valid = isAddress(addr)
   return (
     <Modal open={open} onClose={close} title={tr('Connect a wallet')} width={480}>
-      <p className={`text-[13px] leading-5 ${T.sub}`}>{wallets.length ? copy.choose : copy.none}</p>
       <div className="mt-4 max-h-[58vh] overflow-y-auto pr-1 -mr-1" aria-label={tr('Browser wallet')}>
         {rows.length > 0 && <p className={`mb-2 text-[11px] font-semibold tracking-[0.08em] uppercase ${T.mute}`}>{copy.inBrowser}</p>}
         <div className="space-y-2">
@@ -400,7 +399,6 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
               <Button size="sm" onClick={() => copyText(qrUri, notify, 'Copied')}><Copy size={13} /> {copy.wcCopy}</Button>
             </div>
           )}
-          <p className={`mt-2 text-[11.5px] leading-5 ${T.mute}`}>{copy.wcReturn}</p>
         </div>
       )}
       {mobile && !wallets.length && (wcReady

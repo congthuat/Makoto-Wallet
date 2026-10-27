@@ -92,7 +92,7 @@ export default function TasksPage() {
   }
 
   return <>
-    <PageHeader title="Tasks" desc="Things Makoto will monitor or automate for you." />
+    <PageHeader title="Tasks" />
     <TaskAuthGate showLogout />
     {w.taskAuthenticated && <>
     <Card className="p-4 mk-in">

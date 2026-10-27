@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Download, History, Search } from 'lucide-react'
 import { useWallet } from '../lib/store'
-import { ARC, fmtAmt, txKind, usd } from '../lib/wallet'
+import { fmtAmt, txKind, usd } from '../lib/wallet'
 import { activityDay } from '../lib/activity'
 import { Badge, Button, Card, CardHeader, EmptyState, PageHeader, T, Toggle } from '../components/wallet/ui'
 import { TxRow } from '../components/wallet/shared'
@@ -16,7 +16,7 @@ export function AssetsPage() {
   const spam = holdings.filter((h) => !h.verified)
   return (
     <>
-      <PageHeader title="Assets" desc={tr('Tokens held on {network}. Only verified Circle assets are priced and counted in your total. Tap an asset for details.').replace('{network}', ARC.name)} />
+      <PageHeader title="Assets" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
         <Card className="p-5 lg:col-span-2">
           <div className={`text-[13px] ${T.sub}`}>{tr('Allocation')}</div>
@@ -88,7 +88,7 @@ export function ActivityPage() {
 
   return (
     <>
-      <PageHeader title="Activity" desc={mode === 'demo' ? tr('Sample transactions. Connect or watch an address to load real history.') : tr('Latest token transfers from the {network} explorer.').replace('{network}', ARC.name)} right={<Button size="sm" onClick={exportCsv} disabled={!list.length}><Download size={14} /> {tr('Export CSV')}</Button>} />
+      <PageHeader title="Activity" desc={mode === 'demo' ? tr('Sample data') : undefined} right={<Button size="sm" onClick={exportCsv} disabled={!list.length}><Download size={14} /> {tr('Export CSV')}</Button>} />
       <Card>
         <div className="flex flex-wrap items-center gap-2 px-4 sm:px-5 pt-4 pb-3">
           <div className="flex gap-1 overflow-x-auto no-scrollbar max-w-full [mask-image:linear-gradient(to_right,black_85%,transparent)] sm:[mask-image:none] pr-6 sm:pr-0">

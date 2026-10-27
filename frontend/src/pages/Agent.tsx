@@ -944,7 +944,7 @@ export default function AgentPage() {
             <div className="text-center pt-8 sm:pt-14">
               <div className="mx-auto w-fit"><Orb size={64} /></div>
               <h2 className="mt-5 text-[20px] font-bold tracking-tight">{tr('What should Makoto do for you?')}</h2>
-              <p className={`mt-1.5 text-[13.5px] max-w-[460px] mx-auto ${T.sub}`}>{tr('Ask Makoto anything about your wallet or the market. It checks live data and proposes actions for your review.')}</p>
+              <p className={`mt-1.5 text-[13.5px] max-w-[460px] mx-auto ${T.sub}`}>{tr('Ask about your wallet or the market.')}</p>
               {savedChat.length > 0 && (
                 <button type="button" onClick={restoreChat} data-restore-chat className={`mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 py-1.5 text-[12.5px] ${T.sub} hover:text-white`}>
                   <RotateCcw size={13} /> {lang === 'vi' ? `Xem lại cuộc trò chuyện trước (${savedChat.length} tin)` : `Continue previous chat (${savedChat.length} messages)`}

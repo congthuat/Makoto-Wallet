@@ -88,7 +88,7 @@ export default function ShareButton() {
         className={`h-8 w-8 inline-flex items-center justify-center rounded-lg ${T.sub} hover:text-white hover:bg-white/[0.06] disabled:opacity-40`}><Share2 size={15} /></button>
       <Modal open={open} onClose={() => { setOpen(false); if (url) URL.revokeObjectURL(url); setUrl('') }} title={tr('Share as image')} width={560}>
         {url ? <img src={url} alt="Portfolio card" className="w-full rounded-xl border border-white/[0.08]" /> : <div className="aspect-[1200/630] rounded-xl bg-white/[0.03]" />}
-        <p className={`mt-3 text-[12.5px] ${T.mute}`}>{tr('Tip: turn on “Hide balances” first if you want to share without showing amounts.')}{!live && ` ${tr('This card uses sample data.')}`}</p>
+        <p className={`mt-3 text-[12.5px] ${T.mute}`}>{!live && tr('This card uses sample data.')}</p>
         <div className="mt-4 flex gap-2">
           <a href={url} download="makoto-portfolio.png" onClick={() => setDone(true)} className="flex-1"><Button variant="primary" className="w-full">{done ? <Check size={15} /> : <Download size={15} />} {tr('Download image')}</Button></a>
           {canShare && <Button onClick={share}><Share2 size={15} /> {tr('Share')}</Button>}

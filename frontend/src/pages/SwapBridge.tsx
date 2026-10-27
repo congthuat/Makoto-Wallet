@@ -83,7 +83,7 @@ function SwapForm() {
 
   return (
     <>
-      <PageHeader eyebrow="Trade" title="Swap" desc="Exchange Circle stablecoins on Arc with fees paid in USDC." />
+      <PageHeader eyebrow="Trade" title="Swap" />
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,480px)_1fr] gap-5 items-start">
         <Card className="p-4 sm:p-5 mk-in">
           <div className="flex items-center justify-between mb-3">

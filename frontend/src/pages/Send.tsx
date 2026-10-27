@@ -33,6 +33,7 @@ const SEND_VI: Record<string, string> = {
   'This is your own address': 'Đây là địa chỉ của chính bạn',
   'First time sending to this address. Double-check the first and last characters.': 'Lần đầu gửi đến địa chỉ này. Hãy kiểm tra kỹ ký tự đầu và cuối.',
   'Check the details. Transfers on Arc are final once confirmed.': 'Kiểm tra chi tiết. Giao dịch trên Arc là vĩnh viễn sau khi xác nhận.',
+  'Transfers on Arc are final once confirmed.': 'Giao dịch trên Arc không thể hoàn tác sau khi xác nhận.',
   'Large transfer (≥ $100). Transactions on {network} are final and cannot be reversed.': 'Giao dịch lớn (≥ 100 USD). Giao dịch trên {network} là vĩnh viễn và không thể hoàn tác.',
   'Confirm in wallet': 'Xác nhận trong ví', 'Preparing live review…': 'Đang chuẩn bị xem lại bằng dữ liệu trực tiếp…',
   'Checking live balance and fee…': 'Đang kiểm tra số dư và phí trực tiếp…', 'Wallet required for live Send': 'Cần kết nối ví để gửi thật',
@@ -305,7 +306,7 @@ export default function SendPage() {
 
   return (
     <>
-      <PageHeader title={s(stage === 'form' ? 'Send' : 'Review transaction')} desc={stage === 'form' ? s('Send assets to any {network} address. Fees are paid in USDC.').replace('{network}', ARC.name) : s('Check the details. Transfers on Arc are final once confirmed.')} right={mode === 'connected' ? <Badge tone={walletChainId === ARC.chainId ? 'ok' : 'warn'}>{walletChainId === ARC.chainId ? ARC.name : s(walletChainId === undefined ? 'Wallet network unavailable' : 'Wrong network: Arc Testnet is required')}</Badge> : <PreviewTag>{s('Design preview')}</PreviewTag>} />
+      <PageHeader title={s(stage === 'form' ? 'Send' : 'Review transaction')} desc={stage === 'form' ? undefined : s('Transfers on Arc are final once confirmed.')} right={mode === 'connected' ? <Badge tone={walletChainId === ARC.chainId ? 'ok' : 'warn'}>{walletChainId === ARC.chainId ? ARC.name : s(walletChainId === undefined ? 'Wallet network unavailable' : 'Wrong network: Arc Testnet is required')}</Badge> : <PreviewTag>{s('Design preview')}</PreviewTag>} />
       <ol className="mb-5 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2 text-[12px]">
         {steps.map((st, i) => {
           const active = stage === 'form' ? !st.ok && steps.slice(0, i).every((x) => x.ok) : i === 3
