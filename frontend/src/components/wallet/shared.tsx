@@ -11,6 +11,7 @@ import { translate, useT } from '../../lib/i18n'
 import { browserWalletRevision, discoverBrowserWallets, getBrowserWallets, getProvider, subscribeBrowserWallets, type BrowserWallet, type WalletKind } from '../../lib/walletProviders'
 import { walletPickerCopy } from '../../lib/walletPickerCopy'
 import { MobileWalletLinks } from './MobileWalletLinks'
+import { WC_WALLETS, pairWalletConnect, walletConnectReady, type WcWallet } from '../../lib/walletConnect'
 import { isMobileBrowser } from '../../lib/walletAppLinks'
 import { WALLET_CATALOG } from '../../lib/walletCatalog'
 import { WalletProviderIcon } from './WalletProviderIcon'
@@ -254,7 +255,7 @@ export function ReceiveModal() {
 }
 
 export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { connect, connectError, watch, mode } = useWallet()
+  const { connect, connectError, watch, mode, notify } = useWallet()
   const isCocCoc = typeof navigator !== 'undefined' && /coc_coc_browser/i.test(navigator.userAgent)
   const mobile = isMobileBrowser()
   const [addr, setAddr] = useState('')
@@ -271,7 +272,10 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   }, [open])
   // Revision subscribes to late wallet announcements and successful selections.
   void revision
-  const wallets = getBrowserWallets()
+  // Browser (extension / in-app) wallets only; a WalletConnect pairing is shown in its own section.
+  const wallets = getBrowserWallets().filter((wallet) => wallet.source !== 'walletconnect')
+  const wcReady = walletConnectReady()
+  const [qrUri, setQrUri] = useState<string | null>(null)
   // Detected wallets first (catalog order, then any other announced wallet); then the
   // remaining catalog wallets as install links. Install rows never touch a provider.
   type Row = { id: string; kind: WalletKind; name: string; wallet?: BrowserWallet; installUrl?: string }
@@ -281,7 +285,7 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
   // On phones without an injected wallet, extension install links are useless; wallet-app links are shown instead.
   const installRows: Row[] = (mobile && !wallets.length ? [] : WALLET_CATALOG).filter((entry) => !wallets.some((wallet) => wallet.kind === entry.kind))
     .map((entry) => ({ id: `install:${entry.kind}`, kind: entry.kind, name: entry.name, installUrl: entry.installUrl }))
-  const close = () => { connection.current?.abort(); connection.current = null; setPending(null); setFailed(false); onClose() }
+  const close = () => { connection.current?.abort(); connection.current = null; setPending(null); setFailed(false); setQrUri(null); onClose() }
   const choose = async (wallet: BrowserWallet) => {
     if (connection.current) return
     const controller = new AbortController()
@@ -293,6 +297,27 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
       if (controller.signal.aborted) return
       if (connected) close()
       else setFailed(true)
+    } finally {
+      if (connection.current === controller) { connection.current = null; setPending(null) }
+    }
+  }
+  /** Phone wallet over WalletConnect: pair (deep link or QR), then the normal accounts + Arc network checks. */
+  const chooseWc = async (wallet?: WcWallet) => {
+    if (connection.current) return
+    const controller = new AbortController()
+    connection.current = controller
+    setPending(`wc:${wallet?.kind ?? 'qr'}`)
+    setFailed(false)
+    try {
+      const entry = await pairWalletConnect({ wallet, onUri: wallet ? undefined : setQrUri, signal: controller.signal })
+      if (controller.signal.aborted) return
+      setQrUri(null)
+      const connected = await connect(entry, controller.signal)
+      if (controller.signal.aborted) return
+      if (connected) close()
+      else setFailed(true)
+    } catch (error) {
+      if (!controller.signal.aborted) { setFailed(true); setQrUri(null); notify(error instanceof Error ? error.message : 'Connection failed', 'err') }
     } finally {
       if (connection.current === controller) { connection.current = null; setPending(null) }
     }
@@ -340,7 +365,48 @@ export function ConnectModal({ open, onClose }: { open: boolean; onClose: () => 
           ))}
         </div>
       </div>
-      {mobile && !wallets.length && <div className="mt-4"><MobileWalletLinks vi={lang === 'vi'} /></div>}
+      {mobile && !wallets.length && wcReady && (
+        <div className="mt-1" data-wc-mobile>
+          <p className={`mb-2 text-[11px] font-semibold tracking-[0.08em] uppercase ${T.mute}`}>{copy.wcTitle}</p>
+          <div className="space-y-2">
+            {WC_WALLETS.map((wallet) => (
+              <button key={wallet.kind} type="button" disabled={!!pending} onClick={() => void chooseWc(wallet)} data-wc-wallet={wallet.kind}
+                className="group w-full flex items-center gap-3 p-3 rounded-2xl border border-white/[0.09] bg-white/[0.03] text-left transition hover:border-neon-500/40 disabled:cursor-default">
+                <WalletProviderIcon kind={wallet.kind} />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-[14.5px]">{wallet.name}</span>
+                  <span className={`block text-[12px] ${pending === `wc:${wallet.kind}` ? 'text-neon-300' : T.mute}`}>{pending === `wc:${wallet.kind}` ? copy.wcWaiting : copy.wcHint}</span>
+                </span>
+                {pending === `wc:${wallet.kind}` ? <Loader2 aria-hidden size={16} className="animate-spin shrink-0 text-neon-300" /> : <ChevronRight aria-hidden size={16} className={`${T.mute} shrink-0`} />}
+              </button>
+            ))}
+          </div>
+          <p className={`mt-2 text-[11.5px] leading-5 ${T.mute}`}>{copy.wcReturn}</p>
+        </div>
+      )}
+      {mobile && !wallets.length && (wcReady
+        ? <details className="mt-3"><summary className={`cursor-pointer text-[12.5px] ${T.sub}`}>{copy.wcAlt}</summary><MobileWalletLinks vi={lang === 'vi'} /></details>
+        : <div className="mt-4"><MobileWalletLinks vi={lang === 'vi'} /></div>)}
+      {!mobile && wcReady && (
+        <div className="mt-4 rounded-xl border border-white/[0.08] p-3" data-wc-desktop>
+          {qrUri ? (
+            <div className="flex flex-col items-center gap-2 text-center">
+              <div className="rounded-xl bg-white p-2.5"><QRCodeSVG value={qrUri} size={196} level="M" /></div>
+              <p className={`text-[12.5px] ${T.sub}`}>{copy.wcScan}</p>
+              <Button size="sm" variant="ghost" onClick={() => { connection.current?.abort(); connection.current = null; setPending(null); setQrUri(null) }}>{tr('Cancel')}</Button>
+            </div>
+          ) : (
+            <button type="button" disabled={!!pending} onClick={() => void chooseWc()} className="w-full flex items-center gap-3 text-left">
+              <WalletProviderIcon kind="walletconnect" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-[14px]">{copy.wcPhone}</span>
+                <span className={`block text-[12px] ${T.mute}`}>{pending === 'wc:qr' ? copy.wcWaiting : copy.wcPhoneHint}</span>
+              </span>
+              {pending === 'wc:qr' ? <Loader2 size={16} className="animate-spin text-neon-300" /> : <ChevronRight size={16} className={T.mute} />}
+            </button>
+          )}
+        </div>
+      )}
       {(failed || (!wallets.length && !mobile)) && (
         <div role="status" className={`mt-4 rounded-xl border p-3.5 text-[12.5px] leading-5 ${failed ? 'border-amber-300/25 bg-amber-300/[0.06]' : 'border-white/[0.08] bg-white/[0.02]'}`} data-connect-help>
           <p className="font-semibold text-[13px]">{failed ? copy.helpTitle : copy.noWalletTitle}</p>

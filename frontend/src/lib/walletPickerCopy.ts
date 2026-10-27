@@ -28,6 +28,14 @@ const en = {
   reload: 'Reload page',
   details: 'Wallet said',
   store: 'Chrome Web Store',
+  wcTitle: 'Connect with your wallet app',
+  wcHint: 'Opens the app · approve · come back here',
+  wcWaiting: 'Approve in your wallet app, then return to this page…',
+  wcReturn: 'After approving in the wallet app, switch back to this browser — Makoto connects automatically. Every transaction is still approved in your wallet.',
+  wcAlt: 'Or open Makoto inside the wallet app’s browser',
+  wcPhone: 'Phone wallet (scan QR)',
+  wcPhoneHint: 'WalletConnect · OKX, Binance, MetaMask, Trust…',
+  wcScan: 'Scan with your wallet app (WalletConnect), then approve.',
 } as const
 const vi: Record<keyof typeof en, string> = {
   detected: 'Đã phát hiện',
@@ -59,5 +67,13 @@ const vi: Record<keyof typeof en, string> = {
   reload: 'Tải lại trang',
   details: 'Ví báo',
   store: 'Chrome Web Store',
+  wcTitle: 'Kết nối bằng app ví',
+  wcHint: 'Mở app · duyệt · quay lại đây',
+  wcWaiting: 'Hãy duyệt trong app ví rồi quay lại trang này…',
+  wcReturn: 'Duyệt kết nối trong app ví xong, quay lại trình duyệt này — Makoto sẽ tự kết nối. Mọi giao dịch vẫn do bạn duyệt trong ví.',
+  wcAlt: 'Hoặc mở Makoto bên trong trình duyệt của app ví',
+  wcPhone: 'Ví trên điện thoại (quét QR)',
+  wcPhoneHint: 'WalletConnect · OKX, Binance, MetaMask, Trust…',
+  wcScan: 'Quét bằng app ví (WalletConnect), rồi bấm duyệt.',
 }
 export const walletPickerCopy = (locale: string) => locale === 'vi' ? vi : en

@@ -13,18 +13,19 @@ type InjectedProvider = Eip1193 & {
   isPhantom?: boolean; isRainbow?: boolean; isZerion?: boolean; isBraveWallet?: boolean
   providers?: InjectedProvider[]
 }
-export type WalletKind = CatalogWalletKind | 'other'
-const WALLET_KINDS: readonly WalletKind[] = [...WALLET_CATALOG.map((wallet) => wallet.kind), 'other']
+export type WalletKind = CatalogWalletKind | 'binance' | 'walletconnect' | 'other'
+const WALLET_KINDS: readonly WalletKind[] = [...WALLET_CATALOG.map((wallet) => wallet.kind), 'binance', 'walletconnect', 'other']
 export type BrowserWallet = {
   id: string
   name: string
   kind: WalletKind
-  source: 'eip6963' | 'legacy'
+  /** walletconnect = a phone wallet app paired over the WalletConnect relay (no extension). */
+  source: 'eip6963' | 'legacy' | 'walletconnect'
   provider: Eip1193
   rdns?: string
   icon?: string
 }
-type Preference = { source: 'eip6963'; rdns: string; name: string } | { source: 'legacy'; kind: WalletKind }
+type Preference = { source: 'eip6963'; rdns: string; name: string } | { source: 'legacy'; kind: WalletKind } | { source: 'walletconnect' }
 export type WalletBrowserHost = {
   ethereum?: InjectedProvider
   okxwallet?: InjectedProvider
@@ -45,7 +46,7 @@ declare global {
 }
 
 const preferenceKey = 'mk.wallet.provider.v1'
-const names = Object.fromEntries([...WALLET_CATALOG.map((wallet) => [wallet.kind, wallet.name]), ['other', 'Other browser wallet']]) as Record<WalletKind, string>
+const names = Object.fromEntries([...WALLET_CATALOG.map((wallet) => [wallet.kind, wallet.name]), ['binance', 'Binance Wallet'], ['walletconnect', 'WalletConnect'], ['other', 'Other browser wallet']]) as Record<WalletKind, string>
 const isProvider = (value: unknown): value is InjectedProvider => !!value && typeof value === 'object' && typeof (value as Eip1193).request === 'function'
 const walletKind = (provider: InjectedProvider, rdns?: string): WalletKind => {
   if (rdns) return catalogKindForRdns(rdns) ?? 'other'
@@ -68,12 +69,14 @@ function readPreference(host: WalletBrowserHost): Preference | undefined {
     const value = JSON.parse(host.localStorage?.getItem(preferenceKey) ?? 'null')
     if (value?.source === 'eip6963' && typeof value.rdns === 'string' && typeof value.name === 'string') return value
     if (value?.source === 'legacy' && WALLET_KINDS.includes(value.kind)) return value
+    if (value?.source === 'walletconnect') return { source: 'walletconnect' }
   } catch { /* A damaged preference cannot authorize a different wallet. */ }
 }
 
 /** Metadata is presentation only; rdns is not proof of wallet identity. */
 export function createWalletProviderRegistry(host: WalletBrowserHost) {
   const announced = new Map<string, BrowserWallet>()
+  const external = new Map<string, BrowserWallet>()
   const listeners = new Set<() => void>()
   let options: BrowserWallet[] = []
   let revision = 0
@@ -83,7 +86,7 @@ export function createWalletProviderRegistry(host: WalletBrowserHost) {
   let cleared = false
   const publish = () => { revision++; listeners.forEach((listener) => listener()) }
   const refresh = () => {
-    const next = [...announced.values()]
+    const next = [...announced.values(), ...external.values()]
     // Wallet-specific globals first, so a shared window.ethereum alias does not hide them.
     const namedGlobals: [InjectedProvider | undefined, WalletKind][] = [
       [host.okxwallet, 'okx'], [host.phantom?.ethereum, 'phantom'], [host.bitkeep?.ethereum, 'bitget'],
@@ -137,6 +140,7 @@ export function createWalletProviderRegistry(host: WalletBrowserHost) {
     if (preference) {
       const matches = options.filter((entry) => preference?.source === 'eip6963'
         ? entry.source === 'eip6963' && entry.rdns === preference.rdns && entry.name === preference.name
+        : preference?.source === 'walletconnect' ? entry.source === 'walletconnect'
         : entry.source === 'legacy' && entry.kind === preference?.kind)
       return matches.length === 1 ? matches[0].provider : undefined
     }
@@ -150,7 +154,7 @@ export function createWalletProviderRegistry(host: WalletBrowserHost) {
     if (!entry) throw new Error('Wallet provider is no longer available.')
     selected = provider
     cleared = false
-    preference = entry.source === 'eip6963' ? { source: 'eip6963', rdns: entry.rdns!, name: entry.name } : { source: 'legacy', kind: entry.kind }
+    preference = entry.source === 'eip6963' ? { source: 'eip6963', rdns: entry.rdns!, name: entry.name } : entry.source === 'walletconnect' ? { source: 'walletconnect' } : { source: 'legacy', kind: entry.kind }
     try { host.localStorage?.setItem(preferenceKey, JSON.stringify(preference)) } catch { /* Session selection still works without storage. */ }
     publish()
   }
@@ -161,8 +165,17 @@ export function createWalletProviderRegistry(host: WalletBrowserHost) {
     try { host.localStorage?.removeItem(preferenceKey) } catch { /* Clear session authority even when storage is unavailable. */ }
     publish()
   }
+  /** Register / remove a provider that does not come from the page (WalletConnect pairing). */
+  const setExternal = (entry: BrowserWallet | null) => {
+    external.clear()
+    if (entry) external.set(entry.id, entry)
+    else if (selected && !options.some((wallet) => wallet.provider === selected && wallet.source !== 'walletconnect')) selected = undefined
+    refresh()
+    publish()
+  }
   return {
-    start, getProvider, commit, clear,
+    start, getProvider, commit, clear, setExternal,
+    preferredSource: () => preference?.source,
     getWallets: () => { refresh(); return options },
     hasProvider: (provider: Eip1193) => { refresh(); return options.some((entry) => entry.provider === provider) },
     revision: () => revision,
@@ -188,5 +201,7 @@ export const getProvider = (): Eip1193 | undefined => currentRegistry()?.getProv
 export const hasBrowserProvider = (provider: Eip1193) => currentRegistry()?.hasProvider(provider) ?? false
 export const commitBrowserProvider = (provider: Eip1193) => { currentRegistry()?.commit(provider) }
 export const clearBrowserProvider = () => { currentRegistry()?.clear() }
+export const setExternalWallet = (entry: BrowserWallet | null) => { currentRegistry()?.setExternal(entry) }
+export const preferredWalletSource = () => currentRegistry()?.preferredSource()
 export const subscribeBrowserWallets = (listener: () => void) => currentRegistry()?.subscribe(listener) ?? (() => {})
 export const browserWalletRevision = () => currentRegistry()?.revision() ?? 0

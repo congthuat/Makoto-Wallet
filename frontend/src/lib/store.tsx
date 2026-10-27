@@ -9,6 +9,7 @@ import { taskAuthApi } from './taskAuth'
 import { valuePortfolio } from '../../../shared/portfolioValuation.mjs'
 import { captureEligible, historyAccessEnabled, historyPoints, historyQueryKey, historyScope, portfolioHistoryApi } from './portfolioHistory'
 import { browserWalletRevision, clearBrowserProvider, discoverBrowserWallets, subscribeBrowserWallets, type BrowserWallet } from './walletProviders'
+import { disconnectWalletConnect, restoreWalletConnect } from './walletConnect'
 import { translate } from './i18n'
 import { rpcRead } from './arcRpc'
 import {
@@ -60,7 +61,7 @@ export const useWallet = () => {
 function useWalletState() {
   const queryClient = useQueryClient()
   const providerRevision = useSyncExternalStore(subscribeBrowserWallets, browserWalletRevision, () => 0)
-  useEffect(() => { discoverBrowserWallets() }, [])
+  useEffect(() => { discoverBrowserWallets(); void restoreWalletConnect() }, [])
   const [page, setPage] = useState<Page>(() => { if (typeof window === 'undefined') return 'home'; const h = window.location.hash.slice(1); if (/^pay(?:-\d{1,20})?$/.test(h)) return 'pay'; return (['about', 'legal', 'changelog', 'status', 'faucet', 'trust'] as string[]).includes(h) ? (h as Page) : 'home' })
   const [hidden, setHidden] = useLocal('mk.hidden', false)
   const [mode, setMode] = useLocal<Mode>('mk.mode', 'demo')
@@ -282,8 +283,8 @@ function useWalletState() {
       return false
     }
   }
-  const watch = (a: string) => { clearBrowserProvider(); setAddress(a.trim()); setMode('watch'); notify(translate('Watch-only · displaying a public address')) }
-  const disconnect = () => { clearBrowserProvider(); setMode('demo'); setAddress(''); notify(translate('Disconnected — showing demo data')) }
+  const watch = (a: string) => { void disconnectWalletConnect(); clearBrowserProvider(); setAddress(a.trim()); setMode('watch'); notify(translate('Watch-only · displaying a public address')) }
+  const disconnect = () => { void disconnectWalletConnect(); clearBrowserProvider(); setMode('demo'); setAddress(''); notify(translate('Disconnected — showing demo data')) }
 
   const holdings: Holding[] = useMemo(() => {
     const p = prices.data
