@@ -111,7 +111,7 @@ Source: [`contracts/src/MakotoPayRequests.sol`](contracts/src) (Foundry, Solidit
 | AI | OpenAI Responses API (tool calling, streaming) behind a deterministic planner |
 | Chain & bridge | Arc Testnet · Circle CCTP v2 |
 | Data | CoinGecko · ArcScan · Surf market data |
-| Hosting | Vercel (frontend) · Railway / Oracle Cloud (backend) · same-origin `/api` proxy |
+| Hosting | Vercel (frontend) · Oracle Cloud Always Free, Tokyo (backend, `api.makotowallet.xyz`) · same-origin `/api` proxy |
 
 ## Repository structure
 
