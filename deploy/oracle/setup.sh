@@ -118,7 +118,10 @@ run install -o root -g root -m 0644 "$DEPLOY_DIR/makoto-backend.service" /etc/sy
 if [ "$DRY_RUN" = "1" ]; then echo "[dry-run] write /etc/caddy/Caddyfile for $API_DOMAIN"; else
   sed "s/{\$MAKOTO_API_DOMAIN}/$API_DOMAIN/" "$DEPLOY_DIR/Caddyfile" > /etc/caddy/Caddyfile
   install -d -o caddy -g caddy -m 0755 /var/log/caddy
-  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
+  # Validate as the caddy user: run as root, validation creates a root-owned access
+  # log that the caddy service then cannot open, and Caddy refuses to start.
+  sudo -u caddy -H caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
+  chown -R caddy:caddy /var/log/caddy
 fi
 for tool in update backup import-data railway-export configure; do
   run ln -sf "$DEPLOY_DIR/$tool.sh" "/usr/local/bin/makoto-$tool"
@@ -130,7 +133,10 @@ fi
 run systemctl daemon-reload
 run systemctl enable makoto-backend >/dev/null
 run systemctl enable caddy >/dev/null
-run systemctl reload-or-restart caddy
+if ! run systemctl restart caddy; then
+  journalctl -u caddy -n 30 --no-pager || true
+  die "Caddy (HTTPS) did not start; see the log above."
+fi
 
 say "8/8 Start"
 if [ "$DRY_RUN" = "1" ]; then echo "[dry-run] start makoto-backend when $ENV_FILE is complete"; exit 0; fi

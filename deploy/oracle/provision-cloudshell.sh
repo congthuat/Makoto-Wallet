@@ -139,8 +139,18 @@ remote true || die "Cannot SSH to $IP yet. Wait a minute and run the same comman
 for i in $(seq 1 120); do
   if remote 'test -f /var/lib/makoto-setup.ok' 2>/dev/null; then info "Installation finished"; break; fi
   if remote 'test -f /var/lib/makoto-setup.failed' 2>/dev/null; then
+    # setup.sh is safe to re-run: retry once with the latest version (fixes ship via GitHub).
+    if [ ! -f "$STATE_DIR/setup-retried-$IP" ]; then
+      touch "$STATE_DIR/setup-retried-$IP"
+      info "The first installation stopped with an error; running it again with the latest fixes…"
+      if remote "curl -fsSL '$RAW_BASE/setup.sh?\$(date +%s)' -o /tmp/makoto-setup.sh && sudo API_DOMAIN='$API_DOMAIN' bash /tmp/makoto-setup.sh" ; then
+        remote 'sudo rm -f /var/lib/makoto-setup.failed && sudo touch /var/lib/makoto-setup.ok'
+        info "Installation finished"; break
+      fi
+    fi
     remote 'sudo tail -40 /var/log/makoto-setup.log' || true
-    die "Installation failed on the VM (log above). Fix, then: ssh into the VM and run: curl -fsSL $RAW_BASE/setup.sh | sudo bash"
+    rm -f "$STATE_DIR/setup-retried-$IP"
+    die "Installation failed on the VM (log above). Send a screenshot to Makoto Agent; re-running the same command retries it."
   fi
   [ $((i % 6)) -eq 0 ] && info "still installing… ($(( i / 6 )) min)"
   sleep 10
