@@ -29,6 +29,11 @@ Sau khi đăng ký Oracle (bước 1 bên dưới), bạn **không cần bấm t
    - **In ra IP máy ảo và hướng dẫn thêm DNS trong Vercel** (bước 5 bên dưới), rồi tự chờ DNS và HTTPS.
    - Hỏi có chuyển dữ liệu từ Railway không. Trả lời `y`, rồi mở đường link Railway in ra và bấm **Approve**.
 4. Nếu Cloud Shell bị ngắt giữa chừng, **chỉ cần dán lại đúng lệnh trên**. Script tự nhận ra phần đã làm và chạy tiếp.
+5. Nếu cứ báo **hết chỗ ARM** mãi: bấm `Ctrl+C`, rồi dùng máy **AMD Micro** (cũng miễn phí vĩnh viễn, 1 GB RAM + 2 GB swap tự tạo, dễ có chỗ hơn nhiều):
+
+   ```bash
+   SHAPE=micro bash <(curl -fsSL https://raw.githubusercontent.com/congthuat/Makoto-Wallet/makoto-wallet/deploy/oracle/provision-cloudshell.sh)
+   ```
 
 Phần dưới đây là **cách làm tay**, dùng khi cần tự kiểm soát từng bước hoặc khi gỡ lỗi.
 

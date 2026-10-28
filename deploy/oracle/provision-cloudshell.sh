@@ -14,6 +14,13 @@ RAW_BASE="${RAW_BASE:-https://raw.githubusercontent.com/congthuat/Makoto-Wallet/
 OCPUS="${OCPUS:-2}"
 MEMORY_GB="${MEMORY_GB:-12}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-90}"     # capacity retries, about one per minute
+# SHAPE=micro uses the x86 VM.Standard.E2.1.Micro (Always Free, 1 GB RAM + swap).
+# It is far easier to get than the ARM A1 shape when Tokyo ARM capacity is full.
+SHAPE="${SHAPE:-a1}"
+case "$SHAPE" in
+  micro|MICRO|e2|E2) SHAPE=micro; SHAPE_NAME=VM.Standard.E2.1.Micro ;;
+  *) SHAPE=a1; SHAPE_NAME=VM.Standard.A1.Flex ;;
+esac
 # RSA: Oracle Cloud Shell runs in FIPS mode, where ED25519 keys are not allowed.
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_rsa}"
 STATE_DIR="$HOME/.makoto-oracle"
@@ -67,11 +74,11 @@ if [ -z "$SUBNET" ] || [ "$SUBNET" = "null" ]; then
 fi
 info "Ports 22, 80, 443 open; subnet ready"
 
-say "3/8 Virtual machine (Always Free Ampere A1, Ubuntu 24.04)"
+if [ "$SHAPE" = micro ]; then say "3/8 Virtual machine (Always Free AMD Micro, Ubuntu 24.04)"; else say "3/8 Virtual machine (Always Free Ampere A1, Ubuntu 24.04)"; fi
 INSTANCE="$(oci compute instance list --compartment-id "$COMPARTMENT" --display-name "$NAME" --query 'data[?"lifecycle-state"!=`TERMINATED` && "lifecycle-state"!=`TERMINATING`] | [0].id' --raw-output 2>/dev/null || true)"
 if [ -z "$INSTANCE" ] || [ "$INSTANCE" = "null" ]; then
-  IMAGE="$(oci compute image list --compartment-id "$COMPARTMENT" --operating-system "Canonical Ubuntu" --operating-system-version "24.04" --shape VM.Standard.A1.Flex --sort-by TIMECREATED --sort-order DESC --all --query 'data[?!contains("display-name", `Minimal`)] | [0].id' --raw-output)"
-  [ -n "$IMAGE" ] && [ "$IMAGE" != "null" ] || die "Ubuntu 24.04 ARM image not found in this region"
+  IMAGE="$(oci compute image list --compartment-id "$COMPARTMENT" --operating-system "Canonical Ubuntu" --operating-system-version "24.04" --shape "$SHAPE_NAME" --sort-by TIMECREATED --sort-order DESC --all --query 'data[?!contains("display-name", `Minimal`)] | [0].id' --raw-output)"
+  [ -n "$IMAGE" ] && [ "$IMAGE" != "null" ] || die "Ubuntu 24.04 image for $SHAPE_NAME not found in this region"
   cat > "$STATE_DIR/cloud-init.sh" <<EOF
 #!/bin/bash
 exec > /var/log/makoto-setup.log 2>&1
@@ -80,12 +87,18 @@ if API_DOMAIN="$API_DOMAIN" bash /root/makoto-setup.sh; then touch /var/lib/mako
 EOF
   attempt=1
   while :; do
-    ocpus="$OCPUS"; mem="$MEMORY_GB"
-    # Alternate with a smaller (still Always Free) size when large hosts are full.
-    if [ $((attempt % 2)) -eq 0 ] && [ "$OCPUS" -gt 1 ]; then ocpus=1; mem=6; fi
-    info "Attempt $attempt/$MAX_ATTEMPTS: $ocpus OCPU / ${mem} GB"
+    if [ "$SHAPE" = micro ]; then
+      shape_args=(--shape "$SHAPE_NAME")
+      info "Attempt $attempt/$MAX_ATTEMPTS: AMD Micro (1 GB)"
+    else
+      ocpus="$OCPUS"; mem="$MEMORY_GB"
+      # Alternate with a smaller (still Always Free) size when large hosts are full.
+      if [ $((attempt % 2)) -eq 0 ] && [ "$OCPUS" -gt 1 ]; then ocpus=1; mem=6; fi
+      shape_args=(--shape "$SHAPE_NAME" --shape-config "{\"ocpus\":$ocpus,\"memoryInGBs\":$mem}")
+      info "Attempt $attempt/$MAX_ATTEMPTS: $ocpus OCPU / ${mem} GB"
+    fi
     if out="$(oci compute instance launch --compartment-id "$COMPARTMENT" --availability-domain "$AD" \
-          --shape VM.Standard.A1.Flex --shape-config "{\"ocpus\":$ocpus,\"memoryInGBs\":$mem}" \
+          "${shape_args[@]}" \
           --image-id "$IMAGE" --subnet-id "$SUBNET" --assign-public-ip true --display-name "$NAME" \
           --boot-volume-size-in-gbs 50 --ssh-authorized-keys-file "$SSH_KEY.pub" \
           --user-data-file "$STATE_DIR/cloud-init.sh" --wait-for-state RUNNING --query 'data.id' --raw-output 2>&1)"; then
@@ -101,7 +114,9 @@ EOF
     fi
     if printf '%s' "$out" | grep -qiE 'out of (host )?capacity|OutOfCapacity|InternalError'; then
       [ "$attempt" -lt "$MAX_ATTEMPTS" ] || die "Oracle has no free ARM capacity right now. Run the same command again later (or upgrade to Pay As You Go, still \$0)."
+      if [ "$SHAPE" = micro ]; then info "Tokyo capacity is full; retrying in 60s"; else
       info "Tokyo ARM capacity is full; retrying in 60s (Ctrl+C to stop; re-running later is safe)"
+      [ "$attempt" -eq 4 ] && info "Tip: the AMD Micro VM is much easier to get. Ctrl+C, then run: SHAPE=micro bash <(curl -fsSL $RAW_BASE/provision-cloudshell.sh)"; fi
       attempt=$((attempt + 1)); sleep 60; continue
     fi
     printf '%s\n' "$out" | tail -20 >&2

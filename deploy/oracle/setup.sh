@@ -39,6 +39,20 @@ apt_get() { run apt-get -o DPkg::Lock::Timeout=600 "$@"; }
 apt_get update -y
 apt_get install -y ca-certificates curl gnupg git sqlite3 iptables-persistent debian-keyring debian-archive-keyring apt-transport-https
 
+# Small VMs (e.g. the 1 GB AMD Micro): add a 2 GB swap file so npm and Node never run out of memory.
+mem_kb="$(awk '/^MemTotal:/ { print $2 }' /proc/meminfo 2>/dev/null || echo 0)"
+if [ "${mem_kb:-0}" -lt 2000000 ] && ! swapon --show=NAME --noheadings 2>/dev/null | grep -q .; then
+  if [ "$DRY_RUN" = "1" ]; then echo "[dry-run] create 2 GB /swapfile"; else
+    [ -f /swapfile ] || { fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none; }
+    chmod 600 /swapfile
+    mkswap /swapfile >/dev/null 2>&1 || true
+    swapon /swapfile
+    grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    sysctl -q vm.swappiness=10 && echo 'vm.swappiness=10' > /etc/sysctl.d/99-makoto-swap.conf
+    echo "Added 2 GB swap (low-memory VM)"
+  fi
+fi
+
 say "2/8 Node.js $NODE_MAJOR"
 current_major="$(node -v 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/' || true)"
 if [ "${current_major:-0}" != "$NODE_MAJOR" ]; then
