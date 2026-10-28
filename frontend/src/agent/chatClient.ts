@@ -14,7 +14,11 @@ export type ChatMemoryUpdate = Readonly<{ type: 'note'; note: string } | { type:
 export type ChatChart = Readonly<{ symbol: string; timeRange: string; currency: string; source?: string; points: readonly (readonly [number, number])[] }>
 export type { ChatHistoryItem } from './chatContext.ts'
 export type ChatSource = 'REAL_PROVIDER' | 'LOCAL_FALLBACK' | 'DETERMINISTIC_TOOL'
-export type ChatResponse = Readonly<{ ok: true; text: string; source: 'REAL_PROVIDER'; sources?: readonly ChatDataSource[]; proposal?: ChatProposal; plan?: readonly PlanStep[]; memory?: readonly ChatMemoryUpdate[]; charts?: readonly ChatChart[]; followups?: readonly string[] } | { ok: false; reason: string; source: 'LOCAL_FALLBACK'; aborted?: boolean }>
+/** Untrusted model task draft (notify-only). Bound to the account on the device and re-validated by the server on create. */
+export type ChatTaskDraft = Readonly<
+  | { type: 'CONDITION_MONITOR'; condition: { metric: 'TOKEN_PRICE' | 'TOKEN_BALANCE'; asset: 'USDC' | 'EURC' | 'cirBTC' | 'BTC' | 'ETH' | 'SOL'; operator: 'LT' | 'LTE' | 'GT' | 'GTE'; threshold: string; checkIntervalMinutes: number }; schedule: null }
+  | { type: 'SCHEDULED_AUTOMATION'; condition: null; schedule: { kind: 'DAILY'; time: string; action: 'PORTFOLIO_SUMMARY' | 'ACTIVITY_SUMMARY' | 'BALANCE_CHECK' | 'DAILY_BRIEFING' } }>
+export type ChatResponse = Readonly<{ ok: true; text: string; source: 'REAL_PROVIDER'; sources?: readonly ChatDataSource[]; proposal?: ChatProposal; plan?: readonly PlanStep[]; task?: ChatTaskDraft; memory?: readonly ChatMemoryUpdate[]; charts?: readonly ChatChart[]; followups?: readonly string[] } | { ok: false; reason: string; source: 'LOCAL_FALLBACK'; aborted?: boolean }>
 export type ChatStreamEvent = Readonly<{ type: 'status'; tool: string; source: string | null } | { type: 'delta'; text: string }>
 /** What the Agent may know about the user: notes, contact NAMES and preferences (no addresses). */
 export type ChatMemoryContext = Readonly<{ notes: readonly string[]; contacts: readonly string[]; preferences: Readonly<{ bridgeSpeed?: 'FAST' | 'SLOW' }> }>
@@ -67,14 +71,38 @@ export function withChatDeadline<T>(
   })
 }
 
-type ChatRequestInput = { message: string; topic: ChatTopic; context: ChatContext; history?: readonly ChatHistoryItem[]; address?: string; memory?: ChatMemoryContext; fetcher?: typeof fetch; signal?: AbortSignal }
+type ChatRequestInput = { message: string; topic: ChatTopic; context: ChatContext; history?: readonly ChatHistoryItem[]; address?: string; memory?: ChatMemoryContext; image?: string; fetcher?: typeof fetch; signal?: AbortSignal }
+
+/** Requests with an image use their own content type (the server accepts a larger body only for it). */
+export const CHAT_IMAGE_CONTENT_TYPE = 'application/vnd.makoto.chat+json'
+const contentType = (input: ChatRequestInput) => (input.image ? CHAT_IMAGE_CONTENT_TYPE : 'application/json')
 
 function requestBody(input: ChatRequestInput) {
   return JSON.stringify({
     message: input.message.slice(0, 2000), locale: input.context.locale, context: input.context, history: boundChatHistory(input.history),
     ...(input.address && /^0x[0-9a-fA-F]{40}$/.test(input.address) ? { address: input.address } : {}),
     ...(input.memory ? { memory: input.memory } : {}),
+    ...(input.image ? { image: input.image } : {}),
   })
+}
+
+export function parseTaskDraft(value: unknown): ChatTaskDraft | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const v = value as Record<string, unknown>
+  const c = v.condition as Record<string, unknown> | null | undefined
+  const s = v.schedule as Record<string, unknown> | null | undefined
+  if (v.type === 'CONDITION_MONITOR' && c && (c.metric === 'TOKEN_PRICE' || c.metric === 'TOKEN_BALANCE')
+    && typeof c.asset === 'string' && ['USDC', 'EURC', 'cirBTC', 'BTC', 'ETH', 'SOL'].includes(c.asset)
+    && typeof c.operator === 'string' && ['LT', 'LTE', 'GT', 'GTE'].includes(c.operator)
+    && typeof c.threshold === 'string' && /^\d{1,12}(?:\.\d{1,8})?$/.test(c.threshold)
+    && typeof c.checkIntervalMinutes === 'number' && Number.isInteger(c.checkIntervalMinutes)) {
+    return { type: 'CONDITION_MONITOR', schedule: null, condition: { metric: c.metric, asset: c.asset as 'BTC', operator: c.operator as 'LT', threshold: c.threshold, checkIntervalMinutes: c.checkIntervalMinutes } }
+  }
+  if (v.type === 'SCHEDULED_AUTOMATION' && s && s.kind === 'DAILY' && typeof s.time === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(s.time)
+    && typeof s.action === 'string' && ['PORTFOLIO_SUMMARY', 'ACTIVITY_SUMMARY', 'BALANCE_CHECK', 'DAILY_BRIEFING'].includes(s.action)) {
+    return { type: 'SCHEDULED_AUTOMATION', condition: null, schedule: { kind: 'DAILY', time: s.time, action: s.action as 'DAILY_BRIEFING' } }
+  }
+  return undefined
 }
 
 /** Validates a backend reply; anything malformed becomes a local fallback signal. */
@@ -86,12 +114,13 @@ export function parseChatReply(payload: unknown, status = 200): ChatResponse {
   const sources = parseSources(value.sources)
   const proposal = parseProposal(value.proposal)
   const plan = parsePlan(value.plan)
+  const task = parseTaskDraft(value.task)
   const memory = parseMemory(value.memory)
   const charts = parseCharts(value.charts)
   const followups = Array.isArray(value.followups) ? value.followups.filter((item): item is string => typeof item === 'string' && item.trim().length >= 3).map((item) => item.trim().slice(0, 90)).slice(0, 3) : []
   return {
     ok: true, text: (value.text as string).trim().slice(0, 6000), source: 'REAL_PROVIDER',
-    ...(sources.length ? { sources } : {}), ...(proposal ? { proposal } : {}), ...(plan ? { plan } : {}),
+    ...(sources.length ? { sources } : {}), ...(proposal ? { proposal } : {}), ...(plan ? { plan } : {}), ...(task ? { task } : {}),
     ...(memory.length ? { memory } : {}), ...(charts.length ? { charts } : {}), ...(followups.length ? { followups } : {}),
   }
 }
@@ -109,7 +138,7 @@ export async function requestMakotoChatStream(input: ChatRequestInput & { onEven
   let shown = false
   try {
     return await withChatDeadline(async (signal) => {
-      const response = await fetcher(api('agent/chat/stream'), { method: 'POST', headers: { 'content-type': 'application/json', accept: 'text/event-stream' }, body: requestBody(input), signal })
+      const response = await fetcher(api('agent/chat/stream'), { method: 'POST', headers: { 'content-type': contentType(input), accept: 'text/event-stream' }, body: requestBody(input), signal })
       const type = response.headers?.get?.('content-type') ?? ''
       if (!response.ok || !response.body || !type.includes('text/event-stream')) {
         if (response.status === 400 || response.status === 429) return parseChatReply(await response.json().catch(() => undefined), response.status)
@@ -172,7 +201,7 @@ export async function requestMakotoChat(input: ChatRequestInput): Promise<ChatRe
     return await withChatDeadline(async (signal) => {
       const response = await fetcher(api('agent/chat'), {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': contentType(input) },
         body: requestBody(input),
         signal,
       })

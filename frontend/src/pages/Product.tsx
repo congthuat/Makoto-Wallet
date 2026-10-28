@@ -203,11 +203,15 @@ export function StatusPage() {
   const [tr] = useT()
   const agent = useQuery({ queryKey: ['status-agent'], queryFn: () => fetch(api('agent/status')).then((r) => { if (!r.ok) throw new Error(); return r.json() as Promise<{ status?: string }> }), staleTime: 60_000, retry: 1 })
   const feed = useQuery({ queryKey: ['status-sentiment'], queryFn: () => fetch(api('sentiment')).then((r) => { if (!r.ok) throw new Error(); return r.json() }), staleTime: 60_000, retry: 1 })
+  const evalq = useQuery({ queryKey: ['status-agent-eval'], queryFn: () => fetch(api('agent/eval')).then((r) => { if (!r.ok) throw new Error(); return r.json() as Promise<{ latest?: { ranAt?: string; passed?: number; total?: number; score?: number; status?: string } | null }> }), staleTime: 300_000, retry: 1 })
+  const lastEval = evalq.data?.latest
+  const evalDetail = lastEval ? `${lastEval.passed ?? 0}/${lastEval.total ?? 0} · ${lastEval.score ?? 0}% · ${lastEval.ranAt ? new Date(lastEval.ranAt).toLocaleString() : ''}` : tr('Runs automatically every day')
   const rows = [
     { name: 'Arc Testnet network', ok: networkStatus === 'online' || networkStatus === 'stale', loading: networkStatus === 'loading', detail: network ? `${tr('Block')} #${network.blockNumber.toLocaleString()} · ${network.rpcLatencyMs} ms` : networkStatus === 'stale' ? tr('Stale') : '' },
     { name: 'Market prices', ok: !!prices, loading: !prices, detail: prices ? 'USDC · EURC · BTC' : '' },
     { name: 'Market sentiment', ok: feed.isSuccess, loading: feed.isLoading, detail: 'Market data' },
     { name: 'Makoto Agent (AI)', ok: agent.isSuccess && agent.data?.status === 'ok', loading: agent.isLoading, detail: 'OpenAI · streaming' },
+    { name: 'Agent daily quality check', ok: evalq.isSuccess && lastEval?.status !== 'FAIL', loading: evalq.isLoading, detail: evalDetail },
     { name: 'Circle faucet', ok: true, loading: false, detail: tr('External · faucet.circle.com') },
   ]
   const allOk = rows.every((r) => r.ok)

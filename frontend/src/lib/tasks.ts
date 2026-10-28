@@ -14,7 +14,7 @@ export type TaskCondition = {
 export type TaskSchedule = {
   kind: 'DAILY'
   time: string
-  action: 'PORTFOLIO_SUMMARY' | 'ACTIVITY_SUMMARY' | 'BALANCE_CHECK'
+  action: 'PORTFOLIO_SUMMARY' | 'ACTIVITY_SUMMARY' | 'BALANCE_CHECK' | 'DAILY_BRIEFING'
 }
 export type TaskCandidate = {
   type: TaskType
@@ -137,6 +137,7 @@ export function taskDefinition(task: Pick<TaskCandidate, 'type' | 'condition' | 
       PORTFOLIO_SUMMARY: locale === 'vi' ? 'T\u00f3m t\u1eaft danh m\u1ee5c' : 'Portfolio summary',
       ACTIVITY_SUMMARY: locale === 'vi' ? 'T\u00f3m t\u1eaft ho\u1ea1t \u0111\u1ed9ng' : 'Activity summary',
       BALANCE_CHECK: locale === 'vi' ? 'Ki\u1ec3m tra s\u1ed1 d\u01b0' : 'Balance check',
+      DAILY_BRIEFING: locale === 'vi' ? 'Bản tin ví + thị trường + tin tức' : 'Wallet + market + news briefing',
     }[task.schedule.action]
     return `${action} \u00b7 ${locale === 'vi' ? 'H\u1eb1ng ng\u00e0y' : 'Daily'} ${task.schedule.time}`
   }
@@ -151,6 +152,7 @@ export function taskDisplayTitle(task: Pick<TaskCandidate, 'type' | 'condition' 
       PORTFOLIO_SUMMARY: ['Daily portfolio summary', 'Tóm tắt danh mục hằng ngày'],
       ACTIVITY_SUMMARY: ['Daily activity summary', 'Tóm tắt giao dịch hằng ngày'],
       BALANCE_CHECK: ['Daily balance check', 'Kiểm tra số dư hằng ngày'],
+      DAILY_BRIEFING: ['Morning briefing', 'Bản tin buổi sáng'],
     } as const
     return titles[task.schedule.action][locale === 'vi' ? 1 : 0]
   }
@@ -226,6 +228,7 @@ export function taskResultSummary(_task: Pick<TaskCandidate, 'type' | 'condition
     const partial = result.activityStatus === 'PARTIAL' ? locale === 'vi' ? ' (dữ liệu một phần)' : ' (partial data)' : ''
     return locale === 'vi' ? `Giao dịch hôm nay được Arc Explorer ghi nhận: ${count}${partial}.` : `Arc Explorer indexed transfers today: ${count}${partial}.`
   }
+  if (result.kind === 'DAILY_BRIEFING') return taskBriefingLines(result, locale)[0] ?? (locale === 'vi' ? 'Đã có bản tin mới.' : 'New briefing ready.')
   if (result.kind === 'PORTFOLIO_SUMMARY' || result.kind === 'BALANCE_CHECK') {
     const { rows, incomplete } = taskBalanceRows(result)
     const balances = rows.map(({ asset, amount }) => `${asset}: ${amount}`).join(', ')
@@ -235,6 +238,38 @@ export function taskResultSummary(_task: Pick<TaskCandidate, 'type' | 'condition
     return (locale === 'vi' ? `Số dư: ${balances || 'chưa khả dụng'}.` : `Balances: ${balances || 'unavailable'}.`) + missingBalances + prices + activity
   }
   return locale === 'vi' ? 'Có kết quả mới.' : 'New result available.'
+}
+
+const FEAR_GREED_VI: Record<string, string> = { 'Extreme Fear': 'Sợ hãi tột độ', Fear: 'Sợ hãi', Neutral: 'Trung lập', Greed: 'Tham lam', 'Extreme Greed': 'Tham lam tột độ' }
+const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value)
+const briefUsd = (value: number) => `$${value.toLocaleString('en-US', { maximumFractionDigits: value >= 100 ? 0 : 2 })}`
+const briefPct = (value: unknown) => finite(value) ? `${value > 0 ? '+' : ''}${value.toFixed(2)}%` : '—'
+
+/** Morning briefing lines from the structured observation (market, sentiment, wallet, headlines). */
+export function taskBriefingLines(value: unknown, locale: 'en' | 'vi'): string[] {
+  if (value == null || typeof value !== 'object') return []
+  const result = value as Record<string, unknown>
+  const vi = locale === 'vi'
+  const lines: string[] = []
+  if (Array.isArray(result.market)) {
+    const prices = result.market.flatMap((row) => {
+      const item = row as Record<string, unknown>
+      return typeof item?.symbol === 'string' && /^[A-Z]{2,6}$/.test(item.symbol) && finite(item.price_usd) ? [`${item.symbol} ${briefUsd(item.price_usd)} (${briefPct(item.change_24h_pct)})`] : []
+    })
+    if (prices.length) lines.push(prices.join(', '))
+  }
+  const fg = result.fear_greed as Record<string, unknown> | undefined
+  if (fg && typeof fg === 'object' && finite(Number(fg.value)) && typeof fg.classification === 'string') lines.push(`${vi ? 'Tâm lý thị trường' : 'Fear & Greed'}: ${Number(fg.value)} (${vi ? FEAR_GREED_VI[fg.classification] ?? fg.classification : fg.classification})`)
+  const wallet = result.wallet as Record<string, unknown> | undefined
+  if (wallet && typeof wallet === 'object' && finite(wallet.value_now_usd)) {
+    const change = finite(wallet.change_24h_usd) ? `${wallet.change_24h_usd >= 0 ? '+' : '−'}${briefUsd(Math.abs(wallet.change_24h_usd))}` : '—'
+    lines.push(`${vi ? 'Ví' : 'Wallet'}: ${briefUsd(wallet.value_now_usd)} · 24h ${change}`)
+  }
+  if (Array.isArray(result.headlines)) {
+    const titles = result.headlines.slice(0, 3).flatMap((item) => typeof (item as Record<string, unknown>)?.title === 'string' ? [String((item as Record<string, unknown>).title).slice(0, 140)] : [])
+    if (titles.length) lines.push(`${vi ? 'Tin chính' : 'Top news'}: ${titles.join(' | ')}`)
+  }
+  return lines
 }
 
 /** Deterministic display copy from the structured observation, not languageSummary. */
@@ -273,6 +308,10 @@ export function taskDisplaySummary(value: unknown, locale: 'en' | 'vi'): string 
     const partial = result.activityStatus === 'PARTIAL'
       ? locale === 'vi' ? ' Dữ liệu hiện chưa đầy đủ nên con số này có thể chưa phản ánh toàn bộ hoạt động của ví.' : ' The data is incomplete, so this count may not reflect all wallet activity.' : ''
     return observed + partial
+  }
+  if (result.kind === 'DAILY_BRIEFING') {
+    const lines = taskBriefingLines(result, locale)
+    return lines.length ? lines.join(' · ') : locale === 'vi' ? 'Dữ liệu bản tin hiện chưa khả dụng.' : 'Briefing data is unavailable right now.'
   }
   if (result.kind !== 'PORTFOLIO_SUMMARY' && result.kind !== 'BALANCE_CHECK') return null
   const { rows, incomplete } = taskBalanceRows(result)
@@ -323,6 +362,6 @@ export function taskError(error: unknown, locale: 'en' | 'vi'): string {
 export function taskIntentMode(text: string): 'monitor' | 'automation' | null {
   const value = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase()
   if (/\b(daily|every day|every morning|every evening|schedule)\b|hang ngay|moi ngay|moi sang|moi toi|luc\s*\d{1,2}/.test(value)) return 'automation'
-  if (/\b(alert|notify|monitor|watch)\b|\bwhen\b.*\b(usdc|eurc|cirbtc|balance)\b.*(?:\b(below|above|under|over|less|more)\b|[<>]=?)|bao toi khi|bao khi|thong bao khi|theo doi|\b(gia|price)\b.{0,60}\b(btc|bitcoin|eth|ethereum|sol|solana|usdc|eurc)\b.{0,80}(?:\b(duoi|tren|vuot|giam|tang|below|above|over|under)\b|[<>]=?)|\bkhi\b.{0,120}\b(usdc|eurc|cirbtc|so du)\b.{0,120}(?:\b(duoi|tren|thap hon|cao hon|nho hon|lon hon)\b|[<>]=?)/.test(value)) return 'monitor'
+  if (/\b(alert|notify|monitor|watch)\b|\bwhen\b.*\b(usdc|eurc|cirbtc|balance)\b.*(?:\b(below|above|under|over|less|more)\b|[<>]=?)|bao toi khi|bao khi|thong bao khi|theo doi|\b(?:bao|nhac)(?! nhieu)(?: \w+){0,3} khi\b|canh bao|\bnotify me\b|\bremind me\b|\b(gia|price)\b.{0,60}\b(btc|bitcoin|eth|ethereum|sol|solana|usdc|eurc)\b.{0,80}(?:\b(duoi|tren|vuot|giam|tang|below|above|over|under)\b|[<>]=?)|\bkhi\b.{0,120}\b(usdc|eurc|cirbtc|so du)\b.{0,120}(?:\b(duoi|tren|thap hon|cao hon|nho hon|lon hon)\b|[<>]=?)/.test(value)) return 'monitor'
   return null
 }

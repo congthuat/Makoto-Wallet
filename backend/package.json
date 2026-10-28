@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "node scripts/check-env.js node --watch server.js",
     "test": "node --test tests/*.test.js",
-    "test:auth:repeat": "node scripts/repeat-auth-tests.cjs"
+    "test:auth:repeat": "node scripts/repeat-auth-tests.cjs",
+    "eval:agent": "node scripts/agent-eval.js"
   },
   "dependencies": {
     "@surf-ai/sdk": "1.0.5",

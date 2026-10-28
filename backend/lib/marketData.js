@@ -197,8 +197,8 @@ async function readFeed([source, url]) {
 }
 
 /** News articles newest first: [{ title, source, published_at (s), summary, url, project_name }]. */
-async function news({ query = '', limit = 5 }) {
-  const surf = await trySurf(() => (query ? dataApi.search.news({ q: query, limit }) : dataApi.news.feed({ sort_by: 'recency', limit })))
+async function news({ query = '', limit = 5, preferFeeds = false }) {
+  const surf = preferFeeds ? null : await trySurf(() => (query ? dataApi.search.news({ q: query, limit }) : dataApi.news.feed({ sort_by: 'recency', limit })))
   const surfRows = (surf?.data ?? []).filter((item) => item?.title)
   if (surfRows.length) return { source: 'Surf news', articles: surfRows }
   const settled = await Promise.allSettled(FEEDS.map(readFeed))
@@ -373,4 +373,37 @@ async function defi({ kind, query = '', limit = 8 }) {
   return { source: 'DefiLlama', filter: q || null, protocols: chosen.sort((a, b) => b.tvl_usd - a.tvl_usd).slice(0, n) }
 }
 
-module.exports = { priceSeries, latestPrice, marketRanking, fearGreed, news, projectInfo, derivatives, technicals, defi, coinId, surfStatus, _internal: { rsi, emaSeries, sma, atr, cache } }
+/** Spot price and 24h change for a few majors (daily briefing): { source, rows: [{ symbol, price_usd, change_24h_pct }] }. */
+async function majorsSnapshot(symbols = ['BTC', 'ETH', 'SOL']) {
+  const r2 = (value) => (Number.isFinite(value) ? Number(value.toFixed(2)) : null)
+  try {
+    const ids = await Promise.all(symbols.map(coinId))
+    const data = await cached(`cg:snap:${ids.join(',')}`, 60_000, () => coingecko('/simple/price', { ids: ids.join(','), vs_currencies: 'usd', include_24hr_change: true }))
+    const rows = symbols.map((symbol, index) => ({ symbol, price_usd: Number(data?.[ids[index]]?.usd), change_24h_pct: r2(Number(data?.[ids[index]]?.usd_24h_change)) })).filter((row) => Number.isFinite(row.price_usd) && row.price_usd > 0)
+    if (rows.length) return { source: 'CoinGecko', rows }
+  } catch { /* try OKX */ }
+  const rows = (await Promise.all(symbols.map(async (symbol) => {
+    try {
+      const ticker = (await okx(`/market/ticker?instId=${encodeURIComponent(`${symbol}-USDT`)}`))[0]
+      const last = Number(ticker?.last), open = Number(ticker?.open24h)
+      if (!Number.isFinite(last) || last <= 0) return null
+      return { symbol, price_usd: last, change_24h_pct: Number.isFinite(open) && open > 0 ? r2(((last - open) / open) * 100) : null }
+    } catch { return null }
+  }))).filter(Boolean)
+  if (!rows.length) throw new Error('Market snapshot unavailable')
+  return { source: 'OKX', rows }
+}
+
+/** USD price closest to a past time (ms), from the price series: { usd, at, source }. */
+async function priceAt(symbol, timestampMs) {
+  const days = Math.ceil((Date.now() - timestampMs) / 86_400_000)
+  const range = days <= 1 ? '1d' : days <= 7 ? '7d' : days <= 30 ? '30d' : days <= 90 ? '90d' : '365d'
+  const series = await priceSeries(symbol, range)
+  const target = timestampMs / 1000
+  let best = null
+  for (const point of series.points) if (!best || Math.abs(point.timestamp - target) < Math.abs(best.timestamp - target)) best = point
+  if (!best || !(best.value > 0)) throw new Error('Price unavailable')
+  return { usd: best.value, at: new Date(best.timestamp * 1000).toISOString(), source: series.source }
+}
+
+module.exports = { priceSeries, latestPrice, majorsSnapshot, priceAt, marketRanking, fearGreed, news, projectInfo, derivatives, technicals, defi, coinId, surfStatus, _internal: { rsi, emaSeries, sma, atr, cache } }

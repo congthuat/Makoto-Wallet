@@ -29,6 +29,7 @@ async function main() {
   }
   await server.start()
   await getTaskEngine().start()
+  require('./lib/agentEval').startAgentEvalSchedule()
 }
 
 main().catch((error) => {

@@ -36,6 +36,13 @@ export const AGENT_I18N: Record<string, [string, string, string, string]> = {
   'AI answer · verify important details before acting.': ['Câu trả lời của AI · hãy kiểm tra chi tiết quan trọng trước khi thực hiện.', 'AI 回答 · 操作前请核实重要信息。', 'AI の回答 · 実行前に重要な点を確認してください。', 'AI 답변 · 실행 전에 중요한 내용을 확인하세요.'],
   'Makoto prepared a review card below. Nothing is sent until you confirm in your wallet.': ['Makoto đã chuẩn bị thẻ xem lại bên dưới. Chưa có gì được gửi cho đến khi bạn xác nhận trong ví.', 'Makoto 已在下方准备好审核卡片。在你于钱包中确认之前，不会发送任何内容。', 'Makoto が下に確認カードを用意しました。ウォレットで承認するまで何も送信されません。', 'Makoto가 아래에 검토 카드를 준비했습니다. 지갑에서 확인하기 전까지는 아무것도 전송되지 않습니다.'],
   'Makoto could not prepare this action safely.': ['Makoto chưa thể chuẩn bị thao tác này một cách an toàn.', 'Makoto 无法安全地准备此操作。', 'Makoto はこの操作を安全に準備できませんでした。', 'Makoto가 이 작업을 안전하게 준비할 수 없습니다.'],
+  'Morning briefing for today': ['Bản tin hôm nay', '今日简报', '今日のブリーフィング', '오늘의 브리핑'],
+  'Wallet profit and loss over 7 days': ['Lãi lỗ ví 7 ngày', '钱包 7 天盈亏', 'ウォレットの 7 日間の損益', '지갑 7일 손익'],
+  'Wallet PnL': ['Lãi lỗ ví', '钱包盈亏', 'ウォレット損益', '지갑 손익'],
+  'Daily briefing': ['Bản tin hằng ngày', '每日简报', 'デイリーブリーフィング', '데일리 브리핑'],
+  'Makoto tasks': ['Nhiệm vụ Makoto', 'Makoto 任务', 'Makoto タスク', 'Makoto 작업'],
+  'Agent daily quality check': ['Kiểm tra chất lượng Agent hằng ngày', 'Agent 每日质量检查', 'Agent の毎日の品質チェック', 'Agent 일일 품질 점검'],
+  'Runs automatically every day': ['Tự chạy mỗi ngày', '每天自动运行', '毎日自動で実行', '매일 자동 실행'],
   'Arc explorer': ['Arc explorer', 'Arc 浏览器', 'Arc エクスプローラー', 'Arc 탐색기'],
   'Makoto planner': ['Bộ lập kế hoạch Makoto', 'Makoto 规划器', 'Makoto プランナー', 'Makoto 플래너'],
   // Local fallback replies (used only when the AI provider is unavailable)

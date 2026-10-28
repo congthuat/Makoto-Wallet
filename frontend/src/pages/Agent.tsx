@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, ArrowUpRight, ArrowLeftRight, Rainbow, PieChart, Radar, Check, Trash2, Wallet, Boxes, ListChecks, Pencil, Lock, Zap, Fuel, BellRing, TrendingUp, Newspaper, RefreshCw, Sparkles, Database, Brain, UserPlus, X, ListOrdered, Play, RotateCcw, Square, Copy, Mic, MicOff, CornerDownRight } from 'lucide-react'
+import { ArrowUp, ArrowUpRight, ArrowLeftRight, Rainbow, PieChart, Radar, Check, Trash2, Wallet, Boxes, ListChecks, Pencil, Lock, Zap, Fuel, BellRing, TrendingUp, Newspaper, RefreshCw, Sparkles, Database, Brain, UserPlus, X, ListOrdered, Play, RotateCcw, Square, Copy, Mic, MicOff, CornerDownRight, ImagePlus } from 'lucide-react'
 import { RecipientSafety } from './Send'
 import { AgentSendCard, type AgentSendStage } from '../components/AgentSendCard'
 import { AgentSwapCard } from '../components/AgentSwapCard'
@@ -22,7 +22,7 @@ import { withRpcTimeout, AGENT_EVIDENCE_TIMEOUT_MS } from '../lib/rpcTimeout'
 import { readHomeAnswer, renderHomeAnswer, routeHomeRequest, type QuickAnswer } from '../agent/homeRequest'
 import { createAgentSession, rememberAgentSession, transitionAgentSession, type AgentSession } from '../brain/agentSession'
 import { localChatReply, routeAgentMessage, type ChatTopic } from '../agent/chatRouter'
-import { requestMakotoChat, requestMakotoChatStream, visibleStreamText, type ChatChart, type ChatDataSource, type ChatHistoryItem, type ChatMemoryUpdate, type ChatSource } from '../agent/chatClient'
+import { requestMakotoChat, requestMakotoChatStream, visibleStreamText, type ChatChart, type ChatDataSource, type ChatHistoryItem, type ChatMemoryUpdate, type ChatSource, type ChatTaskDraft } from '../agent/chatClient'
 import { addNote, contactInText, contactSaveCheck, loadAgentMemory, memoryForRequest, removeNote, saveAgentMemory, setBridgeSpeed, type AgentMemory, type AgentNote } from '../lib/agentMemory'
 import { describeStep, planStatuses, planStepsFromText, stepCommand, type PlanStep } from '../lib/agentPlan'
 import { AreaChart } from '../components/wallet/charts'
@@ -87,6 +87,8 @@ type Msg = { id: string; role: 'user' | 'agent'; text: string; rows?: [string, s
   /** The user question that produced this AI reply (for "Ask again"). */
   question?: string
   stopped?: boolean
+  /** Screenshot attached to a user message (kept in memory only, never saved). */
+  image?: string
 }
 type ContactOffer = Readonly<{ name: string; address: string; state: 'pending' | 'saved' | 'dismissed' | 'duplicate' }>
 type PlanState = Readonly<{ steps: readonly PlanStep[]; done: readonly boolean[]; activeIndex?: number; failedIndex?: number }>
@@ -97,7 +99,31 @@ const SUGGEST = [
   { icon: Rainbow, t: SAMPLE_PROMPTS.bridge },
   { icon: PieChart, t: SAMPLE_PROMPTS.portfolio },
   { icon: Radar, t: SAMPLE_PROMPTS.alert },
+  { icon: Newspaper, t: 'Morning briefing for today' },
+  { icon: TrendingUp, t: 'Wallet profit and loss over 7 days' },
 ]
+/** Shrinks a screenshot in the browser before it is sent (long side ≤ 1280px, JPEG). */
+const MAX_IMAGE_CHARS = 1_500_000
+async function compressImage(file: Blob): Promise<string> {
+  if (!/^image\/(png|jpe?g|webp|gif|bmp)$/i.test(file.type)) throw new Error('UNSUPPORTED_IMAGE')
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => { const el = new Image(); el.onload = () => resolve(el); el.onerror = () => reject(new Error('UNREADABLE_IMAGE')); el.src = url })
+    for (const [side, quality] of [[1280, 0.8], [1024, 0.72], [800, 0.65]] as const) {
+      const scale = Math.min(1, side / Math.max(img.naturalWidth, img.naturalHeight))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale))
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale))
+      const g = canvas.getContext('2d')
+      if (!g) throw new Error('UNREADABLE_IMAGE')
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, canvas.width, canvas.height)
+      g.drawImage(img, 0, 0, canvas.width, canvas.height)
+      const data = canvas.toDataURL('image/jpeg', quality)
+      if (data.length <= MAX_IMAGE_CHARS) return data
+    }
+    throw new Error('IMAGE_TOO_LARGE')
+  } finally { URL.revokeObjectURL(url) }
+}
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 let uid = 0
 const nid = () => `m${Date.now()}${uid++}`
@@ -663,9 +689,20 @@ export default function AgentPage() {
     }
     return { ...(notes.length ? { memoryNotes: notes } : {}), ...(offers.length ? { contactOffers: offers } : {}) }
   }
-  const plan = async (q: string, history: readonly ChatHistoryItem[], forcedTaskMode?: 'monitor' | 'automation' | null, onStream?: (partial: { text: string; toolStatus?: string }) => void, signal?: AbortSignal): Promise<Msg> => {
+  /** The AI drafted an alert/daily task: show the confirm card; nothing runs until the user clicks Create. */
+  const taskMessageFromDraft = (draft: ChatTaskDraft, text: string, extra: Partial<Msg>): Msg => {
+    const vi = lang === 'vi'
+    const base: Msg = { id: nid(), role: 'agent', text, sample: false, conversation: true, source: 'REAL_PROVIDER', ...extra }
+    const binding = taskBinding({ mode: w.mode, address: w.address, walletChainId: w.walletChainId })
+    if (!binding.ok) return { ...base, text: `${text}\n\n${taskText(binding.reason === 'CHAIN_REQUIRED' ? 'chainFirst' : 'connectFirst', vi ? 'vi' : 'en')}` }
+    if (!w.taskAuthenticated) return { ...base, text: `${text}\n\n${taskText('verifyWallet', vi ? 'vi' : 'en')}`, link: { label: '', taskTextKey: 'verifyWallet', page: 'tasks' } }
+    const label = draft.type === 'CONDITION_MONITOR' ? `${draft.condition.asset} ${draft.condition.metric === 'TOKEN_PRICE' ? 'price' : 'balance'} ${draft.condition.operator} ${draft.condition.threshold}` : `${draft.schedule.action} ${draft.schedule.time}`
+    const candidate: TaskCandidate = { ...draft, title: label, description: label, sourceIntent: label, account: binding.account, chainId: binding.chainId, timezone: binding.timezone, locale: vi ? 'vi' : 'en', authority: 'NOTIFY_ONLY', createdBy: 'AGENT' }
+    return { ...base, task: candidate }
+  }
+  const plan = async (q: string, history: readonly ChatHistoryItem[], forcedTaskMode?: 'monitor' | 'automation' | null, onStream?: (partial: { text: string; toolStatus?: string }) => void, signal?: AbortSignal, image?: string): Promise<Msg> => {
     const locale = lang === 'vi' ? 'vi' : 'en'
-    const taskMode = forcedTaskMode ?? taskIntentMode(q)
+    const taskMode = image ? forcedTaskMode : forcedTaskMode ?? taskIntentMode(q)
     if (taskMode) {
       const binding = taskBinding({ mode: w.mode, address: w.address, walletChainId: w.walletChainId })
       if (!binding.ok) return { id: nid(), role: 'agent', text: '', taskReply: { kind: 'COPY', key: binding.reason === 'CHAIN_REQUIRED' ? 'chainFirst' : 'connectFirst' } }
@@ -673,13 +710,14 @@ export default function AgentPage() {
       try {
         const parsed = await taskApi.parse({ text: q, mode: taskMode, account: binding.account, chainId: binding.chainId, timezone: binding.timezone, locale })
         if (parsed.blocked?.code === 'TASK_WRITE_REQUIRES_USER') return { id: nid(), role: 'agent', text: '', taskReply: { kind: 'COPY', key: 'writeBoundary' } }
-        if (!parsed.candidate) return { id: nid(), role: 'agent', text: '', taskReply: { kind: 'COPY', key: 'unsupported' }, taskMissingFields: parsed.missingFields }
-        return { id: nid(), role: 'agent', text: '', taskReply: { kind: 'REVIEW' }, task: { ...parsed.candidate, createdBy: 'AGENT' } }
+        if (parsed.candidate) return { id: nid(), role: 'agent', text: '', taskReply: { kind: 'REVIEW' }, task: { ...parsed.candidate, createdBy: 'AGENT' } }
+        // Loosely phrased ("báo mình khi BTC rớt 10%"): the AI reads prices and drafts the card.
+        if (forcedTaskMode) return { id: nid(), role: 'agent', text: '', taskReply: { kind: 'COPY', key: 'unsupported' }, taskMissingFields: parsed.missingFields }
       } catch (cause) { return { id: nid(), role: 'agent', text: '', taskReply: { kind: 'ERROR', code: cause instanceof Error ? cause.message : String(cause ?? '') } } }
     }
-    const contextualWallet = isWalletContextFollowUp(q, history, locale)
+    const contextualWallet = !image && isWalletContextFollowUp(q, history, locale)
     const quickRequest = routeHomeRequest(contextualWallet ? 'What is my balance?' : q, locale)
-    if (quickRequest.route === 'INLINE' && !wantsAnalysis(q)) {
+    if (!image && quickRequest.route === 'INLINE' && !wantsAnalysis(q)) {
       const quick = await readHomeAnswer(quickRequest, w)
       return { id: nid(), role: 'agent', text: renderHomeAnswer(quick, locale, w.mask).text, quick, conversation: true, source: 'DETERMINISTIC_TOOL' }
     }
@@ -699,9 +737,9 @@ export default function AgentPage() {
     }
     // Tool-using AI first for questions, analysis and loosely phrased requests. Complete
     // deterministic actions, strategies and the clock stay on the proven local path.
-    const deterministicAction = structured.status === 'STRATEGY'
+    const deterministicAction = !image && (structured.status === 'STRATEGY'
       || (structured.status === 'INFORMATION' && structured.topic === 'current-datetime')
-      || (routed.category === 'ACTION' && Boolean(brain.action) && !brain.decision.blockers.length && !brain.decision.missingFields.length)
+      || (routed.category === 'ACTION' && Boolean(brain.action) && !brain.decision.blockers.length && !brain.decision.missingFields.length))
     let aiUnavailable = false
     if (!deterministicAction) {
       let streamed = ''
@@ -711,6 +749,7 @@ export default function AgentPage() {
         context: { locale: lang, mode: w.mode, ...(w.mode === 'connected' ? { chain: ARC.name as 'Arc Testnet' } : {}), intent: routed.category === 'CHAT' ? 'CHAT' : 'INFORMATION' },
         address: w.mode !== 'demo' ? w.address : undefined,
         memory: requestMemory(),
+        ...(image ? { image } : {}),
         signal,
         onEvent: (event) => {
           if (event.type === 'delta') streamed += event.text
@@ -726,9 +765,11 @@ export default function AgentPage() {
         const extra: Partial<Msg> = { dataSources: response.sources, question: q, ...(response.followups ? { followups: response.followups } : {}), ...(response.charts ? { charts: response.charts } : {}), ...applyMemoryUpdates(response.memory) }
         if (response.plan) return { id: nid(), role: 'agent', text: response.text, sample: false, conversation: true, source: 'REAL_PROVIDER', plan: { steps: response.plan, done: response.plan.map(() => false) }, ...extra }
         if (response.proposal) return actionMessageFromStep(response.proposal, response.text, extra)
+        if (response.task) return taskMessageFromDraft(response.task, response.text, extra)
         return { id: nid(), role: 'agent', text: response.text, sample: false, conversation: true, source: 'REAL_PROVIDER', ...extra }
       }
       aiUnavailable = true
+      if (image) return { id: nid(), role: 'agent', text: lang === 'vi' ? 'Mình chưa đọc được ảnh lúc này. Bạn thử lại sau ít phút nhé.' : 'I could not read the image right now. Please try again in a few minutes.', source: 'REAL_PROVIDER', conversation: true, question: q }
     }
     const chat = async (topic: typeof routed.topic, intent: 'CHAT' | 'INFORMATION', toolResult?: unknown, fallback?: string) => {
       if (aiUnavailable) return { text: fallback || localChatReply(topic, locale, true), source: 'LOCAL_FALLBACK' as const }
@@ -796,14 +837,27 @@ export default function AgentPage() {
   }
 
   const abortRef = useRef<AbortController | null>(null)
+  const [attachment, setAttachment] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const attachImage = async (file: Blob | null | undefined) => {
+    if (!file) return
+    try { setAttachment(await compressImage(file)) }
+    catch (cause) {
+      const tooLarge = cause instanceof Error && cause.message === 'IMAGE_TOO_LARGE'
+      w.notify(lang === 'vi' ? (tooLarge ? 'Ảnh quá lớn, bạn thử ảnh nhỏ hơn nhé.' : 'Không đọc được ảnh này. Hãy dùng ảnh PNG hoặc JPG.') : (tooLarge ? 'Image is too large. Try a smaller one.' : 'Could not read this image. Use a PNG or JPG.'), 'err')
+    }
+  }
   const stop = () => abortRef.current?.abort()
-  const ask = (q: string, forcedTaskMode?: 'monitor' | 'automation' | null) => {
-    if (!q.trim() || abortRef.current) return
+  const ask = (rawQ: string, forcedTaskMode?: 'monitor' | 'automation' | null) => {
+    const image = attachment ?? undefined
+    const q = rawQ.trim() || (image ? (lang === 'vi' ? 'Đọc giúp mình ảnh này.' : 'Please read this image.') : '')
+    if (!q || abortRef.current) return
+    setAttachment(null)
     const controller = new AbortController()
     abortRef.current = controller
     const history = chatHistory.current
     chatHistory.current = appendChatHistory(history, { role: 'user', content: q })
-    setMsgs((m) => [...m, { id: nid(), role: 'user', text: q }])
+    setMsgs((m) => [...m, { id: nid(), role: 'user', text: q, ...(image ? { image } : {}) }])
     setInput('')
     setTyping(true)
     const streamId = nid()
@@ -817,7 +871,7 @@ export default function AgentPage() {
       setTyping(false)
     }
     setTimeout(() => {
-      void plan(q, history, forcedTaskMode, onStream, controller.signal).then((answer) => {
+      void plan(q, history, forcedTaskMode, onStream, controller.signal, image).then((answer) => {
         if (answer.conversation) chatHistory.current = appendChatHistory(chatHistory.current, { role: 'assistant', content: answer.text })
         finish(answer)
       }).catch(() => {
@@ -964,7 +1018,7 @@ export default function AgentPage() {
             </div>
           )}
           {msgs.map((m) => m.role === 'user' ? (
-            <div key={m.id} className="flex justify-end mk-in"><div className="max-w-[80%] [overflow-wrap:anywhere] px-3.5 py-2 rounded-2xl rounded-br-md bg-neon-500/10 border border-white/[0.08] text-[14px]">{m.text}</div></div>
+            <div key={m.id} className="flex justify-end mk-in"><div className="max-w-[80%] [overflow-wrap:anywhere] px-3.5 py-2 rounded-2xl rounded-br-md bg-neon-500/10 border border-white/[0.08] text-[14px]">{m.image && <img src={m.image} alt={lang === 'vi' ? 'Ảnh đính kèm' : 'Attached image'} className="mb-2 max-h-48 rounded-lg border border-white/[0.08] object-contain" />}{m.text}</div></div>
           ) : (
             <div key={m.id} className="flex gap-2.5 mk-in">
               <span className="mt-0.5"><Orb size={26} /></span>
@@ -1069,12 +1123,20 @@ export default function AgentPage() {
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); ask(input) }} className="p-3 sm:p-4 border-t border-white/[0.06]">
+          {attachment && (
+            <div className="mb-2 inline-flex items-start gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] p-1.5">
+              <img src={attachment} alt={lang === 'vi' ? 'Ảnh sẽ gửi' : 'Image to send'} className="h-16 max-w-[140px] rounded-md object-cover" />
+              <button type="button" onClick={() => setAttachment(null)} aria-label={lang === 'vi' ? 'Bỏ ảnh' : 'Remove image'} className={`h-6 w-6 inline-flex items-center justify-center rounded-md ${T.sub} hover:text-white hover:bg-white/[0.08]`}><X size={13} /></button>
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { void attachImage(e.target.files?.[0]); e.target.value = '' }} />
           <div className="mk-field-shell flex items-center gap-2 rounded-xl border border-white/[0.08] bg-black/25 p-1.5 transition">
-            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={tr(SAMPLE_PROMPTS.send)} aria-label={tr('Message Makoto')} className="flex-1 min-w-0 bg-transparent px-2.5 py-2 text-[14px] outline-none placeholder:text-[#6f6d7a]" />
+            <input value={input} onChange={(e) => setInput(e.target.value)} onPaste={(e) => { const item = Array.from(e.clipboardData.items).find((entry) => entry.type.startsWith('image/')); if (item) { e.preventDefault(); void attachImage(item.getAsFile()) } }} placeholder={tr(SAMPLE_PROMPTS.send)} aria-label={tr('Message Makoto')} className="flex-1 min-w-0 bg-transparent px-2.5 py-2 text-[14px] outline-none placeholder:text-[#6f6d7a]" />
+            {!typing && <button type="button" onClick={() => fileRef.current?.click()} aria-label={lang === 'vi' ? 'Gửi ảnh chụp màn hình' : 'Attach a screenshot'} title={lang === 'vi' ? 'Gửi ảnh biểu đồ hoặc giao dịch' : 'Attach a chart or transaction screenshot'} className={`h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg ${T.sub} hover:text-white hover:bg-white/[0.06]`}><ImagePlus size={16} /></button>}
             {speechCtor && !typing && <button type="button" onClick={toggleVoice} aria-pressed={listening} aria-label={lang === 'vi' ? (listening ? 'Dừng nghe' : 'Nói để nhập') : (listening ? 'Stop listening' : 'Voice input')} className={`h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg ${listening ? 'bg-rose-500/20 text-rose-200 animate-pulse' : `${T.sub} hover:text-white hover:bg-white/[0.06]`}`}>{listening ? <MicOff size={16} /> : <Mic size={16} />}</button>}
             {typing
               ? <button type="button" onClick={stop} className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg bg-white/[0.1] text-white hover:bg-white/[0.16]" aria-label={lang === 'vi' ? 'Dừng trả lời' : 'Stop answering'} title={lang === 'vi' ? 'Dừng' : 'Stop'}><Square size={14} fill="currentColor" /></button>
-              : <button disabled={!input.trim()} className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg bg-neon-500 text-[#0b0b10] hover:bg-neon-400 disabled:bg-white/[0.06] disabled:text-white/30" aria-label={tr('Send message')}><ArrowUp size={17} /></button>}
+              : <button disabled={!input.trim() && !attachment} className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg bg-neon-500 text-[#0b0b10] hover:bg-neon-400 disabled:bg-white/[0.06] disabled:text-white/30" aria-label={tr('Send message')}><ArrowUp size={17} /></button>}
           </div>
         </form>
       </Card>

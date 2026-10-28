@@ -7,7 +7,7 @@ const TOKENS = Object.freeze({
   cirBTC: { address: '0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF', decimals: 8 },
 })
 const OPERATORS = Object.freeze({ LT: (a, b) => a < b, LTE: (a, b) => a <= b, GT: (a, b) => a > b, GTE: (a, b) => a >= b })
-const ACTIONS = Object.freeze(['PORTFOLIO_SUMMARY', 'ACTIVITY_SUMMARY', 'BALANCE_CHECK'])
+const ACTIONS = Object.freeze(['PORTFOLIO_SUMMARY', 'ACTIVITY_SUMMARY', 'BALANCE_CHECK', 'DAILY_BRIEFING'])
 // Market price alerts (USD). Read-only: a triggered alert only notifies.
 const PRICE_ASSETS = Object.freeze(['BTC', 'ETH', 'SOL', 'USDC', 'EURC'])
 const PRICE_DECIMALS = 8
@@ -102,7 +102,7 @@ function validateDefinition(input) {
     const raw = input.schedule
     schedule = { kind: 'DAILY', time: raw?.time, action: raw?.action }
     dailyNext(schedule, zone, Date.now())
-    title = { PORTFOLIO_SUMMARY: 'Daily portfolio summary', ACTIVITY_SUMMARY: 'Daily activity summary', BALANCE_CHECK: 'Daily balance check' }[schedule.action]
+    title = { PORTFOLIO_SUMMARY: 'Daily portfolio summary', ACTIVITY_SUMMARY: 'Daily activity summary', BALANCE_CHECK: 'Daily balance check', DAILY_BRIEFING: 'Morning briefing' }[schedule.action]
     description = `${title} at ${schedule.time} (${zone})`
     sourceIntent = description
   } else throw new TaskError('TASK_INVALID', 'Unsupported task type')
@@ -139,10 +139,13 @@ function parseIntent(input) {
     return { candidate: null, missingFields: [], blocked: { code: 'TASK_INVALID', authority: 'PREPARE_ONLY' } }
   }
   // Financial writes never become executable background tasks; "send me a summary" remains a read-only request.
-  if (/\b(swap|bridge|approve|approval|buy|sell|pay|withdraw|stake|unstake|deposit|mint|burn|redeem|lend|borrow|repay|mua|ban|rut|nap|vay|tra no|doi token|hoan doi)\b/.test(s) || /\b(send|transfer|gui|chuyen)\s+(?:\d+|them|more|usdc|eurc|cirbtc)\b/.test(s)) {
+  // "bản tin" (news bulletin) normalizes to "ban tin"; it is not "bán" (sell).
+  const writeText = s.replace(/\bban tin\b/g, 'briefing')
+  if (/\b(swap|bridge|approve|approval|buy|sell|pay|withdraw|stake|unstake|deposit|mint|burn|redeem|lend|borrow|repay|mua|ban|rut|nap|vay|tra no|doi token|hoan doi)\b/.test(writeText) || /\b(send|transfer|gui|chuyen)\s+(?:\d+|them|more|usdc|eurc|cirbtc)\b/.test(s)) {
     return { candidate: null, missingFields: [], blocked: { code: 'TASK_WRITE_REQUIRES_USER', authority: 'PREPARE_ONLY' } }
   }
-  if (mode === 'monitor' && /\b(gia|price|priced)\b/.test(s)) {
+  // "báo mình khi BTC dưới 75k": a market asset name alone means a price alert.
+  if (mode === 'monitor' && (/\b(gia|price|priced)\b/.test(s) || /\b(btc|bitcoin|eth|ethereum|ether|sol|solana)\b/.test(s))) {
     const asset = /\b(btc|bitcoin|cirbtc)\b/.test(s) ? 'BTC' : /\b(eth|ethereum|ether)\b/.test(s) ? 'ETH' : /\b(sol|solana)\b/.test(s) ? 'SOL' : /\beurc\b/.test(s) ? 'EURC' : /\busdc\b/.test(s) ? 'USDC' : null
     const op = /(<=|at or below|no more than|duoi hoac bang|thap hon hoac bang)/.test(s) ? 'LTE' : /(>=|at or above|no less than|tren hoac bang|cao hon hoac bang)/.test(s) ? 'GTE' : /(<|below|under|less than|drops? (?:below|under)|duoi|thap hon|nho hon|giam (?:duoi|xuong))/.test(s) ? 'LT' : /(>|above|over|greater than|rises? above|tren|cao hon|lon hon|vuot|tang (?:len|tren))/.test(s) ? 'GT' : null
     const rawAmount = s.match(/(?:<=|>=|<|>|at or below|at or above|no more than|no less than|below|under|less than|above|over|greater than|duoi(?: hoac bang)?|thap hon(?: hoac bang)?|nho hon|tren(?: hoac bang)?|cao hon(?: hoac bang)?|lon hon|vuot(?: qua)?|xuong|len)\s*\$?\s*(\d[\d.,]*\s*k?)/)?.[1]
@@ -162,7 +165,7 @@ function parseIntent(input) {
   }
   const rawTime = s.match(/\b([01]?\d|2[0-3])(?::([0-5]\d)|h([0-5]?\d)?)\b/)
   const time = rawTime ? `${rawTime[1].padStart(2, '0')}:${(rawTime[2] ?? rawTime[3] ?? '00').padStart(2, '0')}` : null
-  const action = /(portfolio|danh muc|tai san)/.test(s) ? 'PORTFOLIO_SUMMARY' : /(activity|transaction|giao dich|hoat dong)/.test(s) ? 'ACTIVITY_SUMMARY' : /(balance|so du)/.test(s) ? 'BALANCE_CHECK' : null
+  const action = /(ban tin|briefing|tin tuc|\bnews\b|thi truong|\bmarket\b)/.test(s) ? 'DAILY_BRIEFING' : /(portfolio|danh muc|tai san)/.test(s) ? 'PORTFOLIO_SUMMARY' : /(activity|transaction|giao dich|hoat dong)/.test(s) ? 'ACTIVITY_SUMMARY' : /(balance|so du)/.test(s) ? 'BALANCE_CHECK' : null
   const recurrence = /(daily|every day|moi ngay|hang ngay|moi sang|moi toi)/.test(s)
   const missingFields = [!time && 'time', !action && 'action', !recurrence && 'recurrence'].filter(Boolean)
   if (missingFields.length) return { candidate: null, missingFields }

@@ -11,7 +11,7 @@ const call = (name, args, id = `call_${name}`) => ({ type: 'function_call', id: 
 test('tool definitions are strict read-only functions plus a non-executing proposal', () => {
   const tools = toolDefinitions()
   const names = tools.map((tool) => tool.name)
-  assert.deepEqual(names.sort(), ['get_arc_network', 'get_bridge_fees', 'get_crypto_news', 'get_technical_analysis', 'get_derivatives_data', 'get_defi_data', 'get_market_overview', 'get_project_info', 'get_token_market_data', 'get_token_prices', 'get_wallet_overview', 'propose_action', 'propose_plan', 'remember_note', 'save_contact', 'explain_transaction', 'inspect_address'].sort())
+  assert.deepEqual(names.sort(), ['get_arc_network', 'get_bridge_fees', 'get_crypto_news', 'get_technical_analysis', 'get_derivatives_data', 'get_defi_data', 'get_wallet_pnl', 'get_daily_briefing', 'propose_task', 'get_market_overview', 'get_project_info', 'get_token_market_data', 'get_token_prices', 'get_wallet_overview', 'propose_action', 'propose_plan', 'remember_note', 'save_contact', 'explain_transaction', 'inspect_address'].sort())
   for (const tool of tools) {
     assert.equal(tool.type, 'function')
     assert.equal(tool.strict, true)

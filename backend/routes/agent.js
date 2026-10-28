@@ -1,6 +1,7 @@
-const { Router } = require('express')
+const express = require('express')
+const { Router } = express
 const { rateLimit } = require('express-rate-limit')
-const { generateAgentResponse, validLocale } = require('../lib/llm')
+const { generateAgentResponse, validLocale, safeImage } = require('../lib/llm')
 
 const router = Router()
 const isAddress = (value) => typeof value === 'string' && /^0x[0-9a-fA-F]{40}$/.test(value)
@@ -17,14 +18,20 @@ const chatLimiter = rateLimit({
   handler: (_req, res) => res.status(429).json({ error: 'Too many Agent requests. Please wait a minute.', code: 'AGENT_RATE_LIMITED' }),
 })
 
+// Chats with an attached image use their own content type so the app-wide 100 KB JSON parser
+// skips them; only these two routes accept the larger body.
+const CHAT_IMAGE_TYPE = 'application/vnd.makoto.chat+json'
+const imageBody = express.json({ type: CHAT_IMAGE_TYPE, limit: '2mb' })
+
 function parseRequest(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.message !== 'string' || !body.message.trim() || body.message.length > 2000) return { error: 'Invalid chat request' }
   if (body.locale !== undefined && !validLocale(body.locale)) return { error: 'Invalid locale' }
   if (body.history !== undefined && (!Array.isArray(body.history) || body.history.length > 12)) return { error: 'Invalid chat history' }
   if (body.address !== undefined && body.address !== null && !isAddress(body.address)) return { error: 'Invalid address' }
   if (body.memory !== undefined && (body.memory === null || typeof body.memory !== 'object' || Array.isArray(body.memory) || JSON.stringify(body.memory).length > 8000)) return { error: 'Invalid memory' }
+  if (body.image !== undefined && body.image !== null && !safeImage(body.image)) return { error: 'Invalid image' }
   const mode = body.context && typeof body.context === 'object' ? body.context.mode : undefined
-  return { value: { message: body.message.trim(), locale: body.locale || 'en', context: body.context, history: body.history, address: body.address || undefined, mode, memory: body.memory } }
+  return { value: { message: body.message.trim(), locale: body.locale || 'en', context: body.context, history: body.history, address: body.address || undefined, mode, memory: body.memory, image: body.image || undefined } }
 }
 
 const statusFor = (code) => code === 'LLM_NOT_CONFIGURED' ? 503 : code === 'LLM_RATE_LIMITED' ? 429 : code === 'LLM_TIMEOUT' ? 504 : 502
@@ -36,6 +43,7 @@ function replyPayload(result) {
     ...(result.sources ? { sources: result.sources } : {}),
     ...(result.proposal ? { proposal: result.proposal } : {}),
     ...(result.plan ? { plan: result.plan } : {}),
+    ...(result.task ? { task: result.task } : {}),
     ...(result.memory ? { memory: result.memory } : {}),
     ...(result.charts ? { charts: result.charts } : {}),
     ...(result.followups ? { followups: result.followups } : {}),
@@ -48,7 +56,13 @@ router.get('/status', (_req, res) => {
   res.set('Cache-Control', 'no-store').json({ status: configured ? 'ok' : 'unconfigured', streaming: true })
 })
 
-router.post('/chat', chatLimiter, async (req, res) => {
+/** Latest daily Agent quality check (labels and pass/fail only; no wallet data). */
+router.get('/eval', (_req, res) => {
+  const { getAgentEval } = require('../lib/agentEval')
+  res.set('Cache-Control', 'no-store').json(getAgentEval().latest())
+})
+
+router.post('/chat', chatLimiter, imageBody, async (req, res) => {
   const parsed = parseRequest(req.body)
   if (parsed.error) return res.status(400).json({ error: parsed.error })
   let result
@@ -65,7 +79,7 @@ router.post('/chat', chatLimiter, async (req, res) => {
  *   done   {...payload}    — same body as POST /chat (authoritative final text)
  *   error  {code, error, status}
  */
-router.post('/chat/stream', chatLimiter, async (req, res) => {
+router.post('/chat/stream', chatLimiter, imageBody, async (req, res) => {
   const parsed = parseRequest(req.body)
   if (parsed.error) return res.status(400).json({ error: parsed.error })
   const controller = new AbortController()

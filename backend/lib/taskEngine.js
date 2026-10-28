@@ -23,7 +23,30 @@ function missingTask() { return new TaskError('TASK_NOT_FOUND', 'Task not found'
 function claimedTask() { return new TaskError('TASK_ALREADY_CLAIMED', 'Task is already running', 409) }
 function runningTask() { return new TaskError('TASK_RUNNING', 'Task is running', 409) }
 function hasColumn(db, table, column) { return db.prepare(`PRAGMA table_info(${table})`).all().some((entry) => entry.name === column) }
+const money = (value) => (Number.isFinite(value) ? `$${value.toLocaleString('en-US', { maximumFractionDigits: value >= 100 ? 0 : 2 })}` : '—')
+const pct = (value) => (Number.isFinite(value) ? `${value > 0 ? '+' : ''}${value.toFixed(2)}%` : '—')
+const FG_VI = { 'Extreme Fear': 'Sợ hãi tột độ', Fear: 'Sợ hãi', Neutral: 'Trung lập', Greed: 'Tham lam', 'Extreme Greed': 'Tham lam tột độ' }
+
+/** Deterministic morning briefing text (notifications and language fallback). */
+function briefingLines(result, locale) {
+  const vi = locale === 'vi'
+  const lines = []
+  if (Array.isArray(result.market) && result.market.length) lines.push(result.market.map((row) => `${row.symbol} ${money(row.price_usd)} (${pct(row.change_24h_pct)})`).join(' · '))
+  else lines.push(vi ? 'Giá thị trường chưa khả dụng.' : 'Market prices unavailable.')
+  if (result.fear_greed && typeof result.fear_greed === 'object') lines.push(`${vi ? 'Chỉ số Sợ hãi & Tham lam' : 'Fear & Greed'}: ${result.fear_greed.value} (${vi ? FG_VI[result.fear_greed.classification] || result.fear_greed.classification : result.fear_greed.classification})`)
+  if (result.wallet && typeof result.wallet === 'object') {
+    const w = result.wallet
+    lines.push(vi ? `Ví: ${money(w.value_now_usd)} · 24h ${w.change_24h_usd >= 0 ? '+' : ''}${money(w.change_24h_usd)}${Number.isFinite(w.change_24h_pct) ? ` (${pct(w.change_24h_pct)})` : ''}` : `Wallet: ${money(w.value_now_usd)} · 24h ${w.change_24h_usd >= 0 ? '+' : ''}${money(w.change_24h_usd)}${Number.isFinite(w.change_24h_pct) ? ` (${pct(w.change_24h_pct)})` : ''}`)
+    const warning = (w.concentration_warnings || []).find((item) => item.code === 'SINGLE_ASSET' || item.code === 'VOLATILE_SHARE')
+    if (warning) lines.push(vi ? `Lưu ý: ${warning.asset ? `${warning.asset} chiếm` : 'Tài sản biến động chiếm'} ${warning.weight_pct}% ví.` : `Note: ${warning.asset || 'Volatile assets'} ${warning.asset ? 'is' : 'are'} ${warning.weight_pct}% of the wallet.`)
+  }
+  const headlines = Array.isArray(result.headlines) ? result.headlines.slice(0, 3) : []
+  if (headlines.length) lines.push(`${vi ? 'Tin chính' : 'Top news'}: ${headlines.map((item) => item.title).join(' | ')}`)
+  return lines
+}
+
 function messageFor(task, result, locale = task.locale) {
+  if (result.kind === 'DAILY_BRIEFING') return briefingLines(result, locale).join('\n').slice(0, 900)
   if (result.kind === 'TOKEN_PRICE') {
     const comparison = { LT: locale === 'vi' ? 'dưới' : 'below', LTE: locale === 'vi' ? 'không quá' : 'at or below', GT: locale === 'vi' ? 'trên' : 'above', GTE: locale === 'vi' ? 'ít nhất' : 'at or above' }[task.condition.operator]
     return locale === 'vi' ? `Giá ${result.asset} hiện tại: $${result.price}. Ngưỡng: ${comparison} $${result.threshold}.` : `${result.asset} price: $${result.price}. Threshold: ${comparison} $${result.threshold}.`
@@ -46,11 +69,16 @@ function messageFor(task, result, locale = task.locale) {
 function titleFor(task, locale) {
   if (task.type === 'CONDITION_MONITOR' && task.condition?.metric === 'TOKEN_PRICE') return locale === 'vi' ? `Cảnh báo giá ${task.condition.asset}` : `${task.condition.asset} price alert`
   if (task.type === 'CONDITION_MONITOR') return locale === 'vi' ? `Cảnh báo số dư ${task.condition.asset}` : `${task.condition.asset} balance alert`
-  const names = locale === 'vi' ? { PORTFOLIO_SUMMARY: 'Tóm tắt danh mục hằng ngày', ACTIVITY_SUMMARY: 'Tóm tắt hoạt động hằng ngày', BALANCE_CHECK: 'Kiểm tra số dư hằng ngày' } : { PORTFOLIO_SUMMARY: 'Daily portfolio summary', ACTIVITY_SUMMARY: 'Daily activity summary', BALANCE_CHECK: 'Daily balance check' }
+  const names = locale === 'vi' ? { PORTFOLIO_SUMMARY: 'Tóm tắt danh mục hằng ngày', ACTIVITY_SUMMARY: 'Tóm tắt hoạt động hằng ngày', BALANCE_CHECK: 'Kiểm tra số dư hằng ngày', DAILY_BRIEFING: 'Bản tin buổi sáng' } : { PORTFOLIO_SUMMARY: 'Daily portfolio summary', ACTIVITY_SUMMARY: 'Daily activity summary', BALANCE_CHECK: 'Daily balance check', DAILY_BRIEFING: 'Morning briefing' }
   return names[task.schedule.action]
 }
 
 function summaryContext(result, locale) {
+  if (result.kind === 'DAILY_BRIEFING') {
+    const rows = briefingLines(result, 'en').map((line, index) => [`Briefing line ${index + 1}`, line.slice(0, 160)])
+    for (const item of (result.headlines || []).slice(3, 5)) rows.push(['More news', String(item.title).slice(0, 160)])
+    return { locale, intent: 'INFORMATION', toolResult: { status: 'OBSERVED', source: 'DAILY_BRIEFING', observedAt: result.observedAt, rows: rows.slice(0, 8) } }
+  }
   const rows = [['Task', result.kind]]
   for (const [asset, amount] of Object.entries(result.balances ?? {})) {
     if (!TOKENS[asset] || typeof amount !== 'string') continue
@@ -82,6 +110,7 @@ class TaskEngine {
     } catch (error) { this.db.exec('ROLLBACK'); this.db.close(); throw error }
     this.reads = options.reads || defaultReads
     this.generateSummary = options.generateSummary || generateAgentResponse
+    this.briefing = options.briefing || ((account) => require('./walletInsights').dailyBriefing(account))
     this.now = options.now || (() => Date.now())
     this.leaseMs = Number.isSafeInteger(options.leaseMs) && options.leaseMs >= 100 ? options.leaseMs : DEFAULT_LEASE_MS
     this.workerId = randomUUID()
@@ -335,13 +364,16 @@ class TaskEngine {
 
   async withLanguageSummary(task, result) {
     const fallback = messageFor(task, result)
+    const briefing = result.kind === 'DAILY_BRIEFING'
     try {
       const response = await this.generateSummary({
-        message: 'Summarize only the observed task rows. State partial or unavailable data clearly. Do not estimate a portfolio total, infer transactions, or add unobserved facts.',
+        message: briefing
+          ? 'Write a short morning briefing (max 110 words) from the observed rows only: one line on the market mood, the key prices, what the wallet did, any concentration note, and the 2-3 headlines that matter most. No advice to buy or sell. Do not add unobserved facts.'
+          : 'Summarize only the observed task rows. State partial or unavailable data clearly. Do not estimate a portfolio total, infer transactions, or add unobserved facts.',
         locale: task.locale,
         context: summaryContext(result, task.locale),
       })
-      const text = response?.ok && typeof response.text === 'string' ? response.text.trim().slice(0, 600).trim() : ''
+      const text = response?.ok && typeof response.text === 'string' ? response.text.trim().slice(0, briefing ? 1200 : 600).trim() : ''
       if (text) return { ...result, languageSummary: text, languageSource: 'REAL_PROVIDER' }
     } catch { /* A language failure cannot fail the scheduled read. */ }
     return { ...result, languageSummary: fallback, languageSource: 'DETERMINISTIC_FALLBACK' }
@@ -350,6 +382,10 @@ class TaskEngine {
   async summarize(task) {
     if (task.chainId !== 5042002) throw new TaskError('TASK_NETWORK_UNAVAILABLE')
     const action = task.schedule.action
+    if (action === 'DAILY_BRIEFING') {
+      const data = await this.briefing(task.account)
+      return { kind: action, ...data, balances: {}, pricingStatus: Array.isArray(data.market) ? 'AVAILABLE' : 'UNAVAILABLE', activityStatus: 'NOT_REQUESTED', summary: briefingLines(data, 'en').join(' / ').slice(0, 600), observedAt: data.observedAt }
+    }
     const since = action === 'ACTIVITY_SUMMARY' ? localDayStart(task.timezone, this.now()) : iso(this.now() - DAY)
     if (action === 'ACTIVITY_SUMMARY') {
       try {

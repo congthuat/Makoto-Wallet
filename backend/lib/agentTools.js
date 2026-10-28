@@ -337,6 +337,58 @@ const TOOLS = {
       }
     },
   },
+  get_wallet_pnl: {
+    source: 'Wallet PnL',
+    description: 'Profit/loss of the user\'s wallet over 1d, 7d or 30d: value now vs then, split into price effect (real gain/loss) and net deposits/withdrawals (not profit), per-asset rows, allocation % and concentration warnings. Use for "lãi lỗ", "PnL", "how is my portfolio doing", "am I too concentrated".',
+    parameters: {
+      type: 'object',
+      properties: {
+        address: { type: ['string', 'null'], description: '0x wallet address, or null for the user\'s own wallet.' },
+        period: { type: 'string', enum: ['1d', '7d', '30d'] },
+      },
+      required: ['address', 'period'],
+      additionalProperties: false,
+    },
+    async run(args, ctx) {
+      const address = args.address || ctx.address
+      if (!isAddress(address)) return { status: 'UNAVAILABLE', reason: 'No wallet address is connected or watched. Ask the user to connect a wallet or provide a 0x address.' }
+      const { walletPnl } = require('./walletInsights')
+      return { ...(await walletPnl(address, ['1d', '7d', '30d'].includes(args.period) ? args.period : '7d')), data_source: 'Arc explorer · market prices' }
+    },
+  },
+  get_daily_briefing: {
+    source: 'Daily briefing',
+    description: 'One-call morning briefing: BTC/ETH/SOL price and 24h change, Fear & Greed (today vs yesterday), top 5 crypto headlines from major outlets, and (if a wallet is connected) the wallet\'s 24h value change, allocation and concentration warnings. Use for "bản tin hôm nay", "tóm tắt sáng nay", "what did I miss", "daily briefing".',
+    parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    async run(_args, ctx) {
+      const { dailyBriefing } = require('./walletInsights')
+      return { ...(await dailyBriefing(isAddress(ctx.address) ? ctx.address : null)), data_source: 'Daily briefing' }
+    },
+  },
+  propose_task: {
+    source: 'Makoto tasks',
+    description: 'Prepare a background task card the user confirms in one tap: a price alert (BTC, ETH, SOL, USDC, EURC vs a USD threshold), a wallet balance alert (USDC, EURC, cirBTC on Arc), or a daily scheduled report (DAILY_BRIEFING = wallet + market + news morning briefing, PORTFOLIO_SUMMARY, ACTIVITY_SUMMARY, BALANCE_CHECK). Notify-only: it never moves funds. Call when the user asks to be alerted/notified/reminded or wants a daily report, e.g. "báo mình khi BTC dưới 75k", "mỗi sáng 7h gửi bản tin". Compute an exact threshold if the user gives a relative one (e.g. "10% below now" -> read the price first). For daily tasks use 24h HH:MM local time (default 07:00 for "morning").',
+    parameters: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: ['price_alert', 'balance_alert', 'daily_report'] },
+        asset: { type: ['string', 'null'], enum: ['BTC', 'ETH', 'SOL', 'USDC', 'EURC', 'cirBTC', null], description: 'Asset for alerts, otherwise null.' },
+        operator: { type: ['string', 'null'], enum: ['LT', 'LTE', 'GT', 'GTE', null], description: 'LT below, LTE at or below, GT above, GTE at or above. Null for daily_report.' },
+        threshold: { type: ['string', 'null'], description: 'Plain decimal number, e.g. "75000" or "0.998". Null for daily_report.' },
+        time: { type: ['string', 'null'], description: 'HH:MM 24h local time for daily_report, otherwise null.' },
+        action: { type: ['string', 'null'], enum: ['DAILY_BRIEFING', 'PORTFOLIO_SUMMARY', 'ACTIVITY_SUMMARY', 'BALANCE_CHECK', null], description: 'Report type for daily_report, otherwise null.' },
+      },
+      required: ['kind', 'asset', 'operator', 'threshold', 'time', 'action'],
+      additionalProperties: false,
+    },
+    async run(args, ctx) {
+      const draft = validateTaskDraft(args)
+      if (!draft.ok) return { status: 'REJECTED', reason: draft.reason }
+      if (ctx.task) return { status: 'REJECTED', reason: 'Only one task card per reply.' }
+      ctx.task = draft.value
+      return { status: 'TASK_CARD_SHOWN_FOR_USER_CONFIRMATION', task: draft.value, note: 'Nothing is active yet. Do NOT say "I have set" / "đã đặt" / "đã tạo". Say you prepared the alert and the user must press "Create task" (Vietnamese: "Tạo nhiệm vụ") on the card below to turn it on. Then say in one line what will happen when it fires.' }
+    },
+  },
   propose_action: {
     source: 'Makoto planner',
     description: 'Propose ONE wallet action for the user to review in Makoto: send (ERC-20 transfer on Arc), swap (USDC <-> EURC on Arc) or bridge (USDC Arc Testnet -> Base Sepolia). This executes NOTHING; Makoto validates it deterministically and the user must review and sign in their own wallet. Only call when the user clearly asked to do the action. Never use MAX/all — ask for an exact amount instead.',
@@ -457,6 +509,32 @@ function validateProposal(args) {
   return { ok: true, value: { kind, asset: 'USDC', amount, destination: 'Base Sepolia' } }
 }
 
+const TASK_PRICE_ASSETS = ['BTC', 'ETH', 'SOL', 'USDC', 'EURC']
+const TASK_BALANCE_ASSETS = ['USDC', 'EURC', 'cirBTC']
+const TASK_ACTIONS = ['DAILY_BRIEFING', 'PORTFOLIO_SUMMARY', 'ACTIVITY_SUMMARY', 'BALANCE_CHECK']
+/** Validates a model-proposed task into { type, condition, schedule }; account/timezone are bound on the device. */
+function validateTaskDraft(args) {
+  const kind = args?.kind
+  if (kind === 'daily_report') {
+    const time = typeof args.time === 'string' ? args.time.trim() : ''
+    const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(time)
+    if (!match) return { ok: false, reason: 'A daily report needs a time like 07:00.' }
+    if (!TASK_ACTIONS.includes(args.action)) return { ok: false, reason: 'Unsupported report type.' }
+    return { ok: true, value: { type: 'SCHEDULED_AUTOMATION', condition: null, schedule: { kind: 'DAILY', time: `${match[1].padStart(2, '0')}:${match[2]}`, action: args.action } } }
+  }
+  if (kind !== 'price_alert' && kind !== 'balance_alert') return { ok: false, reason: 'Unsupported task kind.' }
+  if (!['LT', 'LTE', 'GT', 'GTE'].includes(args.operator)) return { ok: false, reason: 'Say whether to alert above or below the threshold.' }
+  const threshold = typeof args.threshold === 'string' ? args.threshold.trim().replace(/,/g, '') : ''
+  if (!/^(?:0|[1-9]\d{0,11})(?:\.\d{1,8})?$/.test(threshold) || Number(threshold) <= 0) return { ok: false, reason: 'An exact positive threshold number is required.' }
+  if (kind === 'price_alert') {
+    if (!TASK_PRICE_ASSETS.includes(args.asset)) return { ok: false, reason: 'Price alerts support BTC, ETH, SOL, USDC and EURC only.' }
+    return { ok: true, value: { type: 'CONDITION_MONITOR', schedule: null, condition: { metric: 'TOKEN_PRICE', asset: args.asset, operator: args.operator, threshold, checkIntervalMinutes: 5 } } }
+  }
+  if (!TASK_BALANCE_ASSETS.includes(args.asset)) return { ok: false, reason: 'Balance alerts support USDC, EURC and cirBTC on Arc only.' }
+  if ((threshold.split('.')[1] || '').length > (args.asset === 'cirBTC' ? 8 : 6)) return { ok: false, reason: 'Too many decimal places.' }
+  return { ok: true, value: { type: 'CONDITION_MONITOR', schedule: null, condition: { metric: 'TOKEN_BALANCE', asset: args.asset, operator: args.operator, threshold, checkIntervalMinutes: 2 } } }
+}
+
 function toolDefinitions() {
   return Object.entries(TOOLS).map(([name, tool]) => ({ type: 'function', name, description: tool.description, parameters: tool.parameters, strict: true }))
 }
@@ -483,4 +561,4 @@ async function runTool(name, rawArguments, ctx) {
   }
 }
 
-module.exports = { TOOLS, toolDefinitions, runTool, validateProposal, seriesSummary, downsample, isAddress }
+module.exports = { TOOLS, toolDefinitions, runTool, validateProposal, validateTaskDraft, seriesSummary, downsample, isAddress }
