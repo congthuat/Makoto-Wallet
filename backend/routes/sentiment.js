@@ -1,5 +1,5 @@
 // GET /api/sentiment — Crypto Fear & Greed index (latest + 30d history)
-const { dataApi } = require('@surf-ai/sdk/server')
+const { fearGreed } = require('../lib/marketData')
 const { Router } = require('express')
 const router = Router()
 
@@ -7,9 +7,8 @@ let memo = null
 router.get('/', async (_req, res) => {
   try {
     if (memo && Date.now() - memo.t < 10 * 60 * 1000) return res.json(memo.v)
-    const from = Math.floor(Date.now() / 1000) - 31 * 86400
-    const r = await dataApi.market.fear_greed({ from: String(from) })
-    const rows = (r?.data ?? []).filter((x) => typeof x?.value === 'number')
+    const r = await fearGreed(31)
+    const rows = r.rows
     const latest = rows[0] ?? null
     const v = {
       value: latest?.value ?? null,
@@ -18,6 +17,7 @@ router.get('/', async (_req, res) => {
       yesterday: rows[1]?.value ?? null,
       weekAgo: rows[7]?.value ?? null,
       monthAgo: rows[rows.length - 1]?.value ?? null,
+      source: r.source,
       history: rows.map((x) => [x.timestamp * 1000, x.value]).reverse(),
     }
     memo = { t: Date.now(), v }

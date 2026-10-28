@@ -91,6 +91,17 @@ export const AGENT_I18N: Record<string, [string, string, string, string]> = {
   "Analyze my wallet: balances, USD value, allocation and recent activity.": ["Phân tích ví của tôi: số dư, giá trị USD, tỷ trọng và hoạt động gần đây.", '', '', ''],
   "Makoto Agent (AI)": ["Makoto Agent (AI)", '', '', ''],
   "Surf market data": ["Dữ liệu thị trường Surf", '', '', ''],
+  // Agent data sources — 2026-10-28
+  "Market data": ["Dữ liệu thị trường", '市场数据', 'マーケットデータ', '시장 데이터'],
+  "Crypto news": ["Tin tức crypto", '加密新闻', '暗号資産ニュース', '크립토 뉴스'],
+  "Project data": ["Thông tin dự án", '项目数据', 'プロジェクト情報', '프로젝트 정보'],
+  "Technical analysis": ["Phân tích kỹ thuật", '技术分析', 'テクニカル分析', '기술적 분석'],
+  "Derivatives data": ["Dữ liệu phái sinh", '衍生品数据', 'デリバティブデータ', '파생상품 데이터'],
+  "DeFi data": ["Dữ liệu DeFi", 'DeFi 数据', 'DeFi データ', 'DeFi 데이터'],
+  "OKX spot candles": ["Nến giao ngay OKX", 'OKX 现货K线', 'OKX 現物ローソク足', 'OKX 현물 캔들'],
+  "OKX perpetuals": ["Hợp đồng vĩnh cửu OKX", 'OKX 永续合约', 'OKX 無期限先物', 'OKX 무기한 선물'],
+  "DefiLlama yields": ["Lợi suất DefiLlama", 'DefiLlama 收益', 'DefiLlama 利回り', 'DefiLlama 수익률'],
+  "CoinGecko daily closes": ["Giá đóng cửa ngày CoinGecko", 'CoinGecko 日收盘价', 'CoinGecko 日足終値', 'CoinGecko 일별 종가'],
   "OpenAI · streaming": ["OpenAI · trả lời theo thời gian thực", '', '', ''],
   "ALL": ["Tất cả", '', '', ''],
   // Payment requests — 2026-10-26

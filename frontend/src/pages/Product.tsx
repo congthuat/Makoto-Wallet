@@ -206,7 +206,7 @@ export function StatusPage() {
   const rows = [
     { name: 'Arc Testnet network', ok: networkStatus === 'online' || networkStatus === 'stale', loading: networkStatus === 'loading', detail: network ? `${tr('Block')} #${network.blockNumber.toLocaleString()} · ${network.rpcLatencyMs} ms` : networkStatus === 'stale' ? tr('Stale') : '' },
     { name: 'Market prices', ok: !!prices, loading: !prices, detail: prices ? 'USDC · EURC · BTC' : '' },
-    { name: 'Market sentiment', ok: feed.isSuccess, loading: feed.isLoading, detail: 'Surf market data' },
+    { name: 'Market sentiment', ok: feed.isSuccess, loading: feed.isLoading, detail: 'Market data' },
     { name: 'Makoto Agent (AI)', ok: agent.isSuccess && agent.data?.status === 'ok', loading: agent.isLoading, detail: 'OpenAI · streaming' },
     { name: 'Circle faucet', ok: true, loading: false, detail: tr('External · faucet.circle.com') },
   ]

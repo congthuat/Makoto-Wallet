@@ -1,4 +1,4 @@
-const { dataApi } = require('@surf-ai/sdk/server')
+const market = require('./marketData')
 const { CHAIN_ID, TOKENS, TaskError, formatUnits } = require('./taskDefinitions')
 
 // Official Arc Testnet public RPC — verified 2026-10-16. rpc.testnet.arc.network is NXDOMAIN.
@@ -113,23 +113,16 @@ async function readPrices() {
   const prices = {}, unavailable = []
   await Promise.all(Object.keys(TOKENS).map(async (asset) => {
     try {
-      const symbol = asset === 'cirBTC' ? 'BTC' : asset
-      const result = await dataApi.market.price({ symbol, time_range: '7d' })
-      const rows = (result?.data ?? []).filter((row) => Number.isFinite(row?.value) && row.value > 0 && Number.isFinite(row?.timestamp))
-      if (!rows.length) throw new Error('Price unavailable')
-      prices[asset] = { usd: rows.at(-1).value, observedAt: new Date(rows.at(-1).timestamp * 1000).toISOString(), source: 'surf-market' }
+      const price = await market.latestPrice(asset === 'cirBTC' ? 'BTC' : asset)
+      prices[asset] = { usd: price.usd, observedAt: price.observedAt, source: price.source }
     } catch { unavailable.push(asset) }
   }))
   return { prices, unavailable }
 }
 
-/** Latest USD market price for a price alert (Surf market data, last point of the 1-day series). */
+/** Latest USD market price for a price alert (Surf market data, falling back to CoinGecko, then OKX). */
 async function readPrice(asset) {
-  const result = await dataApi.market.price({ symbol: asset, time_range: '1d' })
-  const rows = (result?.data ?? []).filter((row) => Number.isFinite(row?.value) && row.value > 0 && Number.isFinite(row?.timestamp)).sort((a, b) => a.timestamp - b.timestamp)
-  if (!rows.length) throw new Error('Price unavailable')
-  const last = rows.at(-1)
-  return { usd: last.value, observedAt: new Date(last.timestamp * 1000).toISOString(), source: 'surf-market' }
+  return market.latestPrice(asset)
 }
 
 module.exports = { rpc, verifyChain, readBalance, readBalances, readActivity, readPrices, readPrice }

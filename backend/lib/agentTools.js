@@ -2,12 +2,12 @@
 //
 // Safety boundary:
 // - Every tool here only READS public data (Arc RPC / Arc explorer / CoinGecko /
-//   Circle Iris / Surf data API). None of them can sign, submit, or hold keys.
+//   Circle Iris / market data with fallbacks: Surf, CoinGecko, OKX, DefiLlama, RSS). None of them can sign, submit, or hold keys.
 // - `propose_action` executes nothing. It returns a structured proposal that the
 //   frontend must pass through Makoto's deterministic planner, Policy/Risk review,
 //   explicit user review, and the user's own wallet signature.
 // - Tool outputs are untrusted data for the model and are size-bounded.
-const { dataApi } = require('@surf-ai/sdk/server')
+const market = require('./marketData')
 
 const ARC_RPC = 'https://rpc.testnet.arc.io'
 const ARC_EXPLORER_API = 'https://explorer.testnet.arc.io/api/v2'
@@ -140,7 +140,7 @@ const TOOLS = {
     },
   },
   get_market_overview: {
-    source: 'Surf market data',
+    source: 'Market data',
     description: 'Read the crypto market overview: top tokens ranked by market cap, 24h change or 24h volume (optionally filtered by category), plus the Crypto Fear & Greed index.',
     parameters: {
       type: 'object',
@@ -155,23 +155,21 @@ const TOOLS = {
     },
     async run(args) {
       const limit = Math.min(15, Math.max(1, Number(args.limit) || 10))
-      const params = { sort_by: args.sort_by || 'market_cap', order: args.order === 'asc' ? 'asc' : 'desc', limit }
-      if (args.category) params.category = args.category
       const [ranking, fearGreed] = await Promise.all([
-        dataApi.market.ranking(params),
-        dataApi.market.fear_greed({ from: String(Math.floor(Date.now() / 1000) - 3 * 86400) }).catch(() => null),
+        market.marketRanking({ sort_by: args.sort_by || 'market_cap', order: args.order === 'asc' ? 'asc' : 'desc', category: args.category || null, limit }),
+        market.fearGreed(3).catch(() => null),
       ])
-      const fg = (fearGreed?.data ?? []).filter((row) => typeof row?.value === 'number')[0]
+      const fg = fearGreed?.rows?.[0]
       return {
-        status: 'OK', observedAt: nowIso(),
-        tokens: (ranking?.data ?? []).filter((row) => row?.symbol).map((row) => ({ rank: row.rank, symbol: row.symbol, name: row.name, price_usd: row.price_usd, change_24h_pct: round(row.change_24h_pct, 2), market_cap_usd: row.market_cap_usd, volume_24h_usd: row.volume_24h_usd })),
-        fearGreed: fg ? { value: fg.value, label: fg.classification ?? null } : 'unavailable',
+        status: 'OK', observedAt: nowIso(), data_source: [ranking.source, fearGreed?.source].filter(Boolean).join(' + '),
+        tokens: ranking.tokens.map((row) => ({ ...row, change_24h_pct: round(row.change_24h_pct, 2), ...(row.change_7d_pct != null ? { change_7d_pct: round(row.change_7d_pct, 2) } : {}) })),
+        fearGreed: fg ? { value: fg.value, label: fg.classification ?? null, yesterday: fearGreed.rows[1]?.value ?? null } : 'unavailable',
       }
     },
   },
   get_token_market_data: {
-    source: 'Surf market data',
-    description: 'Read the price history summary of one crypto token by ticker (e.g. BTC, ETH, SOL, USDC) over a time range: last price, % change, high and low. Use for price analysis questions.',
+    source: 'Market data',
+    description: 'Read the price history summary of one crypto token by ticker (e.g. BTC, ETH, SOL, USDC) over a time range: last price, % change, high and low. A chart is shown to the user. Use for price questions.',
     parameters: {
       type: 'object',
       properties: {
@@ -185,22 +183,73 @@ const TOOLS = {
       const symbol = String(args.symbol || '').trim().toUpperCase()
       if (!SYMBOL.test(symbol)) throw new ToolInputError('Invalid symbol')
       const timeRange = ['1d', '7d', '14d', '30d', '90d', '180d', '365d'].includes(args.time_range) ? args.time_range : '7d'
-      const result = await dataApi.market.price({ symbol, time_range: timeRange })
-      const summary = seriesSummary(result?.data)
+      let series
+      try { series = await market.priceSeries(symbol, timeRange) } catch { return { status: 'UNAVAILABLE', symbol, reason: 'No price data for this symbol' } }
+      const summary = seriesSummary(series.points)
       if (!summary) return { status: 'UNAVAILABLE', symbol, reason: 'No price data for this symbol' }
       // The UI draws this series as a chart; the model only receives the summary.
-      const points = downsample(result.data, 60)
-      if (points.length >= 2 && ctx && Array.isArray(ctx.charts) && ctx.charts.length < 3) ctx.charts.push({ symbol, time_range: timeRange, currency: 'USD', points })
-      return { status: 'OK', symbol, time_range: timeRange, currency: 'USD', ...summary, chart: 'shown to the user' }
+      const points = downsample(series.points, 60)
+      if (points.length >= 2 && ctx && Array.isArray(ctx.charts) && ctx.charts.length < 3) ctx.charts.push({ symbol, time_range: timeRange, currency: 'USD', source: series.source, points })
+      return { status: 'OK', data_source: series.source, symbol, time_range: timeRange, currency: 'USD', ...summary, chart: 'shown to the user' }
+    },
+  },
+  get_technical_analysis: {
+    source: 'Technical analysis',
+    description: 'Compute technical indicators for one token from real candles: trend vs SMA20/50/200, RSI(14), MACD, Bollinger position, ATR volatility and recent support/resistance levels. Use for "should I buy/sell", entry/exit, trend or chart-analysis questions, together with derivatives data and news.',
+    parameters: {
+      type: 'object',
+      properties: {
+        symbol: { type: 'string', description: 'Ticker like BTC, ETH, SOL.' },
+        timeframe: { type: 'string', enum: ['1h', '4h', '1d'], description: 'Candle size: 1h short-term, 4h swing, 1d mid/long-term.' },
+      },
+      required: ['symbol', 'timeframe'],
+      additionalProperties: false,
+    },
+    async run(args) {
+      const symbol = String(args.symbol || '').trim().toUpperCase()
+      if (!SYMBOL.test(symbol)) throw new ToolInputError('Invalid symbol')
+      const result = await market.technicals(symbol, ['1h', '4h', '1d'].includes(args.timeframe) ? args.timeframe : '1d')
+      return { status: 'OK', data_source: result.source, observedAt: nowIso(), ...result }
+    },
+  },
+  get_derivatives_data: {
+    source: 'Derivatives data',
+    description: 'Read perpetual futures positioning for one token from OKX: funding rate (current, 7-day average, annualized), open interest in USD, 24h perp change and the long/short account ratio now vs 24h ago. Use for leverage, funding, long/short, squeeze or "what are traders doing" questions.',
+    parameters: { type: 'object', properties: { symbol: { type: 'string', description: 'Ticker like BTC, ETH, SOL.' } }, required: ['symbol'], additionalProperties: false },
+    async run(args) {
+      const symbol = String(args.symbol || '').trim().toUpperCase()
+      if (!SYMBOL.test(symbol)) throw new ToolInputError('Invalid symbol')
+      try { return { status: 'OK', data_source: 'OKX perpetuals', ...(await market.derivatives(symbol)) } }
+      catch { return { status: 'UNAVAILABLE', symbol, reason: `No ${symbol} perpetual market data on OKX.` } }
+    },
+  },
+  get_defi_data: {
+    source: 'DeFi data',
+    description: 'Read DeFi data from DefiLlama: kind=protocol (TVL and 1d/7d change of one protocol by name), top_protocols (largest by TVL, optional query = category like "Lending", "Dexs", "Liquid Staking" or a chain name), chains (TVL by chain, optional chain name) or stablecoin_yields (highest stablecoin pool APYs with TVL >= $5M, optional query = chain/project/symbol like "USDC" or "Base").',
+    parameters: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: ['protocol', 'top_protocols', 'chains', 'stablecoin_yields'] },
+        query: { type: ['string', 'null'], description: 'Protocol name, category, chain or symbol filter; null for none.' },
+        limit: { type: 'integer', description: '1-10 rows.' },
+      },
+      required: ['kind', 'query', 'limit'],
+      additionalProperties: false,
+    },
+    async run(args) {
+      if (!['protocol', 'top_protocols', 'chains', 'stablecoin_yields'].includes(args.kind)) throw new ToolInputError('Invalid kind')
+      const query = typeof args.query === 'string' ? args.query.trim().slice(0, 60) : ''
+      const result = await market.defi({ kind: args.kind, query, limit: args.limit })
+      return { status: 'OK', data_source: result.source, observedAt: nowIso(), ...result }
     },
   },
   get_crypto_news: {
-    source: 'Surf news',
+    source: 'Crypto news',
     description: 'Read recent crypto news headlines. With a query, searches articles about a topic or project (e.g. "Circle", "USDC", "Arc", "Bitcoin ETF"); without a query, returns the latest market headlines.',
     parameters: {
       type: 'object',
       properties: {
-        query: { type: ['string', 'null'], description: 'Topic or project to search for, or null for latest headlines.' },
+        query: { type: ['string', 'null'], description: 'Topic or project to search for (short keywords), or null for latest headlines.' },
         limit: { type: 'integer', description: 'Number of articles, 1-8.' },
       },
       required: ['query', 'limit'],
@@ -209,33 +258,31 @@ const TOOLS = {
     async run(args) {
       const limit = Math.min(8, Math.max(1, Number(args.limit) || 5))
       const query = typeof args.query === 'string' ? args.query.trim().slice(0, 80) : ''
-      const result = query ? await dataApi.search.news({ q: query, limit }) : await dataApi.news.feed({ sort_by: 'recency', limit })
-      const all = (result?.data ?? []).filter((item) => item?.title).sort((a, b) => (b.published_at ?? 0) - (a.published_at ?? 0))
+      const result = await market.news({ query, limit: 20 })
+      const all = (result.articles ?? []).filter((item) => item?.title).sort((a, b) => (b.published_at ?? 0) - (a.published_at ?? 0))
       // Search is relevance-ranked and can return old articles; prefer the last 120 days when enough exist.
       const recent = all.filter((item) => typeof item.published_at === 'number' && Date.now() / 1000 - item.published_at < 120 * 86400)
       const items = (recent.length >= Math.min(2, all.length) ? recent : all).slice(0, limit)
       return {
-        status: 'OK', observedAt: nowIso(), query: query || null, note: 'Always state each article publication date; do not present older articles as today\'s news.',
+        status: items.length ? 'OK' : 'NO_MATCHES', data_source: result.source, observedAt: nowIso(), query: query || null,
+        note: `Always state each article publication date; do not present older articles as today's news.${result.searched ? ` Keyword search covers the ${result.searched}; if nothing matches, say no recent headline was found rather than that nothing happened.` : ''}`,
         articles: items.map((item) => ({ title: strip(item.title, 200), source: item.source ?? null, published_at: item.published_at ? new Date(item.published_at * 1000).toISOString() : null, summary: strip(item.summary, 280), project: item.project_name ?? null, url: typeof item.url === 'string' && /^https:\/\//.test(item.url) ? item.url : null })),
       }
     },
   },
   get_project_info: {
-    source: 'Surf project data',
-    description: 'Read a crypto project profile by name (e.g. "Circle", "Ethereum", "Uniswap"): description, chains, token info and social links.',
+    source: 'Project data',
+    description: 'Read a crypto project/token profile by name or ticker (e.g. "Circle", "Ethereum", "UNI"): description, chains, categories, price, market cap, FDV, all-time high and supply.',
     parameters: { type: 'object', properties: { name: { type: 'string', description: 'Project or token name.' } }, required: ['name'], additionalProperties: false },
     async run(args) {
       const name = String(args.name || '').trim().slice(0, 60)
       if (!name) throw new ToolInputError('Missing project name')
-      const result = await dataApi.project.detail({ q: name, fields: 'overview,token_info,social' })
-      const data = result?.data ?? {}
-      const overview = data.overview ?? {}
-      const token = data.token_info ?? {}
+      let info
+      try { info = await market.projectInfo(name) } catch { return { status: 'UNAVAILABLE', name, reason: 'Project not found in the data sources.' } }
       return {
-        status: data && Object.keys(data).length ? 'OK' : 'UNAVAILABLE', observedAt: nowIso(),
-        name: overview.name ?? name, description: strip(overview.description, 600), chains: Array.isArray(overview.chains) ? overview.chains.slice(0, 8) : null,
-        tags: Array.isArray(overview.tags) ? overview.tags.slice(0, 8) : null,
-        token: token && typeof token === 'object' ? { symbol: token.symbol ?? null, price_usd: token.price_usd ?? token.price ?? null, market_cap_usd: token.market_cap_usd ?? token.market_cap ?? null } : null,
+        status: 'OK', data_source: info.source, observedAt: nowIso(),
+        name: info.name ?? name, description: strip(info.description, 600), chains: Array.isArray(info.chains) ? info.chains.slice(0, 8) : null,
+        tags: Array.isArray(info.tags) ? info.tags.slice(0, 8) : null, token: info.token ?? null, ...(info.links ? { links: info.links } : {}),
       }
     },
   },
@@ -428,7 +475,8 @@ async function runTool(name, rawArguments, ctx) {
   if (!args || typeof args !== 'object' || Array.isArray(args)) return { ok: false, output: boundOutput({ status: 'ERROR', reason: 'Invalid tool arguments' }) }
   try {
     const result = await withTimeout(Promise.resolve(tool.run(args, ctx)), TOOL_TIMEOUT_MS, name)
-    return { ok: true, source: tool.source, output: boundOutput(result) }
+    const source = typeof result?.data_source === 'string' && result.data_source ? result.data_source.slice(0, 60) : tool.source
+    return { ok: true, source, output: boundOutput(result) }
   } catch (error) {
     const reason = error instanceof ToolInputError ? error.message : 'Data source unavailable right now'
     return { ok: false, source: tool.source, output: boundOutput({ status: 'UNAVAILABLE', reason }) }

@@ -157,7 +157,7 @@ function AgentPriceChart({ chart }: { chart: ChatChart }) {
         <span className={`font-num ${T.sub}`}>{last.toLocaleString('en-US', { maximumFractionDigits: last >= 100 ? 2 : 6 })} {chart.currency} · {change >= 0 ? '▲' : '▼'} {Math.abs(change).toFixed(2)}%</span>
       </figcaption>
       <div className="mt-2"><AreaChart points={points} height={140} label={L(vi, `${chart.symbol} price, ${chart.timeRange}`, `Giá ${chart.symbol}, ${chart.timeRange}`)} /></div>
-      <p className={`mt-1.5 text-[11px] ${T.mute}`}>{L(vi, 'Surf market data · use arrow keys on the chart to read values', 'Dữ liệu thị trường Surf · dùng phím mũi tên trên biểu đồ để đọc giá trị')}</p>
+      <p className={`mt-1.5 text-[11px] ${T.mute}`}>{chart.source ?? 'CoinGecko'} · {L(vi, 'use arrow keys on the chart to read values', 'dùng phím mũi tên trên biểu đồ để đọc giá trị')}</p>
     </figure>
   )
 }

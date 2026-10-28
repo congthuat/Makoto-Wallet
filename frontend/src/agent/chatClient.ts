@@ -11,7 +11,7 @@ export type ChatDataSource = Readonly<{ source: string; ok: boolean; observedAt?
 export type ChatProposal = PlanStep
 /** Memory changes the model asked for: notes are saved on the device; contacts need a user click. */
 export type ChatMemoryUpdate = Readonly<{ type: 'note'; note: string } | { type: 'contact'; name: string; address: string }>
-export type ChatChart = Readonly<{ symbol: string; timeRange: string; currency: string; points: readonly (readonly [number, number])[] }>
+export type ChatChart = Readonly<{ symbol: string; timeRange: string; currency: string; source?: string; points: readonly (readonly [number, number])[] }>
 export type { ChatHistoryItem } from './chatContext.ts'
 export type ChatSource = 'REAL_PROVIDER' | 'LOCAL_FALLBACK' | 'DETERMINISTIC_TOOL'
 export type ChatResponse = Readonly<{ ok: true; text: string; source: 'REAL_PROVIDER'; sources?: readonly ChatDataSource[]; proposal?: ChatProposal; plan?: readonly PlanStep[]; memory?: readonly ChatMemoryUpdate[]; charts?: readonly ChatChart[]; followups?: readonly string[] } | { ok: false; reason: string; source: 'LOCAL_FALLBACK'; aborted?: boolean }>
@@ -226,7 +226,7 @@ function parseCharts(value: unknown): ChatChart[] {
     const v = item as Record<string, unknown>
     if (typeof v.symbol !== 'string' || !/^[A-Za-z0-9]{1,15}$/.test(v.symbol) || !Array.isArray(v.points)) return []
     const points = v.points.slice(0, 200).filter((point): point is [number, number] => Array.isArray(point) && point.length === 2 && point.every((n) => typeof n === 'number' && Number.isFinite(n)))
-    return points.length >= 2 ? [{ symbol: v.symbol.toUpperCase(), timeRange: typeof v.time_range === 'string' ? v.time_range.slice(0, 6) : '', currency: typeof v.currency === 'string' ? v.currency.slice(0, 6) : 'USD', points }] : []
+    return points.length >= 2 ? [{ symbol: v.symbol.toUpperCase(), timeRange: typeof v.time_range === 'string' ? v.time_range.slice(0, 6) : '', currency: typeof v.currency === 'string' ? v.currency.slice(0, 6) : 'USD', ...(typeof v.source === 'string' && v.source ? { source: v.source.slice(0, 40) } : {}), points }] : []
   })
 }
 
