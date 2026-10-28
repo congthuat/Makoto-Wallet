@@ -118,6 +118,8 @@ run install -o root -g root -m 0644 "$DEPLOY_DIR/makoto-backend.service" /etc/sy
 if [ "$DRY_RUN" = "1" ]; then echo "[dry-run] write /etc/caddy/Caddyfile for $API_DOMAIN"; else
   sed "s/{\$MAKOTO_API_DOMAIN}/$API_DOMAIN/" "$DEPLOY_DIR/Caddyfile" > /etc/caddy/Caddyfile
   install -d -o caddy -g caddy -m 0755 /var/log/caddy
+  # Repair logs created by an older version of this script (root-owned → Caddy cannot start).
+  chown -R caddy:caddy /var/log/caddy
   # Validate as the caddy user: run as root, validation creates a root-owned access
   # log that the caddy service then cannot open, and Caddy refuses to start.
   sudo -u caddy -H caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
