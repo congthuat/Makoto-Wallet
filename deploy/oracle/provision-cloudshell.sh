@@ -165,8 +165,11 @@ remote 'sudo makoto-update --check' >/dev/null || die "Backend is not healthy on
 info "Backend healthy on the VM"
 
 say "6/8 DNS: point $API_DOMAIN to $IP"
-resolve() { curl -fsS "https://dns.google/resolve?name=$API_DOMAIN&type=A" 2>/dev/null | python3 -c 'import json,sys; print(" ".join(a["data"] for a in json.load(sys.stdin).get("Answer",[]) if a.get("type")==1))' 2>/dev/null || true; }
-if [ "$(resolve)" != "$IP" ]; then
+# Public resolvers cache independently; DNS counts as ready once Google or Cloudflare sees the new IP.
+resolve_one() { curl -fsS -m 10 -H 'accept: application/dns-json' "$1?name=$API_DOMAIN&type=A" 2>/dev/null | python3 -c 'import json,sys; print(" ".join(a["data"] for a in json.load(sys.stdin).get("Answer",[]) if a.get("type")==1))' 2>/dev/null || true; }
+resolve() { resolve_one https://dns.google/resolve; }
+dns_ready() { [ "$(resolve_one https://dns.google/resolve)" = "$IP" ] || [ "$(resolve_one https://cloudflare-dns.com/dns-query)" = "$IP" ]; }
+if ! dns_ready; then
   cat <<EOF
 
     Open https://vercel.com → Domains → makotowallet.xyz → DNS Records → Add:
@@ -178,13 +181,13 @@ if [ "$(resolve)" != "$IP" ]; then
 
 EOF
   info "Waiting for DNS (checks every 20s, up to 30 min; Ctrl+C to stop — re-running later is safe)"
+  dns_ok=0
   for i in $(seq 1 90); do
-    current="$(resolve)"
-    [ "$current" = "$IP" ] && break
-    [ $((i % 6)) -eq 0 ] && info "DNS now: ${current:-none}"
+    if dns_ready; then dns_ok=1; break; fi
+    [ $((i % 6)) -eq 0 ] && info "DNS now: $(resolve) (waiting for $IP)"
     sleep 20
   done
-  [ "$(resolve)" = "$IP" ] || die "DNS does not point to $IP yet. Add the record, then run the same command again."
+  [ "$dns_ok" = 1 ] || die "DNS does not point to $IP yet. Add the record, then run the same command again."
 fi
 info "DNS OK"
 
