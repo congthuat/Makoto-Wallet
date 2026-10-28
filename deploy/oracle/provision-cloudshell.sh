@@ -139,18 +139,16 @@ remote true || die "Cannot SSH to $IP yet. Wait a minute and run the same comman
 for i in $(seq 1 120); do
   if remote 'test -f /var/lib/makoto-setup.ok' 2>/dev/null; then info "Installation finished"; break; fi
   if remote 'test -f /var/lib/makoto-setup.failed' 2>/dev/null; then
-    # setup.sh is safe to re-run: retry once with the latest version (fixes ship via GitHub).
-    if [ ! -f "$STATE_DIR/setup-retried-$IP" ]; then
-      touch "$STATE_DIR/setup-retried-$IP"
-      info "The first installation stopped with an error; running it again with the latest fixes…"
-      if remote "curl -fsSL '$RAW_BASE/setup.sh?\$(date +%s)' -o /tmp/makoto-setup.sh && sudo API_DOMAIN='$API_DOMAIN' bash /tmp/makoto-setup.sh" ; then
+    # setup.sh is safe to re-run: retry once per run with the latest version (fixes ship via GitHub).
+    if [ "${setup_retried:-0}" = 0 ]; then
+      setup_retried=1
+      info "The previous installation stopped with an error; running it again with the latest fixes…"
+      if remote "curl -fsSL -H 'Cache-Control: no-cache' '$RAW_BASE/setup.sh' -o /tmp/makoto-setup.sh && sudo API_DOMAIN='$API_DOMAIN' bash /tmp/makoto-setup.sh"; then
         remote 'sudo rm -f /var/lib/makoto-setup.failed && sudo touch /var/lib/makoto-setup.ok'
         info "Installation finished"; break
       fi
+      die "Installation failed again on the VM (see the lines above). Send a screenshot to Makoto Agent."
     fi
-    remote 'sudo tail -40 /var/log/makoto-setup.log' || true
-    rm -f "$STATE_DIR/setup-retried-$IP"
-    die "Installation failed on the VM (log above). Send a screenshot to Makoto Agent; re-running the same command retries it."
   fi
   [ $((i % 6)) -eq 0 ] && info "still installing… ($(( i / 6 )) min)"
   sleep 10
