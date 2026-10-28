@@ -130,6 +130,7 @@ export const AGENT_I18N: Record<string, [string, string, string, string]> = {
   "Move funds without your confirmation": ["Chuyển tiền khi chưa có xác nhận của bạn", '', '', ''],
   "Contracts": ["Hợp đồng", '', '', ''],
   "Addresses Makoto asks your wallet to interact with": ["Các địa chỉ Makoto yêu cầu ví bạn tương tác", '', '', ''],
+  'Source verified': ['Đã xác minh mã nguồn', '源码已验证', 'ソース検証済み', '소스 검증됨'],
   "Payment requests · no admin, no upgrades, no fees, never holds funds": ["Yêu cầu thanh toán · không admin, không nâng cấp, không phí, không giữ tiền", '', '', ''],
   "Official Circle token on Arc Testnet": ["Token chính thức của Circle trên Arc Testnet", '', '', ''],
   "Always compare the address shown in your wallet with the one listed here before you sign.": ["Luôn so sánh địa chỉ hiện trong ví với địa chỉ ở đây trước khi ký.", '', '', ''],

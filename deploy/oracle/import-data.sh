@@ -2,7 +2,8 @@
 # Import Makoto SQLite databases (e.g. exported from Railway) into this server.
 #   sudo makoto-import-data /path/to/folder
 # The folder must contain task-auth.sqlite, tasks.sqlite and portfolio-history.sqlite
-# (a missing file is allowed only with ALLOW_PARTIAL=1). Every file is verified
+# (a missing file is allowed only with ALLOW_PARTIAL=1); embedded-vaults.sqlite
+# (encrypted Google-wallet backups) is imported when present. Every file is verified
 # before anything is replaced, and the current data is backed up first.
 set -Eeuo pipefail
 
@@ -12,7 +13,8 @@ OWNER="${OWNER:-makoto}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:3001/api/health}"
 ALLOW_PARTIAL="${ALLOW_PARTIAL:-0}"
 # name:required_table
-DATABASES=(task-auth:sessions tasks:tasks portfolio-history:portfolio_history)
+DATABASES=(task-auth:sessions tasks:tasks portfolio-history:portfolio_history embedded-vaults:embedded_vaults)
+OPTIONAL_DATABASES=' embedded-vaults '
 
 die() { printf '\033[1;31m[x] %s\033[0m\n' "$*" >&2; exit 1; }
 say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
@@ -27,6 +29,7 @@ for entry in "${DATABASES[@]}"; do
   name="${entry%%:*}"; table="${entry#*:}"
   file="$src_dir/$name.sqlite"
   if [ ! -f "$file" ]; then
+    case "$OPTIONAL_DATABASES" in *" $name "*) echo "skip $name (none on Railway yet)"; continue ;; esac
     [ "$ALLOW_PARTIAL" = "1" ] || die "Missing $file (set ALLOW_PARTIAL=1 to import only the files present)"
     echo "skip $name (not provided)"
     continue

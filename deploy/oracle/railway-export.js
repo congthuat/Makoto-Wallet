@@ -14,12 +14,18 @@ const DATABASES = {
   'task-auth': 'TASK_AUTH_DB_PATH',
   tasks: 'TASK_DB_PATH',
   'portfolio-history': 'PORTFOLIO_HISTORY_DB_PATH',
+  // Encrypted "Sign in with Google" wallet backups (ciphertext only). Optional:
+  // the file only exists once someone has created a Google wallet.
+  'embedded-vaults': 'EMBEDDED_VAULT_DB_PATH',
 }
+const OPTIONAL = new Set(['embedded-vaults'])
 
 function candidates(name, envKey) {
   const file = `${name}.sqlite`
   return [...new Set([
     process.env[envKey],
+    // Same default as the backend: next to the task databases.
+    ...['TASK_AUTH_DB_PATH', 'TASK_DB_PATH'].filter((key) => process.env[key]).map((key) => path.join(path.dirname(process.env[key]), file)),
     path.join('/data', file),
     path.join('/data', 'data', file),
     path.join('/app', 'data', file),
@@ -33,7 +39,7 @@ const emit = (record) => process.stdout.write(`MAKOTO_EXPORT ${JSON.stringify(re
 for (const [name, envKey] of Object.entries(DATABASES)) {
   const searched = candidates(name, envKey)
   const source = searched.find((file) => fs.existsSync(file) && fs.statSync(file).isFile())
-  if (!source) { emit({ name, missing: true, searched }); continue }
+  if (!source) { emit({ name, missing: true, optional: OPTIONAL.has(name), searched }); continue }
   const tmp = path.join(os.tmpdir(), `makoto-export-${name}-${process.pid}-${crypto.randomUUID()}.sqlite`)
   let db
   try {

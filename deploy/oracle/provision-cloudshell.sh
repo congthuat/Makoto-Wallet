@@ -174,7 +174,7 @@ done
 curl -fsS "https://$API_DOMAIN/api/health" | grep -q '"ok"' || die "HTTPS is not ready yet. Run the same command again in a few minutes (log: ssh ubuntu@$IP 'sudo journalctl -u caddy -n 50')."
 
 say "8/8 Copy data from Railway"
-if ask_yes "Copy Tasks, portfolio history and wallet sessions from Railway now?"; then
+if ask_yes "Copy Tasks, portfolio history, wallet sessions and Google-wallet backups from Railway now?"; then
   remote_tty 'makoto-railway-export'
   remote_tty 'latest="$(ls -dt "$HOME"/railway-export-* 2>/dev/null | head -1)"; [ -n "$latest" ] && sudo makoto-import-data "$latest"'
 else

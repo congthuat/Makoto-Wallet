@@ -1,6 +1,6 @@
 # MakotoPayRequests
 
-**Arc Testnet deployment:** [`0x190132A7C8D218845c2769471C625E6da5eE4dFE`](https://testnet.arcscan.app/address/0x190132A7C8D218845c2769471C625E6da5eE4dFE) (constructor: USDC `0x3600…0000`, EURC `0x89B5…D72a`). Runtime bytecode verified byte-for-byte against this source.
+**Arc Testnet deployment:** [`0x190132A7C8D218845c2769471C625E6da5eE4dFE`](https://testnet.arcscan.app/address/0x190132A7C8D218845c2769471C625E6da5eE4dFE) (constructor: USDC `0x3600…0000`, EURC `0x89B5…D72a`). Source verified on ArcScan ([view code](https://testnet.arcscan.app/address/0x190132A7C8D218845c2769471C625E6da5eE4dFE?tab=contract)): solc 0.8.24, optimizer 200 runs, EVM `paris`, `bytecodeHash: none`. Creation bytecode matches this source byte for byte.
 
 Payment requests and bill splitting on Arc Testnet.
 

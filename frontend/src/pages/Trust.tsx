@@ -20,8 +20,8 @@ export default function TrustPage() {
   ]
   const agentCan = ['Read balances, prices and network status', 'Explain transactions and check addresses', 'Prepare a send, swap, bridge or payment request for your review', 'Watch conditions and notify you (tasks)']
   const agentCannot = ['Sign or broadcast a transaction', 'Approve unlimited token allowances', 'Access your seed phrase or private key', 'Move funds without your confirmation']
-  const contracts: { label: string; address: string; note: string }[] = [
-    ...(DEPLOYED_PAY_REQUESTS_ADDRESS ? [{ label: 'MakotoPayRequests', address: DEPLOYED_PAY_REQUESTS_ADDRESS, note: 'Payment requests · no admin, no upgrades, no fees, never holds funds' }] : []),
+  const contracts: { label: string; address: string; note: string; verified?: boolean }[] = [
+    ...(DEPLOYED_PAY_REQUESTS_ADDRESS ? [{ label: 'MakotoPayRequests', address: DEPLOYED_PAY_REQUESTS_ADDRESS, note: 'Payment requests · no admin, no upgrades, no fees, never holds funds', verified: true }] : []),
     ...TOKENS.filter((token) => token.sym === 'USDC' || token.sym === 'EURC').map((token) => ({ label: token.sym, address: token.address, note: 'Official Circle token on Arc Testnet' })),
   ]
   return (
@@ -62,11 +62,17 @@ export default function TrustPage() {
       <Card className="mk-in">
         <CardHeader title="Contracts" sub="Addresses Makoto asks your wallet to interact with" />
         <div className="px-2 pb-2">
-          {contracts.map(({ label, address, note }) => (
+          {contracts.map(({ label, address, note, verified }) => (
             <div key={address} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-3 rounded-xl hover:bg-white/[0.03]">
               <FileCode2 size={16} className="text-neon-300 shrink-0" />
               <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold">{label}</span>
+                <span className="flex flex-wrap items-center gap-2 text-[13.5px] font-semibold">{label}
+                  {verified && (
+                    <a href={`${ARC.explorer}/address/${address}?tab=contract`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-[#3DDC97]/30 bg-[#3DDC97]/10 px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-live">
+                      <ShieldCheck size={11} />{tr('Source verified')}
+                    </a>
+                  )}
+                </span>
                 <span className={`block text-[12px] ${T.mute}`}>{tr(note)}</span>
               </span>
               <span className="font-mono text-[12.5px]" title={address}>{short(address)}</span>

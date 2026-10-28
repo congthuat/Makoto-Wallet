@@ -52,6 +52,7 @@ for (const line of lines) {
   const trimmed = line.trim()
   if (!trimmed.startsWith('MAKOTO_EXPORT {')) continue
   const record = JSON.parse(trimmed.slice('MAKOTO_EXPORT '.length))
+  if (record.missing && record.optional) { console.log(`none     ${record.name} (not created yet on Railway; nothing to copy)`); continue }
   if (record.missing) { console.log(`missing  ${record.name} (searched: ${record.searched.join(', ')})`); problems++; continue }
   if (record.error) { console.log(`error    ${record.name}: ${record.error}`); problems++; continue }
   const data = Buffer.from(record.data, 'base64')
