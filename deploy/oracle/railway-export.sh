@@ -32,7 +32,19 @@ say "4/5 SSH key for Railway (answer the prompt if it asks to register a key)"
 [ -f "$HOME/.ssh/id_ed25519" ] || ssh-keygen -q -t ed25519 -N '' -f "$HOME/.ssh/id_ed25519"
 ssh_args=()
 [ -z "$SERVICE" ] || ssh_args+=(--service "$SERVICE")
-railway ssh "${ssh_args[@]}" -- echo "Railway container reachable"
+# Trust Railway's SSH host up front (avoids the yes/no prompt, which a Vietnamese
+# keyboard can turn into "yé"), then wait for a freshly registered key to activate.
+mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+if ! ssh-keygen -F ssh.railway.com >/dev/null 2>&1; then
+  ssh-keyscan -t ed25519 ssh.railway.com 2>/dev/null >> "$HOME/.ssh/known_hosts" || true
+fi
+reachable=0
+for attempt in 1 2 3 4 5 6; do
+  if railway ssh "${ssh_args[@]}" -- echo "Railway container reachable" </dev/null; then reachable=1; break; fi
+  echo "Railway is still activating the SSH key (attempt $attempt/6); retrying in 20s…"
+  sleep 20
+done
+[ "$reachable" = 1 ] || die "Could not open SSH to the Railway container. Run the same command again in a few minutes."
 
 say "5/5 Exporting a consistent snapshot of each database"
 mkdir -p "$OUT_DIR"

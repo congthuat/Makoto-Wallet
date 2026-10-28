@@ -201,6 +201,8 @@ curl -fsS "https://$API_DOMAIN/api/health" | grep -q '"ok"' || die "HTTPS is not
 
 say "8/8 Copy data from Railway"
 if ask_yes "Copy Tasks, portfolio history, wallet sessions and Google-wallet backups from Railway now?"; then
+  # Use the latest export/import helpers from GitHub (scripts only; the running backend is untouched).
+  remote 'sudo -u makoto git -C /opt/makoto/app pull --ff-only -q' || true
   remote_tty 'makoto-railway-export'
   remote_tty 'latest="$(ls -dt "$HOME"/railway-export-* 2>/dev/null | head -1)"; [ -n "$latest" ] && sudo makoto-import-data "$latest"'
 else
