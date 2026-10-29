@@ -56,6 +56,8 @@ export default function FloatingAgent() {
   const abortRef = useRef<AbortController | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const bubbleRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const onResize = () => setPos((current) => clamp(current))
@@ -67,8 +69,15 @@ export default function FloatingAgent() {
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
+    // Clicking anywhere outside the chat (and outside the bubble) closes it.
+    const onOutside = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      if (!target || panelRef.current?.contains(target) || bubbleRef.current?.contains(target)) return
+      setOpen(false)
+    }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onOutside)
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onOutside) }
   }, [open])
 
   const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -166,6 +175,7 @@ export default function FloatingAgent() {
     <>
       {open && (
         <div
+          ref={panelRef}
           role="dialog"
           aria-label="Makoto Agent"
           className={`fixed z-[46] flex flex-col overflow-hidden border border-white/[0.08] bg-[#17171d] shadow-2xl mk-in ${mobile ? 'inset-x-2 bottom-2 rounded-2xl' : 'rounded-2xl'}`}
@@ -226,6 +236,7 @@ export default function FloatingAgent() {
 
       {!(open && mobile) && (
         <button
+          ref={bubbleRef}
           type="button"
           aria-label={open ? (vi ? 'Đóng Makoto Agent' : 'Close Makoto Agent') : (vi ? 'Mở Makoto Agent (giữ để kéo)' : 'Open Makoto Agent (hold to drag)')}
           aria-expanded={open}
