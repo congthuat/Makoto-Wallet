@@ -7,22 +7,23 @@ import { PriceAttribution } from '../components/wallet/PriceAttribution'
 import { Badge, Button, Card, CardHeader, Change, EmptyState, Modal, PageHeader, Skeleton, T, TokenIcon } from '../components/wallet/ui'
 import { TxRow } from '../components/wallet/shared'
 import { useT } from '../lib/i18n'
+import { AnimatedUsd } from '../components/wallet/AnimatedNumber'
 
 export function QuickActions({ className = '' }: { className?: string }) {
   const { go, setReceiveOpen } = useWallet()
   const [tr] = useT()
   const items = [
-    { icon: ArrowUpRight, t: 'Send', on: () => go('send') },
-    { icon: ArrowDownLeft, t: 'Receive', on: () => setReceiveOpen(true) },
-    { icon: ReceiptText, t: 'Request', on: () => go('pay') },
-    { icon: ArrowLeftRight, t: 'Swap', on: () => go('swap') },
-    { icon: Rainbow, t: 'Bridge', on: () => go('bridge') },
+    { icon: ArrowUpRight, t: 'Send', on: () => go('send'), nudge: ['2px', '-2px'] },
+    { icon: ArrowDownLeft, t: 'Receive', on: () => setReceiveOpen(true), nudge: ['-2px', '2px'] },
+    { icon: ReceiptText, t: 'Request', on: () => go('pay'), nudge: ['0px', '-1px'] },
+    { icon: ArrowLeftRight, t: 'Swap', on: () => go('swap'), nudge: ['2px', '0px'] },
+    { icon: Rainbow, t: 'Bridge', on: () => go('bridge'), nudge: ['0px', '-2px'] },
   ]
   return (
     <div className={`grid grid-cols-5 gap-1.5 sm:gap-2 ${className}`}>
-      {items.map(({ icon: Icon, t, on }) => (
-        <button key={t} onClick={on} className="group flex flex-col items-center justify-start gap-1.5 pt-3 pb-2.5 px-1 rounded-xl border border-transparent hover:bg-white/[0.04] hover:border-white/[0.06] active:scale-[0.97] transition min-w-0">
-          <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-neon-500/[0.12] border border-neon-500/20 group-hover:bg-neon-500/20 flex items-center justify-center transition"><Icon size={18} className="text-neon-300" /></span>
+      {items.map(({ icon: Icon, t, on, nudge }) => (
+        <button key={t} onClick={on} className="mk-qa group flex flex-col items-center justify-start gap-1.5 pt-3 pb-2.5 px-1 rounded-xl border border-transparent hover:bg-white/[0.04] hover:border-white/[0.06] active:scale-[0.97] transition min-w-0">
+          <span style={{ '--nx': nudge[0], '--ny': nudge[1] } as React.CSSProperties} className="mk-qa-ic w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-neon-500/[0.12] border border-neon-500/20 group-hover:bg-neon-500/20 flex items-center justify-center transition"><Icon size={18} className="text-neon-300" /></span>
           <span className="text-[11px] sm:text-[12.5px] font-semibold leading-tight text-center sm:whitespace-nowrap">{tr(t)}</span>
         </button>
       ))}
@@ -36,7 +37,6 @@ export function PortfolioCard() {
   const priced = holdings.filter((holding) => holding.verified && holding.value != null && holding.change24h != null)
   const delta = priced.reduce((sum, holding) => sum + (holding.value! - holding.value! / (1 + holding.change24h! / 100)), 0)
   const change = total - delta ? ((delta / (total - delta)) * 100) : 0
-  const [whole, cents] = usd(total).split('.')
 
   return (
     <Card className="mk-in overflow-hidden">
@@ -49,7 +49,7 @@ export function PortfolioCard() {
             </button>
           </div>
           <div className="mk-display-num mt-2 text-[36px] sm:text-[42px] leading-none font-bold tracking-[-0.03em] tabular-nums">
-            {balanceError ? '—' : loading || !pricesReady ? <Skeleton className="w-56 h-11 align-middle" /> : hidden ? '••••••' : <>{whole}<span className="text-[#83838E]">.{cents}</span></>}
+            {balanceError ? '—' : loading || !pricesReady ? <Skeleton className="w-56 h-11 align-middle" /> : hidden ? '••••••' : <AnimatedUsd value={total} split />}
           </div>
           <div className="mt-3 flex items-center gap-2 text-[13px] min-h-[22px]">
             {balanceError ? (
@@ -75,7 +75,7 @@ export function PortfolioCard() {
 
 /** Asset table — Asset / Balance / Price / Value / 24h. Row opens asset detail. */
 export function AssetRows({ limit, query = '' }: { limit?: number; query?: string }) {
-  const { holdings, mask, settings } = useWallet()
+  const { holdings, mask, hidden, settings } = useWallet()
   const [tr] = useT()
   const [open, setOpen] = useState<Holding | null>(null)
   const q = query.trim().toLowerCase()
@@ -103,7 +103,7 @@ export function AssetRows({ limit, query = '' }: { limit?: number; query?: strin
           <span className="hidden md:block text-right text-[14px] font-num">{mask(fmtAmt(r.balance, r.decimals))}</span>
           <span className="hidden md:block text-right text-[14px] font-num">{r.price != null ? usd(r.price, r.price > 1000 ? 0 : 4) : '—'}</span>
           <span className="text-right">
-            <span className="block text-[14px] font-semibold font-num">{r.value != null ? mask(usd(r.value)) : <span className={T.mute}>—</span>}</span>
+            <span className="block text-[14px] font-semibold font-num">{r.value != null ? <AnimatedUsd value={r.value} mask={mask} hidden={hidden} /> : <span className={T.mute}>—</span>}</span>
             <span className={`md:hidden block text-[12px] font-num ${T.mute}`}>{mask(`${fmtAmt(r.balance, r.decimals)} ${r.symbol}`)}</span>
           </span>
           <span className="hidden md:block text-right text-[13px]"><Change v={r.change24h} /></span>

@@ -1,0 +1,143 @@
+/* ===== Makoto motion system =====
+   Short, soft, purposeful. Everything here is switched off for people who ask
+   their device for reduced motion (see the block at the end). */
+
+:root {
+  --mk-ease-out: cubic-bezier(.16, 1, .3, 1);
+  --mk-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* Base keyframes (moved from App.tsx). */
+@keyframes mk-breathe { 0%, 100% { opacity: .4; transform: scale(1) } 50% { opacity: .7; transform: scale(1.05) } }
+.mk-breathe { animation: mk-breathe 4s ease-in-out infinite }
+@keyframes mk-blink { 0%, 92%, 100% { transform: scaleY(1) } 95% { transform: scaleY(.1) } }
+.mk-blink { animation: mk-blink 5s infinite }
+@keyframes mk-in { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
+.mk-in { animation: mk-in .35s cubic-bezier(.2, .7, .2, 1) both }
+@keyframes mk-dot { 0%, 80%, 100% { opacity: .25; transform: translateY(0) } 40% { opacity: 1; transform: translateY(-2px) } }
+.mk-dot { animation: mk-dot 1.1s ease-in-out infinite }
+
+/* 7 · Page transition: the page fades in; cards rise one after another (3). */
+@keyframes mk-page { from { opacity: 0 } to { opacity: 1 } }
+#mk-main { animation: mk-page .32s ease-out both }
+@keyframes mk-rise { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+#mk-main .mk-card, #mk-main .mk-hero { animation: mk-rise .55s var(--mk-ease-out) both; animation-delay: calc(var(--mk-i, 0) * 65ms) }
+
+/* 7 · Loading placeholders: a soft light sweep instead of blinking. */
+@keyframes mk-shimmer { from { background-position: 150% 0 } to { background-position: -50% 0 } }
+.mk-skel {
+  background-color: rgba(255, 255, 255, .05);
+  background-image: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .09) 50%, transparent 80%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: mk-shimmer 1.4s ease-in-out infinite;
+}
+html[data-theme=light] .mk-skel {
+  background-color: rgba(15, 15, 22, .06);
+  background-image: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .75) 50%, transparent 80%);
+}
+
+/* 5 · Cards: a gentle spotlight follows the pointer (desktop only), plus a deeper shadow. */
+@media (hover: hover) and (pointer: fine) {
+  html body .mk-card[data-spot] {
+    background-image: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(212, 255, 58, .055), transparent 45%) !important;
+  }
+  html[data-theme=light] body .mk-card[data-spot] {
+    background-image: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(126, 71, 255, .05), transparent 45%) !important;
+  }
+  .mk-card { transition: border-color .25s, box-shadow .35s var(--mk-ease-out) }
+  html:not([data-theme=light]) body .mk-card[data-spot] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045), 0 22px 48px -30px rgba(0, 0, 0, .95) }
+  html[data-theme=light] body .mk-card[data-spot] { box-shadow: 0 1px 2px rgba(15, 15, 22, .05), 0 18px 40px -22px rgba(15, 15, 22, .2) !important }
+}
+
+/* 5 · Quick actions: the arrow nudges toward where it points, the circle glows. */
+.mk-qa-ic { transition: transform .35s var(--mk-ease-spring), box-shadow .3s, background-color .2s }
+.mk-qa-ic > svg { transition: transform .35s var(--mk-ease-spring) }
+.mk-qa:hover .mk-qa-ic { transform: translateY(-2px); box-shadow: 0 8px 22px -8px rgba(212, 255, 58, .55) }
+.mk-qa:hover .mk-qa-ic > svg { transform: translate(var(--nx, 0), var(--ny, 0)) }
+.mk-qa:active .mk-qa-ic { transform: scale(.94) }
+
+/* 1 · Numbers flash green/red when they change. */
+@keyframes mk-flash-up { 0% { color: #4ade80; text-shadow: 0 0 18px rgba(74, 222, 128, .45) } 100% { color: inherit; text-shadow: none } }
+@keyframes mk-flash-down { 0% { color: #ff6b6b; text-shadow: 0 0 18px rgba(255, 107, 107, .45) } 100% { color: inherit; text-shadow: none } }
+.mk-flash-up { animation: mk-flash-up 1.1s ease-out }
+.mk-flash-down { animation: mk-flash-down 1.1s ease-out }
+
+/* 2 · Charts draw themselves left → right; the latest point pulses. */
+@keyframes mk-draw { from { clip-path: inset(0 100% 0 0) } to { clip-path: inset(0 0 0 0) } }
+.mk-draw { animation: mk-draw 1.1s var(--mk-ease-out) both }
+@keyframes mk-area-in { from { opacity: 0 } to { opacity: 1 } }
+.mk-area-in { animation: mk-area-in 1.2s .25s ease-out both }
+@keyframes mk-ping { 0% { transform: scale(1); opacity: .7 } 80%, 100% { transform: scale(2.6); opacity: 0 } }
+.mk-live-dot { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 9999px; background: var(--mk-chart-line-end); pointer-events: none; animation: mk-in .3s 1s both }
+.mk-live-dot::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: inherit; animation: mk-ping 2.2s 1.2s ease-out infinite }
+
+/* 8 · Aurora behind the balance hero. */
+@keyframes mk-aurora-a { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(-12%, 10%) scale(1.15) } }
+@keyframes mk-aurora-b { 0%, 100% { transform: translate(0, 0) scale(1.1) } 50% { transform: translate(14%, -8%) scale(.95) } }
+.mk-aurora-host > .mk-aurora { position: absolute !important; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 0 !important }
+.mk-aurora > i { position: absolute; border-radius: 9999px; filter: blur(60px); opacity: .5 }
+.mk-aurora > i:nth-child(1) { width: 46%; height: 70%; left: -8%; top: -30%; background: rgba(212, 255, 58, .16); animation: mk-aurora-a 18s ease-in-out infinite }
+.mk-aurora > i:nth-child(2) { width: 50%; height: 80%; right: -10%; bottom: -45%; background: rgba(126, 71, 255, .2); animation: mk-aurora-b 22s ease-in-out infinite }
+.mk-aurora > i:nth-child(3) { width: 30%; height: 50%; left: 40%; top: -20%; background: rgba(56, 189, 248, .1); animation: mk-aurora-a 26s -8s ease-in-out infinite }
+html[data-theme=light] .mk-aurora > i { opacity: .55 }
+html[data-theme=light] .mk-aurora > i:nth-child(1) { background: rgba(170, 220, 20, .22) }
+.mk-aurora-host > :not(.mk-aurora) { position: relative; z-index: 1 }
+
+/* 8 · Header turns to frosted glass once the page scrolls. */
+.mk-header { transition: background-color .3s, box-shadow .3s }
+.mk-header[data-scrolled] { backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); box-shadow: 0 1px 0 rgba(255, 255, 255, .06), 0 10px 30px -20px rgba(0, 0, 0, .8) }
+html:not([data-theme=light]) .mk-header[data-scrolled] { background-color: rgba(10, 11, 13, .72) !important }
+html[data-theme=light] .mk-header[data-scrolled] { background-color: rgba(246, 246, 248, .78) !important; box-shadow: 0 1px 0 rgba(15, 15, 22, .07), 0 10px 30px -22px rgba(15, 15, 22, .25) }
+
+/* 9 · Light/dark switch spreads as a circle from the button. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal }
+::view-transition-new(root) { animation: mk-reveal .6s var(--mk-ease-out) both }
+@keyframes mk-reveal { from { clip-path: circle(0 at var(--mk-vt-x, 50%) var(--mk-vt-y, 0%)) } to { clip-path: circle(var(--mk-vt-r, 150vmax) at var(--mk-vt-x, 50%) var(--mk-vt-y, 0%)) } }
+
+/* 4 · Makoto mascot: floats, and bobs + glows while thinking. */
+@keyframes mk-float { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+.mk-float { animation: mk-float 3.6s ease-in-out infinite }
+@keyframes mk-think { 0%, 100% { transform: rotate(-5deg) translateY(0) } 50% { transform: rotate(5deg) translateY(-2px) } }
+.mk-orb-think { animation: mk-think 1.1s ease-in-out infinite }
+@keyframes mk-eyes-think { 0%, 100% { opacity: 1 } 50% { opacity: .35 } }
+.mk-orb-think .mk-blink { animation: mk-eyes-think .9s ease-in-out infinite }
+@keyframes mk-halo { 0% { transform: scale(.9); opacity: .55 } 100% { transform: scale(1.45); opacity: 0 } }
+.mk-halo { position: absolute; inset: -4px; border-radius: 9999px; border: 2px solid rgba(212, 255, 58, .55); pointer-events: none; animation: mk-halo 1.4s ease-out infinite }
+@keyframes mk-bubble-in { from { opacity: 0; transform: translateY(6px) scale(.92) } to { opacity: 1; transform: none } }
+.mk-bubble-in { animation: mk-bubble-in .45s var(--mk-ease-spring) both }
+
+/* 6 · Success: check draws itself, a ring spreads, confetti falls. */
+@keyframes mk-pop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.08); opacity: 1 } 100% { transform: scale(1) } }
+.mk-pop { animation: mk-pop .55s var(--mk-ease-spring) both }
+@keyframes mk-check { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
+.mk-check-path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: mk-check .45s .3s var(--mk-ease-out) forwards }
+@keyframes mk-ring { from { transform: scale(.8); opacity: .7 } to { transform: scale(2); opacity: 0 } }
+.mk-ring { position: absolute; inset: 0; border-radius: 9999px; border: 2px solid rgba(74, 222, 128, .6); animation: mk-ring 1s .2s ease-out both }
+@keyframes mk-confetti { 0% { transform: translate(0, 0) rotate(0); opacity: 1 } 100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0 } }
+.mk-confetti { position: absolute; left: 50%; top: 50%; width: 7px; height: 11px; margin: -5px 0 0 -3px; pointer-events: none; animation: mk-confetti var(--dur, 1.2s) cubic-bezier(.2, .6, .35, 1) both }
+
+/* 10 · Primary buttons get a light sweep on hover. */
+.mk-primary { overflow: hidden; isolation: isolate }
+.mk-primary:not(.absolute):not(.fixed):not(.sticky) { position: relative }
+.mk-primary::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .45) 50%, transparent 70%); transform: translateX(-120%) }
+@media (hover: hover) { .mk-primary:not(:disabled):hover::after { transform: translateX(120%); transition: transform .75s var(--mk-ease-out) } }
+
+/* 10 · Toast slides up with a spring. */
+@keyframes mk-toast { from { opacity: 0; transform: translateY(16px) scale(.96) } to { opacity: 1; transform: none } }
+.mk-toast { animation: mk-toast .4s var(--mk-ease-spring) both }
+
+/* 10 · Copy confirmation / completed steps. */
+@keyframes mk-copied { 0% { transform: scale(.5) rotate(-20deg); opacity: 0 } 100% { transform: none; opacity: 1 } }
+.mk-copied { animation: mk-copied .3s var(--mk-ease-spring) both }
+
+/* Respect "reduce motion": no movement, instant results. */
+@media (prefers-reduced-motion: reduce) {
+  #mk-main, #mk-main .mk-card, #mk-main .mk-hero, .mk-in, .mk-breathe, .mk-blink, .mk-dot, .mk-skel, .mk-draw, .mk-area-in,
+  .mk-live-dot, .mk-live-dot::after, .mk-aurora > i, .mk-float, .mk-orb-think, .mk-orb-think .mk-blink, .mk-halo, .mk-bubble-in,
+  .mk-pop, .mk-ring, .mk-confetti, .mk-flash-up, .mk-flash-down, .mk-toast, .mk-copied { animation: none !important }
+  .mk-check-path { animation: none; stroke-dashoffset: 0 }
+  .mk-confetti, .mk-ring, .mk-halo { display: none }
+  ::view-transition-new(root) { animation: none }
+  .mk-primary::after { display: none }
+}

@@ -18,6 +18,7 @@ import { buildAgentActions, hasPendingStrategy, type AgentAction } from '../lib/
 import { History } from 'lucide-react'
 import ShareButton from '../components/ShareCard'
 import { WelcomeHero } from '../components/wallet/WelcomeHero'
+import { AnimatedUsd } from '../components/wallet/AnimatedNumber'
 
 const TABS = ['Ask', 'Monitor', 'Automate'] as const
 type Tab = (typeof TABS)[number]
@@ -161,7 +162,8 @@ function BalanceHero() {
   const pnl = priced.reduce((s, h) => s + (h.value! - h.value! / (1 + h.change24h! / 100)), 0)
   const pnlPct = total - pnl ? (pnl / (total - pnl)) * 100 : 0
   return (
-    <Card className="mk-hero p-5 sm:p-6 mk-in">
+    <Card className="mk-hero mk-aurora-host relative p-5 sm:p-6 mk-in">
+      <div className="mk-aurora" aria-hidden><i /><i /><i /></div>
       <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-5 lg:gap-8 items-stretch">
         <div className="min-w-0 flex flex-col">
           <div className="flex items-center justify-between gap-2">
@@ -174,7 +176,7 @@ function BalanceHero() {
               <ShareButton />
             </div>
           </div>
-          <div className="mk-display-num mt-2 text-[38px] sm:text-[46px] leading-none font-bold tracking-[-0.035em] font-num">{balanceError ? '—' : pricesReady ? mask(usd(total)) : <Skeleton className="h-11 w-52" />}</div>
+          <div className="mk-display-num mt-2 text-[38px] sm:text-[46px] leading-none font-bold tracking-[-0.035em] font-num">{balanceError ? '—' : pricesReady ? <AnimatedUsd value={total} mask={mask} hidden={hidden} /> : <Skeleton className="h-11 w-52" />}</div>
           <div className="mt-2.5 text-[13.5px] font-num min-h-5">
             {balanceError ? (
               <span className="text-amber-300" role="alert">{tr(balanceError)} <button onClick={refetchBalance} className="font-semibold text-neon-300 underline">{tr('Retry')}</button></span>

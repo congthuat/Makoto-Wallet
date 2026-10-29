@@ -1,13 +1,15 @@
-import { Copy, Droplets, ExternalLink, RefreshCw, Wallet, Eye, Info, CheckCircle2 } from 'lucide-react'
+import { Droplets, ExternalLink, RefreshCw, Wallet, Eye, Info, CheckCircle2 } from 'lucide-react'
 import { useState } from 'react'
 import { useWallet } from '../lib/store'
 import { ARC, TOKENS, fmtAmt, short } from '../lib/wallet'
 import { Badge, Button, Card, CardHeader, PageHeader, T, TokenIcon } from '../components/wallet/ui'
 import { ConnectModal, copyText } from '../components/wallet/shared'
+import { CopyGlyph, useCopied } from '../components/wallet/CopyButton'
 import { useT } from '../lib/i18n'
 
 export default function FaucetPage() {
   const { mode, address, holdings, walletError, walletRefreshing, notify, refetchWallet } = useWallet()
+  const [copied, runCopy] = useCopied()
   const [tr] = useT()
   const [connectOpen, setConnectOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -57,7 +59,7 @@ export default function FaucetPage() {
               <div className="flex items-center gap-2 rounded-xl bg-black/30 border border-white/[0.08] px-3 h-12 min-w-0">
                 <span className="font-mono text-[13px] truncate flex-1 min-w-0" title={address}><span className="hidden sm:inline">{address}</span><span className="sm:hidden">{short(address)}</span></span>
                 <Badge>{mode === 'connected' ? tr('Wallet connected') : tr('Watch-only')}</Badge>
-                <button onClick={() => copyText(address, notify, tr('Address copied'))} className={`p-2 rounded-lg ${T.sub} hover:text-white hover:bg-white/10`} aria-label={tr('Copy address')}><Copy size={15} /></button>
+                <button onClick={() => runCopy(() => copyText(address, notify, tr('Address copied')))} className={`p-2 rounded-lg ${T.sub} hover:text-white hover:bg-white/10`} aria-label={tr('Copy address')}><CopyGlyph copied={copied} size={15} /></button>
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-white/[0.12] p-4 text-[13px]">

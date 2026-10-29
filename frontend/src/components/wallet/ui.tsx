@@ -81,10 +81,10 @@ export function Avatar({ size = 24, seed = 'makoto' }: { size?: number; seed?: s
 }
 
 /** Makoto Agent mascot — glossy purple helmet, dark visor, glowing lime eyes (brand colours). */
-export function Orb({ size = 56, glow = true }: { size?: number; glow?: boolean }) {
+export function Orb({ size = 56, glow = true, thinking = false, float = false }: { size?: number; glow?: boolean; /** Bobs and pulses while Makoto is answering. */ thinking?: boolean; /** Gentle idle float. */ float?: boolean }) {
   const id = useId().replace(/:/g, '')
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size * 0.84 }}>
+    <div className={`relative shrink-0 ${thinking ? 'mk-orb-think' : float ? 'mk-float' : ''}`} style={{ width: size, height: size * 0.84 }}>
       {glow && <div className="absolute -inset-[18%] rounded-full bg-[#D4FF3A]/15 blur-xl mk-breathe" aria-hidden />}
       <svg viewBox="0 0 120 100" width={size} height={size * 0.84} className="relative" role="img" aria-label="Makoto Agent">
         <defs>
@@ -203,7 +203,11 @@ export function EmptyState({ icon: Icon, title, desc, action }: { icon: any; tit
   title = t(title); if (desc) desc = t(desc)
   return (
     <div className="px-4 py-12 text-center">
-      <div className="mx-auto w-12 h-12 rounded-2xl bg-white/[0.05] flex items-center justify-center mb-3"><Icon size={20} className={T.mute} /></div>
+      <div className="relative mx-auto w-fit mb-4 mk-in" aria-hidden>
+        <div className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-10 h-2 rounded-[50%] bg-black/25 blur-[3px]" />
+        <Orb size={52} float glow={false} />
+        <span className="absolute -right-3 -bottom-1 w-7 h-7 rounded-full bg-[#18181e] border border-white/[0.08] flex items-center justify-center shadow-lg"><Icon size={13} className={T.mute} /></span>
+      </div>
       <div className="text-[14px] font-semibold">{title}</div>
       {desc && <div className={`text-[13px] mt-1 max-w-[320px] mx-auto ${T.mute}`}>{desc}</div>}
       {action && <div className="mt-4">{action}</div>}
@@ -212,7 +216,7 @@ export function EmptyState({ icon: Icon, title, desc, action }: { icon: any; tit
 }
 
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <span className={`inline-block rounded-md bg-white/[0.06] animate-pulse ${className}`} />
+  return <span className={`mk-skel inline-block rounded-md ${className}`} />
 }
 
 export function Field({ label, hint, error, children, right }: { label: string; hint?: React.ReactNode; error?: string | null; children: React.ReactNode; right?: React.ReactNode }) {

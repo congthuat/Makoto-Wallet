@@ -1,4 +1,5 @@
 import './index.css'
+import './styles/motion.css'
 
 // ---------------------------------------------------------------------------
 // Cold-start guard: verify React is real BEFORE rendering.

@@ -10,6 +10,7 @@ import { taskItemsForAccount } from './lib/tasks'
 import { useTheme } from './lib/theme'
 import { ARC, ago, fmtAmt, isAddress, short } from './lib/wallet'
 import { useDismissibleOverlay } from './lib/useDismissibleOverlay'
+import { circularReveal, installCardSpotlight, staggerCards } from './lib/motion'
 import { Avatar, Badge, Button, LiveDot, Logo, LogoLockup, Skeleton, T } from './components/wallet/ui'
 import { ConnectModal, ReceiveModal, TxDetailModal, copyText } from './components/wallet/shared'
 import { FeedbackLink } from './components/wallet/FeedbackLink'
@@ -208,7 +209,7 @@ function ThemeToggle() {
   const [theme, setTheme] = useTheme()
   const next = theme === 'dark' ? 'light' : 'dark'
   return (
-    <button onClick={() => setTheme(next)} aria-label={tr(next === 'light' ? 'Light mode' : 'Dark mode')} title={tr(next === 'light' ? 'Light mode' : 'Dark mode')}
+    <button onClick={(event) => { const r = event.currentTarget.getBoundingClientRect(); circularReveal(() => setTheme(next), r.left + r.width / 2, r.top + r.height / 2) }} aria-label={tr(next === 'light' ? 'Light mode' : 'Dark mode')} title={tr(next === 'light' ? 'Light mode' : 'Dark mode')}
       className="h-9 w-9 inline-flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08] hover:border-neon-500/40 transition">
       {theme === 'dark' ? <Sun size={15} className="text-neon-300" /> : <Moon size={15} className="text-neon-300" />}
     </button>
@@ -220,6 +221,13 @@ function Header({ onMenu, onConnect, menuOpen, menuTriggerRef }: { onMenu: () =>
   const [tr] = useT()
   const [q, setQ] = useState('')
   const [openMenu, setOpenMenu] = useState<HeaderMenu>(null)
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
   const ref = useRef<HTMLInputElement>(null)
   const walletTriggerRef = useRef<HTMLButtonElement>(null)
   const walletPanelRef = useRef<HTMLDivElement>(null)
@@ -242,7 +250,7 @@ function Header({ onMenu, onConnect, menuOpen, menuTriggerRef }: { onMenu: () =>
     setQ('')
   }
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.05] bg-[#0b0b10]/85 backdrop-blur-xl">
+    <header data-scrolled={scrolled || undefined} className="mk-header sticky top-0 z-40 border-b border-white/[0.05] bg-[#0b0b10]/85 backdrop-blur-xl">
       <div className="max-w-[1320px] mx-auto h-14 px-4 sm:px-6 lg:px-8 flex items-center gap-2">
         <button ref={menuTriggerRef} className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-white/10" onClick={() => { closeMenu(); onMenu() }} aria-label={tr('Open menu')} aria-expanded={menuOpen} aria-controls="mk-mobile-sidebar"><Menu size={20} /></button>
         <button onClick={() => go('home')} className="lg:hidden flex items-center" aria-label={`Makoto · ${tr('Home')}`}><LogoLockup size={26} sub={false} /></button>
@@ -402,6 +410,8 @@ function Shell() {
   useEffect(() => {
     window.scrollTo({ top: 0 })
   }, [w.page])
+  useEffect(() => installCardSpotlight(), [])
+  useEffect(() => staggerCards(document.getElementById('mk-main')), [w.page])
   const pages: Record<Page, React.ReactNode> = {
     home: <HomePage />, agent: <AgentPage />, tasks: <TasksPage />, dashboard: <Dashboard />, assets: <AssetsPage />, activity: <ActivityPage />,
     send: <SendPage />, swap: <SwapPage />, bridge: <BridgePage />, settings: <SettingsPage />, insights: <InsightsPage />, audit: <AuditPage />, faucet: <FaucetPage />, pay: <PayRequestsPage />,
@@ -413,16 +423,7 @@ function Shell() {
       <style>{`
         .mk-bg{background:radial-gradient(1000px 460px at 50% -300px, rgba(212,255,58,.045), transparent 70%)}
         .mk-grid{background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:36px 36px;mask-image:radial-gradient(ellipse at 50% 0%,black 30%,transparent 75%)}
-        @keyframes mk-breathe{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:.7;transform:scale(1.05)}}
-        .mk-breathe{animation:mk-breathe 4s ease-in-out infinite}
-        @keyframes mk-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
-        .mk-blink{animation:mk-blink 5s infinite}
-        @keyframes mk-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-        .mk-in{animation:mk-in .35s cubic-bezier(.2,.7,.2,1) both}
-        @keyframes mk-dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
-        .mk-dot{animation:mk-dot 1.1s ease-in-out infinite}
         .font-num{font-feature-settings:'tnum'}
-        @media (prefers-reduced-motion: reduce){.mk-in,.mk-breathe,.mk-blink,.mk-dot{animation:none}}
       `}</style>
 
       <button className="mk-skip" onClick={() => document.getElementById('mk-main')?.focus()}>{tr('Skip to content')}</button>
@@ -480,7 +481,7 @@ function Shell() {
       <EmbeddedUnlockGate />
 
       {w.toast && (
-        <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[90] mk-in max-w-[calc(100vw-2rem)]">
+        <div key={w.toast.msg} className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[90] mk-toast max-w-[calc(100vw-2rem)]">
           <div className="flex items-center gap-2 px-4 h-10 rounded-xl bg-[#1c1c23] border border-white/10 shadow-2xl text-[13px] font-medium">
             {w.toast.kind === 'ok' ? <Check size={15} className="text-live shrink-0" /> : <AlertTriangle size={15} className="text-rose-300 shrink-0" />} <span className="truncate">{tr(w.toast.msg)}</span>
           </div>

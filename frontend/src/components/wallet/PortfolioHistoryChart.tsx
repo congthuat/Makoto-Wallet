@@ -63,7 +63,7 @@ export function PortfolioHistoryChart({ compact = false }: { compact?: boolean }
         </div>
       ) : state === 'chart' ? (
         <>
-          <AreaChart points={points} height={height} mask={mask} />
+          <AreaChart points={points} height={height} mask={mask} drawKey={range} />
           <div className={`flex justify-between gap-2 mt-1 text-[10px] font-num ${T.mute}`} aria-hidden="true">
             <span>{dateLabel(points[0][0])}</span><span className="text-right">{dateLabel(points[points.length - 1][0])}</span>
           </div>

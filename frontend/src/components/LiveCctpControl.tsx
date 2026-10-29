@@ -11,6 +11,7 @@ import { prepareCctpApproval, prepareCctpBurn, quoteBridge, readAllowance, readB
 import { cctpGasCeilingExceeded, getOfficialCctpStatus, sameCctpActionMaterial, sameCctpQuoteMaterial, simulatePreparedCctpCall } from '../protocols/circle/cctpAdapter.ts'
 import { withRpcTimeout, CCTP_STATUS_TIMEOUT_MS } from '../lib/rpcTimeout.ts'
 import { Button, T } from './wallet/ui.tsx'
+import { SuccessBurst } from './wallet/SuccessBurst.tsx'
 import type { BridgeRecord } from '../lib/protocolActivity.ts'
 import { hasSavedProtocolCompletion } from '../lib/protocolActivity.ts'
 import { createStrategyRun, recoverStrategyRun, restoreStrategyRun, saveStrategyRun, transitionStrategy, type StrategyEvent, type StrategyReceiptBinding, type StrategyRun } from '../migrated/strategyController.ts'
@@ -601,6 +602,7 @@ export function LiveCctpControl({ account, amount, transferSpeed, onSourceConfir
     {stage === 'forwarding-pending' && <p>{say('Circle forwarding is pending.', 'Chuyển tiếp Circle đang chờ.')}</p>}
     {stage === 'forwarding-failed' && <p>{say('Circle forwarding failed. The Arc burn remains confirmed; destination funds are not confirmed.', 'Chuyển tiếp Circle thất bại. Lệnh đốt Arc vẫn đã xác nhận; tiền ở đích chưa được xác nhận.')}</p>}
     {stage === 'destination-pending' && <p>{say('Forward transaction observed. Waiting for verified Base receipt and USDC transfer.', 'Đã thấy giao dịch chuyển tiếp. Đang chờ biên nhận Base và chuyển USDC được xác minh.')}</p>}
+    {stage === 'destination-confirmed' && <div className="py-2"><SuccessBurst size={52} label={say('Bridge confirmed', 'Chuyển chuỗi đã xác nhận')} /></div>}
     {stage === 'destination-confirmed' && <p>{say('Destination confirmed by Base receipt and matching USDC transfer.', 'Đích đã xác nhận bằng biên nhận Base và chuyển USDC phù hợp.')}</p>}
     {stage === 'destination-failed' && <p>{say('The forwarded Base transaction failed. The Arc burn remains confirmed.', 'Giao dịch Base chuyển tiếp thất bại. Lệnh đốt Arc vẫn đã xác nhận.')}</p>}
     {stage === 'status-unavailable' && <p>{say('Circle status or destination evidence is unavailable. The confirmed Arc burn remains pending destination evidence.', 'Chưa thể lấy trạng thái Circle hoặc bằng chứng đích. Lệnh đốt Arc đã xác nhận nhưng vẫn thiếu bằng chứng đích.')}</p>}

@@ -14,6 +14,7 @@ const POS_KEY = 'mk.agent.bubble.v1'
 const SIZE = 60
 const MARGIN = 12
 const DRAG_THRESHOLD = 5
+const GREET_KEY = 'mk.agent.greeted'
 
 type Pos = { x: number; y: number }
 type MiniMsg = { id: number; role: 'user' | 'agent'; text: string; needsReview?: boolean; question?: string; streaming?: boolean; status?: string }
@@ -58,6 +59,23 @@ export default function FloatingAgent() {
   const inputRef = useRef<HTMLInputElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const bubbleRef = useRef<HTMLButtonElement>(null)
+  const [greeting, setGreeting] = useState(false)
+
+  // Say hello once a day, a moment after the page settles.
+  useEffect(() => {
+    let today = ''
+    try {
+      today = new Date().toDateString()
+      if (localStorage.getItem(GREET_KEY) === today) return
+    } catch { return }
+    const show = window.setTimeout(() => {
+      setGreeting(true)
+      try { localStorage.setItem(GREET_KEY, today) } catch { /* ignore */ }
+    }, 2500)
+    const hide = window.setTimeout(() => setGreeting(false), 9500)
+    return () => { window.clearTimeout(show); window.clearTimeout(hide) }
+  }, [])
+  useEffect(() => { if (open || dragging) setGreeting(false) }, [open, dragging])
 
   useEffect(() => {
     const onResize = () => setPos((current) => clamp(current))
@@ -167,6 +185,11 @@ export default function FloatingAgent() {
   // Desktop: open beside the bubble, on whichever side has room.
   const panelLeft = Math.min(Math.max(MARGIN, pos.x + SIZE / 2 > viewportW / 2 ? pos.x + SIZE - panelW : pos.x), viewportW - panelW - MARGIN)
   const panelTop = pos.y > viewportH / 2 ? Math.max(MARGIN, pos.y - panelH - 10) : Math.min(pos.y + SIZE + 10, viewportH - panelH - MARGIN)
+  const hour = new Date().getHours()
+  const greetText = vi
+    ? (hour < 11 ? 'Chào buổi sáng 👋' : hour < 18 ? 'Chào buổi chiều 👋' : 'Chào buổi tối 👋')
+    : (hour < 12 ? 'Good morning 👋' : hour < 18 ? 'Good afternoon 👋' : 'Good evening 👋')
+  const greetOnLeft = pos.x + SIZE / 2 > viewportW / 2
   const suggestions = vi
     ? ['Bản tin hôm nay', 'Giá BTC bây giờ?', 'Lãi lỗ ví 7 ngày']
     : ['Morning briefing for today', 'BTC price now?', 'Wallet profit and loss over 7 days']
@@ -182,7 +205,7 @@ export default function FloatingAgent() {
           style={mobile ? { height: Math.min(560, viewportH - 80) } : { left: panelLeft, top: panelTop, width: panelW, height: panelH }}
         >
           <div className="flex items-center gap-2.5 px-3.5 h-14 border-b border-white/[0.06] shrink-0">
-            <Orb size={28} glow={false} />
+            <Orb size={28} glow={false} thinking={busy} />
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-semibold">Makoto Agent</div>
               <div className={`text-[11.5px] ${T.mute}`}>{vi ? 'Hỏi nhanh ở bất kỳ trang nào' : 'Quick help on any page'}</div>
@@ -194,7 +217,7 @@ export default function FloatingAgent() {
           <div className="flex-1 min-h-0 overflow-y-auto px-3.5 py-3 space-y-3">
             {!msgs.length && (
               <div className="pt-4 text-center">
-                <div className="flex justify-center"><Orb size={46} /></div>
+                <div className="flex justify-center"><Orb size={46} float /></div>
                 <p className="mt-3 text-[14px] font-semibold">{vi ? 'Mình giúp gì cho bạn?' : 'How can I help?'}</p>
                 <p className={`mt-1 text-[12.5px] ${T.mute}`}>{vi ? 'Giữ chuột vào nút tròn để kéo đi chỗ khác.' : 'Hold and drag the bubble to move it.'}</p>
                 <div className="mt-4 flex flex-col gap-2">
@@ -208,7 +231,7 @@ export default function FloatingAgent() {
               <div key={m.id} className="flex justify-end"><div className="max-w-[85%] [overflow-wrap:anywhere] px-3 py-1.5 rounded-2xl rounded-br-md bg-neon-500/10 border border-white/[0.08] text-[13px]">{m.text}</div></div>
             ) : (
               <div key={m.id} className="flex gap-2">
-                <span className="mt-0.5"><Orb size={20} glow={false} /></span>
+                <span className="mt-0.5"><Orb size={20} glow={false} thinking={!!m.streaming} /></span>
                 <div className="flex-1 min-w-0 text-[13px] leading-relaxed">
                   {m.streaming && !m.text && <p className={`${T.sub} animate-pulse`}>{m.status ? `${vi ? 'Đang tra' : 'Checking'}: ${m.status}…` : (vi ? 'Đang suy nghĩ…' : 'Thinking…')}</p>}
                   {m.text && <AgentMarkdown text={m.text} />}
@@ -234,6 +257,18 @@ export default function FloatingAgent() {
         </div>
       )}
 
+      {greeting && !open && (
+        <button
+          type="button"
+          onClick={() => { setGreeting(false); setOpen(true) }}
+          className="mk-bubble-in fixed z-[45] w-[220px] text-left px-3.5 py-2.5 rounded-2xl border border-white/[0.08] bg-[#17171d] shadow-2xl text-[13px]"
+          style={{ top: Math.max(MARGIN, pos.y + SIZE / 2 - 32), ...(greetOnLeft ? { left: Math.max(MARGIN, pos.x - 230) } : { left: Math.min(pos.x + SIZE + 10, viewportW - 220 - MARGIN) }) }}
+        >
+          <span className="block font-semibold">{greetText}</span>
+          <span className={`block mt-0.5 text-[12px] ${T.sub}`}>{vi ? 'Bấm vào mình để hỏi nhanh nhé.' : 'Tap me for a quick question.'}</span>
+        </button>
+      )}
+
       {!(open && mobile) && (
         <button
           ref={bubbleRef}
@@ -249,7 +284,8 @@ export default function FloatingAgent() {
           className={`fixed z-[45] flex items-center justify-center rounded-full border border-neon-400/30 bg-[#18181e] shadow-[0_8px_30px_rgba(0,0,0,0.5)] select-none touch-none ${dragging ? 'cursor-grabbing scale-110' : 'cursor-grab hover:scale-105'} transition-transform`}
           style={{ left: pos.x, top: pos.y, width: SIZE, height: SIZE }}
         >
-          <span className="pointer-events-none"><Orb size={40} glow={!dragging} /></span>
+          {busy && <span className="mk-halo" aria-hidden />}
+          <span className="pointer-events-none"><Orb size={40} glow={!dragging} thinking={busy} float={!busy && !dragging} /></span>
           {busy && !open && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-neon-400 animate-pulse border-2 border-white/[0.08]" />}
         </button>
       )}

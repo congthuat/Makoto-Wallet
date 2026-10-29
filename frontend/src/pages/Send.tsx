@@ -11,6 +11,7 @@ import { prepareBrainReview, revalidateBrainReview } from '../brain/policy'
 import type { BrainPreparation, BrainReviewSnapshot } from '../brain/types'
 import { SendSubmissionGuard, assertFreshSend, feeInUsdcUnits, formatSendAmount, isWalletRejection, parseSendAmount, pollSendReceipt, prepareSend, requestSend, safeMax, type PreparedSend, type SendStatus } from '../lib/sendExecution'
 import { explorerTx } from '../lib/wallet'
+import { SuccessBurst } from '../components/wallet/SuccessBurst'
 
 type Stage = 'form' | 'review' | 'preview' | 'result'
 const PREVIEW_STATES = ['Prepared', 'Wallet signature', 'Submitted', 'Confirming', 'Completed', 'Failed'] as const
@@ -246,7 +247,7 @@ export default function SendPage() {
   if (stage === 'result') {
     const resultCopy: Record<SendStatus, string> = { READY: 'Preparing live review…', REQUESTING_WALLET: 'Awaiting wallet confirmation', USER_REJECTED: 'Wallet request cancelled', SUBMITTED: 'Submitted; waiting for receipt', PENDING: 'Submitted; waiting for receipt', CONFIRMED: 'Transaction confirmed', FAILED: 'Transaction failed', UNKNOWN: 'Final status unknown; check the transaction before retrying' }
     return <div className="max-w-[520px] mx-auto"><Card className="p-6 sm:p-8 mk-in min-w-0">
-      <div className="text-center"><div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-white/[0.05]">{sendStatus === 'CONFIRMED' ? <CheckCircle2 size={30} className="text-live" /> : sendStatus === 'FAILED' || sendStatus === 'USER_REJECTED' ? <XCircle size={30} className="text-rose-300" /> : sendStatus === 'UNKNOWN' ? <AlertTriangle size={30} className="text-amber-300" /> : <Loader2 size={30} className="text-neon-300 animate-spin" />}</div>
+      <div className="text-center">{sendStatus === 'CONFIRMED' && <div className="mb-4"><SuccessBurst size={64} label={s('Transaction confirmed')} /></div>}<div className={`mx-auto w-16 h-16 rounded-full items-center justify-center mb-4 bg-white/[0.05] ${sendStatus === 'CONFIRMED' ? 'hidden' : 'flex'}`}>{sendStatus === 'CONFIRMED' ? <CheckCircle2 size={30} className="text-live" /> : sendStatus === 'FAILED' || sendStatus === 'USER_REJECTED' ? <XCircle size={30} className="text-rose-300" /> : sendStatus === 'UNKNOWN' ? <AlertTriangle size={30} className="text-amber-300" /> : <Loader2 size={30} className="text-neon-300 animate-spin" />}</div>
         <h2 className="text-[20px] font-bold">{s(resultCopy[sendStatus])}</h2><p className={`mt-2 text-[13px] break-words ${T.sub}`}>{amount} {symbol} {s('to')} {short(to)}</p>
         {sendError && <p className="mt-3 text-[13px] text-rose-300 break-words">{sendError}</p>}
       </div>

@@ -5,6 +5,7 @@ import type { Address, Hex } from 'viem'
 import { useWallet } from '../lib/store'
 import { useT } from '../lib/i18n'
 import { TxSteps } from '../components/wallet/TxSteps'
+import { SuccessBurst } from '../components/wallet/SuccessBurst'
 import { ARC, getProvider, short } from '../lib/wallet'
 import { isWalletRejection } from '../lib/sendExecution'
 import { Badge, Button, Card, Field, PageHeader, T, inputCls } from '../components/wallet/ui'
@@ -54,6 +55,7 @@ function TxPanel({ phase, onConfirm, onCancel, vi }: { phase: Phase; onConfirm: 
       </>}
       {phase.kind === 'wallet' && <p className="flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> {L(vi, 'Waiting for your wallet…', 'Đang chờ ví của bạn…')}</p>}
       {phase.kind === 'pending' && <p className="flex items-center gap-2 flex-wrap"><Loader2 size={14} className="animate-spin" /> {L(vi, 'Waiting for the Arc receipt', 'Đang chờ biên nhận trên Arc')} · {link(phase.hash)}</p>}
+      {phase.kind === 'done' && <div className="py-1"><SuccessBurst size={44} /></div>}
       {phase.kind === 'done' && <p className="flex items-center gap-2 flex-wrap text-neon-200"><CheckCircle2 size={15} /> {phase.message} · {link(phase.hash)}</p>}
       {phase.kind === 'error' && <p className="flex items-center gap-2 flex-wrap text-rose-300"><XCircle size={15} /> {phase.message}{phase.hash && <> · {link(phase.hash)}</>}</p>}
     </div>

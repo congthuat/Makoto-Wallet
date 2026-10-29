@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { BookUser, Copy, ExternalLink, Lock, LogOut, Network, Plus, Trash2, Wallet, Bell, Eye, KeyRound, Globe, Palette, Filter, Activity, BookOpen, MessageSquare, Sparkles, Gauge } from 'lucide-react'
+import { BookUser, ExternalLink, Lock, LogOut, Network, Plus, Trash2, Wallet, Bell, Eye, KeyRound, Globe, Palette, Filter, Activity, BookOpen, MessageSquare, Sparkles, Gauge } from 'lucide-react'
 import { useWallet } from '../lib/store'
 import { LANGS, setLang, useT, type Lang } from '../lib/i18n'
 import { useTheme } from '../lib/theme'
 import { ARC, ensureArcNetwork, getProvider, isAddress, short } from '../lib/wallet'
 import { Avatar, Badge, Button, Card, LiveDot, PageHeader, Segmented, T, Toggle, inputCls } from '../components/wallet/ui'
 import { ConnectModal, copyText } from '../components/wallet/shared'
+import { CopyGlyph, useCopied } from '../components/wallet/CopyButton'
 import { FeedbackLink } from '../components/wallet/FeedbackLink'
 import { EmbeddedWalletSettings } from '../components/wallet/EmbeddedWalletUI'
 
@@ -36,6 +37,7 @@ const selCls = 'h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] t
 
 export default function SettingsPage() {
   const { settings, setSettings, mode, address, displayAddress, disconnect, contacts, setContacts, notify, hidden, setHidden, network, networkError, go, setLockPreview } = useWallet()
+  const [copied, runCopy] = useCopied()
   const [connectOpen, setConnectOpen] = useState(false)
   const [tr, lang] = useT()
   const [theme, setTheme] = useTheme()
@@ -63,7 +65,7 @@ export default function SettingsPage() {
               <div className="font-mono text-[13px] truncate">{mode === 'demo' ? displayAddress : address}</div>
               <div className="mt-1">{mode === 'connected' ? <Badge tone="ok">{tr('Wallet connected')}</Badge> : mode === 'watch' ? <Badge>{tr('Watch-only · read only')}</Badge> : <Badge tone="warn">{tr('Demo · sample data')}</Badge>}</div>
             </div>
-            {mode !== 'demo' && <Button size="sm" onClick={() => copyText(address, notify, tr('Address copied'))} aria-label={tr('Copy address')}><Copy size={13} /></Button>}
+            {mode !== 'demo' && <Button size="sm" onClick={() => runCopy(() => copyText(address, notify, tr('Address copied')))} aria-label={tr('Copy address')}><CopyGlyph copied={copied} size={13} /></Button>}
             {mode === 'demo' ? <Button size="sm" variant="primary" onClick={() => setConnectOpen(true)}><Wallet size={13} /> {tr('Connect')}</Button> : <Button size="sm" variant="danger" onClick={disconnect}><LogOut size={13} /> <span className="hidden sm:inline">{tr('Disconnect')}</span></Button>}
           </div>
           <Row icon={KeyRound} title="Signing & keys" desc="Transactions are authorized by your wallet. Makoto does not store private keys." right={<span className={`text-[12px] ${T.mute}`}>{tr('Wallet signing')}</span>} />

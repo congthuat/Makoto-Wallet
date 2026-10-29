@@ -23,7 +23,7 @@ export function Sparkline({ points, up, width = 96, height = 32, color: c, fluid
   )
 }
 
-export function AreaChart({ points, height = 180, mask = (value) => value, label }: { points: Point[]; height?: number; mask?: (value: string) => string; label?: string }) {
+export function AreaChart({ points, height = 180, mask = (value) => value, label, drawKey = 'chart' }: { points: Point[]; height?: number; mask?: (value: string) => string; label?: string; /** Changing this replays the draw-in animation (e.g. the selected range). */ drawKey?: string }) {
   const W = 800
   const [tr, language] = useT()
   const id = useId().replace(/:/g, '')
@@ -66,7 +66,7 @@ export function AreaChart({ points, height = 180, mask = (value) => value, label
         setHover(event.key === 'Home' ? 0 : event.key === 'End' ? points.length - 1 : Math.max(0, Math.min(points.length - 1, current + (event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? -1 : 1))))
       }}>
       <span id={`${id}-help`} className="sr-only">{tr(label ? 'Use arrow keys to explore the chart.' : 'Use arrow keys to explore recorded snapshots.')}</span>
-      <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="absolute inset-0 w-full h-full" aria-hidden="true">
+      <svg key={drawKey} viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="mk-draw absolute inset-0 w-full h-full" aria-hidden="true">
         <defs>
           <linearGradient id={`${id}-area`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" style={{ stopColor: 'var(--mk-chart-area)', stopOpacity: 0.28 }} />
@@ -80,10 +80,11 @@ export function AreaChart({ points, height = 180, mask = (value) => value, label
         {[0.25, 0.5, 0.75].map((f) => (
           <line key={f} x1="0" x2={W} y1={height * f} y2={height * f} className="mk-chart-grid" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />
         ))}
-        <path d={area} fill={`url(#${id}-area)`} />
+        <path className="mk-area-in" d={area} fill={`url(#${id}-area)`} />
         <path d={line} fill="none" stroke={`url(#${id}-line)`} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
         {h && <line x1={h[0]} x2={h[0]} y1={0} y2={height} stroke="var(--mk-chart-cursor)" vectorEffect="non-scaling-stroke" />}
       </svg>
+      {!h && xy.length > 1 && <span key={`live-${drawKey}`} className="mk-live-dot" aria-hidden style={{ left: `${(xy[xy.length - 1][0] / W) * 100}%`, top: xy[xy.length - 1][1] }} />}
       {h && hp && (
         <>
           <div

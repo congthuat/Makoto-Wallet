@@ -34,6 +34,7 @@ import {
   type IntentCheckpoint,
 } from '../lib/sendIntentCheckpoint'
 import { Button, T } from './wallet/ui'
+import { SuccessBurst } from './wallet/SuccessBurst'
 import { useT } from '../lib/i18n'
 import { translate } from '../lib/i18n'
 
@@ -372,7 +373,8 @@ export function AgentSendCard({ params, onDone, onCancel, onStageChange }: {
       {/* Result states */}
       {(stage === 'confirmed' || stage === 'failed' || stage === 'rejected' || stage === 'unknown') && (
         <div className="p-4 text-center space-y-3">
-          <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center bg-white/[0.05]">
+          {stage === 'confirmed' && <SuccessBurst size={48} label={statusLabel[sendStatus]} />}
+          <div className={`mx-auto w-12 h-12 rounded-full items-center justify-center bg-white/[0.05] ${stage === 'confirmed' ? 'hidden' : 'flex'}`}>
             {stage === 'confirmed' ? <CheckCircle2 size={24} className="text-live" /> :
               stage === 'rejected' || stage === 'failed' ? <XCircle size={24} className="text-rose-300" /> :
                 <AlertTriangle size={24} className="text-amber-300" />}

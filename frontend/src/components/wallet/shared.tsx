@@ -10,6 +10,7 @@ import { Badge, Button, Logo, Modal, StatusChip, T, TokenIcon, inputCls, Avatar 
 import { translate, useT } from '../../lib/i18n'
 import { browserWalletRevision, discoverBrowserWallets, getBrowserWallets, getProvider, subscribeBrowserWallets, type BrowserWallet, type WalletKind } from '../../lib/walletProviders'
 import { walletPickerCopy } from '../../lib/walletPickerCopy'
+import { CopyGlyph, useCopied } from './CopyButton'
 import { MobileWalletLinks } from './MobileWalletLinks'
 import { WC_WALLETS, lastWcWalletId, pairWalletConnect, walletConnectReady, wcWalletId, type WcWallet } from '../../lib/walletConnect'
 import { isMobileBrowser } from '../../lib/walletAppLinks'
@@ -80,6 +81,7 @@ export function TxDetailModal() {
   const { txDetail, activity, setTxDetail, notify, network, contacts, setContacts, mask } = useWallet()
   const [tr, lang] = useT()
   const tx = txDetail?.hash ? activity.find((item) => item.hash?.toLowerCase() === txDetail.hash?.toLowerCase()) ?? txDetail : txDetail
+  const [hashCopied, runHashCopy] = useCopied()
   if (!tx) return null
   const meta = tokenBySym(tx.symbol)
   const k = txKind(tx)
@@ -125,7 +127,7 @@ export function TxDetailModal() {
       <div className="mt-4 grid grid-cols-2 gap-2">
         {tx.hash ? (
           <>
-            <Button onClick={() => copyText(tx.hash!, notify, tr('Hash copied'))}><Copy size={14} /> {tr('Copy hash')}</Button>
+            <Button onClick={() => runHashCopy(() => copyText(tx.hash!, notify, tr('Hash copied')))}><CopyGlyph copied={hashCopied} size={14} /> {tr('Copy hash')}</Button>
             <a href={explorerTx(tx.hash)} target="_blank" rel="noreferrer"><Button className="w-full">ArcScan <ExternalLink size={13} /></Button></a>
           </>
         ) : (
@@ -143,6 +145,7 @@ export function TxDetailModal() {
 
 export function ReceiveModal() {
   const { receiveOpen, setReceiveOpen, address, live, mode, displayAddress, notify } = useWallet()
+  const [addrCopied, runAddrCopy] = useCopied()
   const [sym, setSym] = useState('USDC')
   const [shareOpen, setShareOpen] = useState(false)
   const [tr, lang] = useT()
@@ -246,7 +249,7 @@ export function ReceiveModal() {
         <Info size={14} className="text-amber-300 shrink-0 mt-0.5" /> {tr('Only send {asset} on {network} (Chain ID {id}). For other networks, use Bridge.').replace('{asset}', sym).replace('{network}', ARC.name).replace('{id}', String(ARC.chainId))}
       </div>
       <div ref={shareTrigger} className="mt-4 grid grid-cols-2 gap-2">
-        <Button variant="primary" className="min-h-11" disabled={!full} onClick={() => copyText(full, (message, kind) => { if (binding.current === currentBinding) notify(message, kind) }, tr('Address copied'))}><Copy size={14} /> {tr('Copy address')}</Button>
+        <Button variant="primary" className="min-h-11" disabled={!full} onClick={() => runAddrCopy(() => copyText(full, (message, kind) => { if (binding.current === currentBinding) notify(message, kind) }, tr('Address copied')))}><CopyGlyph copied={addrCopied} size={14} /> {tr('Copy address')}</Button>
         <Button className="min-h-11" data-receive-share aria-expanded={shareOpen} aria-controls={shareId} disabled={!full} onClick={() => setShareOpen(true)}><Share2 size={14} /> {tr('Share')}</Button>
       </div>
       </>}

@@ -9,6 +9,7 @@ import { createReview, evaluateToolPolicy, revalidateReview, verifyFiniteApprova
 import { prepareApproval, prepareSwap, quoteSwap, readAllowance, readBalance, readWallet, type PreparedToolAction, type SwapToolQuote } from '../migrated/toolLayer.ts'
 import { XYLO_ROUTER } from '../migrated/swap.ts'
 import { Button, T } from './wallet/ui.tsx'
+import { SuccessBurst } from './wallet/SuccessBurst.tsx'
 import { useWallet } from '../lib/store.tsx'
 import type { SwapRecord } from '../lib/protocolActivity.ts'
 import { hasSavedProtocolCompletion } from '../lib/protocolActivity.ts'
@@ -359,6 +360,7 @@ export function LiveSwapControl({ account, from, to, amount, slip, onConfirmed, 
     {stage === 'review-swap' && prepared && <p>{say('Review exact wallet request', 'Xem lại yêu cầu ví chính xác')}: {amount} {from} → {to} · {say('maximum gas', 'gas tối đa')} {BigInt(prepared.request.gas) * BigInt(prepared.request.gasPrice)} wei</p>}
     {stage === 'pending' && <p>{say('Submitted or awaiting receipt. Do not retry until the hash is checked.', 'Đã gửi hoặc đang chờ biên nhận. Đừng thử lại trước khi kiểm tra mã giao dịch.')}</p>}
     {stage === 'approval-confirmed' && <p>{busy ? say('Approval confirmed. Preparing a fresh swap review. The swap still needs your separate wallet confirmation.', 'Phê duyệt đã xác nhận. Đang chuẩn bị báo giá mới. Bạn vẫn cần xác nhận hoán đổi riêng trong ví.') : say('Approval confirmed. A fresh swap review is required before your separate wallet confirmation.', 'Phê duyệt đã xác nhận. Cần chuẩn bị báo giá mới trước khi bạn xác nhận hoán đổi riêng trong ví.')}</p>}
+    {stage === 'confirmed' && <div className="py-2"><SuccessBurst size={52} label={say('Swap confirmed', 'Hoán đổi đã xác nhận')} /></div>}
     {stage === 'confirmed' && <p>{say('Swap confirmed with matching output transfer evidence.', 'Giao dịch hoán đổi đã xác nhận với bằng chứng chuyển token nhận phù hợp.')}</p>}
     {stage === 'failed' && <p>{say('Transaction failed on Arc.', 'Giao dịch thất bại trên Arc.')}</p>}
     {stage === 'rejected' && <p>{say('Wallet request rejected for this step. No transaction was submitted; any earlier confirmed approval is retained.', 'Yêu cầu ví ở bước này đã bị từ chối, chưa gửi giao dịch. Bằng chứng phê duyệt đã xác nhận trước đó vẫn được giữ lại.')}</p>}

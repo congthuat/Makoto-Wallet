@@ -1,16 +1,20 @@
-import { ShieldCheck, KeyRound, Eye, FileCode2, Bot, Ban, ExternalLink, Github, Copy, Database, LifeBuoy } from 'lucide-react'
+import { useState } from 'react'
+import { ShieldCheck, KeyRound, Eye, FileCode2, Bot, Ban, ExternalLink, Github, Database, LifeBuoy } from 'lucide-react'
 import { useWallet } from '../lib/store'
 import { useT } from '../lib/i18n'
 import { ARC, TOKENS, short } from '../lib/wallet'
 import { DEPLOYED_PAY_REQUESTS_ADDRESS } from '../lib/payRequests'
 import { Badge, Card, CardHeader, T } from '../components/wallet/ui'
 import { copyText } from '../components/wallet/shared'
+import { CopyGlyph, useCopied } from '../components/wallet/CopyButton'
 
 const REPO = 'https://github.com/congthuat/Makoto-Wallet'
 
 /** Trust Center — plain-language security model. Every claim here must stay true in code. */
 export default function TrustPage() {
   const { notify } = useWallet()
+  const [copied, runCopy] = useCopied()
+  const [copiedAddr, setCopiedAddr] = useState('')
   const [tr] = useT()
   const pillars = [
     { icon: KeyRound, t: 'Non-custodial', d: 'Makoto never holds your keys or your funds. Your browser wallet keeps them.' },
@@ -76,7 +80,7 @@ export default function TrustPage() {
                 <span className={`block text-[12px] ${T.mute}`}>{tr(note)}</span>
               </span>
               <span className="font-mono text-[12.5px]" title={address}>{short(address)}</span>
-              <button onClick={() => copyText(address, notify, 'Address copied')} className={`h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-white/[0.06] ${T.sub}`} aria-label={tr('Copy address')}><Copy size={14} /></button>
+              <button onClick={() => { setCopiedAddr(address); void runCopy(() => copyText(address, notify, 'Address copied')) }} className={`h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-white/[0.06] ${T.sub}`} aria-label={tr('Copy address')}><CopyGlyph copied={copied && copiedAddr === address} size={14} /></button>
               <a href={`${ARC.explorer}/address/${address}`} target="_blank" rel="noreferrer" className={`h-8 w-8 inline-flex items-center justify-center rounded-lg hover:bg-white/[0.06] ${T.sub}`} aria-label={tr('View on ArcScan')}><ExternalLink size={14} /></a>
             </div>
           ))}

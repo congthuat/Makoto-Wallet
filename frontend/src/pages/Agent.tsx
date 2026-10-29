@@ -983,7 +983,7 @@ export default function AgentPage() {
       <Card className="flex flex-col min-w-0 min-h-[calc(100vh-200px)]">
         <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 border-b border-white/[0.06]">
           <div className="flex items-center gap-3 min-w-0">
-            <Orb size={32} />
+            <Orb size={32} thinking={typing} />
             <div className="min-w-0">
               <div className="font-semibold text-[14.5px]">{tr('Makoto Agent')}</div>
               <div className={`text-[12px] flex items-center gap-1.5 ${T.mute}`}><span className="w-2 h-2 rounded-full bg-neon-400/70 shrink-0" /> {tr('Your wallet assistant')}</div>
@@ -996,7 +996,7 @@ export default function AgentPage() {
         <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-5 space-y-4">
           {msgs.length === 0 && (
             <div className="text-center pt-8 sm:pt-14">
-              <div className="mx-auto w-fit"><Orb size={64} /></div>
+              <div className="mx-auto w-fit"><Orb size={64} float /></div>
               <h2 className="mt-5 text-[20px] font-bold tracking-tight">{tr('What should Makoto do for you?')}</h2>
               <p className={`mt-1.5 text-[13.5px] max-w-[460px] mx-auto ${T.sub}`}>{tr('Ask about your wallet or the market.')}</p>
               {savedChat.length > 0 && (
@@ -1021,7 +1021,7 @@ export default function AgentPage() {
             <div key={m.id} className="flex justify-end mk-in"><div className="max-w-[80%] [overflow-wrap:anywhere] px-3.5 py-2 rounded-2xl rounded-br-md bg-neon-500/10 border border-white/[0.08] text-[14px]">{m.image && <img src={m.image} alt={lang === 'vi' ? 'Ảnh đính kèm' : 'Attached image'} className="mb-2 max-h-48 rounded-lg border border-white/[0.08] object-contain" />}{m.text}</div></div>
           ) : (
             <div key={m.id} className="flex gap-2.5 mk-in">
-              <span className="mt-0.5"><Orb size={26} /></span>
+              <span className="mt-0.5"><Orb size={26} thinking={!!m.streaming} /></span>
               <div className="flex-1 min-w-0 max-w-[560px]">
                 {m.streaming && m.toolStatus && !m.text && <p className={`text-[13px] ${T.sub} animate-pulse`} data-tool-status>{lang === 'vi' ? 'Đang tra' : 'Checking'}: {tr(m.toolStatus)}…</p>}
                 {(!m.streaming || m.text) && <div className="text-[14px] leading-relaxed" aria-live={m.streaming ? 'polite' : undefined} aria-busy={m.streaming || undefined}>{m.source === 'REAL_PROVIDER' ? <AgentMarkdown text={m.text} /> : messageText(m)}{m.streaming && <span aria-hidden className="inline-block w-1.5 h-3.5 ml-0.5 align-[-2px] bg-neon-300/70 animate-pulse" />}</div>}
@@ -1118,7 +1118,7 @@ export default function AgentPage() {
               </div>
             </div>
           ))}
-          {typing && !msgs.some((x) => x.streaming) && <div className="flex gap-2.5 items-center"><Orb size={26} /><span className={`text-[13px] ${T.sub} animate-pulse`}>{tr('Checking live data…')}</span></div>}
+          {typing && !msgs.some((x) => x.streaming) && <div className="flex gap-2.5 items-center"><Orb size={26} thinking /><span className={`text-[13px] ${T.sub} animate-pulse`}>{tr('Checking live data…')}</span></div>}
           <div ref={end} />
         </div>
 
