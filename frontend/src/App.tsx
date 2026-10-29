@@ -34,6 +34,7 @@ const LegalPage = lazy(() => import('./pages/Product').then((m) => ({ default: m
 const ChangelogPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.ChangelogPage })))
 const StatusPage = lazy(() => import('./pages/Product').then((m) => ({ default: m.StatusPage })))
 import CommandPalette from './components/CommandPalette'
+import FloatingAgent from './components/FloatingAgent'
 import { EmbeddedApproval } from './components/wallet/EmbeddedApproval'
 import { EmbeddedUnlockGate } from './components/wallet/EmbeddedWalletUI'
 
@@ -472,6 +473,7 @@ function Shell() {
       <MobileTabBar />
       <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
       <CommandPalette onConnect={openConnect} />
+      <FloatingAgent />
       <ReceiveModal />
       <TxDetailModal />
       <EmbeddedApproval />
