@@ -168,7 +168,7 @@ export default function FloatingAgent() {
         <div
           role="dialog"
           aria-label="Makoto Agent"
-          className={`fixed z-[46] flex flex-col overflow-hidden border border-white/[0.1] bg-[#131318]/95 backdrop-blur-xl shadow-2xl mk-in ${mobile ? 'inset-x-2 bottom-2 rounded-2xl' : 'rounded-2xl'}`}
+          className={`fixed z-[46] flex flex-col overflow-hidden border border-white/[0.08] bg-[#17171d] shadow-2xl mk-in ${mobile ? 'inset-x-2 bottom-2 rounded-2xl' : 'rounded-2xl'}`}
           style={mobile ? { height: Math.min(560, viewportH - 80) } : { left: panelLeft, top: panelTop, width: panelW, height: panelH }}
         >
           <div className="flex items-center gap-2.5 px-3.5 h-14 border-b border-white/[0.06] shrink-0">
@@ -235,11 +235,11 @@ export default function FloatingAgent() {
           onPointerUp={onPointerUp}
           onPointerCancel={() => { drag.current = null; setDragging(false) }}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((v) => !v) } }}
-          className={`fixed z-[45] flex items-center justify-center rounded-full border border-neon-400/30 bg-[#16161c] shadow-[0_8px_30px_rgba(0,0,0,0.5)] select-none touch-none ${dragging ? 'cursor-grabbing scale-110' : 'cursor-grab hover:scale-105'} transition-transform`}
+          className={`fixed z-[45] flex items-center justify-center rounded-full border border-neon-400/30 bg-[#18181e] shadow-[0_8px_30px_rgba(0,0,0,0.5)] select-none touch-none ${dragging ? 'cursor-grabbing scale-110' : 'cursor-grab hover:scale-105'} transition-transform`}
           style={{ left: pos.x, top: pos.y, width: SIZE, height: SIZE }}
         >
           <span className="pointer-events-none"><Orb size={40} glow={!dragging} /></span>
-          {busy && !open && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-neon-400 animate-pulse border-2 border-[#16161c]" />}
+          {busy && !open && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-neon-400 animate-pulse border-2 border-white/[0.08]" />}
         </button>
       )}
     </>
