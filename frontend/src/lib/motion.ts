@@ -3,12 +3,16 @@ import { useEffect, useRef, useState } from 'react'
 export const prefersReducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
+/** Phones / touch screens get the light version: no count-ups or reveal effects (they jank older iPhones). */
+export const liteMotion = () =>
+  prefersReducedMotion() || (typeof window !== 'undefined' && !!window.matchMedia?.('(hover: none), (pointer: coarse)').matches)
+
 /**
  * Smoothly counts a number to its new value and reports which way it moved,
  * so the caller can flash green/red. Counts up from 0 on the first real value.
  */
 export function useAnimatedNumber(target: number, { duration = 900, enabled = true }: { duration?: number; enabled?: boolean } = {}) {
-  const animate = enabled && !prefersReducedMotion()
+  const animate = enabled && !liteMotion()
   const [value, setValue] = useState(animate ? 0 : target)
   const [flash, setFlash] = useState<{ dir: 'up' | 'down'; key: number } | null>(null)
   const from = useRef(animate ? 0 : target)
@@ -17,7 +21,7 @@ export function useAnimatedNumber(target: number, { duration = 900, enabled = tr
   useEffect(() => {
     if (!Number.isFinite(target)) return
     cancelAnimationFrame(frame.current)
-    if (!enabled || prefersReducedMotion()) { from.current = target; setValue(target); return }
+    if (!enabled || liteMotion()) { from.current = target; setValue(target); return }
     const start = from.current
     if (Math.abs(target - start) < 1e-9) { setValue(target); return }
     // Flash only on real changes, not on the first count-up from zero.
@@ -80,7 +84,7 @@ export function installCardSpotlight() {
 /** Run a DOM update as a circular reveal from (x, y) where the browser supports it. */
 export function circularReveal(update: () => void, x?: number, y?: number) {
   const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
-  if (!doc.startViewTransition || prefersReducedMotion() || x == null || y == null) { update(); return }
+  if (!doc.startViewTransition || liteMotion() || x == null || y == null) { update(); return }
   const root = document.documentElement
   const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
   root.style.setProperty('--mk-vt-x', `${x}px`)

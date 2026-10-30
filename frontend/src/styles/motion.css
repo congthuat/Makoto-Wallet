@@ -145,8 +145,10 @@ html[data-theme=light] .mk-header[data-scrolled] { background-color: rgba(246, 2
   html:not([data-theme=light]) .mk-tabbar { background-color: rgba(19, 19, 23, .98) !important }
   html[data-theme=light] .mk-header, html[data-theme=light] .mk-header[data-scrolled] { background-color: rgba(246, 246, 248, .97) !important }
   html[data-theme=light] .mk-tabbar { background-color: rgba(250, 250, 252, .98) !important }
-  #mk-main .mk-card, #mk-main .mk-hero { animation: mk-page .2s ease-out both; animation-delay: 0s }
-  .mk-live-dot::after { animation: none }
+  #mk-main, #mk-main .mk-card, #mk-main .mk-hero, .mk-breathe, .mk-blink, .mk-skel, .mk-draw, .mk-area-in,
+  .mk-live-dot, .mk-live-dot::after, .mk-float, .mk-orb-think, .mk-orb-think .mk-blink, .mk-halo,
+  .mk-flash-up, .mk-flash-down, .mk-ring, .mk-confetti { animation: none !important }
+  .mk-confetti, .mk-ring, .mk-halo, .mk-primary::after { display: none }
 }
 
 @media (prefers-reduced-motion: reduce) {
