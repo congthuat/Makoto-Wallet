@@ -331,7 +331,7 @@ function MobileTabBar() {
   ]
   return (
     <>
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/[0.06] bg-[#131317]/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+      <nav className="mk-tabbar lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/[0.06] bg-[#131317]/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
         <div className="grid grid-cols-5 h-[60px]">
           <Tab id="home" icon={Home} label="Home" />
           <Tab id="agent" icon={Sparkles} label="Agent" />

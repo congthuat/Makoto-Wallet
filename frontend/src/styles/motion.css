@@ -132,6 +132,23 @@ html[data-theme=light] .mk-header[data-scrolled] { background-color: rgba(246, 2
 .mk-copied { animation: mk-copied .3s var(--mk-ease-spring) both }
 
 /* Respect "reduce motion": no movement, instant results. */
+/* Phones / touch screens: keep motion light so taps never wait on the GPU.
+   No live blur layers, no frosted glass over scrolling content, quick card fade instead of a cascade. */
+@media (hover: none), (pointer: coarse) {
+  .mk-aurora > i { filter: none !important; animation: none !important; opacity: 1 }
+  .mk-aurora > i:nth-child(1) { background: radial-gradient(closest-side, rgba(212, 255, 58, .14), transparent) }
+  .mk-aurora > i:nth-child(2) { background: radial-gradient(closest-side, rgba(126, 71, 255, .18), transparent) }
+  .mk-aurora > i:nth-child(3) { background: radial-gradient(closest-side, rgba(56, 189, 248, .09), transparent) }
+  html[data-theme=light] .mk-aurora > i:nth-child(1) { background: radial-gradient(closest-side, rgba(170, 220, 20, .2), transparent) }
+  .mk-header, .mk-header[data-scrolled], .mk-tabbar, .backdrop-blur-sm, .backdrop-blur, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl { backdrop-filter: none !important; -webkit-backdrop-filter: none !important }
+  html:not([data-theme=light]) .mk-header, html:not([data-theme=light]) .mk-header[data-scrolled] { background-color: rgba(11, 11, 16, .97) !important }
+  html:not([data-theme=light]) .mk-tabbar { background-color: rgba(19, 19, 23, .98) !important }
+  html[data-theme=light] .mk-header, html[data-theme=light] .mk-header[data-scrolled] { background-color: rgba(246, 246, 248, .97) !important }
+  html[data-theme=light] .mk-tabbar { background-color: rgba(250, 250, 252, .98) !important }
+  #mk-main .mk-card, #mk-main .mk-hero { animation: mk-page .2s ease-out both; animation-delay: 0s }
+  .mk-live-dot::after { animation: none }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #mk-main, #mk-main .mk-card, #mk-main .mk-hero, .mk-in, .mk-breathe, .mk-blink, .mk-dot, .mk-skel, .mk-draw, .mk-area-in,
   .mk-live-dot, .mk-live-dot::after, .mk-aurora > i, .mk-float, .mk-orb-think, .mk-orb-think .mk-blink, .mk-halo, .mk-bubble-in,
