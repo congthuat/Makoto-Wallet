@@ -28,6 +28,22 @@ function isDepOptError(msg: string): boolean {
   return DEP_OPT_PATTERNS.some((p) => msg.includes(p))
 }
 
+// A tab opened before a new deploy asks for page files that no longer exist.
+// Reload once to pick up the new version instead of leaving a dead screen.
+const CHUNK_RELOAD_KEY = '__chunk_reload'
+export function isChunkLoadError(msg: string): boolean {
+  return /Importing a module script failed|Failed to fetch dynamically imported module|error loading dynamically imported module|Unable to preload CSS|ChunkLoadError|Loading chunk .* failed/i.test(msg)
+}
+export function reloadForNewVersion(): boolean {
+  try {
+    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0)
+    if (Date.now() - last < 30_000) return false
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()))
+  } catch { /* storage blocked: still try once */ }
+  location.reload()
+  return true
+}
+
 // Shared format with entry-client: { c: count, t: timestamp }
 function getReloadState(): { c: number; t: number } {
   try {
@@ -45,6 +61,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
+    if (isChunkLoadError(error.message)) { reloadForNewVersion(); return }
     if (!isDepOptError(error.message)) return
     // Vite dep optimization may serve React stubs during cold start.
     // Auto-reload so the browser fetches the real modules once ready.
@@ -60,6 +77,15 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       if (this.props.fallback) return this.props.fallback
+
+      if (isChunkLoadError(this.state.error.message)) {
+        return (
+          <div style={{ padding: '24px', margin: '16px', borderRadius: '12px', background: 'rgba(212,255,58,0.06)', border: '1px solid rgba(212,255,58,0.2)', color: '#e5e5e5', fontSize: '14px', fontFamily: 'system-ui, sans-serif', textAlign: 'center' }}>
+            <p style={{ fontWeight: 600, marginBottom: '10px' }}>Makoto vừa có bản mới · A new version is available</p>
+            <button onClick={() => location.reload()} style={{ padding: '10px 18px', borderRadius: '10px', background: '#d4ff3a', color: '#0b0b10', fontWeight: 600, border: 0 }}>Tải lại · Reload</button>
+          </div>
+        )
+      }
 
       // Show a friendlier message for dep optimization errors that will auto-reload
       if (isDepOptError(this.state.error.message)) {

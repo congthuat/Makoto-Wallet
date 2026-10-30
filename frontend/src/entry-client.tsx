@@ -29,6 +29,16 @@ function getReloads(): { c: number; t: number } {
   } catch { return { c: 0, t: 0 } }
 }
 
+// A page file from an older deploy is gone: load the new version once.
+window.addEventListener('vite:preloadError', (event) => {
+  try {
+    if (Date.now() - Number(sessionStorage.getItem('__chunk_reload') || 0) < 30_000) return
+    sessionStorage.setItem('__chunk_reload', String(Date.now()))
+  } catch { /* storage blocked: still try once */ }
+  event.preventDefault()
+  location.reload()
+})
+
 async function boot() {
   const root = document.getElementById('root')!
 
