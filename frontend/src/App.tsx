@@ -16,6 +16,7 @@ import { ConnectModal, ReceiveModal, TxDetailModal, copyText } from './component
 import { FeedbackLink } from './components/wallet/FeedbackLink'
 import HomePage from './pages/Home'
 import { COMMUNITY } from './lib/community'
+import { BrowserNotice } from './components/BrowserNotice'
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const AssetsPage = lazy(() => import('./pages/AssetsActivity').then((m) => ({ default: m.AssetsPage })))
 const ActivityPage = lazy(() => import('./pages/AssetsActivity').then((m) => ({ default: m.ActivityPage })))
@@ -442,6 +443,7 @@ function Shell() {
 
       <div className="flex-1 min-w-0 mk-bg overflow-x-hidden">
         <Header onMenu={() => setMenuOpen(true)} onConnect={() => setConnectOpen(true)} menuOpen={menuOpen} menuTriggerRef={menuTriggerRef} />
+        <BrowserNotice />
         {w.walletError && (
           <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
             <div className={`p-3 rounded-xl border border-white/[0.07] bg-white/[0.02] text-[13px] ${T.sub} flex items-center gap-2`}><AlertTriangle size={15} className="text-amber-300" /> {tr("Couldn't load wallet data.")} <button onClick={w.refetchWallet} className="font-semibold text-neon-300">{tr('Retry')}</button></div>
