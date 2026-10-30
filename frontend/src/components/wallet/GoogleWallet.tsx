@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, Check, Copy, Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react'
-import { googleConfig, loadGoogleIdentity, readGoogleCredential, vaultLookup, vaultSave, type LookupResult } from '../../lib/googleSignIn'
+import { AlertTriangle, Check, Copy, ExternalLink, Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react'
+import { googleConfig, inAppBrowser, loadGoogleIdentity, openInBrowserHref, readGoogleCredential, vaultLookup, vaultSave, type LookupResult } from '../../lib/googleSignIn'
 import { createRecoveryPhrase, isValidPhrase, normalizePhrase, passwordProblem, type VaultWords } from '../../lib/embeddedVault'
 import { storeNewEmbedded, unlockEmbedded } from '../../lib/embeddedWallet'
 import type { BrowserWallet } from '../../lib/walletProviders'
@@ -54,6 +54,9 @@ export function GoogleWallet({ vi, onReady, disabled }: { vi: boolean; onReady: 
   const credential = useRef<string>('')
   const who = useRef<{ sub: string; email: string }>({ sub: '', email: '' })
   const buttonRef = useRef<HTMLDivElement>(null)
+  const [inApp] = useState(inAppBrowser)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const onCredentialRef = useRef<(token: string) => void>(() => {})
   // Load config + Google script and initialise once.
@@ -62,8 +65,9 @@ export function GoogleWallet({ vi, onReady, disabled }: { vi: boolean; onReady: 
     void googleConfig().then(async (config) => {
       if (!alive) return
       if (!config.enabled || !config.clientId) { setEnabled(false); return }
-      await loadGoogleIdentity()
-      if (!alive || !window.google?.accounts?.id) return
+      try { await loadGoogleIdentity() } catch { if (alive) { setLoadFailed(true); setEnabled(true) } return }
+      if (!alive) return
+      if (!window.google?.accounts?.id) { setLoadFailed(true); setEnabled(true); return }
       window.google.accounts.id.initialize({
         client_id: config.clientId, auto_select: false, ux_mode: 'popup', use_fedcm_for_button: true,
         callback: (response: { credential?: string }) => { if (response.credential) onCredentialRef.current(response.credential) },
@@ -74,10 +78,10 @@ export function GoogleWallet({ vi, onReady, disabled }: { vi: boolean; onReady: 
   }, [])
   // (Re)draw Google's official button whenever the idle step is visible.
   useEffect(() => {
-    if (enabled !== true || step.name !== 'idle' || !buttonRef.current || !window.google?.accounts?.id) return
+    if (enabled !== true || inApp || loadFailed || step.name !== 'idle' || !buttonRef.current || !window.google?.accounts?.id) return
     buttonRef.current.innerHTML = ''
     window.google.accounts.id.renderButton(buttonRef.current, { theme: 'filled_black', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'left', width: Math.min(buttonRef.current.clientWidth || 360, 400), locale: vi ? 'vi' : 'en' })
-  }, [enabled, step.name, vi])
+  }, [enabled, inApp, loadFailed, step.name, vi])
 
   const reset = () => { setPassword(''); setConfirm(''); setAck(false); setSaved(false); setImported(''); setError('') }
 
@@ -104,7 +108,30 @@ export function GoogleWallet({ vi, onReady, disabled }: { vi: boolean; onReady: 
   if (enabled === false) return null
   return (
     <div className="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3.5" data-google-wallet>
-      {step.name === 'idle' && (
+      {step.name === 'idle' && inApp && enabled === true && (() => {
+        const href = openInBrowserHref()
+        const browser = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Safari' : 'Chrome'
+        const appName = inApp === 'app' ? L('this app', 'ứng dụng này') : inApp
+        return (
+          <div className="space-y-2.5" data-google-inapp>
+            <p className="flex gap-2 text-[12.5px] leading-5 text-amber-300"><AlertTriangle size={15} className="shrink-0 mt-0.5" />
+              {L(`Google does not allow sign-in inside ${appName}'s built-in browser. Open Makoto in ${browser} to continue with Google.`, `Google không cho đăng nhập trong trình duyệt của ${appName}. Hãy mở Makoto bằng ${browser} để đăng nhập Google.`)}
+            </p>
+            {href && <a href={href} className="mk-primary h-10 w-full rounded-xl bg-neon-500 text-[#0b0b10] text-[13px] font-semibold inline-flex items-center justify-center gap-2"><ExternalLink size={15} /> {L(`Open in ${browser}`, `Mở bằng ${browser}`)}</a>}
+            <button type="button" onClick={() => { void navigator.clipboard?.writeText(window.location.href).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800) }) }}
+              className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.05] text-[13px] font-semibold inline-flex items-center justify-center gap-2">
+              {linkCopied ? <Check size={15} /> : <Copy size={15} />} {linkCopied ? L('Link copied — paste it in your browser', 'Đã sao chép — dán vào trình duyệt') : L('Copy link', 'Sao chép liên kết')}
+            </button>
+            <p className={`text-center text-[11.5px] ${T.mute}`}>{L('Or tap ⋯ in the corner and choose “Open in browser”.', 'Hoặc bấm ⋯ ở góc màn hình rồi chọn “Mở bằng trình duyệt”.')}</p>
+          </div>
+        )
+      })()}
+      {step.name === 'idle' && !inApp && loadFailed && (
+        <p className="flex gap-2 text-[12.5px] leading-5 text-amber-300" role="alert"><AlertTriangle size={15} className="shrink-0 mt-0.5" />
+          {L('Google sign-in could not load. Turn off content blockers / private relay for this site, check your connection, then reload.', 'Không tải được nút đăng nhập Google. Hãy tắt trình chặn quảng cáo cho trang này, kiểm tra mạng rồi tải lại trang.')}
+        </p>
+      )}
+      {step.name === 'idle' && !inApp && !loadFailed && (
         <>
           <div ref={buttonRef} className="w-full min-h-[44px] flex justify-center" aria-label={L('Continue with Google', 'Tiếp tục với Google')} />
           {enabled === null && <div className="h-11 rounded-full bg-white/[0.04] animate-pulse" />}
