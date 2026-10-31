@@ -38,6 +38,7 @@ const StatusPage = lazy(() => import('./pages/Product').then((m) => ({ default: 
 import CommandPalette from './components/CommandPalette'
 import FloatingAgent from './components/FloatingAgent'
 import { EmbeddedApproval } from './components/wallet/EmbeddedApproval'
+import { WcPendingSheet } from './components/wallet/WcPendingSheet'
 import { EmbeddedUnlockGate } from './components/wallet/EmbeddedWalletUI'
 
 type SidebarDestination = Page | 'receive'
@@ -480,6 +481,7 @@ function Shell() {
       <ReceiveModal />
       <TxDetailModal />
       <EmbeddedApproval />
+      <WcPendingSheet />
       <EmbeddedUnlockGate />
 
       {w.toast && (

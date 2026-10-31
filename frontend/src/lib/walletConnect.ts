@@ -89,6 +89,21 @@ function lastWallet(): WcWallet | undefined {
   try { const id = localStorage.getItem(LAST_WALLET_KEY); return WC_WALLETS.find((wallet) => wcWalletId(wallet) === id) } catch { return undefined }
 }
 
+/**
+ * A request waiting for approval in the wallet app. Phone browsers often block opening the wallet
+ * app automatically, so the UI shows an "Open wallet" button (a real tap) and a Cancel button.
+ */
+export type PendingWcRequest = { id: number; method: string; walletName: string; link: string | null }
+let pendingWc: PendingWcRequest | null = null
+let cancelPending: (() => void) | null = null
+let pendingSeq = 0
+const pendingListeners = new Set<() => void>()
+const emitPending = () => pendingListeners.forEach((listener) => listener())
+export const subscribePendingWc = (listener: () => void) => { pendingListeners.add(listener); return () => { pendingListeners.delete(listener) } }
+export const getPendingWc = () => pendingWc
+/** Stop waiting for the wallet app (treated like the user rejecting in the wallet). */
+export const cancelPendingWc = () => cancelPending?.()
+
 /** Wrap the WalletConnect provider so signing requests reopen the paired wallet app on phones. */
 function wrap(provider: WcProvider, wallet?: WcWallet): Eip1193 {
   return {
@@ -97,11 +112,21 @@ function wrap(provider: WcProvider, wallet?: WcWallet): Eip1193 {
       // A switch to a chain the session already approved is handled locally — no need to leave the page.
       const approved = approvedChains(provider)
       const localSwitch = args.method === 'wallet_switchEthereumChain' && approved.includes(`eip155:${parseInt(String((args.params?.[0] as { chainId?: string } | undefined)?.chainId ?? '0'), 16)}`)
-      if (USER_METHODS.has(args.method) && !localSwitch && isMobile() && typeof window !== 'undefined') {
-        const target = wallet?.native
-        if (target) setTimeout(() => { window.location.href = target }, 400)
-      }
-      return pending
+      if (!USER_METHODS.has(args.method) || localSwitch) return pending
+      const mobile = isMobile() && typeof window !== 'undefined'
+      const target = mobile ? wallet?.native ?? null : null
+      if (target) setTimeout(() => { window.location.href = target }, 400)
+      const id = ++pendingSeq
+      let reject!: (error: Error) => void
+      const cancelled = new Promise<never>((_, fail) => { reject = fail })
+      pending.catch(() => { /* surfaced through the race below */ })
+      pendingWc = { id, method: args.method, walletName: wallet?.name ?? provider.session?.peer?.metadata?.name ?? 'WalletConnect', link: target }
+      cancelPending = () => reject(Object.assign(new Error('User rejected the request.'), { code: 4001 }))
+      emitPending()
+      const result = Promise.race([pending, cancelled])
+      const done = () => { if (pendingWc?.id === id) { pendingWc = null; cancelPending = null; emitPending() } }
+      result.then(done, done)
+      return result
     },
     on: (event, cb) => provider.on(event, cb),
     removeListener: (event, cb) => provider.removeListener(event, cb),
