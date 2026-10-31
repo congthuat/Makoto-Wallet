@@ -6,7 +6,7 @@ import { AgentSwapCard } from '../components/AgentSwapCard'
 import { AgentBridgeCard } from '../components/AgentBridgeCard'
 import type { CctpTransferSpeed } from '../migrated/toolLayer'
 import { useWallet } from '../lib/store'
-import { ARC, TOKENS, fmtAmt, getProvider, isAddress, short, usd } from '../lib/wallet'
+import { ARC, TOKENS, ensureArcNetwork, fmtAmt, getProvider, isAddress, short, usd } from '../lib/wallet'
 import { pickScenario, SAMPLE_PROMPTS } from '../lib/scenarios'
 import { taskApi, taskBinding, taskDefinition, taskDisplayTitle, taskError, taskIntentMode, taskItemsForAccount, type TaskCandidate } from '../lib/tasks'
 import { taskText, type TaskTextKey } from '../lib/taskText'
@@ -329,8 +329,18 @@ function ReviewCard({ msg, onChange, onSlipChange, onSpeedChange, onConfirm, onC
   onSlipChange: (s: SlipOption) => void; onSpeedChange: (s: CctpTransferSpeed) => void
   onConfirm: () => void; onContinue: () => void; onHandoff: () => void; onEdit: () => void
 }) {
-  const { holdings, contacts, activity } = useWallet()
+  const { holdings, contacts, activity, mode, walletChainId, notify } = useWallet()
   const [tr] = useT()
+  const [switching, setSwitching] = useState(false)
+  const wrongNetwork = mode === 'connected' && walletChainId !== undefined && walletChainId !== ARC.chainId
+  const switchNetwork = async () => {
+    const provider = getProvider()
+    if (!provider || switching) return
+    setSwitching(true)
+    try { await ensureArcNetwork(provider); notify(tr('Switched to Arc Testnet')) }
+    catch { notify(tr('Could not switch network. Open your wallet and choose Arc Testnet.'), 'err') }
+    finally { setSwitching(false) }
+  }
   const f = msg.flow!
   const p = f.params
   const locked = f.stage > 2
@@ -383,6 +393,12 @@ function ReviewCard({ msg, onChange, onSlipChange, onSpeedChange, onConfirm, onC
         </>}
       </div>
       {f.intent === 'send' && isAddress(p.recipient) && <div className="px-4 pb-3"><RecipientSafety recipient={p.recipient} contacts={contacts} activity={activity} /></div>}
+      {wrongNetwork && f.session.stage !== 'HANDED_OFF' && (
+        <div className="mx-4 mb-3 p-3 rounded-lg border border-amber-300/30 bg-amber-300/[0.06] text-[12.5px]" data-wrong-network>
+          <p className="text-amber-200">{tr('Your wallet is on another network. Makoto actions run on Arc Testnet.')}</p>
+          <Button size="sm" variant="primary" className="mt-2" disabled={switching} onClick={() => void switchNetwork()}>{switching ? '…' : tr('Switch to Arc Testnet')}</Button>
+        </div>
+      )}
       {!locked && (
         <div className="px-4 pb-4">
           {errs.length > 0 ? <p className={`mb-2.5 text-[12px] ${T.mute}`}>{tr(errs[0])}.</p>
@@ -600,7 +616,7 @@ export default function AgentPage() {
     const rows: [string, string][] = message.strategyKinds ? message.strategyKinds.map((kind, index) => [`${index + 1}. ${tr(cap(kind.toLowerCase()))}`, index ? tr('After step {n} is confirmed and checked again.').replace('{n}', String(index)) : tr('First step')]) : (message.rows ?? []).map(([label, value]) => [tr(label), tr(value)])
     if (message.liveEvidence) {
       const evidence = message.liveEvidence
-      rows.push([tr('Live evidence'), `${tr(agentStatusLabel(evidence.status))}: ${tr(evidence.reason)}`])
+      rows.push([tr('Live evidence'), `${tr(agentStatusLabel(evidence.status))}: ${tr(evidence.reason === 'Chain changed' ? 'Wallet is not on Arc Testnet' : evidence.reason)}`])
       if (evidence.quoteExpiresAt) rows.push([tr('Quote expires'), new Date(evidence.quoteExpiresAt).toLocaleTimeString(locale === 'vi' ? 'vi-VN' : 'en-US')])
     }
     return rows
